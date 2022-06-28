@@ -2,7 +2,7 @@
 
 ## Requirements
 - opam
-- Coq v15.0
+- Coq v8.15.0
 - [coq-bignums](https://github.com/coq-community/bignums) (no need to install if you have Coq Platform)
   
 ## How to set up for development

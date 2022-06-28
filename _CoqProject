@@ -1,2 +1,3 @@
 -R src Circom
 src/BabyJubjub.v
+src/circomlib/comparators.v

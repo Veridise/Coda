@@ -1,3 +1,6 @@
 [submodule "fiat-crypto"]
 	path = fiat-crypto
 	url = https://github.com/mit-plv/fiat-crypto
+[submodule "coqprime"]
+	path = coqprime
+	url = git@github.com:thery/coqprime.git

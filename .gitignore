@@ -48,6 +48,7 @@ time-of-build-pretty.log
 # Makefiles
 /Makefile.coq
 /Makefile.coq.conf
+**/Makefile.conf
 
 # vscode
 .vscode

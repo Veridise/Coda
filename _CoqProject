@@ -1,3 +1,5 @@
 -R src Circom
 src/BabyJubjub.v
+src/Util.v
 src/circomlib/comparators.v
+src/circomlib/bitify.v

@@ -2,6 +2,9 @@ Require Import Coq.PArith.BinPosDef.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
 Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
 
+(* Circuit:
+ * https://github.com/iden3/circomlib/blob/master/circuits/comparators.circom
+ *)
 
 Section _comparators.
 

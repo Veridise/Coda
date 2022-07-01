@@ -1,102 +1,94 @@
-Require Import BabyJubjub.
-Require Import Crypto.Util.Tuple.
-Require Import BabyJubjub.
+Require Import Coq.Lists.List.
+Require Import Coq.micromega.Lia.
+Require Import Coq.Arith.PeanoNat.
+Require Import Coq.Arith.Compare_dec.
 Require Import Coq.PArith.BinPosDef.
 Require Import Coq.ZArith.Znumtheory.
-Require Import Coq.PArith.BinPosDef.
+
+Require Import Crypto.Spec.ModularArithmetic.
+Require Import Crypto.Spec.ModularArithmetic.
+Require Import Crypto.Arithmetic.PrimeFieldTheorems.
+
+
+Require Import Crypto.Util.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
-Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
+Require Import BabyJubjub.
+Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
+
+
+Require Import Util.
+(* From Coq Require Import Lia. *)
 
 (* Require Import Crypto.Spec.ModularArithmetic. *)
 (* Circuit:
- * https://github.com/iden3/circomlib/blob/master/circuits/bitify.circom
- *)
+* https://github.com/iden3/circomlib/blob/master/circuits/bitify.circom
+*)
 
- Context {F eq zero one opp add sub mul inv div}
- {fld:@Hierarchy.field F eq zero one opp add sub mul inv div}
- {eq_dec:DecidableRel eq}.
-Local Infix "=" := eq. Local Notation "a <> b" := (not (a = b)).
-Local Infix "=" := eq : type_scope. Local Notation "a <> b" := (not (a = b)) : type_scope.
-Local Notation "0" := zero.  Local Notation "1" := one.
-Local Infix "+" := add. Local Infix "*" := mul.
-Local Infix "-" := sub. Local Infix "/" := div.
+Local Open Scope list_scope.
+Local Open Scope F_scope.
+
+Context (q:positive) {prime_q:prime q}.
+
 
 (***********************
  *      Num2Bits
  ***********************)
 
-(* Definition fold_i {A B n} (f: nat -> A -> B) (x: list A) -> list B :=  *)
-  
-  (* fun xx => snd (@mapi_with unit A B n (fun n _ x => (tt, f n x)) tt xx). *)
-Require Import Coq.Lists.List.
-Local Open Scope list_scope.
+Definition F_q := F q.
 
-Require Import Coq.PArith.BinPosDef.
-Require Import Util.
-Require Import Coq.Arith.PeanoNat.
-From Coq Require Import Lia.
-Require Import Coq.Arith.Compare_dec.
-Require Import Crypto.Util.Decidable.
-(* Require Import Crypto.Arithmetic.PrimeFieldTheorems. *)
+Definition binary (x: F_q) := x = 0 \/ x = 1.
 
-(* Context (m:positive) {prime_m:prime m}. *)
+(* WIP: decode a binary signal vector to its value
+Definition decode0b (xs: tuple F n) := fold_right add zero xs.
 
-Definition binary (x: F) := x = zero \/ x = one.
+Definition w (i: F) := F.pow 2 i.
 
-Definition sum (xs: list F) := fold_right add zero xs.
+Definition decode_0b_list (xs: list F) :=  
+  *)
 
-Definition Num2Bits n (_in: F) (_out: tuple (F) n) : Prop :=
-  let lc1 := zero in
-  let e2 := one in
-  match (iter n
-    (fun i acc =>
-      match acc with
-      | (lc1, e2, _C) =>
-        let out_i := (Tuple.nth_default zero i _out) in
-          (lc1 + out_i * e2,
-          e2 + e2,
-          (out_i * (out_i - 1) = 0) /\ _C)
-      end)
-      (lc1, e2, True)) with
-  | (lc1, e2, _C) => (lc1 = _in) /\ _C
-  end.
 
-Definition Num2Bits_spec n (_in: F) (_out: tuple F n) :=
-  (forall i, Nat.lt i n -> binary (Tuple.nth_default zero i _out)).
+Definition Num2Bits n (_in: F_q) (_out: tuple F_q n) : Prop :=
+  let lc1 := 0 in
+  let e2 := 1 in
+  let '(lc1, e2, _C) := (iter n (fun i '(lc1, e2, _C) =>
+    let out_i := (Tuple.nth_default 0 i _out) in
+      (lc1 + out_i * e2,
+      e2 + e2,
+      (out_i * (out_i - 1) = 0) /\ _C))
+    (lc1, e2, True)) in
+  (lc1 = _in) /\ _C.
 
-Definition Num2Bits_inv n (_out: tuple F n) i (acc: (F * F * Prop)) :=
-  match acc with
-  | (lc1, e2, _C) =>
-    _C -> forall j, Nat.lt j i -> binary (Tuple.nth_default zero j _out)
-  end.
 
 Theorem Num2Bits_correct n _in _out:
-  Num2Bits n _in _out -> Num2Bits_spec n _in _out.
+  Num2Bits n _in _out -> (forall i, Nat.lt i n -> binary (Tuple.nth_default 0 i _out)).
 Proof using Type*.
-  unfold Num2Bits, Num2Bits_spec.
+  pose proof prime_q.
+  pose (Inv := fun i '((lc1, e2, _C): (F.F q * F.F q * Prop)) =>
+    (* match acc with *)
+    (* |  => *)
+      (_C -> (forall j, Nat.lt j i -> binary (Tuple.nth_default 0 j _out)))).
+  pose proof (iter_inv Inv) as Hinv.
+  unfold Num2Bits.
   intros prog i H_i_lt_n.
-  pose proof (iter_inv (Num2Bits_inv n _out)) as Hinv.
   (* iter initialization *)
   remember (0, 1, True) as a0.
   (* iter function *)
-  remember (fun (i : nat) (acc : bitify.F * bitify.F * Prop) =>
-    let (y, _C) := acc in
-    let (lc1, e2) := y in
-    (lc1 + Tuple.nth_default 0 i _out * e2, e2 + e2,
-    Tuple.nth_default 0 i _out * (Tuple.nth_default 0 i _out - 1) = 0 /\
-    _C)) as f.
+  match goal with
+  | [ H: context[match ?it ?n ?f ?init with _ => _ end] |- _ ] =>
+    let x := fresh "f" in remember f as x
+  end.
   (* Prove Inv hold for initialization *)
-  assert (Hinit: Num2Bits_inv n _out 0 a0).
+  assert (Hinit: Inv Nat.zero a0).
   {
-    unfold Num2Bits_inv.
-    rewrite Heqa0. intros _ j H_j_lt_0.
-    unfold binary. left. lia.
+    unfold Inv.
+    rewrite Heqa0. intros _ j impossible.
+    inversion impossible.
   }
   (* Prove Inv is inductive *)
-  assert (Hind: forall (j : nat) (b : bitify.F * bitify.F * Prop),
-    Num2Bits_inv n _out j b -> Num2Bits_inv n _out (S j) (f j b)).
+  assert (Hind: forall (j : nat) (b : F.F q * F.F q * Prop),
+    Inv j b -> Inv (S j) (f j b)).
   {
-    unfold Num2Bits_inv.
+    unfold Inv.
     intros j res Hprev.
     destruct res. destruct p.
     rewrite Heqf.
@@ -110,10 +102,13 @@ Proof using Type*.
       replace j0 with j by lia.
       destruct (dec (Tuple.nth_default 0 j _out = 0)).
       + auto.
-      + right. Field.fsatz.
+      + right.
+      rewrite <- Ring.sub_zero_iff.
+      apply Hierarchy.zero_product_zero_factor in Hstep.
+      destruct (dec (nth_default 0 j _out = 0)); intuition.
   }
-  specialize (Hinv f a0 Hinit Hind n).
-  unfold Num2Bits_inv in Hinv.
+  specialize (Hinv f a0 Hinit Hind n). clear Hind Hinit.
+  unfold Inv in Hinv.
   destruct (iter n f a0).
   destruct p.
   intuition.

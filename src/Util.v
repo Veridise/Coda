@@ -23,8 +23,8 @@ Local Hint Rewrite iter'_S : iter.
 Definition iter (A: Type) (n: nat) := @iter' A n n.
 Local Hint Unfold iter : iter.
 
-Theorem iter_inv {A: Type}:
-  forall (Inv: nat -> A -> Prop) f a,
+Theorem iter_inv {A: Type} (Inv: nat -> A -> Prop):
+  forall f a,
   Inv 0 a ->
   (forall j b, Inv j b -> Inv (S j) (f j b)) ->
   (forall i, Inv i (iter A i f a)).

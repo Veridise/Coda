@@ -34,29 +34,30 @@ Ltac split_eqns :=
  ***********************)
 
 (* IsZero constraints *)
-Definition IsZero_cons s_in s_out s_inv :=
-  s_out = 1 - s_in * s_inv /\
-  s_in * s_out = 0.
+Definition IsZero_cons (_in _out _inv: F) :=
+  _out = 1 - _in * _inv /\
+  _in * _out = 0.
 
-(* IsZero template *)
-Definition IsZero s_in s_out :=
-  exists s_inv, IsZero_cons s_in s_out s_inv.
+(* IsZero template (hides intermediate variables) *)
+Definition IsZero (_in _out: F) :=
+  exists _inv, IsZero_cons _in _out _inv.
 
 (* IsZero spec *)
-Definition IsZero_spec s_in s_out :=
-  (s_in = 0 -> s_out = 1) /\ (~(s_in = 0) -> s_out = 0).
+Definition IsZero_spec (_in _out: F) :=
+  (_in = 0 -> _out = 1) /\
+  (~(_in = 0) -> _out = 0).
 
 (* IsZero correctness theorem *)
-Theorem IsZero_correct: forall s_in s_out,
-  IsZero s_in s_out <-> IsZero_spec s_in s_out.
+Theorem IsZero_correct: forall _in _out,
+  IsZero _in _out <-> IsZero_spec _in _out.
 Proof using Type*.
-  intros s_in s_out.
+  intros _in _out.
   split; intros H;
   unfold IsZero, IsZero_spec, IsZero_cons in *.
   - repeat (split_eqns; intro); fsatz.
-  - destruct (dec (eq s_in 0)).
+  - destruct (dec (eq _in 0)).
     exists 1; repeat split_eqns; intuition idtac; fsatz.
-    exists (1/s_in). repeat split_eqns. pose proof n. apply H0 in n. fsatz.
+    exists (1/_in). repeat split_eqns. pose proof n. apply H0 in n. fsatz.
     fsatz.
 Qed.
 
@@ -66,18 +67,18 @@ Qed.
  ***********************)
 
 (* IsEqual constraints *)
-Definition IsEqual_cons x y s_out := IsZero (x-y) s_out.
+Definition IsEqual_cons x y _out := IsZero (x-y) _out.
 
 (* IsEqual template *)
 Definition IsEqual := IsEqual_cons.
 
 (* IsEqual spec *)
-Definition IsEqual_spec x y s_out :=
-  (x = y -> s_out = 1) /\ (~ x = y -> s_out = 0).
+Definition IsEqual_spec x y _out :=
+  (x = y -> _out = 1) /\ (~ x = y -> _out = 0).
 
 (* IsEqual correctness theorem *)
-Theorem IsEqual_correct: forall x y s_out,
-  IsEqual x y s_out <-> IsEqual_spec x y s_out.
+Theorem IsEqual_correct: forall x y _out,
+  IsEqual x y _out <-> IsEqual_spec x y _out.
 Proof using Type*.
   intros; unfold IsEqual, IsEqual_spec, IsEqual_cons in *;
   split; intro H;
@@ -96,17 +97,17 @@ Qed.
 (***********************
  *      IsNotEqual
  ***********************)
-Definition IsNotEqual_cons x y s_out s_tmp :=
-  IsEqual x y s_tmp /\ s_out = 1 - s_tmp.
+Definition IsNotEqual_cons x y _out _tmp :=
+  IsEqual x y _tmp /\ _out = 1 - _tmp.
 
-Definition IsNotEqual x y s_out :=
-  exists s_tmp, IsNotEqual_cons x y s_out s_tmp.
+Definition IsNotEqual x y _out :=
+  exists _tmp, IsNotEqual_cons x y _out _tmp.
 
-Definition IsNotEqual_spec x y s_out :=
-  (x = y -> s_out = 0) /\ (~ x = y -> s_out = 1).
+Definition IsNotEqual_spec x y _out :=
+  (x = y -> _out = 0) /\ (~ x = y -> _out = 1).
 
-Theorem IsNotEqual_correct: forall x y s_out,
-  IsNotEqual x y s_out <-> IsNotEqual_spec x y s_out.
+Theorem IsNotEqual_correct: forall x y _out,
+  IsNotEqual x y _out <-> IsNotEqual_spec x y _out.
 Proof.
   intros; unfold IsNotEqual, IsNotEqual_spec, IsNotEqual_cons in *;
   split; intro H.

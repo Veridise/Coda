@@ -1,0 +1,138 @@
+Require Import Coq.Lists.List.
+Require Import Coq.micromega.Lia.
+Require Import Coq.Arith.PeanoNat.
+Require Import Coq.Arith.Compare_dec.
+Require Import Coq.PArith.BinPosDef.
+Require Import Coq.ZArith.Znumtheory.
+
+Require Import Crypto.Spec.ModularArithmetic.
+Require Import Crypto.Spec.ModularArithmetic.
+Require Import Crypto.Arithmetic.PrimeFieldTheorems.
+
+
+Require Import Crypto.Util.Tuple.
+Require Import Crypto.Util.Decidable Crypto.Util.Notations.
+Require Import BabyJubjub.
+Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
+Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
+
+Require Import Util.
+
+(* Circuit:
+* https://github.com/iden3/circomlib/blob/master/circuits/multiplexer.circom
+*)
+
+Local Open Scope list_scope.
+Local Open Scope F_scope.
+
+Section Multiplexer.
+
+Local Open Scope list_scope.
+Local Open Scope F_scope.
+
+
+Context (q:positive) {prime_q:prime q}.
+
+Definition F_q := F q.
+Ltac split_eqns :=
+  repeat match goal with
+  | [ |- _ /\ _ ] => split
+  | [ H: exists _, _ |- _ ] => destruct H
+  | [ H: {s | _ } |- _ ] => destruct H
+  | [ H: _ /\ _ |- _ ] => destruct H
+  end.
+
+Local Notation "a [ b ]" := (Tuple.nth_default 0 b a).
+
+(* template EscalarProduct(w) {
+    signal input in1[w];
+    signal input in2[w];
+    signal output out;
+    signal aux[w];
+    var lc = 0;
+    for (var i=0; i<w; i++) {
+        aux[i] <== in1[i]*in2[i];
+        lc = lc + aux[i];
+    }
+    out <== lc;
+} *)
+
+Definition EscalarProduct w (in1 in2: tuple F_q w) out : Prop :=
+  exists (aux: tuple F_q w),
+  let lc := 0 in
+  let '(lc, _C) := (iter w (fun i '(lc, _C) =>
+      (lc + aux[i],
+      (aux[i] = in1[i] * in2[i]) /\ _C))
+    (lc, True)) in
+  (lc = out) /\ _C.
+
+(* template Decoder(w) {
+    signal input inp;
+    signal output out[w];
+    signal output success;
+    var lc=0;
+
+    for (var i=0; i<w; i++) {
+        out[i] <-- (inp == i) ? 1 : 0;
+        out[i] * (inp-i) === 0;
+        lc = lc + out[i];
+    }
+
+    lc ==> success;
+    success * (success -1) === 0;
+} *)
+
+Definition ite {T:Type}{T1:Prop} (e: Decidable T1) (a b: T) := if e then a else b.
+
+Definition Decoder w inp (out: tuple F_q w) success : Prop :=
+  let lc := 0 in
+  let '(lc, _C) := (iter w (fun i '(lc, _C) =>
+      (lc + out[i],
+        (out[i] = ite (F.eq_dec inp (F.of_nat q i)) 1 0) /\
+        (out[i] * (inp - (F.of_nat q i)) = 0) /\ _C))
+    (lc, True)) in
+  (lc = success) /\ (success * (success -1) = 0) /\ _C.
+
+Definition get_n_m {wIn nIn}(t: tuple (tuple F_q wIn) (S nIn)) p m := 
+  let ins := (nth_default (hd t) p t) in
+  nth_default 0 m ins.
+
+(* template Multiplexer(wIn, nIn) {
+    signal input inp[nIn][wIn];
+    signal input sel;
+    signal output out[wIn];
+    component dec = Decoder(nIn);
+    component ep[wIn];
+
+    for (var k=0; k<wIn; k++) {
+        ep[k] = EscalarProduct(nIn);
+    }
+
+    sel ==> dec.inp;
+    for (var j=0; j<wIn; j++) {
+        for (var k=0; k<nIn; k++) {
+            inp[k][j] ==> ep[j].in1[k];
+            dec.out[k] ==> ep[j].in2[k];
+        }
+        ep[j].out ==> out[j];
+    }
+    dec.success === 1;
+} *)
+
+(* require: nIn > 0 *)
+Definition Multiplexer 
+  wIn nIn sel (inp: tuple (tuple F_q wIn) (S (nIn - 1))) 
+  (out: tuple F_q wIn) : Prop :=
+exists (ep_in1 ep_in2: tuple (tuple F_q nIn) (S (wIn - 1))) (ep_out: tuple F_q nIn) dec_out,
+  let '_C2 := (iter wIn (fun j '_C =>
+      (let '_C3 := (iter nIn (fun k '_C =>
+          (get_n_m inp k j = get_n_m ep_in1 j k /\ 
+           dec_out[k] = get_n_m ep_in2 j k /\ _C))
+        True) in
+              ep_out[j] = out[j] /\
+              EscalarProduct nIn (nth_default (hd ep_in1) j ep_in1) (nth_default (hd ep_in2) j ep_in2) (ep_out[j]) /\ _C3
+        ))
+    True) in
+  (Decoder nIn sel dec_out 1) /\ _C2.
+
+End Multiplexer.

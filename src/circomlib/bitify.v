@@ -33,8 +33,18 @@ Local Open Scope F_scope.
 
 
 Context (q:positive) (k:Z) {prime_q: prime q} {k_positive: 1 < k} {q_lb: 2^k < q}
-{qltb: BinPos.Pos.ltb 1 q = true}
 {fld:@Hierarchy.field (F q) eq F.zero F.one F.opp F.add F.sub F.mul F.inv F.div}.
+
+Lemma q_gt_1: 1 < q.
+Proof.
+  replace 2%Z with (2^1)%Z by lia.
+  apply Z.le_lt_trans with (m := (2 ^ k)%Z); try lia.
+Qed.
+
+Lemma q_gtb_1: (1 <? q)%positive = true.
+Proof.
+  apply Pos.ltb_lt. exact q_gt_1.
+Qed.
 
 Lemma q_gt_2: 2 < q.
 Proof.
@@ -42,6 +52,8 @@ Proof.
   apply Z.le_lt_trans with (m := (2 ^ k)%Z); try lia.
   eapply Zpow_facts.Zpower_le_monotone; try lia.
 Qed.
+
+Hint Resolve q_gt_1 q_gtb_1 q_gt_2 : core.
 
 (***********************
  *      Num2Bits
@@ -126,12 +138,12 @@ Lemma repr_to_num_S: forall ws i,
   repr_to_num ws (S i) = 2 * repr_to_num ws i.
 Proof.
   induction ws as [| w ws]; intros.
-  - fsatz_safe. rewrite qltb;auto.
+  - fsatz_safe. rewrite q_gtb_1;auto.
   - unfold repr_to_num.
     rewrite IHws.
     replace (2 ^ N.of_nat (S i)) with (2 * 2 ^ N.of_nat i)
-      by (rewrite pow_S_N; fsatz_safe; rewrite qltb; auto).
-    fsatz_safe. rewrite qltb;auto.
+      by (rewrite pow_S_N; fsatz_safe; rewrite q_gtb_1; auto).
+    fsatz_safe. rewrite q_gtb_1;auto.
 Qed.
 
 (* 
@@ -260,7 +272,7 @@ Proof.
       replace j0 with j by lia.
       destruct (dec (Tuple.nth_default 0 j _out = 0)).
       * auto.
-      * right. fsatz_safe. rewrite qltb;auto.
+      * right. fsatz_safe. rewrite q_gtb_1;auto.
    }
   unfold Inv in Hinv.
   specialize (Hinv n).

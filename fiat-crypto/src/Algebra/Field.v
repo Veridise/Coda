@@ -255,9 +255,19 @@ Ltac fsatz_solve_on fld :=
   nsatz;
   solve_debugfail ltac:(IntegralDomain.solve_constant_nonzero).
 
+Ltac fsatz_solve_on_safe fld :=
+  goal_to_field_equality fld;
+  forward_nonzero fld ltac:(fsatz_solve_on fld);
+  nsatz;
+  ltac:(IntegralDomain.solve_constant_nonzero_safe).
+
 Ltac fsatz_solve :=
   let fld := guess_field in
   fsatz_solve_on fld.
+
+Ltac fsatz_solve_safe :=
+  let fld := guess_field in
+  fsatz_solve_on_safe fld.
 
 Ltac fsatz_prepare_hyps_on fld :=
   divisions_to_inverses fld;
@@ -265,15 +275,29 @@ Ltac fsatz_prepare_hyps_on fld :=
   inverses_to_conditional_equations fld;
   forward_nonzero fld ltac:(fsatz_solve_on fld).
 
+Ltac fsatz_prepare_hyps_on_safe fld :=
+  divisions_to_inverses fld;
+  inequalities_to_inverse_equations fld;
+  inverses_to_conditional_equations fld;
+  forward_nonzero fld ltac:(fsatz_solve_on_safe fld).
+
 Ltac fsatz_prepare_hyps :=
   let fld := guess_field in
   fsatz_prepare_hyps_on fld.
+
+Ltac fsatz_prepare_hyps_safe :=
+  let fld := guess_field in
+  fsatz_prepare_hyps_on_safe fld.
 
 Ltac fsatz :=
   let fld := guess_field in
   fsatz_prepare_hyps_on fld;
   fsatz_solve_on fld.
 
+Ltac fsatz_safe :=
+  let fld := guess_field in
+  fsatz_prepare_hyps_on fld;
+  fsatz_solve_on_safe fld.
 
 Section FieldSquareRoot.
   Context {T eq zero one opp add mul sub inv div} `{@field T eq zero one opp add sub mul inv div} {eq_dec:DecidableRel eq}.

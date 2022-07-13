@@ -168,6 +168,19 @@ Module IntegralDomain.
         (vm_cast_no_check (eq_refl true))
       end
     end.
+
+  Ltac solve_constant_nonzero_safe :=
+    match goal with
+    | |- not (?eq ?x _) =>
+      let cg := constr:(_:Ring.char_ge (eq:=eq) _) in
+      match type of cg with
+        @Ring.char_ge ?R eq ?zero ?one ?opp ?add ?sub ?mul ?C =>
+        let x' := _LargeCharacteristicReflective.reify one opp add mul x in
+        let x' := constr:(@_LargeCharacteristicReflective.denote R one opp add mul x') in
+        change (not (eq x' zero));
+        apply (_LargeCharacteristicReflective.is_nonzero_correct(eq:=eq)(zero:=zero) C cg)
+      end
+    end.
 End IntegralDomain.
 
 (** Tactics for polynomial equations over integral domains *)

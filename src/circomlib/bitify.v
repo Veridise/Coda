@@ -3,7 +3,7 @@ Require Import Coq.micromega.Lia.
 Require Import Coq.Arith.PeanoNat.
 Require Import Coq.Arith.Compare_dec.
 Require Import Coq.PArith.BinPosDef.
-Require Import Coq.ZArith.Znumtheory.
+Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Znumtheory Coq.NArith.NArith. (* import Zdiv before Znumtheory *)
 Require Import Coq.NArith.Nnat.
 
 Require Import Crypto.Spec.ModularArithmetic.
@@ -32,17 +32,20 @@ Local Open Scope list_scope.
 Local Open Scope F_scope.
 
 
-Context (q:positive) {prime_q:prime q} {qltb: BinPos.Pos.ltb 1 q = true}
+Context (q:positive) (k:Z) {prime_q: prime q} {k_positive: 1 < k} {q_lb: 2^k < q}
+{qltb: BinPos.Pos.ltb 1 q = true}
 {fld:@Hierarchy.field (F q) eq F.zero F.one F.opp F.add F.sub F.mul F.inv F.div}.
 
+Lemma q_gt_2: 2 < q.
+Proof.
+  replace 2%Z with (2^1)%Z by lia.
+  apply Z.le_lt_trans with (m := (2 ^ k)%Z); try lia.
+  eapply Zpow_facts.Zpower_le_monotone; try lia.
+Qed.
 
 (***********************
  *      Num2Bits
  ***********************)
-
-Definition F_q := F q.
-
-Locate of_nat.
 
 Lemma length_nil {A: Type} : length (@nil A) = Nat.zero.
 Proof. auto. Qed.
@@ -57,8 +60,9 @@ Lemma length_cons (n: nat) {A: Type}  {ws} {ws'} {w: A} {_: ws' = w :: ws} (H_ws
   length ws' = S n.
 Proof. rewrite H. simpl. auto. Qed.
 
-Definition binary (x: F_q) := x = 0 \/ x = 1.
-Definition two : F_q := 1 + 1.
+Definition binary (x: F q) := x = 0 \/ x = 1.
+Definition two : F q := 1 + 1.
+Notation "2" := two.
 
 (* Aborted approach: Inductive prop (types get too complicated) *)
 (* ws is a big-endian, length-n binary representation of x *)
@@ -77,7 +81,7 @@ Proof.
   eapply repr_binary_cons with (w := 1).
   right. reflexivity.
   eapply repr_binary_nil.
-  - simpl. replace (two^N0) with (1:F_q). Field.fsatz.
+  - simpl. replace (two^N0) with (1:F q). Field.fsatz.
   admit.
 Admitted.
 *)
@@ -85,12 +89,12 @@ Admitted.
 Fixpoint repr_to_num (ws: list (F q)) (i: nat) : F q :=
   match ws with
   | nil => 0
-  | w::ws' => w * two^(BinNat.N.of_nat i) + repr_to_num ws' (S i)
+  | w::ws' => w * two^(N.of_nat i) + repr_to_num ws' (S i)
   end.
 
 Definition repr_binary x n ws :=
   length ws = n /\
-  (forall i, i < n -> binary (nth i ws 0)) /\
+  (forall i, (i < n)%nat -> binary (nth i ws 0)) /\
   x = repr_to_num ws 0%nat.
 
 Lemma repr_binary_base: repr_binary 0 0%nat nil.
@@ -100,12 +104,35 @@ Proof. unfold repr_binary.
   - reflexivity.
 Qed.
 
-Lemma repr_to_num_S: forall ws i,
-  repr_to_num ws (S i) = two * repr_to_num ws i.
+Lemma pow_S_N: forall (x: F q) i,
+  x ^ (N.of_nat (S i)) = x * x ^ (N.of_nat i).
 Proof.
-(* idea: should be a straight forward inductio *)
+  intros.
+  replace (N.of_nat (S i)) with (N.succ (N.of_nat i)).
+  apply F.pow_succ_r.
+  induction i.
+  - reflexivity.
+  - simpl. f_equal.
+Qed.
+
+
+Lemma pow_S_Z: forall (x: Z) i,
+  (x ^ (Z.of_nat (S i)) = x * x ^ (Z.of_nat i))%Z.
+Proof.
 Admitted.
 
+
+Lemma repr_to_num_S: forall ws i,
+  repr_to_num ws (S i) = 2 * repr_to_num ws i.
+Proof.
+  induction ws as [| w ws]; intros.
+  - fsatz_safe. rewrite qltb;auto.
+  - unfold repr_to_num.
+    rewrite IHws.
+    replace (2 ^ N.of_nat (S i)) with (2 * 2 ^ N.of_nat i)
+      by (rewrite pow_S_N; fsatz_safe; rewrite qltb; auto).
+    fsatz_safe. rewrite qltb;auto.
+Qed.
 
 (* 
   Lemma repr_binary_ind: forall x n ws w,
@@ -121,12 +148,13 @@ Proof.
     + simpl. apply H1. lia.
   - simpl. *)
 
-Definition lt (x y: F_q) := F.to_nat x <= F.to_nat y.
-Definition lt_n (x: F_q) y := F.to_nat x < y.
-Definition geq_n (x: F_q) y := F.to_nat x >= y.
+Definition lt (x y: F q) := F.to_Z x <= F.to_Z y.
+Definition lt_z (x: F q) y := F.to_Z x <= y.
+Definition geq_z (x: F q) y := F.to_Z x >= y.
+Definition leq_z (x: F q) y := F.to_Z x <= y.
 
 Lemma repr_to_num_trivial: forall ws,
-  (forall i, i < length ws -> binary (nth i ws 0)) ->
+  (forall i, (i < length ws)%nat -> binary (nth i ws 0)) ->
   repr_binary (repr_to_num ws 0) (length ws) ws.
 Proof.
   induction ws; unfold repr_binary; split; try split; intros; auto.
@@ -134,46 +162,59 @@ Qed.
 
 Theorem repr_binary_ub: forall ws x n,
   repr_binary x n ws ->
-  lt_n x (2^n)%nat.
-Proof.
-  induction ws. 
-  - unfold repr_binary; intros; simpl in *; destruct H; destruct H0. 
-    subst. cbv. lia.
-  - intros. destruct n; destruct H; destruct H0; simpl in H. lia.
-    inversion H. subst.
-    simpl.
-    assert (H_a: binary a) by (apply (H0 0%nat); lia).
-    destruct H_a; subst.
-    + replace (0 * two ^ N0 + repr_to_num ws 1%nat) with (repr_to_num ws 1%nat) by Field.fsatz.
-      replace (repr_to_num ws 1) with (two * (repr_to_num ws 0%nat)) by (rewrite repr_to_num_S; reflexivity).
-      unfold lt_n.
-      (* Need range check *)
-      replace (F.to_nat (two * repr_to_num ws 0%nat)) with (Nat.add (F.to_nat (repr_to_num ws 0%nat)) (F.to_nat (repr_to_num ws 0%nat)))
-        by admit.
-      simpl.
-      assert (F.to_nat (repr_to_num ws 0%nat) < 2 ^ length ws). {
-        apply IHws.
-        apply repr_to_num_trivial.
-        intros.
-        specialize (H0 (S i)).
-        apply H0. lia.
+  Z.of_nat n <= k ->
+  leq_z x (2^(Z.of_nat n)-1)%Z.
+Proof with (lia || nia || eauto).
+  unfold leq_z.
+  induction ws as [| w ws]; intros x n H_repr H_n.
+  - unfold repr_binary.
+    destruct H_repr. destruct H0.
+    subst. cbv. intros. inversion H.
+  - (* analyze n: is has to be S n for some n *)
+    pose proof H_repr as H_repr'.
+    destruct n; destruct H_repr; destruct H0; simpl in H. lia.
+    inversion H. subst. clear H.
+    (* assert IHws's antecedent holds *)
+    assert (H_repr_prev: repr_binary (repr_to_num ws 0) (length ws) ws). {
+      apply repr_to_num_trivial.
+      intros i Hi. 
+      specialize (H0 (S i)). apply H0...
+    }
+    (* extract consequence of IHws *)
+    assert (IH: F.to_Z (repr_to_num ws 0) <= 2 ^ Z.of_nat (length ws) - 1). {
+      apply IHws...
+    }
+    unfold repr_to_num.
+    rewrite repr_to_num_S.
+    (* introduce lemmas into scope *)
+    pose proof q_gt_2.
+    assert (H_w: 0 <= F.to_Z w <= 1). {
+      assert (H_w_binary: binary w) by (specialize (H0 O); apply H0; lia).
+      destruct H_w_binary; subst; simpl; rewrite Z.mod_small...
+    }
+    pose proof (pow_S_Z 2 (length ws)) as H_pow_S_Z.
+    assert (0 <= 2 * 2 ^ (Z.of_nat (length ws)) <= 2 ^ k). {
+        replace (2 * 2 ^ (Z.of_nat (length ws)))%Z with (2 ^ (Z.of_nat (length ws) + 1))%Z.
+        split...
+        apply Zpow_facts.Zpower_le_monotone...
+        rewrite Zpower.Zpower_exp...
       }
-      lia.
-    + (* w = 1 *)
-    admit.
-Admitted.
-
+    assert (0 <= F.to_Z (repr_to_num ws 0)). {
+      apply F.to_Z_range. lia.
+    }
+    (* get rid of mod and generate range goals *)
+    cbn; repeat rewrite Z.mod_small...
+Qed.
 
 (* If the MSB of ws is 1, then x >= 2^n *)
-Theorem repr_binary_lb: forall x n ws,
+(* Theorem repr_binary_lb: forall x n ws,
   repr_binary x (S n) ws ->
   nth 0%nat ws 0 = 1 -> 
   geq_n x (2^n)%nat.
 Proof.
-Admitted.
+Admitted. *)
 
-
-Definition Num2Bits n (_in: F_q) (_out: tuple F_q n) : Prop :=
+Definition Num2Bits n (_in: F q) (_out: tuple (F q) n) : Prop :=
   let lc1 := 0 in
   let e2 := 1 in
   let '(lc1, e2, _C) := (iter n (fun i '(lc1, e2, _C) =>
@@ -212,14 +253,14 @@ Proof.
     intros Hstep j0 H_j0_lt.
     destruct Hstep as [Hstep HP].
     specialize  (Hprev HP).
-    assert (H_j0_leq: Nat.le j0 j) by lia.
-    destruct (lt_dec j0 j).
+    assert (H_j0_leq: (j0 <= j)%nat) by lia.
+    destruct (dec (j0 < j)%nat).
     + auto.
     + unfold binary.
       replace j0 with j by lia.
       destruct (dec (Tuple.nth_default 0 j _out = 0)).
       * auto.
-      * right. unfold F_q in *. fsatz_safe. rewrite qltb;auto.
+      * right. fsatz_safe. rewrite qltb;auto.
    }
   unfold Inv in Hinv.
   specialize (Hinv n).

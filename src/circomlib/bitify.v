@@ -8,7 +8,7 @@ Require Import Coq.NArith.Nnat.
 
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Spec.ModularArithmetic.
-Require Import Crypto.Arithmetic.PrimeFieldTheorems.
+Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 
 
 Require Import Crypto.Util.Tuple.
@@ -32,7 +32,8 @@ Local Open Scope list_scope.
 Local Open Scope F_scope.
 
 
-Context (q:positive) {prime_q:prime q}.
+Context (q:positive) {prime_q:prime q} {qltb: BinPos.Pos.ltb 1 q = true}
+{fld:@Hierarchy.field (F q) eq F.zero F.one F.opp F.add F.sub F.mul F.inv F.div}.
 
 
 (***********************
@@ -218,12 +219,8 @@ Proof.
       replace j0 with j by lia.
       destruct (dec (Tuple.nth_default 0 j _out = 0)).
       * auto.
-      * right.
-      (* ideally we should use some version of [fsatz], but rn the proof wouldn't type check *)
-      rewrite <- Ring.sub_zero_iff.
-      apply Hierarchy.zero_product_zero_factor in Hstep.
-      destruct (dec (nth_default 0 j _out = 0)); intuition.
-  }
+      * right. unfold F_q in *. fsatz_safe. rewrite qltb;auto.
+   }
   unfold Inv in Hinv.
   specialize (Hinv n).
   destruct (iter n f a0).

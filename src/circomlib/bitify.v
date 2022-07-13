@@ -18,7 +18,6 @@ Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.seto
 
 
 Require Import Util.
-(* From Coq Require Import Lia. *)
 
 (* Require Import Crypto.Spec.ModularArithmetic. *)
 (* Circuit:
@@ -31,19 +30,13 @@ Section _bitify.
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 
+Ltac fqsatz := fsatz_safe; autorewrite with core; auto.
 
-Context (q:positive) (k:Z) {prime_q: prime q} {k_positive: 1 < k} {q_lb: 2^k < q}
-{fld:@Hierarchy.field (F q) eq F.zero F.one F.opp F.add F.sub F.mul F.inv F.div}.
-
-Lemma q_gt_1: 1 < q.
-Proof.
-  replace 2%Z with (2^1)%Z by lia.
-  apply Z.le_lt_trans with (m := (2 ^ k)%Z); try lia.
-Qed.
+Context (q:positive) (k:Z) {prime_q: prime q} {k_positive: 1 < k} {q_lb: 2^k < q}.
 
 Lemma q_gtb_1: (1 <? q)%positive = true.
 Proof.
-  apply Pos.ltb_lt. exact q_gt_1.
+  apply Pos.ltb_lt. lia.
 Qed.
 
 Lemma q_gt_2: 2 < q.
@@ -53,7 +46,7 @@ Proof.
   eapply Zpow_facts.Zpower_le_monotone; try lia.
 Qed.
 
-Hint Resolve q_gt_1 q_gtb_1 q_gt_2 : core.
+Hint Rewrite q_gtb_1 : core.
 
 (***********************
  *      Num2Bits
@@ -131,19 +124,22 @@ Qed.
 Lemma pow_S_Z: forall (x: Z) i,
   (x ^ (Z.of_nat (S i)) = x * x ^ (Z.of_nat i))%Z.
 Proof.
-Admitted.
+  intros.
+  replace (Z.of_nat (S i)) with (Z.of_nat i + 1)%Z by lia.
+  rewrite Zpower_exp; lia.
+Qed.
 
 
 Lemma repr_to_num_S: forall ws i,
   repr_to_num ws (S i) = 2 * repr_to_num ws i.
 Proof.
   induction ws as [| w ws]; intros.
-  - fsatz_safe. rewrite q_gtb_1;auto.
+  - fqsatz.
   - unfold repr_to_num.
     rewrite IHws.
     replace (2 ^ N.of_nat (S i)) with (2 * 2 ^ N.of_nat i)
-      by (rewrite pow_S_N; fsatz_safe; rewrite q_gtb_1; auto).
-    fsatz_safe. rewrite q_gtb_1;auto.
+      by (rewrite pow_S_N; fqsatz).
+    fqsatz.
 Qed.
 
 (* 
@@ -184,8 +180,9 @@ Proof with (lia || nia || eauto).
     subst. cbv. intros. inversion H.
   - (* analyze n: is has to be S n for some n *)
     pose proof H_repr as H_repr'.
-    destruct n; destruct H_repr; destruct H0; simpl in H. lia.
+    destruct n; destruct H_repr; destruct H0; simpl in H...
     inversion H. subst. clear H.
+    (* lemma preparation starts here *)
     (* assert IHws's antecedent holds *)
     assert (H_repr_prev: repr_binary (repr_to_num ws 0) (length ws) ws). {
       apply repr_to_num_trivial.
@@ -196,24 +193,30 @@ Proof with (lia || nia || eauto).
     assert (IH: F.to_Z (repr_to_num ws 0) <= 2 ^ Z.of_nat (length ws) - 1). {
       apply IHws...
     }
-    unfold repr_to_num.
-    rewrite repr_to_num_S.
     (* introduce lemmas into scope *)
     pose proof q_gt_2.
+    (* bound |w| *)
     assert (H_w: 0 <= F.to_Z w <= 1). {
       assert (H_w_binary: binary w) by (specialize (H0 O); apply H0; lia).
       destruct H_w_binary; subst; simpl; rewrite Z.mod_small...
     }
+    (* peel off 1 from 2^(x+1) *)
     pose proof (pow_S_Z 2 (length ws)) as H_pow_S_Z.
-    assert (0 <= 2 * 2 ^ (Z.of_nat (length ws)) <= 2 ^ k). {
+    (* bound 2^|ws| *)
+    assert (H_pow_ws: 0 <= 2 * 2 ^ (Z.of_nat (length ws)) <= 2 ^ k). {
         replace (2 * 2 ^ (Z.of_nat (length ws)))%Z with (2 ^ (Z.of_nat (length ws) + 1))%Z.
         split...
         apply Zpow_facts.Zpower_le_monotone...
         rewrite Zpower.Zpower_exp...
       }
+    (* F.to_Z x is nonneg *)
     assert (0 <= F.to_Z (repr_to_num ws 0)). {
-      apply F.to_Z_range. lia.
+      apply F.to_Z_range...
     }
+    (* lemma preparation ends here *)
+    (* actual proof starts here *)
+    cbn [repr_to_num].
+    rewrite repr_to_num_S.
     (* get rid of mod and generate range goals *)
     cbn; repeat rewrite Z.mod_small...
 Qed.
@@ -226,10 +229,10 @@ Qed.
 Proof.
 Admitted. *)
 
-Definition Num2Bits n (_in: F q) (_out: tuple (F q) n) : Prop :=
+Definition Num2Bits (n: nat) (_in: F q) (_out: tuple (F q) n) : Prop :=
   let lc1 := 0 in
   let e2 := 1 in
-  let '(lc1, e2, _C) := (iter n (fun i '(lc1, e2, _C) =>
+  let '(lc1, e2, _C) := (iter n (fun (i: nat) '(lc1, e2, _C) =>
     let out_i := (Tuple.nth_default 0 i _out) in
       (lc1 + out_i * e2,
       e2 + e2,
@@ -239,7 +242,7 @@ Definition Num2Bits n (_in: F q) (_out: tuple (F q) n) : Prop :=
 
 
 Theorem Num2Bits_correct n _in _out:
-  Num2Bits n _in _out -> (forall i, Nat.lt i n -> binary (Tuple.nth_default 0 i _out)).
+  Num2Bits n _in _out -> (forall i, (i < n)%nat -> binary (Tuple.nth_default 0 i _out)).
 Proof.
   unfold Num2Bits.
   (* provide loop invariant *)
@@ -272,7 +275,7 @@ Proof.
       replace j0 with j by lia.
       destruct (dec (Tuple.nth_default 0 j _out = 0)).
       * auto.
-      * right. fsatz_safe. rewrite q_gtb_1;auto.
+      * right. fqsatz.
    }
   unfold Inv in Hinv.
   specialize (Hinv n).

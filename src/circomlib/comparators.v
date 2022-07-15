@@ -39,8 +39,14 @@ Definition IsZero_cons (_in _out _inv: F) :=
   _in * _out = 0.
 
 (* IsZero template (hides intermediate variables) *)
-Definition IsZero (_in _out: F) :=
+Definition IsZeroTemplate (_in _out: F) :=
   exists _inv, IsZero_cons _in _out _inv.
+
+(* IsZero *)
+Class IsZero : Type := mkIsZero
+{ IsZeroin: F; 
+  IsZeroout: F;
+  IsZerocons: IsZeroTemplate IsZeroin IsZeroout}.
 
 (* IsZero spec *)
 Definition IsZero_spec (_in _out: F) :=
@@ -49,11 +55,11 @@ Definition IsZero_spec (_in _out: F) :=
 
 (* IsZero correctness theorem *)
 Theorem IsZero_correct: forall _in _out,
-  IsZero _in _out <-> IsZero_spec _in _out.
+IsZeroTemplate _in _out <-> IsZero_spec _in _out.
 Proof using Type*.
   intros _in _out.
   split; intros H;
-  unfold IsZero, IsZero_spec, IsZero_cons in *.
+  unfold IsZeroTemplate, IsZero_spec, IsZero_cons in *.
   - repeat (split_eqns; intro); fsatz.
   - destruct (dec (eq _in 0)).
     exists 1; repeat split_eqns; intuition idtac; fsatz.
@@ -61,16 +67,29 @@ Proof using Type*.
     fsatz.
 Qed.
 
+(* use Record to repr template *)
+Theorem IsZeroSoundness: 
+  forall (t : IsZero), IsZero_spec t.(IsZeroin) t.(IsZeroout).
+Proof.
+  intros. apply IsZero_correct. exact t.(IsZerocons).
+Qed.
 
 (***********************
  *       IsEqual
  ***********************)
 
 (* IsEqual constraints *)
-Definition IsEqual_cons x y _out := IsZero (x-y) _out.
+Definition IsEqual_cons x y _out := IsZeroTemplate (x-y) _out.
 
 (* IsEqual template *)
-Definition IsEqual := IsEqual_cons.
+Definition IsEqualTemplate := IsEqual_cons.
+
+(* IsEqual *)
+Class IsEqual : Type := mkIsEqual
+{ IsEqualx: F; 
+  IsEqualy: F; 
+  IsEqualout: F; 
+  IsEqualcons: IsEqualTemplate IsEqualx IsEqualy IsEqualout}.
 
 (* IsEqual spec *)
 Definition IsEqual_spec x y _out :=
@@ -78,14 +97,14 @@ Definition IsEqual_spec x y _out :=
 
 (* IsEqual correctness theorem *)
 Theorem IsEqual_correct: forall x y _out,
-  IsEqual x y _out <-> IsEqual_spec x y _out.
+  IsEqualTemplate x y _out <-> IsEqual_spec x y _out.
 Proof using Type*.
-  intros; unfold IsEqual, IsEqual_spec, IsEqual_cons in *;
+  intros; unfold IsEqualTemplate, IsEqual_spec, IsEqual_cons in *;
   split; intro H;
   (* try applying correctness lemma to every hyp and conclusion *)
   match goal with
-  | [ H: IsZero _ _ |- _ ] => apply IsZero_correct in H
-  | [ |- IsZero _ _  ] =>  apply IsZero_correct
+  | [ H: IsZeroTemplate _ _ |- _ ] => apply IsZero_correct in H
+  | [ |- IsZeroTemplate _ _  ] =>  apply IsZero_correct
   end;
   unfold IsZero_spec in *;
   destruct (dec (x = y));
@@ -93,23 +112,36 @@ Proof using Type*.
   try (assert (x - y <> 0) by fsatz; intuition idtac).
 Qed.
 
+(* use Record to repr template *)
+Theorem IsEqualSoundness: 
+  forall (t : IsEqual), IsEqual_spec t.(IsEqualx) t.(IsEqualy) t.(IsEqualout).
+Proof.
+  intros. apply IsEqual_correct. exact t.(IsEqualcons).
+Qed.
 
 (***********************
  *      IsNotEqual
  ***********************)
 Definition IsNotEqual_cons x y _out _tmp :=
-  IsEqual x y _tmp /\ _out = 1 - _tmp.
+  IsEqualTemplate x y _tmp /\ _out = 1 - _tmp.
 
-Definition IsNotEqual x y _out :=
+Definition IsNotEqualTemplate x y _out :=
   exists _tmp, IsNotEqual_cons x y _out _tmp.
+
+(* IsNotEqual *)
+Class IsNotEqual : Type := mkIsNotEqual
+{ IsNotEqualx: F; 
+  IsNotEqualy: F; 
+  IsNotEqualout: F; 
+  IsNotEqualcons: IsNotEqualTemplate IsNotEqualx IsNotEqualy IsNotEqualout}.
 
 Definition IsNotEqual_spec x y _out :=
   (x = y -> _out = 0) /\ (~ x = y -> _out = 1).
 
 Theorem IsNotEqual_correct: forall x y _out,
-  IsNotEqual x y _out <-> IsNotEqual_spec x y _out.
+  IsNotEqualTemplate x y _out <-> IsNotEqual_spec x y _out.
 Proof.
-  intros; unfold IsNotEqual, IsNotEqual_spec, IsNotEqual_cons in *;
+  intros; unfold IsNotEqualTemplate, IsNotEqual_spec, IsNotEqual_cons in *;
   split; intro H.
   - split_eqns;
     apply IsEqual_correct in H; unfold IsEqual_spec in H;
@@ -120,6 +152,13 @@ Proof.
     try apply IsEqual_correct; unfold IsEqual_spec;
     repeat (split_eqns; intros);
     intuition idtac; (reflexivity || fsatz).
+Qed.
+
+(* use Record to repr template *)
+Theorem IsNotEqualSoundness: 
+  forall (t : IsNotEqual), IsNotEqual_spec t.(IsNotEqualx) t.(IsNotEqualy) t.(IsNotEqualout).
+Proof.
+  intros. apply IsNotEqual_correct. exact t.(IsNotEqualcons).
 Qed.
 
 End _comparators.

@@ -215,5 +215,29 @@ Definition BigMultNoCarry
   exists a_poly b_poly out_poly, 
     BigMultNoCarry_cons ka kb a b out a_poly b_poly out_poly.
 
-Definition BigMultNoCarry_spec:
-  forall 
+(* polynomial addition *)
+Fixpoint add (p q: list Z) : list Z :=
+  match p, q with
+  | nil, q => q
+  | p, nil => p
+  | (c :: p), (d :: q) => (c + d)%Z :: add p q
+  end.
+
+(* polynomial multiplication *)
+Fixpoint mult (p q: list Z) : list Z :=
+  match p with
+  | nil => nil
+  | (c :: p) => add (List.map (fun a => c * a)%Z q) (0%Z :: (mult p q))
+  end.
+
+Definition BigMultNoCarry_spec
+  ka kb
+  (a: tuple (F q) ka)
+  (b: tuple (F q) kb)
+  (out: tuple (F q) (ka+ kb -1)) :=
+  to_list (ka+ kb -1) (map toSZ out) = mult (to_list ka (map toSZ a)) (to_list kb (map toSZ b)).
+
+Theorem BigMultNoCarry_correct ka kb a b out:
+  BigMultNoCarry ka kb a b out -> BigMultNoCarry_spec ka kb a b out.
+Proof.
+Abort.

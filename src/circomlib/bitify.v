@@ -25,7 +25,6 @@ Require Import Util.
 * https://github.com/iden3/circomlib/blob/master/circuits/bitify.circom
 *)
 
-
 Section _bitify.
 
 Local Open Scope list_scope.
@@ -47,27 +46,13 @@ Proof.
   eapply Zpow_facts.Zpower_le_monotone; try lia.
 Qed.
 
-
-
 Hint Rewrite q_gtb_1 : core.
 
 (***********************
  *      Num2Bits
  ***********************)
 
-Lemma length_nil {A: Type} : length (@nil A) = Nat.zero.
-Proof. auto. Qed.
-
-Lemma length_cons_end {A: Type} {n: nat} (w: A) (ws: list A ) (H_ws: length ws = n):
-  length (app ws (w::nil)) = S n.
-Proof.
-  rewrite app_length. simpl. lia.
-Qed.
-
-Lemma length_cons (n: nat) {A: Type}  {ws} {ws'} {w: A} {_: ws' = w :: ws} (H_ws: length ws = n):
-  length ws' = S n.
-Proof. rewrite H. simpl. auto. Qed.
-
+(* test whether a field element is binary *)
 Definition binary (x: F q) := x = 0 \/ x = 1.
 Definition two : F q := 1 + 1.
 Notation "2" := two.
@@ -75,50 +60,8 @@ Notation "2" := two.
 Lemma to_Z_2: F.to_Z 2 = 2%Z.
 Proof. simpl. repeat rewrite Z.mod_small; lia. Qed.
 
-(* Aborted approach: Inductive prop (types get too complicated) *)
-(* ws is a big-endian, length-n binary representation of x *)
-(* Inductive repr_binary: forall (x: F q) (n: nat) (ws: list (F q)) (_: length ws = n), Prop :=
-  | repr_binary_nil:
-    repr_binary 0 0%nat nil eq_refl
-  | repr_binary_cons:
-    forall w x n ws H_ws y n' ws' (H_ws': length ws' = n'),
-    binary w -> repr_binary x n ws H_ws ->
-    y = x + w * F.pow two (BinNatDef.N.of_nat n) ->
-    n' = S n ->
-    ws' = w::ws ->
-    repr_binary y n' ws' H_ws'. 
-Lemma repr_binary_test (H: length (1::nil) = 1%nat): repr_binary 1 1%nat (1::nil) H.
-Proof.
-  eapply repr_binary_cons with (w := 1).
-  right. reflexivity.
-  eapply repr_binary_nil.
-  - simpl. replace (two^N0) with (1:F q). Field.fsatz.
-  admit.
-Admitted.
-*)
 
-(* Little endian representation *)
-Fixpoint repr_to_le' (i: nat) (ws: list (F q)) : F q :=
-  match ws with
-  | nil => 0
-  | w::ws' => w * two^(N.of_nat i) + repr_to_le' (S i) ws'
-  end.
-
-Definition repr_to_le := repr_to_le' 0%nat.
-
-Definition repr_binary x n ws :=
-  length ws = n /\
-  (forall i, (i < n)%nat -> binary (nth i ws 0)) /\
-  x = repr_to_le' 0%nat ws.
-
-Lemma repr_binary_base: repr_binary 0 0%nat nil.
-Proof. unfold repr_binary.
-  split; split.
-  - intros. simpl. destruct i; unfold binary; auto.
-  - reflexivity.
-Qed.
-
-
+(* peel off 1 from x^(i+1) in field exp *)
 Lemma pow_S_N: forall (x: F q) i,
   x ^ (N.of_nat (S i)) = x * x ^ (N.of_nat i).
 Proof.
@@ -130,7 +73,7 @@ Proof.
   - simpl. f_equal.
 Qed.
 
-
+(* peel off 1 from x^(i+1) in int exp *)
 Lemma pow_S_Z: forall (x: Z) i,
   (x ^ (Z.of_nat (S i)) = x * x ^ (Z.of_nat i))%Z.
 Proof.
@@ -139,7 +82,18 @@ Proof.
   rewrite Zpower_exp; lia.
 Qed.
 
+(* [repr]esentation [func]tion:
+ * interpret a list of weights as representing a little-endian base-2 number
+ *)
+Fixpoint repr_to_le' (i: nat) (ws: list (F q)) : F q :=
+  match ws with
+  | nil => 0
+  | w::ws' => w * two^(N.of_nat i) + repr_to_le' (S i) ws'
+  end.
 
+Definition repr_to_le := repr_to_le' 0%nat.
+
+(* repr func lemma: single-step index change *)
 Lemma repr_to_le'_S: forall ws i,
   repr_to_le' (S i) ws = 2 * repr_to_le' i ws.
 Proof.
@@ -152,6 +106,7 @@ Proof.
     fqsatz.
 Qed.
 
+(* repr func lemma: multi-step index change *)
 Lemma repr_to_le'_n: forall ws i j,
   repr_to_le' (i+j) ws = 2^(N.of_nat i) * repr_to_le' j ws.
 Proof.
@@ -165,6 +120,7 @@ Proof.
     lia.
 Qed.
 
+(* repr func lemma: decomposing weight list *)
 Lemma repr_to_le_app: forall ws2 ws1 ws i,
   ws = ws1 ++ ws2 ->
   repr_to_le' i ws = repr_to_le' i ws1 + repr_to_le' (i + length ws1) ws2.
@@ -181,6 +137,32 @@ Proof.
     fqsatz.
 Qed.
 
+(* [repr]esentation [inv]ariant for Num2Bits *)
+Definition repr_binary x n ws :=
+  length ws = n /\
+  (forall i, (i < n)%nat -> binary (nth i ws 0)) /\
+  x = repr_to_le' 0%nat ws.
+
+Fixpoint repr_to_le'_tuple {n} (i: nat) {struct n} : tuple' (F q) n -> F q :=
+  match n with
+  | O => fun t => 0
+  | S n' => fun '(ws, w) => w * 2^(N.of_nat i) + @repr_to_le'_tuple n' (S i) ws
+  end.
+
+Definition repr_binary_tuple x n (ws: tuple (F q) n) :=
+  (forall i, (i < n)%nat -> binary (nth_default 0 i ws)) /\
+  x = repr_to_le'_tuple 0%nat ws.
+
+(* repr inv: base case *)
+Lemma repr_binary_base: repr_binary 0 0%nat nil.
+Proof.
+  unfold repr_binary.
+  split; split.
+  - intros. simpl. destruct i; unfold binary; auto.
+  - reflexivity.
+Qed.
+
+(* repr inv: invert weight list *)
 Lemma repr_binary_invert: forall w ws,
   repr_binary (repr_to_le (w::ws)) (S (length ws)) (w::ws) ->
   repr_binary (repr_to_le ws) (length ws) ws.
@@ -195,6 +177,7 @@ Proof.
   auto.
 Qed.
 
+(* repr inv: trivial satisfaction *)
 Lemma repr_trivial: forall ws,
   (forall i, (i < length ws)%nat -> binary (nth i ws 0)) ->
   repr_binary (repr_to_le ws) (length ws) ws.
@@ -202,6 +185,7 @@ Proof.
   induction ws; unfold repr_binary; split; try split; intros; auto.
 Qed.
 
+(* repr inv: any prefix of weights also satisfies the inv *)
 Lemma repr_binary_prefix: forall ws1 ws2 ws,
   ws = ws1 ++ ws2 ->
   repr_binary (repr_to_le ws) (length ws) ws ->
@@ -224,15 +208,14 @@ Proof.
     rewrite app_nth1 in H4. auto. lia.
 Qed.
 
-
-
+(* pseudo-order on field elements *)
 Definition lt (x y: F q) := F.to_Z x <= F.to_Z y.
 Definition lt_z (x: F q) y := F.to_Z x <= y.
 Definition geq_z (x: F q) y := F.to_Z x >= y.
 Definition leq_z (x: F q) y := F.to_Z x <= y.
 
 
-
+(* repr inv: x <= 2^n - 1 *)
 Theorem repr_binary_ub: forall ws x n,
   repr_binary x n ws ->
   Z.of_nat n <= k ->
@@ -291,6 +274,7 @@ Ltac to_Z_ranges :=
   | |- context[F.to_Z ?E] => assert (0 <= F.to_Z E < q) by (apply F.to_Z_range; lia)
   end.
 
+(* repr inv: ws[i] = 1 -> x >= 2^i *)
 Theorem repr_binary_lb: forall n ws x i,
   Z.of_nat n <= k ->
   repr_binary x n ws ->
@@ -298,115 +282,116 @@ Theorem repr_binary_lb: forall n ws x i,
   nth i ws 0 = 1 ->
   geq_z x (2^Z.of_nat i).
 Proof.
+  (* we can't do induction on ws, since we need to decompose
+    (w :: ws) as (ms ++ [m]) in the inductive case *)
   induction n;
   intros ws x i H_n_k H_repr Hi H_ws_i;
   pose proof H_repr as H_repr';
   destruct H_repr as [H_len H_repr];
   destruct H_repr as [H_bin H_x]; simpl in H_len.
-  - subst. lia.
-  - destruct ws as [| w ws]; inversion H_len. subst.
-    pose proof exists_last as ws_last.
-    assert (H_last: w::ws <> nil). discriminate.
-    (* rewrite w::ws as ms++[m] *)
-    apply ws_last in H_last.
-    destruct H_last as [ms H_last].
-    destruct H_last as [m H_last].
-    rewrite H_last.
-    rewrite repr_to_le_app with (ws1 := ms) (ws2 := m::nil) by trivial.
-    unfold geq_z. rewrite F.to_Z_add.
-    replace (0 + length ms)%nat with (length ms) by lia.
-    assert (H_ws: length ws = length ms). {
-      replace (length ws) with (length (w::ws) - 1)%nat by (simpl; lia).
-      replace (length ms) with (length (ms ++ m :: nil) -1)%nat. 
-      assert (length (w::ws) = length (ms ++ m :: nil)) by (f_equal; auto).
+  
+  (* base case *)
+  subst. lia.
+  
+  (* inductive case *)
+  destruct ws as [| w ws]; inversion H_len. subst.
+  pose proof exists_last as ws_last.
+  assert (H_last: w::ws <> nil). discriminate.
+  (* rewrite w::ws as ms++[m] *)
+  apply ws_last in H_last.
+  destruct H_last as [ms H_last].
+  destruct H_last as [m H_last].
+  rewrite H_last.
+  rewrite repr_to_le_app with (ws1 := ms) (ws2 := m::nil) by trivial.
+  unfold geq_z. rewrite F.to_Z_add.
+  replace (0 + length ms)%nat with (length ms) by lia.
+  assert (H_ws: length ws = length ms). {
+    (* FIXME: should be automated *)
+    replace (length ws) with (length (w::ws) - 1)%nat by (simpl; lia).
+    replace (length ms) with (length (ms ++ m :: nil) -1)%nat. 
+    assert (length (w::ws) = length (ms ++ m :: nil)) by (f_equal; auto).
+    lia.
+    rewrite app_length. simpl. lia.
+  }
+  assert (H_pow_ms: 2 ^ N.of_nat (length ms) <= 2 ^ (k-1)). {
+    apply Zpow_facts.Zpower_le_monotone; lia.
+  }
+  assert (H_pow_ms': 2 ^ N.of_nat (length ms) <= 2 ^ k). {
+    apply Zpow_facts.Zpower_le_monotone; lia.
+  }
+  rewrite Z.mod_small.
+  destruct (dec (i < length ws)%nat).
+  + (* easy case: i < length ws, so simply apply IH *)
+    assert (geq_z (repr_to_le' 0 ms) (2 ^ Z.of_nat i)). {
+      eapply IHn with (ws := ms); auto.
       lia.
-      rewrite app_length. simpl. lia.
+      rewrite H_ws.
+      eapply repr_binary_prefix; eauto.
+      rewrite H_last in *.
+      erewrite <- app_nth1; eauto. lia.
     }
-    assert (H_pow_ms: 2 ^ N.of_nat (length ms) <= 2 ^ (k-1)). {
-      apply Zpow_facts.Zpower_le_monotone; lia.
+    unfold geq_z in H.
+    assert (0 <= F.to_Z (repr_to_le' (length ms) (m :: nil)) < q) by (to_Z_ranges; auto).
+    lia.
+  + (* interesting case: i = length ws *)
+    rewrite H_ws in *.
+    assert (i = length ms) by lia. subst.
+    to_Z_ranges.
+    assert (F.to_Z (repr_to_le' (length ms) (m :: nil)) >= 2 ^ Z.of_nat (length ms)). {
+      cbn [repr_to_le'].
+      assert (m = 1). {
+        rewrite H_last in H_ws_i.
+        replace m with (nth (length ms) (ms ++ m :: nil) 0). auto.
+        rewrite app_nth2 by lia.
+        replace (length ms - length ms)%nat with 0%nat by lia.
+        reflexivity.
+      }
+      subst.
+      repeat rewrite F.to_Z_add, F.to_Z_mul, F.to_Z_pow, F.to_Z_0, (@F.to_Z_1 _ two_lt_q), to_Z_2.
+      repeat rewrite Z.mod_small; lia.
     }
-    assert (H_pow_ms': 2 ^ N.of_nat (length ms) <= 2 ^ k). {
-      apply Zpow_facts.Zpower_le_monotone; lia.
-    }
-    rewrite Z.mod_small.
-    destruct (dec (i < length ws)%nat).
-    + (* easy case: i < length ws, just use IH *)
-      assert (geq_z (repr_to_le' 0 ms) (2 ^ Z.of_nat i)). {
-        eapply IHn with (ws := ms); auto.
-        lia.
-        rewrite H_ws.
-        eapply repr_binary_prefix; eauto.
-        rewrite H_last in *.
-        erewrite <- app_nth1; eauto. lia.
-      }
-      unfold geq_z in H.
-      (* to_Z_ranges. *)
-      assert (0 <= F.to_Z (repr_to_le' (length ms) (m :: nil)) < q). {
-        apply F.to_Z_range. lia.
-      }
-      lia.
-    + (* interesting case: i = length ws *)
-      rewrite H_ws in *.
-      assert (i = length ms) by lia. subst.
-      to_Z_ranges.
-      assert (F.to_Z (repr_to_le' (length ms) (m :: nil)) >= 2 ^ Z.of_nat (length ms)). {
-        cbn [repr_to_le'].
-        assert (m = 1). {
-          rewrite H_last in H_ws_i.
-          replace m with (nth (length ms) (ms ++ m :: nil) 0). auto.
-          rewrite app_nth2 by lia.
-          replace (length ms - length ms)%nat with 0%nat by lia.
-          reflexivity.
-        }
-        subst.
-        repeat rewrite F.to_Z_add, F.to_Z_mul, F.to_Z_pow, F.to_Z_0, (@F.to_Z_1 _ two_lt_q), to_Z_2.
-        repeat rewrite Z.mod_small; lia.
-      }
-      lia.
-    + cbn [repr_to_le']. 
+    lia.
+  + (* range check *)
+    cbn [repr_to_le']. 
     assert (H_m_bin: binary m). {
-        destruct H_repr'. destruct H0.
-        rewrite H_last in H0.
-        specialize (H0 (length ms)).
-        replace m with (nth (length ms) (ms ++ m :: nil) 0). apply H0. lia.
-        rewrite app_nth2. replace (length ms - length ms)%nat with 0%nat. reflexivity.
-        lia.
-        lia.
-        }
-      assert (0 <= F.to_Z m <= 1). {
-        
-        destruct H_m_bin; subst; try rewrite @F.to_Z_0; try rewrite @F.to_Z_1; lia.
-      }
-      
-      rewrite F.to_Z_add, F.to_Z_mul, F.to_Z_pow, to_Z_2.
-
-      assert (H_ms_ub: leq_z (repr_to_le' 0 ms) (2 ^ Z.of_nat (length ms) - 1)). {
-        eapply repr_binary_ub with (ws := ms).
-        rewrite H_last in H_repr'.
-        eapply repr_binary_prefix with (ws := ms). rewrite app_nil_r. reflexivity.
-        apply repr_trivial.
-        intros j Hj. destruct H_repr'. destruct H1.
-        replace (nth j ms 0) with (nth j (ms ++ m :: nil) 0).
-        apply H1. lia.
-        rewrite app_nth1. reflexivity. lia. lia.
-      }
-      repeat rewrite Z.mod_small; try (
-        lia || 
-        destruct H_m_bin; subst; try rewrite @F.to_Z_0; try rewrite @F.to_Z_1; (lia || auto)).
-        to_Z_ranges.
-        lia.
-      unfold leq_z in *.
-      to_Z_ranges.
-      remember (F.to_Z (repr_to_le' 0 ms)) as x.
-      remember (2 ^ N.of_nat (length ms))%Z as y.
-      assert (x <= 2^(k-1)) by lia.
-      assert (x + y < 2^k). {
-        replace (2^k)%Z with (2^1*2^(k-1))%Z.
-        lia.
-        rewrite <- Zpower_exp; (lia || f_equal; lia).
-        
-      }
+      destruct H_repr'. destruct H0.
+      rewrite H_last in H0.
+      specialize (H0 (length ms)).
+      replace m with (nth (length ms) (ms ++ m :: nil) 0). apply H0. lia.
+      rewrite app_nth2. replace (length ms - length ms)%nat with 0%nat. reflexivity.
       lia.
+      lia.
+    }
+    assert (0 <= F.to_Z m <= 1). {
+      destruct H_m_bin; subst; try rewrite @F.to_Z_0; try rewrite @F.to_Z_1; lia.
+    }
+    rewrite F.to_Z_add, F.to_Z_mul, F.to_Z_pow, to_Z_2.
+    assert (H_ms_ub: leq_z (repr_to_le' 0 ms) (2 ^ Z.of_nat (length ms) - 1)). {
+      eapply repr_binary_ub with (ws := ms).
+      rewrite H_last in H_repr'.
+      eapply repr_binary_prefix with (ws := ms). rewrite app_nil_r. reflexivity.
+      apply repr_trivial.
+      intros j Hj. destruct H_repr'. destruct H1.
+      replace (nth j ms 0) with (nth j (ms ++ m :: nil) 0).
+      apply H1. lia.
+      rewrite app_nth1. reflexivity. lia. lia.
+    }
+    repeat rewrite Z.mod_small; try (
+      lia || 
+      destruct H_m_bin; subst; try rewrite @F.to_Z_0; try rewrite @F.to_Z_1; (lia || auto)).
+      to_Z_ranges.
+      lia.
+    unfold leq_z in *.
+    to_Z_ranges.
+    remember (F.to_Z (repr_to_le' 0 ms)) as x.
+    remember (2 ^ N.of_nat (length ms))%Z as y.
+    assert (x <= 2^(k-1)) by lia.
+    assert (x + y < 2^k). {
+      replace (2^k)%Z with (2^1*2^(k-1))%Z.
+      lia.
+      rewrite <- Zpower_exp; f_equal; lia.
+    }
+    lia.
 Qed.
 
 Definition Num2Bits (n: nat) (_in: F q) (_out: tuple (F q) n) : Prop :=
@@ -419,7 +404,6 @@ Definition Num2Bits (n: nat) (_in: F q) (_out: tuple (F q) n) : Prop :=
       (out_i * (out_i - 1) = 0) /\ _C))
     (lc1, e2, True)) in
   (lc1 = _in) /\ _C.
-
 
 Theorem Num2Bits_correct n _in _out:
   Num2Bits n _in _out -> (forall i, (i < n)%nat -> binary (Tuple.nth_default 0 i _out)).

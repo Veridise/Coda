@@ -149,9 +149,9 @@ Fixpoint repr_to_le'_tuple {n} (i: nat) {struct n} : tuple' (F q) n -> F q :=
   | S n' => fun '(ws, w) => w * 2^(N.of_nat i) + @repr_to_le'_tuple n' (S i) ws
   end.
 
-Definition repr_binary_tuple x n (ws: tuple (F q) n) :=
+(* Definition repr_binary_tuple x n (ws: tuple (F q) n) :=
   (forall i, (i < n)%nat -> binary (nth_default 0 i ws)) /\
-  x = repr_to_le'_tuple 0%nat ws.
+  x = repr_to_le'_tuple 0%nat ws. *)
 
 (* repr inv: base case *)
 Lemma repr_binary_base: repr_binary 0 0%nat nil.

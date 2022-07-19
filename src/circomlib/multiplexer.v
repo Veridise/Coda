@@ -66,6 +66,48 @@ Definition EscalarProduct w (in1 in2: tuple F_q w) out : Prop :=
     (lc, True)) in
   (lc = out) /\ _C.
 
+Definition EscalarProductSpec n w (in1 in2 : tuple F_q w) out :=
+  out = fold_right (fun a b : F_q => a + b) 0
+         (firstn n (to_list w (map2 (fun a b : F_q => a * b) in1 in2))).
+
+Theorem EscalarProductSoundness:
+  forall w in1 in2 out,
+  EscalarProduct w in1 in2 out -> EscalarProductSpec w w in1 in2 out.
+Proof.
+  unfold EscalarProduct. unfold EscalarProductSpec.
+  (* iter initialization *)
+  remember (0, True) as a0.
+  intros. destruct H as [aux].
+  (* iter Invariant *)
+  pose (Inv := fun i '((lc1, _C): (F.F q * Prop)) =>
+       (_C -> EscalarProductSpec i w in1 in2 out)).
+  (* iter function *)
+  match goal with
+  | [ H: context[match ?it ?n ?f ?init with _ => _ end] |- _ ] =>
+    let x := fresh "f" in remember f as x
+  end.
+  (* invariant holds *)
+  assert (Hinv: forall i, Inv i (iter i f a0)). {
+  intros. apply iter_inv; unfold Inv.
+  - (* base case *) 
+    subst. intros. unfold EscalarProductSpec in *. admit.
+  - (* inductive case *)
+    intros j res Hprev.
+    destruct res.
+    rewrite Heqf.
+    intros.
+    destruct H0 as [Hstep HP].
+    specialize  (Hprev HP).
+    assert (H_j0_leq: (j < S j)%nat) by lia.
+    admit.
+   }
+  unfold Inv in Hinv.
+  specialize (Hinv O).
+  destruct (iter O f a0).
+  intuition.
+Abort.
+
+
 (* template Decoder(w) {
     signal input inp;
     signal output out[w];

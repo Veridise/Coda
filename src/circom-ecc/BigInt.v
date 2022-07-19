@@ -214,3 +214,6 @@ Definition BigMultNoCarry
   (out: tuple (F q) (ka + kb - 1)) :=
   exists a_poly b_poly out_poly, 
     BigMultNoCarry_cons ka kb a b out a_poly b_poly out_poly.
+
+Definition BigMultNoCarry_spec:
+  forall 

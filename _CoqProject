@@ -5,3 +5,4 @@ src/circomlib/comparators.v
 src/circomlib/bitify.v
 src/circomlib/gates.v
 src/circomlib/multiplexer.v
+src/circom-ecc/Polynom.v

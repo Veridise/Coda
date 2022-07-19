@@ -136,19 +136,26 @@ Proof.
     fqsatz.
 Qed.
 
-Definition half: Z. Admitted.
+Definition half: Z. exact (Z.div q 2). Defined.
 Notation "r//2" := half.
 
 (* To signed integer *)
 Definition toSZ (x: F q) := let z := F.to_Z x in
   if z >=? r//2 + 1 then (z-q)%Z else z.
 
+(* overflow representation *)
+(* interpret a list of weights as representing a little-endian base-2^n number *)
+Fixpoint repr_to_le_Z' (n: nat) (i: nat) (ws: list (F q)) : Z :=
+  match ws with
+  | nil => 0
+  | w::ws' => (toSZ w) * 2^(N.of_nat n * N.of_nat i) + repr_to_le_Z' n (S i) ws'
+  end.
 
 (* overflow representation *)
 (* FIXME: repr_to_le' should call toSZ *)
 Definition repr_overflow x l n ws :=
   length ws = l /\
-  x = repr_to_le' n 0%nat ws.
+  x = repr_to_le_Z' n 0%nat ws.
 
 
   (* Definition Num2Bits (n: nat) (_in: F q) (_out: tuple (F q) n) : Prop :=
@@ -207,6 +214,3 @@ Definition BigMultNoCarry
   (out: tuple (F q) (ka + kb - 1)) :=
   exists a_poly b_poly out_poly, 
     BigMultNoCarry_cons ka kb a b out a_poly b_poly out_poly.
-
-
-

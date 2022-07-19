@@ -22,7 +22,7 @@ Require Import Util.
 
 (* Require Import Crypto.Spec.ModularArithmetic. *)
 (* Circuit:
-* https://github.com/iden3/circomlib/blob/master/circuits/bitify.circom
+* https://github.com/0xPARC/circom-ecdsa/blob/08c2c905b918b563c81a71086e493cb9d39c5a08/circuits/bigint.circom
 *)
 
 Section _bitify.
@@ -136,13 +136,12 @@ Proof.
     fqsatz.
 Qed.
 
-
 Definition half: Z. Admitted.
 Notation "r//2" := half.
 
 (* To signed integer *)
 Definition toSZ (x: F q) := let z := F.to_Z x in
-  if z >? r//2 + 1 then (z-q)%Z else z.
+  if z >=? r//2 + 1 then (z-q)%Z else z.
 
 
 (* overflow representation *)

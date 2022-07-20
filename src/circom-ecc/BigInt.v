@@ -18,14 +18,14 @@ Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.seto
 Require Import Ring.
 
 Require Import Util.
-
+Require Import Circom.circomlib.bitify.
 
 (* Require Import Crypto.Spec.ModularArithmetic. *)
 (* Circuit:
 * https://github.com/0xPARC/circom-ecdsa/blob/08c2c905b918b563c81a71086e493cb9d39c5a08/circuits/bigint.circom
 *)
 
-Section _bitify.
+Section _bigint.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -360,13 +360,41 @@ Proof.
   
 Admitted.
   
-  
-  (* remember (init_poly ka kb out_poly out True) as init_out. *)
-  (* 
-  (* destruct (init_poly ka kb out_poly out True). *)
-  destruct (init_poly ka kb a_poly a P).
-  pose proof (init_poly_correct b_poly b P0).
-  destruct (init_poly ka kb b_poly b P0). *)
 
+(* PrimeReduce *)
+(* source: https://github.com/yi-sun/circom-pairing/blob/743d761f07254ea6407d29ba05f29886cfd14aec/circuits/bigint.circom#L786 *)
 
-  
+Definition PrimeReduce_cons
+  n k m p m_out
+  (a: tuple (F q) ka)
+  (b: tuple (F q) kb)
+  (out: tuple (F q) (ka + kb - 1))
+  (a_poly: tuple (F q) (ka+ kb -1))
+  (b_poly: tuple (F q) (ka+ kb -1))
+  (out_poly: tuple (F q) (ka+ kb -1)) :=
+  let _C := True in
+  let '(out_poly, _C) :=
+    (* outer loop: construct out_poly[i] *)
+    iter (ka+kb-1) (fun i '(out_poly, _C) => (out_poly, _C /\
+        (* inner loop: sum out[j] * i ** j *)
+        out_poly[i] = iter (ka+kb-1) (fun j out_poly_i =>
+          (out_poly_i + out[j] * (F.of_nat q i)^(N.of_nat j))) 0))
+      (out_poly, _C) in
+  let '(a_poly, _C) :=
+    (* outer loop: construct a_poly[i] *)
+    iter (ka+kb-1) (fun i '(a_poly, _C) => (a_poly, _C /\
+        (* inner loop: sum a[j] * i ** j *)
+        a_poly[i] = iter (ka) (fun j a_poly_i =>
+          (a_poly_i + a[j] * (F.of_nat q i)^(N.of_nat j))) 0))
+      (a_poly, _C) in
+  let '(b_poly, _C) :=
+    (* outer loop: construct b_poly[i] *)
+    iter (ka+kb-1) (fun i '(b_poly, _C) => (b_poly, _C /\
+        (* inner loop: sum a[j] * i ** j *)
+        b_poly[i] = iter (kb) (fun j b_poly_i =>
+          (b_poly_i + a[j] * (F.of_nat q i)^(N.of_nat j))) 0))
+      (b_poly, _C) in
+  let _C :=
+    iter (ka+kb-1) (fun i _C => _C /\ 
+      out_poly[i] = a_poly[i] * b_poly[i]) _C in
+  _C.

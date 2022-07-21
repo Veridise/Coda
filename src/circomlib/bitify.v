@@ -411,7 +411,7 @@ Proof.
   unfold Num2Bits.
   (* provide loop invariant *)
   pose (Inv := fun i '((lc1, e2, _C): (F.F q * F.F q * Prop)) =>
-    (_C -> (forall j, Nat.lt j i -> binary (Tuple.nth_default 0 j _out)))).
+    (_C -> (forall j, (j < i)%nat -> binary (Tuple.nth_default 0 j _out)))).
   (* iter initialization *)
   remember (0, 1, True) as a0.
   intros prog i H_i_lt_n.
@@ -429,7 +429,7 @@ Proof.
     intros j res Hprev.
     destruct res. destruct p.
     rewrite Heqf.
-    intros H_j0_lt Hstep j0.
+    intros _ Hstep j0 H_j0_lt.
     destruct Hstep as [Hstep HP].
     specialize  (Hprev HP).
     destruct (dec (j0 < j)%nat).

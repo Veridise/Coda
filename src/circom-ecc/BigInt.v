@@ -20,7 +20,7 @@ Require Import Ring.
 Require Import Util.
 Require Import Circom.circomlib.bitify.
 
-(* Require Import Crypto.Spec.ModularArithmetic. *)
+Require Import Crypto.Spec.ModularArithmetic.
 (* Circuit:
 * https://github.com/0xPARC/circom-ecdsa/blob/08c2c905b918b563c81a71086e493cb9d39c5a08/circuits/bigint.circom
 *)
@@ -363,6 +363,198 @@ Admitted.
 
 (* PrimeReduce *)
 (* source: https://github.com/yi-sun/circom-pairing/blob/743d761f07254ea6407d29ba05f29886cfd14aec/circuits/bigint.circom#L786 *)
+
+(* source: https://github.com/yi-sun/circom-pairing/blob/743d761f07254ea6407d29ba05f29886cfd14aec/circuits/bigint_func.circom *)
+
+Definition F_mod {m} (a b: F m) :=
+  F.of_Z m ((F.to_Z a) mod (F.to_Z b))%Z.
+
+(* // a is a n-bit scalar
+// b has k registers
+function long_scalar_mult(n, k, a, b) {
+    var out[50];
+    for (var i = 0; i < 50; i++) {
+        out[i] = 0;
+    }
+    for (var i = 0; i < k; i++) {
+        var temp = out[i] + (a * b[i]);
+        out[i] = temp % (1 << n);
+        out[i + 1] = out[i + 1] + temp \ (1 << n);
+    }
+    return out;
+} *)
+Definition long_scalar_mult
+n k a (_b : tuple (F q) k) (out : tuple (F q) 50) :=
+let _C := True in
+let '( _C) :=
+  (* loop: construct out[i] *)
+  iter 50 (fun i '( _C) => (_C /\ out[i] = 0))
+    ( _C) in
+let '( _C) :=
+  iter k (fun i _C => _C /\ 
+              out[i] = F_mod (out[i] + (a * _b[i]))  (2^n) /\
+              out[i + 1] = out[i + 1] + F.div (out[i] + (a * _b[i])) (2^n))
+    _C in
+  _C
+.
+
+(* // n bits per register
+// a has k registers
+// b has k registers
+// a >= b
+function long_sub(n, k, a, b) {
+    var diff[50];
+    var borrow[50];
+    for (var i = 0; i < k; i++) {
+        if (i == 0) {
+           if (a[i] >= b[i]) {
+               diff[i] = a[i] - b[i];
+               borrow[i] = 0;
+            } else {
+               diff[i] = a[i] - b[i] + (1 << n);
+               borrow[i] = 1;
+            }
+        } else {
+            if (a[i] >= b[i] + borrow[i - 1]) {
+               diff[i] = a[i] - b[i] - borrow[i - 1];
+               borrow[i] = 0;
+            } else {
+               diff[i] = (1 << n) + a[i] - b[i] - borrow[i - 1];
+               borrow[i] = 1;
+            }
+        }
+    }
+    return diff;
+} *)
+Definition long_sub (n : Z) (_k : nat) (a b : tuple (F q) _k) : tuple (F q) 50.
+Admitted.
+
+(* // 1 if true, 0 if false
+function long_gt(n, k, a, b) {
+    for (var i = k - 1; i >= 0; i--) {
+        if (a[i] > b[i]) {
+            return 1;
+        }
+        if (a[i] < b[i]) {
+            return 0;
+        }
+    }
+    return 0;
+} *)
+Definition long_gt (n : Z) (_k : nat) (a b : tuple (F q) _k) : F q.
+Admitted.
+
+(* // n bits per register
+// a has k + 1 registers
+// b has k registers
+// assumes leading digit of b is at least 2^(n - 1)
+// 0 <= a < (2**n) * b
+function short_div_norm(n, k, a, b) {
+   var qhat = (a[k] * (1 << n) + a[k - 1]) \ b[k - 1];
+   if (qhat > (1 << n) - 1) {
+      qhat = (1 << n) - 1;
+   }
+
+   var mult[50] = long_scalar_mult(n, k, qhat, b);
+   if (long_gt(n, k + 1, mult, a) == 1) {
+      mult = long_sub(n, k + 1, mult, b);
+      if (long_gt(n, k + 1, mult, a) == 1) {
+         return qhat - 2;
+      } else {
+         return qhat - 1;
+      }
+   } else {
+       return qhat;
+   }
+} *)
+Definition short_div_norm (n : Z) (_k : nat) (a : tuple (F q) (_k + 1)) (b : tuple (F q) _k) : F q.
+Admitted.
+
+(* // n bits per register
+// a has k + 1 registers
+// b has k registers
+// assumes leading digit of b is non-zero
+// 0 <= a < b * 2^n
+function short_div(n, k, a, b) {
+    var scale = (1 << n) \ (1 + b[k - 1]);
+    // k + 2 registers now
+    var norm_a[50] = long_scalar_mult(n, k + 1, scale, a);
+    // k + 1 registers now
+    var norm_b[50] = long_scalar_mult(n, k, scale, b);
+    
+    var ret;
+    if (norm_b[k] != 0) {
+	ret = short_div_norm(n, k + 1, norm_a, norm_b);
+    } else {
+	ret = short_div_norm(n, k, norm_a, norm_b);
+    }
+    return ret;
+}*)
+Definition short_div (n : Z) (_k : nat) (a : tuple (F q) (_k + 1)) (b : tuple (F q) _k) : F q.
+Admitted.
+
+(* // n bits per register
+// a has k + m registers
+// b has k registers
+// out[0] has length m + 1 -- quotient
+// out[1] has length k -- remainder
+// implements algorithm of https://people.eecs.berkeley.edu/~fateman/282/F%20Wright%20notes/week4.pdf
+// b[k-1] must be nonzero! *)
+Definition long_div2 (n : Z) (_k m : nat) (a : tuple (F q) (_k + m)) (b : tuple (F q) _k) : tuple (F q) 2.
+Admitted.
+
+Definition long_div := long_div2.
+
+(* function SplitThreeFn(in, n, m, k) {
+    return [in % (1 << n), (in \ (1 << n)) % (1 << m), (in \ (1 << n + m)) % (1 << k)];
+} *)
+
+Definition SplitThreeFn _in n m k (out : tuple (F q) 3):=
+  out[0] = F_mod _in (2^n) /\
+  out[1] = F_mod (F.div _in (2^n)) (2^m) /\
+  out[2] = F_mod (F.div _in (2^n + (F.of_Z q m))) (2^k).
+   
+
+(* function SplitFn(in, n, m) {
+    return [in % (1 << n), (in \ (1 << n)) % (1 << m)];
+} *)
+Definition SplitFn _in n m (out : tuple (F q) 2):=
+  out[0] = F_mod _in (2^n) /\
+  out[1] = F_mod (F.div _in (2^n)) (2^m).
+
+(* // n bits per register
+// a and b both have k registers
+// out[0] has length 2 * k
+// adapted from BigMulShortLong and LongToShortNoEndCarry witness computation *)
+Definition prod (n : Z) (_k : nat) (a : tuple (F q) _k) (b : tuple (F q) _k) : tuple (F q) 50.
+Admitted.
+
+(* function prod_mod(n, k, a, b, p) {
+    var prod[50] = prod(n,k,a,b);
+    var temp[2][50] = long_div(n,k,prod,p);
+    return temp[1];
+} *)
+Definition prod_mod (n : Z) (_k : nat) (a : tuple (F q) _k) (b p : tuple (F q) _k) : tuple (F q) 50.
+Admitted.
+
+(* // n bits per register
+// a has k registers
+// p has k registers
+// e has k registers
+// k * n <= 500
+// p is a prime
+// computes a^e mod p *)
+Definition mod_exp (n: nat) _k (a p e : tuple (F q) _k) : tuple (F q) 50. Admitted.
+
+Definition repr_binary n x m ws :=
+  length ws = m /\
+  (forall i, (i < m)%nat -> binary q (nth i ws 0)) /\
+  x = repr_to_le n ws.
+
+Hypothesis mod_exp_correct:
+  forall (n: nat) k (a p e : tuple (F q) k),
+  repr_binary n ((repr_to_le n (to_list k a)) ^ (F.to_N (repr_to_le n (to_list k a)))) 50
+  (to_list 50 (mod_exp n k a p e)).
 
 Definition PrimeReduce_cons
   n k m p m_out

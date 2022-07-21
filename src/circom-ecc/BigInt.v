@@ -437,7 +437,7 @@ Proof.
     intros.
     rewrite eval_ppmul.
     assert (H_xi: exists i, x = F.of_nat _ i /\ (i < ka + kb -1)%nat). {
-
+    admit.
     }
     destruct H_xi as [i H_xi].
     intuition idtac.

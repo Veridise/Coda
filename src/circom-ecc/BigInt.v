@@ -205,10 +205,10 @@ Lemma coeff_nth: forall {m} (xs: tuple (F q) m) i,
   coeff i (toPoly xs) = nth_default 0 i xs.
 Admitted.
 
-Lemma eval_add: forall c d x, eval (padd c d) x = eval c x + eval d x.
+Lemma eval_ppadd: forall c d x, eval (padd c d) x = eval c x + eval d x.
 Admitted.
 
-Lemma eval_mult: forall c d x, eval (pmul c d) x = eval c x * eval d x.
+Lemma eval_ppmul: forall c d x, eval (pmul c d) x = eval c x * eval d x.
 Admitted.
 
 Lemma firstn_toPoly: forall m (x: tuple (F q) m),
@@ -231,7 +231,7 @@ Definition init_poly ka kb (poly: tuple (F q) (ka+ kb -1)) {m} (x: tuple (F q) m
 
 Lemma init_poly_correct: forall {ka kb} (poly: tuple (F q) (ka+ kb -1)) {m} (x: tuple (F q) m) _C,
   init_poly ka kb poly x _C ->
-  (_C (* _C' preserves _C *)
+  (_C (* output constraint preserves _C *)
   /\ forall i, (i < ka + kb -1)%nat -> poly [i] = eval (toPoly x) (F.of_nat q i)).
 Proof.
   unfold init_poly.
@@ -330,6 +330,41 @@ Definition BigMultNoCarry_spec
 (* Complete spec *)
 (* to_list (ka + kb -1) out = mult (to_list ka (map toSZ a)) (to_list kb (map toSZ b)). *)
 
+Fixpoint range' (acc: list nat) (n: nat) : list nat :=
+  match n with
+  | O => acc
+  | S n' => range' (n' :: acc) n'
+  end.
+Definition range := range' nil.
+Lemma range_nodup: forall n, NoDup (range n).
+Admitted.
+Lemma range_elem: forall n i, (i < n)%nat -> In i (range n).
+Admitted.
+Lemma range_P: forall P n,
+  (forall i, (i < n)%nat -> P i) ->
+  (forall i, In i (range n) -> P i).
+Admitted.
+Lemma range_F: forall n,
+  (n < Pos.to_nat q)%nat ->
+  forall (P: F q -> Prop),
+  (forall i, (i < n)%nat -> P (F.of_nat _ i)) ->
+  (forall x, In x (List.map (F.of_nat _) (range n)) -> P x).
+Admitted.
+Lemma range_length: forall n, length (range n) = n.
+Admitted.
+
+Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
+(* FIXME: degree at most n *)
+(* degree_leq a n -> *)
+(* degree_leq b n -> *)
+  (length X > n)%nat ->
+  NoDup X ->
+  (forall x, In x X -> eval a x = eval b x) ->
+  a = b.
+Admitted.
+
+Require Import FinFun.
+
 Theorem BigMultNoCarry_correct ka kb a b out:
   BigMultNoCarry ka kb a b out -> BigMultNoCarry_spec ka kb a b out.
 Proof.
@@ -345,19 +380,51 @@ Proof.
   remember (fun (i : nat) (_C : Prop) =>
     _C /\ out_poly [i] = a_poly [i] * b_poly [i]) as f.
 
-  pose (Inv := fun (i: nat) _C => _C -> init_b).
+  pose (Inv := fun (i: nat) _C => _C ->
+    init_b /\
+    forall i0, (i0 < i)%nat -> out_poly [i0] = a_poly [i0] * b_poly [i0]).
 
   assert (Hind: forall i, Inv i (iter i f init_b)). {
     intros i. unfold Inv; apply iter_inv.
-    - auto.
+    - intuition idtac. lia.
     - intros i0. intros.
-      rewrite Heqf in H2. intuition idtac.
+      rewrite Heqf in H2.
+      intuition idtac.
+      destruct (dec (i1 < i0)%nat). auto.
+      assert (i1 = i0) by lia. subst. auto.
   }
+  assert (H_ka_kb: (ka + kb - 1 < Pos.to_nat q)%nat) by admit.
 
   unfold Inv in Hind.
   specialize (Hind (ka + kb -1)%nat).
   subst. intuition idtac.
-  
+  assert (H_evals: forall i, (i < ka + kb - 1)%nat -> eval (toPoly out) (F.of_nat q i) = eval (toPoly a) (F.of_nat q i) * eval (toPoly b) (F.of_nat q i)). {
+    intros.
+    rewrite <- H4, <- H6, <- H8, H2 by lia. reflexivity.
+  }
+  assert (H_poly: toPoly out = pmul (toPoly a) (toPoly b)). {
+    erewrite interpolant_unique with (a:=toPoly out) (b:=pmul (toPoly a) (toPoly b)) (n:=(ka+kb-2)%nat) (X:=List.map (F.of_nat _) (range (ka+kb-1))).
+    reflexivity.
+    rewrite map_length, range_length.
+    (* FIXME: range check *)
+    assert ((ka+kb>=2)%nat) by admit. lia.
+    (* FIXME: prove F.of_nat injective for small n *)
+    assert (forall n, n < q -> Injective (F.of_nat q)) by admit.
+    apply Injective_map_NoDup. apply H0 with (n := Z.of_nat (ka+kb-1)%nat).
+    (* FIXME: range check *)
+    assert (Z.of_nat (ka+kb-1)%nat < q) by admit.
+    lia.
+    apply range_nodup.
+    Print eval_ppmul.
+    intros.
+    rewrite eval_ppmul.
+    assert (H_xi: exists i, x = F.of_nat _ i /\ (i < ka + kb -1)%nat) by admit.
+    destruct H_xi as [i H_xi].
+    intuition idtac.
+    subst.
+    apply H_evals. lia.
+  }
+  apply H_poly.
 Admitted.
   
 

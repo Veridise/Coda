@@ -330,28 +330,47 @@ Definition BigMultNoCarry_spec
 (* Complete spec *)
 (* to_list (ka + kb -1) out = mult (to_list ka (map toSZ a)) (to_list kb (map toSZ b)). *)
 
-Fixpoint range' (acc: list nat) (n: nat) : list nat :=
+Fixpoint range (n: nat) : list nat :=
   match n with
-  | O => acc
-  | S n' => range' (n' :: acc) n'
+  | O => nil
+  | S n' => n' :: range n'
   end.
-Definition range := range' nil.
+Lemma range_range: forall n i, In i (range n) -> (i < n)%nat.
+Proof.
+  induction n; simpl; intros; destruct H.
+  - subst. lia.
+  - assert (i < n)%nat by auto. lia.
+Qed.
 Lemma range_nodup: forall n, NoDup (range n).
-Admitted.
+Proof.
+  induction n; simpl; constructor; auto.
+  unfold not. intros. apply range_range in H. lia.
+Qed.
 Lemma range_elem: forall n i, (i < n)%nat -> In i (range n).
-Admitted.
+Proof.
+  induction n; simpl; intros.
+  - lia.
+  - destruct (dec (i < n)%nat).
+    + right. apply IHn. lia.
+    + left. lia.
+Qed.
 Lemma range_P: forall P n,
   (forall i, (i < n)%nat -> P i) ->
   (forall i, In i (range n) -> P i).
-Admitted.
-Lemma range_F: forall n,
-  (n < Pos.to_nat q)%nat ->
-  forall (P: F q -> Prop),
-  (forall i, (i < n)%nat -> P (F.of_nat _ i)) ->
-  (forall x, In x (List.map (F.of_nat _) (range n)) -> P x).
-Admitted.
+Proof.
+  intros. apply X. apply range_range. auto.
+Qed.
 Lemma range_length: forall n, length (range n) = n.
-Admitted.
+Proof. induction n; simpl; auto. Qed.
+Lemma range_map_preimage {A: Type}: forall n (f: nat -> A) x,
+  In x (List.map f (range n)) ->
+  exists i, (i < n)%nat /\ f i = x.
+Proof.
+  induction n; simpl; intros; destruct H.
+  - subst. exists n. split; (auto || lia).
+  - apply IHn in H. inversion H. intuition idtac. exists x0. split; (auto || lia).
+Qed.
+
 
 Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
 (* FIXME: degree at most n *)
@@ -415,10 +434,11 @@ Proof.
     assert (Z.of_nat (ka+kb-1)%nat < q) by admit.
     lia.
     apply range_nodup.
-    Print eval_ppmul.
     intros.
     rewrite eval_ppmul.
-    assert (H_xi: exists i, x = F.of_nat _ i /\ (i < ka + kb -1)%nat) by admit.
+    assert (H_xi: exists i, x = F.of_nat _ i /\ (i < ka + kb -1)%nat). {
+
+    }
     destruct H_xi as [i H_xi].
     intuition idtac.
     subst.
@@ -426,7 +446,6 @@ Proof.
   }
   apply H_poly.
 Admitted.
-  
 
 (* PrimeReduce *)
 (* source: https://github.com/yi-sun/circom-pairing/blob/743d761f07254ea6407d29ba05f29886cfd14aec/circuits/bigint.circom#L786 *)

@@ -96,7 +96,7 @@ Proof.
     destruct res.
     rewrite Heqf.
     intros.
-    destruct H0 as [Hstep HP].
+    destruct H1 as [Hstep HP].
     specialize  (Hprev HP).
     assert (H_j0_leq: (j < S j)%nat) by lia.
     admit.

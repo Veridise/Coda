@@ -24,14 +24,16 @@ Definition iter (A: Type) (n: nat) := @iter' A n n.
 Local Hint Unfold iter : iter.
 
 Theorem iter_inv {A: Type} (Inv: nat -> A -> Prop):
-  forall f a,
+  forall f a i,
   Inv 0 a ->
-  (forall j b, Inv j b -> Inv (S j) (f j b)) ->
-  (forall i, Inv i (iter A i f a)).
+  (forall j b, Inv j b -> j <= i -> Inv (S j) (f j b)) ->
+  Inv i (iter A i f a).
 Proof.
-  induction i; intros; eauto.
-  - replace (iter A (S i) f a) with (f i (iter A i f a)); auto.
-    unfold iter. rewrite iter'_S. reflexivity.
+  intros f a.
+  induction i; intros H0 Hind; eauto.
+  - replace (iter A (S i) f a) with (f i (iter A i f a)) by
+      (unfold iter; rewrite iter'_S; reflexivity).
+    apply Hind. apply IHi; auto. lia.
 Qed.
 
 Arguments iter {A}.

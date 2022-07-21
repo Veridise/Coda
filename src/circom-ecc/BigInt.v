@@ -512,7 +512,7 @@ function long_sub(n, k, a, b) {
     }
     return diff;
 } *)
-Definition long_sub (n : Z) (_k : nat) (a b : tuple (F q) _k) : tuple (F q) 50.
+Definition long_sub (n : nat) (_k : nat) (a b : tuple (F q) _k) : tuple (F q) 50.
 Admitted.
 
 (* // 1 if true, 0 if false
@@ -527,7 +527,7 @@ function long_gt(n, k, a, b) {
     }
     return 0;
 } *)
-Definition long_gt (n : Z) (_k : nat) (a b : tuple (F q) _k) : F q.
+Definition long_gt (n : nat) (_k : nat) (a b : tuple (F q) _k) : F q.
 Admitted.
 
 (* // n bits per register
@@ -553,7 +553,7 @@ function short_div_norm(n, k, a, b) {
        return qhat;
    }
 } *)
-Definition short_div_norm (n : Z) (_k : nat) (a : tuple (F q) (_k + 1)) (b : tuple (F q) _k) : F q.
+Definition short_div_norm (n : nat) (_k : nat) (a : tuple (F q) (_k + 1)) (b : tuple (F q) _k) : F q.
 Admitted.
 
 (* // n bits per register
@@ -576,7 +576,7 @@ function short_div(n, k, a, b) {
     }
     return ret;
 }*)
-Definition short_div (n : Z) (_k : nat) (a : tuple (F q) (_k + 1)) (b : tuple (F q) _k) : F q.
+Definition short_div (n : nat) (_k : nat) (a : tuple (F q) (_k + 1)) (b : tuple (F q) _k) : F q.
 Admitted.
 
 (* // n bits per register
@@ -586,7 +586,7 @@ Admitted.
 // out[1] has length k -- remainder
 // implements algorithm of https://people.eecs.berkeley.edu/~fateman/282/F%20Wright%20notes/week4.pdf
 // b[k-1] must be nonzero! *)
-Definition long_div2 (n : Z) (_k m : nat) (a : tuple (F q) (_k + m)) (b : tuple (F q) _k) : tuple (F q) 2.
+Definition long_div2 (n : nat) (_k m : nat) (a : tuple (F q) (_k + m)) (b : tuple (F q) _k) : tuple (F q) 2.
 Admitted.
 
 Definition long_div := long_div2.
@@ -612,7 +612,7 @@ Definition SplitFn _in n m (out : tuple (F q) 2):=
 // a and b both have k registers
 // out[0] has length 2 * k
 // adapted from BigMulShortLong and LongToShortNoEndCarry witness computation *)
-Definition prod (n : Z) (_k : nat) (a : tuple (F q) _k) (b : tuple (F q) _k) : tuple (F q) 50.
+Definition prod (n : nat) (_k : nat) (a : tuple (F q) _k) (b : tuple (F q) _k) : tuple (F q) 50.
 Admitted.
 
 (* function prod_mod(n, k, a, b, p) {
@@ -620,8 +620,18 @@ Admitted.
     var temp[2][50] = long_div(n,k,prod,p);
     return temp[1];
 } *)
-Definition prod_mod (n : Z) (_k : nat) (a : tuple (F q) _k) (b p : tuple (F q) _k) : tuple (F q) 50.
+Definition prod_mod (n : nat) (_k : nat) (a : tuple (F q) _k) (b p : tuple (F q) _k) : tuple (F q) 50.
 Admitted.
+
+Definition repr_binary n x m ws :=
+  length ws = m /\
+  (forall i, (i < m)%nat -> binary q (nth i ws 0)) /\
+  x = repr_to_le n ws.
+
+Hypothesis prod_mod_correct:
+  forall (n: nat) k (a b p: tuple (F q) k),
+  repr_binary n (F_mod ((repr_to_le n (to_list k a)) * (repr_to_le n (to_list k b))) (repr_to_le n (to_list k p))) 50
+  (to_list 50 (prod_mod n k a b p)).
 
 (* // n bits per register
 // a has k registers
@@ -632,14 +642,10 @@ Admitted.
 // computes a^e mod p *)
 Definition mod_exp (n: nat) _k (a p e : tuple (F q) _k) : tuple (F q) 50. Admitted.
 
-Definition repr_binary n x m ws :=
-  length ws = m /\
-  (forall i, (i < m)%nat -> binary q (nth i ws 0)) /\
-  x = repr_to_le n ws.
-
 Hypothesis mod_exp_correct:
   forall (n: nat) k (a p e : tuple (F q) k),
-  repr_binary n ((repr_to_le n (to_list k a)) ^ (F.to_N (repr_to_le n (to_list k a)))) 50
+  repr_binary n (F_mod ((repr_to_le n (to_list k a)) ^ (F.to_N (repr_to_le n (to_list k e))))
+                        (repr_to_le n (to_list k p))) 50
   (to_list 50 (mod_exp n k a p e)).
 
 Definition PrimeReduce_cons

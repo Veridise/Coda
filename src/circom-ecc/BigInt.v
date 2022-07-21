@@ -371,6 +371,37 @@ Proof.
   - apply IHn in H. inversion H. intuition idtac. exists x0. split; (auto || lia).
 Qed.
 
+Require Import FinFun.
+
+Lemma Fof_Z_inj: forall x y, 0 <= x < q -> 0 <= y < q -> F.of_Z q x = F.of_Z q y -> x = y.
+Proof.
+  intros.
+  apply F.eq_of_Z_iff in H1.
+  rewrite Zmod_small in H1; rewrite Zmod_small in H1; lia.
+Qed.
+
+Lemma Fof_nat_injective: forall x y, Z.of_nat x < q -> Z.of_nat y < q -> F.of_nat q x = F.of_nat q y -> x = y.
+Proof.
+  intros. apply Nat2Z.inj. unfold F.of_nat in *. apply Fof_Z_inj; (lia || auto).
+Qed.
+
+Definition Injective_restrict {A B: Type} (f: A -> B) P :=
+  forall x y, P x -> P y -> f x = f y -> x = y.
+
+Lemma Injective_map_NoDup_restrict:
+  forall (A B : Type) (f : A -> B) (l : list A) P,
+  Injective_restrict f P -> (forall x, In x l -> P x) -> NoDup l -> NoDup (List.map f l).
+Proof.
+  induction l; simpl; intros; constructor.
+  - unfold not. intros. apply in_map_iff in H1. destruct H1. intuition.
+    apply H in H2.
+    assert (~ (In a l)). replace l with (nil ++ l) by reflexivity. apply NoDup_remove_2. simpl. auto.
+    subst. auto. apply X. auto.
+    apply X. left. auto.
+  - eapply IHl; eauto. inversion H0. auto.
+Qed.
+
+
 
 Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
 (* FIXME: degree at most n *)
@@ -382,7 +413,10 @@ Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
   a = b.
 Admitted.
 
-Require Import FinFun.
+Print Injective_map_NoDup.
+
+
+
 
 Theorem BigMultNoCarry_correct ka kb a b out:
   BigMultNoCarry ka kb a b out -> BigMultNoCarry_spec ka kb a b out.
@@ -412,6 +446,7 @@ Proof.
       destruct (dec (i1 < i0)%nat). auto.
       assert (i1 = i0) by lia. subst. auto.
   }
+  (* FIXME: range check *)
   assert (H_ka_kb: (ka + kb - 1 < Pos.to_nat q)%nat) by admit.
 
   unfold Inv in Hind.
@@ -427,17 +462,18 @@ Proof.
     rewrite map_length, range_length.
     (* FIXME: range check *)
     assert ((ka+kb>=2)%nat) by admit. lia.
-    (* FIXME: prove F.of_nat injective for small n *)
-    assert (forall n, n < q -> Injective (F.of_nat q)) by admit.
-    apply Injective_map_NoDup. apply H0 with (n := Z.of_nat (ka+kb-1)%nat).
+    pose proof Fof_nat_injective.
+
+    eapply Injective_map_NoDup_restrict.
+    Focus 2. intros. apply range_range. apply H9.
+    unfold Injective_restrict. intros. apply Fof_nat_injective; (lia || auto).
     (* FIXME: range check *)
     assert (Z.of_nat (ka+kb-1)%nat < q) by admit.
-    lia.
     apply range_nodup.
     intros.
     rewrite eval_ppmul.
     assert (H_xi: exists i, x = F.of_nat _ i /\ (i < ka + kb -1)%nat). {
-
+      apply range_map_preimage in H0. destruct H0. exists x0. intuition idtac. subst. reflexivity.
     }
     destruct H_xi as [i H_xi].
     intuition idtac.

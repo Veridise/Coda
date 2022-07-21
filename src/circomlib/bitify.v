@@ -429,13 +429,12 @@ Proof.
     intros j res Hprev.
     destruct res. destruct p.
     rewrite Heqf.
-    intros Hstep j0 H_j0_lt.
+    intros H_j0_lt Hstep j0.
     destruct Hstep as [Hstep HP].
     specialize  (Hprev HP).
-    assert (H_j0_leq: (j0 <= j)%nat) by lia.
     destruct (dec (j0 < j)%nat).
     + auto.
-    + unfold binary.
+    + unfold binary. intros.
       replace j0 with j by lia.
       destruct (dec (Tuple.nth_default 0 j _out = 0)).
       * auto.

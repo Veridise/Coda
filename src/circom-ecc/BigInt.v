@@ -199,6 +199,11 @@ Definition eval := eval' 0.
 
 Definition toPoly {m} (xs: tuple (F q) m) : polynomial := to_list m xs.
 
+Lemma toPoly_length: forall {m} (xs: tuple (F q) m),
+  length (toPoly xs) = m.
+Admitted.
+  
+
 Definition coeff (i: nat) (cs: polynomial) := nth i cs 0.
 
 Lemma coeff_nth: forall {m} (xs: tuple (F q) m) i,
@@ -228,6 +233,15 @@ Definition init_poly ka kb (poly: tuple (F q) (ka+ kb -1)) {m} (x: tuple (F q) m
           (poly_i + x[j] * (F.of_nat q i)^(N.of_nat j))) 0)
       _C.
 
+Lemma exists_last': forall {A: Type} (l: list A),
+  l <> nil ->
+  exists l' a, l = l' ++ a::nil.
+Proof.
+  intros.
+  pose proof exists_last as H_last.
+  specialize (H_last _ _ H). destruct H_last as [l' H_last]. destruct H_last as [a H_last].
+  eexists. eexists. eauto.
+Qed.
 
 Lemma init_poly_correct: forall {ka kb} (poly: tuple (F q) (ka+ kb -1)) {m} (x: tuple (F q) m) _C,
   init_poly ka kb poly x _C ->
@@ -236,6 +250,7 @@ Lemma init_poly_correct: forall {ka kb} (poly: tuple (F q) (ka+ kb -1)) {m} (x: 
 Proof.
   unfold init_poly.
   intros ka kb poly m x _C0.
+  remember (ka+kb-1)%nat as outer_bound.
   (* invariant for the inner loop *)
   remember (fun (i : nat) (_C : Prop) =>
   _C /\
@@ -247,8 +262,8 @@ Proof.
   
   pose (Inv_outer := fun i _C =>
     _C -> _C0 /\ forall i0, (i0 < i)%nat -> poly [i0] = eval (toPoly x) (F.of_nat q i0)).
-  assert (Hinv_outer: forall i, Inv_outer i (iter i outer _C0)). {
-    intros i. unfold Inv_outer. apply iter_inv.
+  assert (Hinv_outer: Inv_outer outer_bound (iter outer_bound outer _C0)). {
+    apply iter_inv; unfold Inv_outer.
     (* outer: base case *)
     - intuition idtac. lia.
     (* outer: inductive case *)
@@ -262,31 +277,52 @@ Proof.
         pose (Inv_inner := fun j acc => acc = eval (firstn j (toPoly x)) (F.of_nat q i0)).
         remember (fun (j : nat) (poly_i : F q) => poly_i + x [j] * F.of_nat q i0 ^ N.of_nat j)
           as inner.
-        assert (Hinv_inner: forall j, Inv_inner j (iter j inner 0)). {
-          unfold Inv_inner. intros. apply iter_inv.
+        assert (Hinv_inner: Inv_inner m (iter m inner 0)). {
+          apply iter_inv; unfold Inv_inner.
           - intuition idtac.
-          - intros j0 b Hb H_j0_j. subst. 
+          - intros j acc Hacc H_j_m. subst.
             destruct m.
-            + admit. (* x is empty. impossible? *)
-            + assert (H_toPoly_len: length (toPoly x) = S m) by admit.
-              assert (H_split: exists cs c, firstn (S j) (toPoly x) = cs ++ (c::nil)) by admit.
-              destruct H_split as [cs H_split]. destruct H_split as [c H_split].
-              replace (firstn (S j0) (toPoly x)) with (firstn j0 cs ++ (c::nil)) by admit.
-              rewrite eval_app.
-              rewrite firstn_length_le by admit.
-              cbn [eval'].
-              replace (x [j0]) with c by admit.
-              replace (firstn j0 (toPoly x)) with (firstn j0 cs) by admit.
+            + lia.
+            + assert (H_toPoly_len: length (toPoly x) = S m) by apply toPoly_length.
+              assert (H_split: exists cs c ds, toPoly x = cs ++ (c::nil) ++ ds /\ length cs = j). {
+                remember (toPoly x) as xs.
+                assert (exists cs ds, xs = cs ++ ds /\ length cs = S j). {
+                  exists (firstn (S j) xs). exists (skipn (S j) xs).
+                  rewrite firstn_skipn. split; auto. apply firstn_length_le. lia.
+                }
+                destruct H4 as [cs H4]. destruct H4 as [ds H4]. destruct H4.
+                assert (H_cs_nonil: cs <> nil). unfold not. intros. subst. simpl in *. lia.
+                apply exists_last' in H_cs_nonil.
+                destruct H_cs_nonil as [cs' Hcs]. destruct Hcs as [c Hcs].
+                exists cs'. exists c. exists ds. rewrite H4. rewrite Hcs. split.
+                - rewrite app_assoc. reflexivity.
+                - assert (length cs = length (cs' ++ c :: nil)) by (subst; auto).
+                  rewrite app_length in H6. simpl in H6. lia.
+              }
+              destruct H_split as [cs H_split]. destruct H_split as [c H_split]. destruct H_split as [cs' H_split]. destruct H_split as [H_split H_cs_len].
+              rewrite H_split.
+              rewrite firstn_app. replace (j-length cs)%nat with 0%nat by lia. rewrite firstn_O. rewrite app_nil_r.
+              replace (firstn j cs) with (firstn (length cs) cs) by (rewrite <- H_cs_len; reflexivity).
+              rewrite firstn_all.
+              replace (cs ++ (c :: nil) ++ cs') with ((cs ++ (c :: nil)) ++ cs') by (rewrite app_assoc; reflexivity).
+              replace (S j) with (length (cs ++ c :: nil)) by (rewrite app_length; simpl; lia).
+              rewrite firstn_app. rewrite firstn_all.
+              replace (length (cs ++ c :: nil) - length (cs ++ c :: nil))%nat with 0%nat by lia.
+              rewrite firstn_O. rewrite app_nil_r. rewrite eval_app. cbn [eval'].
+              replace c with (x [j]). subst. replace (length cs + 0)%nat with (length cs) by lia.
               fqsatz.
+              rewrite <- coeff_nth. rewrite H_split.
+              replace (cs ++ (c :: nil) ++ cs') with ((cs ++ (c :: nil)) ++ cs') by (rewrite app_assoc; reflexivity).
+              unfold coeff. rewrite app_nth1. rewrite app_nth2. subst. replace (length cs - length cs)%nat with 0%nat by lia. reflexivity.
+              lia.
+              rewrite app_length. simpl. lia.
         }
         unfold Inv_inner in Hinv_inner.
-        specialize (Hinv_inner m).
         rewrite firstn_toPoly in *. 
         rewrite H0. rewrite Hinv_inner. reflexivity.
   }
   intros.
   unfold Inv_outer in Hinv_outer.
-  specialize (Hinv_outer (ka+kb-1)%nat).
   intuition idtac.
 Admitted.
 

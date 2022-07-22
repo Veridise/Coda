@@ -26,7 +26,7 @@ Local Hint Unfold iter : iter.
 Theorem iter_inv {A: Type} (Inv: nat -> A -> Prop):
   forall f a i,
   Inv 0 a ->
-  (forall j b, Inv j b -> j <= i -> Inv (S j) (f j b)) ->
+  (forall j b, Inv j b -> j < i -> Inv (S j) (f j b)) ->
   Inv i (iter A i f a).
 Proof.
   intros f a.

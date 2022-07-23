@@ -55,10 +55,32 @@ Notation "a ~ b" := (eq_poly a b) (at level 20).
 Hint Constructors eq_poly : core.
 Hint Constructors empty_poly : core.
 
+Lemma eq_poly_empty_imp: forall p1 p2, p1 ~ p2 -> empty_poly p2 -> empty_poly p1.
+Proof.
+  intros p1 p2 H.
+  induction H;intro;auto.
+  inversion H0;subst.
+  constructor;auto.
+Qed.
+
 Instance eq_poly_equivalence : Equivalence eq_poly.
 (* proof that eq_poly is reflexive, symmetric, and transitive *)
 Proof.
-Admitted.
+constructor.
+- intro. induction x;auto.
+- intros x y H. 
+  induction H.
+  + apply eq_poly_empty;auto.
+  + apply eq_poly_cons;auto.
+- intros x y z H1 H2. revert H2. revert z.
+  induction H1;intros z H2.
+  + apply eq_poly_empty;auto.
+    induction H2;auto. inversion H0. subst. 
+    constructor. auto.
+  + inversion H2;subst;auto. 
+    apply eq_poly_empty;auto. inversion H;subst.
+    constructor. eapply eq_poly_empty_imp;eauto.
+Qed.
 
 Fixpoint peval (x: F) (p: polynomial) :=
   match p with

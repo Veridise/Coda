@@ -162,12 +162,12 @@ Definition toSZ (x: F q) := let z := F.to_Z x in
 Lemma toSZ_add: forall a b,
   Z.abs (toSZ a) + Z.abs (toSZ b) < r//2 ->
   toSZ (a + b) = (toSZ a + toSZ b)%Z.
-Proof. Admitted.
+Proof. Abort.
 
 Lemma toSZ_mult: forall a b,
   Z.abs (toSZ a) * Z.abs (toSZ b) < r//2 ->
   toSZ (a * b) = (toSZ a * toSZ b)%Z.
-Proof. Admitted.
+Proof. Abort.
 
 Definition polynomial := list (F q).
 
@@ -201,28 +201,113 @@ Definition toPoly {m} (xs: tuple (F q) m) : polynomial := to_list m xs.
 
 Lemma toPoly_length: forall {m} (xs: tuple (F q) m),
   length (toPoly xs) = m.
-Admitted.
-  
+Proof.
+  intros. apply length_to_list.
+Qed.
 
 Definition coeff (i: nat) (cs: polynomial) := nth i cs 0.
 
 Lemma coeff_nth: forall {m} (xs: tuple (F q) m) i,
   coeff i (toPoly xs) = nth_default 0 i xs.
-Admitted.
+Proof.
+  unfold coeff. unfold toPoly. intros.
+  rewrite <- nth_default_eq. apply nth_default_to_list.
+Qed.
 
-Lemma eval_ppadd: forall c d x, eval (padd c d) x = eval c x + eval d x.
-Admitted.
+Lemma eval'_ppadd: forall c n d x, eval' n (padd c d) x = eval' n c x + eval' n d x.
+Proof.
+  unfold padd.
+  induction c; simpl;intros; try fqsatz.
+  destruct d.
+  - simpl. fqsatz.
+  - simpl. rewrite IHc. fqsatz.
+Qed.
+
+Theorem eval_ppadd: forall c d x, eval (padd c d) x = eval c x + eval d x.
+Proof.
+  intros. apply eval'_ppadd.
+Qed.
+
+Lemma ppmul_nil_0: forall c, pmul c nil = (List.repeat 0 (length c)).
+Proof.
+  induction c;auto.
+  unfold padd. simpl. rewrite IHc. auto.
+Qed.
+
+Lemma eval_repeat_0: forall k n x, eval' n (List.repeat 0 k) x = 0.
+Proof.
+  induction k0;intros;simpl;auto. 
+  rewrite IHk0. fqsatz.
+Qed.
+
+Lemma eval'_ppmul_inner:
+  forall d a n x,
+  eval' n (List.map (fun y : F q => a * y) d) x = 
+   a * eval' n d x.
+Proof.
+  induction d;simpl;intros;try fqsatz.
+  rewrite IHd. fqsatz.
+Qed.
+
+Lemma eval'_n_plus_1: forall c n x, eval' (n + 1) c x = x * eval' n c x.
+Proof.
+  induction c; simpl;intros; try fqsatz. 
+  rewrite IHc.
+  assert(x * (a * x ^ n + eval' (n + 1) c x) = x * a * x ^ n + x * eval' (n + 1) c x) by
+  fqsatz.
+  rewrite H.
+  assert(a * x ^ (n + 1) = x * a * x ^ n).
+  assert(x * a * x ^ n = a * x * x ^ n) by fqsatz. rewrite H0.
+  assert(x ^ (n + 1) =  x * x ^ n).
+  rewrite <- F.pow_succ_r.
+  assert(N.succ n = (n + 1) %N). lia. rewrite H1. fqsatz.
+  rewrite H1. fqsatz. rewrite H0. fqsatz.
+Qed.
+
+Lemma eval'_n_plus_1_0: forall c x, eval' 1 c x = x * eval' 0 c x.
+Proof.
+  intros. rewrite <- eval'_n_plus_1. auto.
+Qed.
+
+Lemma eval'_ppmul: forall c d x, eval' 0 (pmul c d) x = eval' 0 c x * eval' 0 d x.
+Proof.
+  induction c; simpl;intros; try fqsatz. 
+  rewrite eval'_ppadd. simpl. repeat rewrite eval'_n_plus_1_0.
+  rewrite IHc. rewrite eval'_ppmul_inner.
+  rewrite F.pow_0_r. fqsatz.
+Qed.
 
 Lemma eval_ppmul: forall c d x, eval (pmul c d) x = eval c x * eval d x.
-Admitted.
+Proof.
+  intros. apply eval'_ppmul.
+Qed.
 
 Lemma firstn_toPoly: forall m (x: tuple (F q) m),
   firstn m (toPoly x) = toPoly x.
-Admitted.
+Proof.
+  intros.
+  apply firstn_all2. unfold toPoly.
+  rewrite length_to_list;lia.
+Qed.
+
+Lemma eval_app': forall cs0 cs1 n x,
+  eval' n (cs0 ++ cs1) x = eval' n cs0 x + eval' (n + N.of_nat (length cs0)) cs1 x.
+Proof.
+  induction cs0;simpl;intros.
+  - assert(n + 0 =n)%N by lia. rewrite H. fqsatz.
+  - rewrite IHcs0.
+    assert (N.pos (Pos.of_succ_nat (length cs0)) = (1 + N.of_nat (length cs0))%N).
+    rewrite Pos.of_nat_succ. lia.
+    rewrite H. 
+    assert(n + (1 + N.of_nat (length cs0)) = n + 1 + N.of_nat (length cs0))%N. lia.
+    rewrite H0. fqsatz.
+Qed.
 
 Lemma eval_app: forall cs0 cs1 x,
   eval (cs0 ++ cs1) x = eval cs0 x + eval' (N.of_nat (length cs0)) cs1 x.
-Admitted.
+Proof.
+  intros. apply eval_app'.
+Qed.
 
 Notation "x [ i ]" := (Tuple.nth_default 0 i x).
 
@@ -324,7 +409,7 @@ Proof.
   intros.
   unfold Inv_outer in Hinv_outer.
   intuition idtac.
-Admitted.
+Qed.
 
 Definition BigMultNoCarry_cons
   ka kb
@@ -437,8 +522,6 @@ Proof.
   - eapply IHl; eauto. inversion H0. auto.
 Qed.
 
-
-
 Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
 (* FIXME: degree at most n *)
 (* degree_leq a n -> *)
@@ -447,12 +530,8 @@ Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
   NoDup X ->
   (forall x, In x X -> eval a x = eval b x) ->
   a = b.
+Proof.
 Admitted.
-
-Print Injective_map_NoDup.
-
-
-
 
 Theorem BigMultNoCarry_correct ka kb a b out:
   BigMultNoCarry ka kb a b out -> BigMultNoCarry_spec ka kb a b out.
@@ -497,7 +576,8 @@ Proof.
     reflexivity.
     rewrite map_length, range_length.
     (* FIXME: range check *)
-    assert ((ka+kb>=2)%nat) by admit. lia.
+    assert ((ka+kb>=2)%nat) by admit.
+     lia.
     pose proof Fof_nat_injective.
 
     eapply Injective_map_NoDup_restrict.

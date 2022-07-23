@@ -385,7 +385,7 @@ Proof.
                   rewrite app_length in H6. simpl in H6. lia.
               }
               destruct H_split as [cs H_split]. destruct H_split as [c H_split]. destruct H_split as [cs' H_split]. destruct H_split as [H_split H_cs_len].
-              rewrite H_split.
+              rewrite H_split. 
               rewrite firstn_app. replace (j-length cs)%nat with 0%nat by lia. rewrite firstn_O. rewrite app_nil_r.
               replace (firstn j cs) with (firstn (length cs) cs) by (rewrite <- H_cs_len; reflexivity).
               rewrite firstn_all.
@@ -535,6 +535,13 @@ Fixpoint deg (p: polynomial) : degree :=
     end
   end.
 
+Definition degree_max d1 d2 :=
+  match d1, d2 with
+  | None, _ => d2
+  | _, None => d1
+  | Some d1, Some d2 => Some (max d1 d2)
+  end.
+
 Definition degree_leqb d1 d2 :=
   match d1, d2 with
   | Some d1, Some d2 => (d1 <=? d2)%nat
@@ -543,14 +550,529 @@ Definition degree_leqb d1 d2 :=
   end.
 Definition degree_leq d1 d2 : Prop := degree_leqb d1 d2 = true.
 
+Definition pscale (k: F q) : polynomial -> polynomial := List.map (fun a => k * a).
+Definition psub (p q: polynomial) : polynomial := padd p (pscale (F.opp 1) q).
+
+Lemma eval_popp': forall p0 n (x: F q), 
+eval' n (pscale (F.opp 1) p0) x = 0 - eval' n p0 x.
+Proof.
+  unfold pscale. 
+  induction p0; simpl;intros; try fqsatz.
+  rewrite IHp0. fqsatz.
+Qed.
+
+Lemma eval_popp: forall p0 (x: F q), 
+eval (pscale (F.opp 1) p0) x = 0 - eval p0 x.
+Proof.
+  intros. apply eval_popp'.
+Qed.
+
+Lemma eval_psub: forall (p0 q0: polynomial) (x: F q), (*11*)
+  eval (psub p0 q0) x = eval p0 x - eval q0 x.
+Proof.
+  unfold psub. intros. rewrite eval_ppadd. rewrite eval_popp. fqsatz.
+Qed.
+
+Lemma deg_psub: forall p q, (*11*)
+  degree_leq (deg (psub p q)) (degree_max (deg p) (deg q)).
+Proof.
+Admitted.
+
+Lemma eq_poly_decidable: forall p q : polynomial, (*11*)
+  p = q \/ ~ (p = q).
+Proof.
+  intros. pose proof (dec_eq_list p q0). destruct H;auto.
+Qed.
+
+Definition p0 : polynomial := nil.
+
+Lemma psub_0_neg: forall p q, (*11*)
+  ~((psub p q) = p0) <-> ~(p = q).
+Proof.
+Admitted.
+
+Lemma not0_implies_positive_deg: forall p, (*11*)
+  ~ (p = p0) -> exists n, deg p = Some n /\ (n > 0)%nat.
+  Proof.
+Admitted.
+
+Definition root x p := eval p x = 0.
+
+Lemma deg_d_has_most_d_roots: forall p d, (*11*)
+  deg p = Some d ->
+  (d > 0)%nat ->
+  exists X, length X = d /\ forall x, root x p -> In x X.
+Proof.
+Admitted.
+
+Lemma list_gen_ind_rec {X : Type} (P : list X -> Prop) 
+(HP : forall l, (forall m, length m < length l -> P m)%nat -> P l)
+n : forall l, (length l < n)%nat -> P l.
+Proof.
+  induction n as [ | n IHn ]; intros l Hl.
+  exfalso; revert Hl; apply lt_n_0.
+  apply HP.
+  intros m Hm.
+  apply IHn.
+  apply lt_le_trans with (1 := Hm).
+  apply le_S_n, Hl.
+Qed.
+
+Theorem list_gen_ind {X : Type}(P : list X -> Prop)
+(HP : forall l, (forall m, length m < length l -> P m)%nat -> P l): forall l, P l.
+Proof.
+  intros l. 
+  apply list_gen_ind_rec with (n := S (length l)).
+  intros. auto.
+  apply le_refl.
+Qed.
+
+Inductive perm {X:Type} : list X -> list X -> Prop :=
+| perm_nil   :                   perm nil nil
+| perm_cons  : forall x l1 l2,    perm l1 l2 
+                           ->   perm (x::l1) (x::l2)
+| perm_swap  : forall x y l,  perm (x::y::l) (y::x::l)
+| perm_trans : forall l1 l2 l3,    perm l1 l2 
+                           ->      perm l2 l3 
+                           ->      perm l1 l3.
+Notation "x '~p' y " := (perm x y) (at level 70, no associativity).
+
+Fact perm_incl {X : Type} (l m: list X ): l ~p m -> incl l m.
+Proof.
+  intros H.
+  induction H as [ 
+                 | x l1 l2 H1 IH1 
+                 | x y l 
+                 | l1 l2 l3 H1 IH1 H2 IH2 
+                 ]. 
+  intros Hyp1 Hyp2 .
+  apply Hyp2.
+  intros Hyp1 Hyp2 .
+  destruct Hyp2.
+  left.
+  apply H.
+  right.
+  apply IH1.
+  apply H.
+  intros ? ?.
+  revert H.
+  simpl.
+  tauto.
+  revert IH2.
+  revert IH1.
+  apply incl_tran.
+Qed.
+
+Fact perm_refl {A:Type} (l:list A) : l ~p l.
+Proof.
+ induction l as [ |list head IH].
+ apply perm_nil.
+ apply perm_cons.
+ apply IH.
+Qed.
+
+Fact perm_middle {A:Type}x (l r:list A) : x::l++r ~p l++x::r.
+Proof.
+  induction l as [ | y list IHl ].
+  simpl. 
+  apply perm_refl.
+  simpl. 
+  apply perm_trans with (1 := perm_swap _ _ _).
+  apply perm_cons.
+  apply IHl.
+Qed.
+
+Fact incl_right_app {A:Type} (l m p:list A) : incl m (l++p) -> exists m1 m2, m ~p m1++m2 /\ incl m1 l /\ incl m2 p.
+Proof.
+  induction m as [ | x m IHm ].
+  exists nil, nil; simpl; repeat split;intros;try easy.
+  apply perm_nil.
+  intros H.
+  apply incl_cons_inv in H. 
+  destruct H as (H1 & H2).    
+  apply IHm in H2.
+  destruct H2 as (m1 & m2 & H3 & H4 & H5).
+  destruct IHm.
+  apply perm_incl in H3.
+  apply incl_appl with(m:=p) in H4.
+  apply incl_appr with(m:=l) in H5.
+  apply incl_app with(l:=m1) (m:=m2) (n:=l++p) in H4.
+  apply incl_tran with(l:=m) in H4.
+  apply H4.
+  apply H3.
+  apply H5.
+  destruct H.
+  destruct H.
+  destruct H0.
+  apply in_app_or in H1.
+  destruct H1.
+  exists (x::x0).
+  exists (x1).
+  split.
+  apply perm_cons with(x:=x) in H.
+  apply H.
+  split.
+  apply incl_cons with(a:=x) in H0.
+  apply H0.
+  apply H1.
+  apply H2.
+  exists (x0).
+  exists (x::x1).
+  split.
+  apply perm_cons with(x:=x) in H.
+  apply perm_trans with(l2:=(x::x0++x1)) (l3:= (x0++x::x1)) in H.
+  apply H.
+  apply perm_middle.
+  split.
+  apply H0.
+  apply incl_cons with(a:=x) in H2.
+  apply H2.
+  apply H1.
+Qed. 
+
+Fact incl_right_cons_split {X : Type}  x (l m:list X) : incl m (x::l) -> exists m1 m2, m ~p m1 ++ m2 /\ (forall a, In a m1 -> a = x) /\ incl m2 l.
+Proof.
+  intros H.
+  apply (incl_right_app (x::nil) _ l) in H.
+  destruct H.
+  destruct H.
+  destruct H.
+  destruct H0.
+  exists x0.
+  exists x1.
+  split.
+  apply H.
+  split.
+  2: apply H1.
+  intros.
+  apply perm_incl in H.
+  apply incl_cons with(l:=nil) in H2.
+  apply incl_tran with(l:=a::nil) in H0.
+  2: apply H2.
+  2: intros;easy.
+  apply incl_cons_inv in H0.
+  destruct H0.
+  induction H0.
+  subst.
+  trivial.
+  exfalso.
+  apply H0.
+Qed.
+
+Fact perm_sym {A:Type} (l1 l2:list A) : l1 ~p l2 -> l2 ~p l1.
+Proof.
+  intros H.
+  induction H.
+  apply perm_nil.
+  apply perm_cons.
+  assumption.
+  apply perm_swap.
+  apply perm_trans with l2.
+  apply IHperm2.
+  apply IHperm1.
+Qed.
+
+Fact incl_right_cons_choose {A:Type}x (l m:list A) : incl m (x::l) -> In x m \/ incl m l.
+Proof.
+  intros H.
+  apply incl_right_cons_split in H.
+  destruct H as ( m1 & m2 & H1 & H2 & H3 ); simpl in H1.
+  destruct m1 as [ | y m1 ].
+  right.
+  simpl in H1.
+  apply perm_incl in H1.    
+  revert H1 H3.
+  apply incl_tran.
+  apply Forall_forall in H2.
+  apply Forall_inv in H2.
+  subst.
+  apply perm_sym in H1.
+  apply perm_incl in H1.
+  apply incl_cons_inv in H1.
+  destruct H1.
+  left.
+  apply H.
+Qed.
+
+Fact repeat_choice_two {X:Type} (x : X) m : (forall a, In a m -> a = x) -> (exists m', m = x::x::m') \/ m = nil \/ m = x::nil.
+Proof.
+  intros H.
+  destruct m as [ | a [ | b m ] ].
+  right; left; auto.
+  right; right; rewrite (H a); auto; left; auto.
+  left; rewrite (H a), (H b).
+  exists m; auto.
+  right; left; auto.
+  left; auto.
+Qed.
+
+Inductive list_has_dup {X:Type} : list X -> Prop :=
+| in_lhd_1 : forall x l, In x l -> list_has_dup (x::l)
+| in_lhd_2 : forall x l, list_has_dup l -> list_has_dup (x::l).
+
+Notation lhd := list_has_dup.
+
+Fact lhd_cons_inv {A:Type}x (l:list A) : lhd (x::l) -> In x l \/ lhd l.
+Proof.
+  inversion_clear 1;auto.
+Qed.
+
+Fact perm_lhd {A:Type} (l m:list A) : l ~p m -> lhd l -> lhd m.
+Proof.
+  intros H.
+  induction H as [ | x l m H1 IH1 | x y l | ]; auto.
+  intros H.
+  apply lhd_cons_inv in H; destruct H as [ H | H ].
+  left.
+  apply perm_incl in H1. 
+  apply H1.
+  apply H.
+  right.
+  apply IH1.
+  apply H.
+  intros H.
+  apply lhd_cons_inv in H. simpl in *.
+  destruct H as [H | H];subst.
+  destruct H as [H | H];subst.
+  induction l.
+  left.
+  left.
+  reflexivity.
+  left.
+  left.
+  reflexivity.
+  right.
+  left.
+  apply H.
+  apply lhd_cons_inv in H.
+  destruct H as [ H | H ].
+  left.
+  right.
+  apply H.
+  right.
+  right.
+  apply H.
+Qed.
+
+Fact incl_right_cons_incl_or_lhd_or_perm {A:Type} x (m l:list A) : incl m (x::l) -> incl m l \/ (lhd m) \/ exists m', m ~p x::m' /\ incl m' l.
+Proof.
+  intros H.
+  apply incl_right_cons_split in H.
+  destruct H as (m1 & m2 & H1 & H2 & H3).
+  destruct (repeat_choice_two _ _ H2) as [ (m3 & H4) | [ H4 | H4 ] ]; 
+    subst m1; simpl in H1; clear H2.
+  apply perm_sym in H1.
+  right; left.
+  apply perm_lhd with (1 := H1).
+  constructor 1; left; auto.
+  left.
+  intros u Hu.
+  apply H3.
+  apply perm_incl with (1 := H1); auto.
+  right; right.
+  exists m2; auto.
+Qed.
+
+Fact In_perm_head {X:Type}(x : X) l : In x l -> exists m, l ~p x::m.
+Proof.
+  intros H.
+  apply in_split in H.
+  destruct H as (u & v & ?).
+  subst l.
+  exists (u++v).
+  apply perm_sym, perm_middle.
+Qed.
+
+Fact perm_length {A:Type} (l1 l2:list A) : l1 ~p l2 -> length l1 = length l2.
+Proof.
+  intros H.
+  induction H as [ 
+                  | x l1 l2 H1 IH1 
+                  | x y l 
+                  | l1 l2 l3 H1 IH1 H2 IH2 
+                  ].
+  apply refl_equal. 
+  simpl. 
+  f_equal.
+  apply IH1.
+  simpl. 
+  apply refl_equal.
+  transitivity (length l2).
+  apply IH1.
+  apply IH2.
+Qed.
+
+Fact length_le_and_incl_implies_dup_or_perm {A:Type} (l:list A)  :  
+forall m, (length l <= length m)%nat
+                      -> incl m l 
+                      -> (lhd m) \/ m ~p l.
+Proof.
+induction l as [ [ | x l ] IHl ] using list_gen_ind.
+
+(* case l -> nil *)
+- intros ? ? ?.
+  right. 
+  apply incl_l_nil in H0.
+  subst.
+  apply perm_nil.
+
+- intros [ | y m ] H1 H2.
+  (* case l -> x::l and m -> nil *)
+  + apply le_Sn_0 in H1; destruct H1.
+  (* case l -> x::l and m -> y :: m *)
+  + simpl in H1; apply le_S_n in H1.
+    apply incl_cons_inv in H2.
+    destruct H2 as [ H3 H4 ].
+    simpl in H3.
+    destruct H3 as [ H3 | H3 ].
+    (* case x = y *)
+    ++ subst y.
+       apply incl_right_cons_choose in H4.
+       destruct H4 as [ H4 | H4 ].
+
+      (* case x = y & In x m *)
+      +++ left.
+          left.
+          apply H4.
+
+      (* case x = y & incl m l *)
+      +++ destruct IHl with (3 := H4).
+          simpl; apply lt_n_Sn.
+          assumption.
+          left. right;auto.
+          right. constructor;auto.
+      (* case In y l *)
+    ++ apply incl_right_cons_incl_or_lhd_or_perm in H4.
+       destruct H4 as [ H4 | [ H4 | (m' & H4 & H5) ] ].
+       (* case In y l and incl m l *)
+      +++ destruct IHl with (3 := H4) as [ H5 | H5 ]; auto.
+          left;right;apply H5.
+          left.
+          left.
+          apply perm_sym in H5.
+          apply perm_incl in H5.
+          apply H5.
+          apply H3.
+          (* case In y l and lhd m *)
+      +++ left.
+          right.
+          apply H4.
+      (* case In y l and m ~p x::m' and incl m' l *)
+      +++ apply perm_sym in H4.
+          apply In_perm_head in H3.
+          destruct H3 as (l' & Hl').
+          (* l ~p y::l' for some l' *)
+          assert (incl m' (y::l')) as H6.
+          {intros ? ?; apply perm_incl with (1 := Hl'), H5; auto. }
+          clear H5.
+          (* and incl m' (y::l') *)
+          apply incl_right_cons_choose in H6.
+          destruct H6 as [ H6 | H6 ].
+          (* subcase In y m' *)
+          ++++ left.
+               left.
+               apply perm_incl in H4. 
+               apply H4.
+               right.
+               apply H6.
+          (* subcase incl m' l' *)
+          ++++ apply IHl in H6.
+              destruct H6 as [ H6 | H6 ].
+              left.
+              apply perm_lhd in H4. 
+              right.
+              apply H4.
+              right.
+              apply H6.
+              right.
+              move Hl' after m'.
+              apply perm_sym in H4.
+              apply perm_cons with(x:=y) in H4.
+              apply perm_cons with(x:=x) in H6.
+              apply perm_cons with(x:=y) in H6.
+              apply perm_cons with(x:=x) in Hl'.
+              apply perm_sym in Hl'.
+              apply perm_trans with(l2:=x::y::l')(l1:=y::x::l') in Hl' . 
+              apply perm_trans with(l1:=y::m) in H6.
+              apply perm_trans with(l1:=y::m) in Hl'.
+              apply Hl'.
+              apply H6.
+              apply H4.
+              apply perm_swap.
+              apply perm_length in Hl'.
+              simpl in Hl' |- *.
+              rewrite Hl'.
+              apply le_n_Sn.
+              apply perm_length in Hl'.
+              apply perm_length in H4.
+              simpl in H4, Hl'.
+              apply le_S_n.
+              rewrite <- Hl', H4; auto.
+Qed.
+
+Lemma NoDup_lhd_ff {A:Type}: forall l:list A, NoDup l -> lhd l -> False.
+Proof.
+  intros l H.
+  induction H;try easy;simpl;intros.
+  inversion H1;subst;auto.
+Qed.
+
+Lemma In_pigeon_hole: forall {A: Type} ( X' X: list A), (*11*)
+  NoDup X ->
+  (length X > length X')%nat ->
+  (forall x, In x X -> In x X') ->
+  False.
+Proof.
+  intros.
+  eapply length_le_and_incl_implies_dup_or_perm in H1;try lia.
+  destruct H1. 
+  - eapply NoDup_lhd_ff;eauto.
+  - apply perm_length in H1;lia.
+Qed.
+
+Lemma degree_leq_trans: forall a b d n,
+  degree_leq a (Some n) ->
+  degree_leq b (Some n) ->
+  degree_leq (Some d) (degree_max a b) ->
+  (d <= n)%nat.
+Proof.
+Admitted.
+
 Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
-(* FIXME: degree at most n *)
-  (* degree_leq (deg a) (Some n) ->
-  degree_leq (deg b) (Some n) -> *)
+  degree_leq (deg a) (Some n) ->
+  degree_leq (deg b) (Some n) ->
   (length X > n)%nat ->
   NoDup X ->
   (forall x, In x X -> eval a x = eval b x) ->
   a = b.
+Proof.
+  (* Proof: https://inst.eecs.berkeley.edu/~cs70/fa14/notes/n7.pdf *)
+  intros.
+  destruct (eq_poly_decidable a b).
+  trivial.
+  exfalso.
+  apply psub_0_neg in H4.
+  apply not0_implies_positive_deg in H4.
+  destruct H4 as [d [H_deg_r H_x] ].
+  pose proof (deg_psub a b) as H_deg_r_leq. 
+  rewrite H_deg_r in H_deg_r_leq. simpl in H_deg_r_leq.
+  assert (H_d_n: (d <= n)%nat).
+  { eapply degree_leq_trans. 3: apply H_deg_r_leq. all:auto. }
+  specialize (deg_d_has_most_d_roots _ _ H_deg_r H_x).
+  intro HX. destruct HX as [X' [H_len_X H_X] ].
+  eapply In_pigeon_hole with (X := X ) (X' := X');auto.
+  lia.
+  intros. apply H_X. unfold root. rewrite eval_psub.
+  apply H3 in H4. fqsatz.
+Qed.
+
+Lemma degree_leq_tuple: forall n (l:tuple (F q) n),
+degree_leq (deg (toPoly l)) (Some (n-1)%nat).
+Proof.
+Admitted.
+
+Lemma degree_leq_pmul: forall ka kb (a:tuple (F q) ka)(b:tuple (F q) kb),
+degree_leq (deg (pmul (toPoly a) (toPoly b))) (Some (ka + kb - 2)%nat).
 Proof.
 Admitted.
 
@@ -596,6 +1118,9 @@ Proof.
   assert (H_poly: toPoly out = pmul (toPoly a) (toPoly b)). {
     erewrite interpolant_unique with (a:=toPoly out) (b:=pmul (toPoly a) (toPoly b)) (n:=(ka+kb-2)%nat) (X:=List.map (F.of_nat _) (range (ka+kb-1))).
     reflexivity.
+    { specialize (degree_leq_tuple (ka+kb-1) out).
+      replace ((ka + kb - 1 - 1)%nat) with ((ka + kb - 2)%nat) by lia. auto. }
+    { apply degree_leq_pmul. }
     rewrite map_length, range_length.
     (* FIXME: range check *)
     assert ((ka+kb>=2)%nat) by lia.

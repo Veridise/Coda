@@ -704,7 +704,7 @@ Admitted.
     var temp[2][50] = long_div(n,k,prod,p);
     return temp[1];
 } *)
-Definition prod_mod (n : nat) (_k : nat) (a : tuple (F q) _k) (b p : tuple (F q) _k) : tuple (F q) 50.
+Definition prod_mod {_k1 _k2 _k3}(n : nat) (_k : nat) (a : tuple (F q) _k1) (b: tuple (F q) _k2) (p: tuple (F q) _k3): tuple (F q) 50.
 Admitted.
 
 Definition repr_binary n x m ws :=
@@ -732,14 +732,16 @@ Hypothesis mod_exp_correct:
                         (repr_to_le n (to_list k p))) 50
   (to_list 50 (mod_exp n k a p e)).
 
+(* k < 2^n *)
 Definition PrimeReduce_cons
-  n k m p m_out
+  n k m (p : tuple (F q) k)
   (_in : tuple (F q) (m+k))
   (_out : tuple (F q) k)
   (two : tuple (F q) k)
   (e_1 : tuple (F q) k)
   (e_2 : tuple (F q) k)
-  (r : tuple (tuple (F q) 50) m)
+  (_r : tuple (tuple (F q) 50) m)
+  (out_sum : tuple (F q) k)
    :=
   let _C := two[0] = 2 /\ e_1[0] = (F.of_nat q n) /\ e_2[0] = (F.of_nat q k) in
   let _C :=
@@ -747,5 +749,19 @@ Definition PrimeReduce_cons
       two[i] = 0 /\ e_1[i] = 0 /\ e_2[i] = 0) _C in
   let pow2n := mod_exp n k two p e_1 in
   let pow2nk := mod_exp n k pow2n p e_2 in
+  let _C :=
+    iter' (Nat.sub m 1) m (fun i _C => _C /\ 
+          (nth_default (repeat 0 50) i _r) = prod_mod n k (nth_default (repeat 0 50) (i-1) _r) pow2n p) 
+          ((nth_default (repeat 0 50) 0 _r) = pow2nk /\ _C) in
+  let _C :=
+    iter k (fun i _C => _C /\ 
+      out_sum[i] = _in[i]) _C in
+  let _C :=
+    iter m (fun i _C => _C /\ 
+      (iter k (fun j _C => _C /\ 
+                  out_sum[j] = out_sum[j] + _in[i+k] * (nth_default (repeat 0 50) i _r)[j]) _C)) _C in
+  let _C :=
+    iter k (fun i _C => _C /\ 
+      _out[i] = out_sum[i]) _C in
   _C
   .

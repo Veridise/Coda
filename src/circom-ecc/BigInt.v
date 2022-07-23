@@ -765,3 +765,16 @@ Definition PrimeReduce_cons
       _out[i] = out_sum[i]) _C in
   _C
   .
+
+Definition PrimeReduce n k m p _in _out :=
+  exists two e_1 e_2 _r out_sum,
+  PrimeReduce_cons n k m p _in _out two e_1 e_2 _r out_sum.
+
+Definition PrimeReduce_spec n k m (p : tuple (F q) k) (_in : tuple (F q) (m+k)) (_out : tuple (F q) k) :=
+  F_mod (repr_to_le n (toPoly _in)) (repr_to_le n (toPoly p)) = 
+  F_mod (repr_to_le n (toPoly _out)) (repr_to_le n (toPoly p)).
+
+Theorem PrimeReduce_correct n _k m p _in _out:
+  PrimeReduce n _k m p _in _out -> PrimeReduce_spec n _k m p _in _out.
+Proof.
+Admitted.

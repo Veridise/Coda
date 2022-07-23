@@ -4,15 +4,15 @@ Require Import Coq.micromega.Lia.
 
 Create HintDb iter discriminated.
 
-Fixpoint iter' (A: Type) (m n: nat) (f: nat -> A -> A) (a: A) : A :=
+Fixpoint iter' {A: Type} (m n: nat) (f: nat -> A -> A) (a: A) : A :=
   match m with
   | O => a
-  | S m' => iter' A m' n f (f (n-m) a)
+  | S m' => iter' m' n f (f (n-m) a)
   end.
   
 Lemma iter'_S:
   forall A f i j (a: A),
-  iter' A (S i) (S j) f a = f j (iter' A i j f a).
+  iter' (S i) (S j) f a = f j (iter' i j f a).
 Proof.
   induction i; intros.
   - simpl. replace (j - 0) with j by lia. reflexivity.

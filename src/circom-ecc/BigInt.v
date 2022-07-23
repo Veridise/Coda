@@ -688,7 +688,7 @@ Hypothesis prod_mod_correct:
 // k * n <= 500
 // p is a prime
 // computes a^e mod p *)
-Definition mod_exp (n: nat) _k (a p e : tuple (F q) _k) : tuple (F q) 50. Admitted.
+Definition mod_exp {_k1 _k2 _k3} (n: nat) (_k: nat) (a : tuple (F q) _k1) (p : tuple (F q) _k2) (e : tuple (F q) _k3) : tuple (F q) 50. Admitted.
 
 Hypothesis mod_exp_correct:
   forall (n: nat) k (a p e : tuple (F q) k),
@@ -698,35 +698,18 @@ Hypothesis mod_exp_correct:
 
 Definition PrimeReduce_cons
   n k m p m_out
-  (a: tuple (F q) ka)
-  (b: tuple (F q) kb)
-  (out: tuple (F q) (ka + kb - 1))
-  (a_poly: tuple (F q) (ka+ kb -1))
-  (b_poly: tuple (F q) (ka+ kb -1))
-  (out_poly: tuple (F q) (ka+ kb -1)) :=
-  let _C := True in
-  let '(out_poly, _C) :=
-    (* outer loop: construct out_poly[i] *)
-    iter (ka+kb-1) (fun i '(out_poly, _C) => (out_poly, _C /\
-        (* inner loop: sum out[j] * i ** j *)
-        out_poly[i] = iter (ka+kb-1) (fun j out_poly_i =>
-          (out_poly_i + out[j] * (F.of_nat q i)^(N.of_nat j))) 0))
-      (out_poly, _C) in
-  let '(a_poly, _C) :=
-    (* outer loop: construct a_poly[i] *)
-    iter (ka+kb-1) (fun i '(a_poly, _C) => (a_poly, _C /\
-        (* inner loop: sum a[j] * i ** j *)
-        a_poly[i] = iter (ka) (fun j a_poly_i =>
-          (a_poly_i + a[j] * (F.of_nat q i)^(N.of_nat j))) 0))
-      (a_poly, _C) in
-  let '(b_poly, _C) :=
-    (* outer loop: construct b_poly[i] *)
-    iter (ka+kb-1) (fun i '(b_poly, _C) => (b_poly, _C /\
-        (* inner loop: sum a[j] * i ** j *)
-        b_poly[i] = iter (kb) (fun j b_poly_i =>
-          (b_poly_i + a[j] * (F.of_nat q i)^(N.of_nat j))) 0))
-      (b_poly, _C) in
+  (_in : tuple (F q) (m+k))
+  (_out : tuple (F q) k)
+  (two : tuple (F q) k)
+  (e_1 : tuple (F q) k)
+  (e_2 : tuple (F q) k)
+  (r : tuple (tuple (F q) 50) m)
+   :=
+  let _C := two[0] = 2 /\ e_1[0] = (F.of_nat q n) /\ e_2[0] = (F.of_nat q k) in
   let _C :=
-    iter (ka+kb-1) (fun i _C => _C /\ 
-      out_poly[i] = a_poly[i] * b_poly[i]) _C in
-  _C.
+    iter' (Nat.sub k 1) k (fun i _C => _C /\ 
+      two[i] = 0 /\ e_1[i] = 0 /\ e_2[i] = 0) _C in
+  let pow2n := mod_exp n k two p e_1 in
+  let pow2nk := mod_exp n k pow2n p e_2 in
+  _C
+  .

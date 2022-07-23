@@ -18,10 +18,8 @@ Require Import Coq.NArith.Nnat.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Coq.Lists.ListSet.
-Require Import Coq.PArith.BinPosDef.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
-Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
-
+Require Import Crypto.Algebra.Ring.
 
 Section Polynomial.
 
@@ -54,11 +52,12 @@ Inductive eq_poly : polynomial -> polynomial -> Prop :=
 | eq_poly_cons : forall n p1 p2, eq_poly p1 p2 -> eq_poly (n::p1) (n::p2).
 Notation "a ~ b" := (eq_poly a b) (at level 20).
 
-Hint Constructors eq_poly.
-Hint Constructors empty_poly.
+Hint Constructors eq_poly : core.
+Hint Constructors empty_poly : core.
 
 Instance eq_poly_equivalence : Equivalence eq_poly.
 (* proof that eq_poly is reflexive, symmetric, and transitive *)
+Proof.
 Admitted.
 
 Fixpoint peval (x: F) (p: polynomial) :=
@@ -243,16 +242,16 @@ Qed.
 
 Instance padd_Proper:
   Proper (eq_poly ==> eq_poly ==> eq_poly) padd.
-Admitted.
+Abort.
 
 Instance pscale_Proper:
   Proper (eq ==> eq_poly ==> eq_poly) pscale.
-Admitted.
+Abort.
 
 Definition psub (p q: polynomial) : polynomial := padd p (pscale (opp 1) q).
 Notation "p p- q" := (psub p q) (at level 50).
 
-Lemma peval_psub: forall (p q: polynomial) (x: F),
+Lemma peval_psub: forall (p q: polynomial) (x: F), (*11*)
   peval x (p p- q) = peval x p - peval x q.
 Admitted.
 
@@ -265,11 +264,12 @@ Notation "p p* q" := (pmul p q) (at level 50).
 
 Lemma peval_pmul: forall (p q: polynomial) (x: F),
   peval x (p p* q) = peval x p * peval x q.
-Admitted.
+Proof.
+Abort.
 
 Instance pmul_Proper:
   Proper (eq_poly ==> eq_poly ==> eq_poly) pmul.
-Admitted.
+Abort.
 
 
 Definition root x p := peval x p == 0.
@@ -278,37 +278,37 @@ Definition linear a := (opp a :: 1 :: nil).
 
 Lemma deg_padd: forall p q,
   degree_leq (deg (p p+ q)) (degree_max (deg p) (deg q)).
-Admitted.
+Abort.
 
 Lemma deg_pmul: forall p q,
   degree_leq (deg (p p* q)) (degree_add (deg p) (deg q)).
-Admitted.
+Abort.
 
 Lemma deg_pscale: forall p k,
   degree_leq (deg (pscale k p)) (deg p).
-Admitted.
+Abort.
 
-Lemma deg_psub: forall p q,
+Lemma deg_psub: forall p q, (*11*)
   degree_leq (deg (p p- q)) (degree_max (deg p) (deg q)).
 Admitted.
 
 Lemma psub_0: forall p q,
   (p p- q) ~ p0 <-> p ~ q.
-Admitted.
+Abort.
 
-Lemma eq_poly_decidable: forall p q,
+Lemma eq_poly_decidable: forall p q, (*11*)
   p ~ q \/ ~ (p ~ q).
 Admitted.
 
-Lemma psub_0_neg: forall p q,
+Lemma psub_0_neg: forall p q, (*11*)
   ~((p p- q) ~ p0) <-> ~(p ~ q).
 Admitted.
 
-Lemma not0_implies_positive_deg: forall p,
+Lemma not0_implies_positive_deg: forall p, (*11*)
   ~ (p ~ p0) -> exists n, deg p = Some n /\ (n > 0)%nat.
 Admitted.
 
-Lemma deg_d_has_most_d_roots: forall p d,
+Lemma deg_d_has_most_d_roots: forall p d, (*11*)
   deg p = Some d ->
   (d > 0)%nat ->
   exists X, length X = d /\ forall x, root x p -> In x X.
@@ -319,13 +319,13 @@ Lemma pdiv: forall a b,
   ~ (a ~ p0) ->
   exists q r, a ~ ((q p* b) p+ r) /\
   (r ~ p0 \/ degree_leq (deg r) (deg b)).
-Admitted.
+Abort.
 
 Lemma factor_root: forall p a, root a p ->
   exists q, p ~ (linear a p* q).
-Admitted.
+Abort.
 
-Lemma In_pigeon_hole: forall {A: Type} (X X': list A),
+Lemma In_pigeon_hole: forall {A: Type} (X X': list A), (*11*)
   (length X > length X')%nat ->
   (forall x, In x X -> In x X') ->
   False.

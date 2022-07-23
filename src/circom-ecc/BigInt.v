@@ -522,10 +522,31 @@ Proof.
   - eapply IHl; eauto. inversion H0. auto.
 Qed.
 
+Definition degree := option nat.
+Definition mk_degree (n: nat) := Some n.
+
+Fixpoint deg (p: polynomial) : degree := 
+  match p with
+  | nil => None
+  | a::p' =>
+    match deg p' with
+    | Some d => Some (S d)
+    | None => if (F.eq_dec a 0) then None else Some O
+    end
+  end.
+
+Definition degree_leqb d1 d2 :=
+  match d1, d2 with
+  | Some d1, Some d2 => (d1 <=? d2)%nat
+  | None, _ => true
+  | _, None => false
+  end.
+Definition degree_leq d1 d2 : Prop := degree_leqb d1 d2 = true.
+
 Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
 (* FIXME: degree at most n *)
-(* degree_leq a n -> *)
-(* degree_leq b n -> *)
+  (* degree_leq (deg a) (Some n) ->
+  degree_leq (deg b) (Some n) -> *)
   (length X > n)%nat ->
   NoDup X ->
   (forall x, In x X -> eval a x = eval b x) ->

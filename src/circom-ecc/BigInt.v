@@ -704,7 +704,7 @@ Admitted.
     var temp[2][50] = long_div(n,k,prod,p);
     return temp[1];
 } *)
-Definition prod_mod (n : nat) (_k : nat) (a : tuple (F q) _k) (b p : tuple (F q) _k) : tuple (F q) 50.
+Definition prod_mod {_k1 _k2 _k3}(n : nat) (_k : nat) (a : tuple (F q) _k1) (b: tuple (F q) _k2) (p: tuple (F q) _k3): tuple (F q) 50.
 Admitted.
 
 Definition repr_binary n x m ws :=
@@ -724,7 +724,7 @@ Hypothesis prod_mod_correct:
 // k * n <= 500
 // p is a prime
 // computes a^e mod p *)
-Definition mod_exp (n: nat) _k (a p e : tuple (F q) _k) : tuple (F q) 50. Admitted.
+Definition mod_exp {_k1 _k2 _k3} (n: nat) (_k: nat) (a : tuple (F q) _k1) (p : tuple (F q) _k2) (e : tuple (F q) _k3) : tuple (F q) 50. Admitted.
 
 Hypothesis mod_exp_correct:
   forall (n: nat) k (a p e : tuple (F q) k),
@@ -732,37 +732,49 @@ Hypothesis mod_exp_correct:
                         (repr_to_le n (to_list k p))) 50
   (to_list 50 (mod_exp n k a p e)).
 
+(* k < 2^n *)
 Definition PrimeReduce_cons
-  n k m p m_out
-  (a: tuple (F q) ka)
-  (b: tuple (F q) kb)
-  (out: tuple (F q) (ka + kb - 1))
-  (a_poly: tuple (F q) (ka+ kb -1))
-  (b_poly: tuple (F q) (ka+ kb -1))
-  (out_poly: tuple (F q) (ka+ kb -1)) :=
-  let _C := True in
-  let '(out_poly, _C) :=
-    (* outer loop: construct out_poly[i] *)
-    iter (ka+kb-1) (fun i '(out_poly, _C) => (out_poly, _C /\
-        (* inner loop: sum out[j] * i ** j *)
-        out_poly[i] = iter (ka+kb-1) (fun j out_poly_i =>
-          (out_poly_i + out[j] * (F.of_nat q i)^(N.of_nat j))) 0))
-      (out_poly, _C) in
-  let '(a_poly, _C) :=
-    (* outer loop: construct a_poly[i] *)
-    iter (ka+kb-1) (fun i '(a_poly, _C) => (a_poly, _C /\
-        (* inner loop: sum a[j] * i ** j *)
-        a_poly[i] = iter (ka) (fun j a_poly_i =>
-          (a_poly_i + a[j] * (F.of_nat q i)^(N.of_nat j))) 0))
-      (a_poly, _C) in
-  let '(b_poly, _C) :=
-    (* outer loop: construct b_poly[i] *)
-    iter (ka+kb-1) (fun i '(b_poly, _C) => (b_poly, _C /\
-        (* inner loop: sum a[j] * i ** j *)
-        b_poly[i] = iter (kb) (fun j b_poly_i =>
-          (b_poly_i + a[j] * (F.of_nat q i)^(N.of_nat j))) 0))
-      (b_poly, _C) in
+  n k m (p : tuple (F q) k)
+  (_in : tuple (F q) (m+k))
+  (_out : tuple (F q) k)
+  (two : tuple (F q) k)
+  (e_1 : tuple (F q) k)
+  (e_2 : tuple (F q) k)
+  (_r : tuple (tuple (F q) 50) m)
+  (out_sum : tuple (F q) k)
+   :=
+  let _C := two[0] = 2 /\ e_1[0] = (F.of_nat q n) /\ e_2[0] = (F.of_nat q k) in
   let _C :=
-    iter (ka+kb-1) (fun i _C => _C /\ 
-      out_poly[i] = a_poly[i] * b_poly[i]) _C in
-  _C.
+    iter' (Nat.sub k 1) k (fun i _C => _C /\ 
+      two[i] = 0 /\ e_1[i] = 0 /\ e_2[i] = 0) _C in
+  let pow2n := mod_exp n k two p e_1 in
+  let pow2nk := mod_exp n k pow2n p e_2 in
+  let _C :=
+    iter' (Nat.sub m 1) m (fun i _C => _C /\ 
+          (nth_default (repeat 0 50) i _r) = prod_mod n k (nth_default (repeat 0 50) (i-1) _r) pow2n p) 
+          ((nth_default (repeat 0 50) 0 _r) = pow2nk /\ _C) in
+  let _C :=
+    iter k (fun i _C => _C /\ 
+      out_sum[i] = _in[i]) _C in
+  let _C :=
+    iter m (fun i _C => _C /\ 
+      (iter k (fun j _C => _C /\ 
+                  out_sum[j] = out_sum[j] + _in[i+k] * (nth_default (repeat 0 50) i _r)[j]) _C)) _C in
+  let _C :=
+    iter k (fun i _C => _C /\ 
+      _out[i] = out_sum[i]) _C in
+  _C
+  .
+
+Definition PrimeReduce n k m p _in _out :=
+  exists two e_1 e_2 _r out_sum,
+  PrimeReduce_cons n k m p _in _out two e_1 e_2 _r out_sum.
+
+Definition PrimeReduce_spec n k m (p : tuple (F q) k) (_in : tuple (F q) (m+k)) (_out : tuple (F q) k) :=
+  F_mod (repr_to_le n (toPoly _in)) (repr_to_le n (toPoly p)) = 
+  F_mod (repr_to_le n (toPoly _out)) (repr_to_le n (toPoly p)).
+
+Theorem PrimeReduce_correct n _k m p _in _out:
+  PrimeReduce n _k m p _in _out -> PrimeReduce_spec n _k m p _in _out.
+Proof.
+Admitted.

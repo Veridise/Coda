@@ -554,7 +554,8 @@ Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
 Proof.
 Admitted.
 
-Theorem BigMultNoCarry_correct ka kb a b out:
+Theorem BigMultNoCarry_correct ka kb a b out
+  (RANGE1: (ka + kb <= Pos.to_nat q)%nat) (RANGE2: (2 <= ka + kb)%nat):
   BigMultNoCarry ka kb a b out -> BigMultNoCarry_spec ka kb a b out.
 Proof.
   unfold BigMultNoCarry, BigMultNoCarry_spec, BigMultNoCarry_cons.
@@ -583,7 +584,7 @@ Proof.
       assert (i1 = i0) by lia. subst. auto.
   }
   (* FIXME: range check *)
-  assert (H_ka_kb: (ka + kb - 1 < Pos.to_nat q)%nat) by admit.
+  assert (H_ka_kb: (ka + kb - 1 < Pos.to_nat q)%nat) by lia.
 
   unfold Inv in Hind.
   specialize (Hind (ka + kb -1)%nat).
@@ -597,15 +598,15 @@ Proof.
     reflexivity.
     rewrite map_length, range_length.
     (* FIXME: range check *)
-    assert ((ka+kb>=2)%nat) by admit.
-     lia.
+    assert ((ka+kb>=2)%nat) by lia.
+    lia.
     pose proof Fof_nat_injective.
 
     eapply Injective_map_NoDup_restrict.
-    Focus 2. intros. apply range_range. apply H9.
+    2: { intros. apply range_range. apply H9. }
     unfold Injective_restrict. intros. apply Fof_nat_injective; (lia || auto).
     (* FIXME: range check *)
-    assert (Z.of_nat (ka+kb-1)%nat < q) by admit.
+    assert (Z.of_nat (ka+kb-1)%nat < q) by lia.
     apply range_nodup.
     intros.
     rewrite eval_ppmul.
@@ -618,7 +619,7 @@ Proof.
     apply H_evals. lia.
   }
   apply H_poly.
-Admitted.
+Qed.
 
 
 

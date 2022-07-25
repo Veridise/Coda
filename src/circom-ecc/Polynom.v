@@ -21,79 +21,108 @@ Require Import Coq.Lists.ListSet.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
 Require Import Crypto.Algebra.Ring.
 
+Require Import Util.
+
 Section Polynomial.
 
 Context {F eq zero one opp add sub mul inv div}
         {fld:@Hierarchy.field F eq zero one opp add sub mul inv div}
-        {eq_dec:DecidableRel eq}.
+        {eq_dec:DecidableRel eq}
+        {pow: F -> nat -> F}.
 
 Local Infix "==" := eq. 
 (* Local Notation "a <> b" := (not (a = b)). *)
-Local Notation "a <> b" := (not (a = b)) : type_scope.
+(* Local Notation "a <> b" := (not (a = b)) : type_scope. *)
 Local Infix "==" := eq : type_scope. 
 Local Notation "0" := zero.  Local Notation "1" := one.
 Local Infix "+" := add. Local Infix "*" := mul.
 Local Infix "-" := sub. Local Infix "/" := div.
+Local Infix "^" := pow.
+
+Ltac invert H := inversion H; subst; clear H.
 
 
-(* https://coq-club.inria.narkive.com/cL8AtXMS/how-could-i-do-polynomials-in-coq *)
+(* Formalization due to 
+ * https://coq-club.inria.narkive.com/cL8AtXMS/how-could-i-do-polynomials-in-coq *)
 
 Definition polynomial := list F.
 
 Inductive empty_poly : polynomial -> Prop :=
 | empty_poly_nil : empty_poly nil
-| empty_poly_cons : forall p, empty_poly p -> empty_poly (0::p).
+| empty_poly_cons : forall f x, x == 0 -> empty_poly f -> empty_poly (x::f).
 
 Definition p0 : polynomial := nil.
 
+(* A [polynomial] with trailing zeros is equivalent to one without. *)
 Reserved Notation "a ~ b" (at level 20).
 Inductive eq_poly : polynomial -> polynomial -> Prop :=
-| eq_poly_empty : forall p1 p2, empty_poly p1 -> empty_poly p2 -> eq_poly p1 p2
-| eq_poly_cons : forall n p1 p2, eq_poly p1 p2 -> eq_poly (n::p1) (n::p2).
+| eq_poly_empty : forall f g, empty_poly f -> empty_poly g -> eq_poly f g
+| eq_poly_cons : forall x y f g, eq_poly f g -> x == y -> eq_poly (x::f) (y::g).
 Notation "a ~ b" := (eq_poly a b) (at level 20).
 
-Hint Constructors eq_poly : core.
 Hint Constructors empty_poly : core.
+Hint Constructors eq_poly : core.
 
-Lemma eq_poly_empty_imp: forall p1 p2, p1 ~ p2 -> empty_poly p2 -> empty_poly p1.
+Hint Extern 10 (_ == _) => fsatz : core.
+Hint Extern 10 (?A ~ ?A) => reflexivity : core.
+
+Lemma eq_poly_empty_imp: forall f g, f ~ g -> empty_poly g -> empty_poly f.
 Proof.
-  intros p1 p2 H.
-  induction H;intro;auto.
-  inversion H0;subst.
-  constructor;auto.
+  intros f g H.
+  induction H; intro; auto.
+  invert H1. auto.
 Qed.
+
 
 Instance eq_poly_equivalence : Equivalence eq_poly.
-(* proof that eq_poly is reflexive, symmetric, and transitive *)
 Proof.
-constructor.
-- intro. induction x;auto.
-- intros x y H. 
-  induction H.
-  + apply eq_poly_empty;auto.
-  + apply eq_poly_cons;auto.
-- intros x y z H1 H2. revert H2. revert z.
-  induction H1;intros z H2.
-  + apply eq_poly_empty;auto.
-    induction H2;auto. inversion H0. subst. 
-    constructor. auto.
-  + inversion H2;subst;auto. 
-    apply eq_poly_empty;auto. inversion H;subst.
-    constructor. eapply eq_poly_empty_imp;eauto.
+  constructor.
+  (* reflexive *)
+  - intro. induction x; auto. 
+  (* symmetric *)
+  - intros x y H. 
+    induction H.
+    + apply eq_poly_empty;auto.
+    + apply eq_poly_cons;auto.
+  (* transitive *)
+    - intros x y z H1 H2. revert H2. revert z.
+      induction H1; intros z H2.
+    + apply eq_poly_empty; auto.
+      induction H2; auto. invert H0.
+      constructor; auto.
+    + invert H2; auto.
+      apply eq_poly_empty; auto. invert H0.
+      constructor. fsatz. eapply eq_poly_empty_imp; eauto.
 Qed.
 
-Fixpoint peval (x: F) (p: polynomial) :=
-  match p with
+(* Lemma p0_empty: empty_poly p0.
+Proof. constructor. Qed. *)
+
+Lemma empty_eq_0: forall f, empty_poly f -> f ~ p0.
+Proof. auto. Qed.
+
+Instance cons_Proper: forall c, Proper (eq_poly ==> eq_poly) (cons c).
+Proof.
+  intros. unfold Proper, respectful.
+  intros f g H.
+  induction H; auto.
+Qed.
+
+(**************************************
+ *            Evaluation              *
+ **************************************)
+Fixpoint peval x f : F :=
+  match f with
   | nil => 0
-  | (a::b) => a + x * peval x b
+  | c::f' => c + x * peval x f'
   end.
 
-Lemma peval_empty_zero (p: polynomial): 
-  empty_poly p -> forall x, peval x p == 0.
+Notation "f ([ x ]) " := (peval x f) (at level 19).
+
+Lemma peval_empty_zero (f: polynomial): 
+  empty_poly f -> forall (x: F),  f([x]) == 0.
 Proof.
-  intros. induction H; simpl.
-  - fsatz.
-  - rewrite IHempty_poly; fsatz.
+  intros. induction H; simpl; auto.
 Qed.
 
 (* proof that peval depends only upon the equivalence class of the
@@ -111,12 +140,29 @@ Instance peval_Proper: Proper (eq ==> eq_poly ==> eq) peval.
 Proof.
   intros; unfold Proper; unfold respectful; intros.
   induction H0.
-  repeat rewrite peval_empty_zero; auto. reflexivity.
-  simpl. rewrite IHeq_poly. fsatz.
+  - repeat rewrite peval_empty_zero; auto.
+  - simpl. rewrite IHeq_poly. fsatz.
 Defined.
 
-Definition peval_then (op: F -> F -> F) (x: F) (p1 p2: polynomial) : F :=
-  op (peval x p1) (peval x p2).
+(* 
+(* accumulative evaluation *)
+Fixpoint aeval' (i: nat) (x: F) (cs: polynomial) : F :=
+  match cs with
+  | nil => 0
+  | c::cs' => c * x^i + eval' (S i) x cs'
+  end.
+
+Definition aeval := eval' 0.
+
+Lemma peval *)
+
+
+(**************************************
+ *     Evaluation under context       *
+ **************************************)
+
+Definition peval_then (op: F -> F -> F) (x: F) (f g: polynomial) : F :=
+  op (f ([x])) (g ([x])).
 
 Definition peval_then_add := peval_then add.
 Definition peval_then_sub := peval_then sub.
@@ -164,42 +210,51 @@ Proof.
 Qed.
 
 
-Definition coeff (i: nat) (p: polynomial) : F := nth i p 0.
+(**************************************
+ *            Coefficient             *
+ **************************************)
 
-Notation "p [ i ]" := (coeff i p).
+Definition coeff (i: nat) (f: polynomial) : F := nth i f 0.
+
+Notation "f [ i ]" := (coeff i f).
 
 Lemma nth_nil: forall {A: Type} i (d: A), nth i nil d = d.
 Proof.
-  induction i; simpl; intros; reflexivity.
+  intros. destruct i; reflexivity.
 Qed.
 
-Lemma coeff_empty: forall p, empty_poly p -> forall i, p[i] == 0.
+Lemma coeff_empty: forall f, empty_poly f -> forall i, f[i] == 0.
 Proof.
-  intros p H. unfold coeff. induction H; intros.
+  intros f H. unfold coeff. induction H; intros.
   - rewrite nth_nil. fsatz.
   - destruct i.
-    + reflexivity.
+    + fsatz.
     + cbn. apply IHempty_poly.
 Qed.
 
-Lemma coeff_equal: forall p q, p ~ q -> forall i, p[i] == q[i].
+Lemma coeff_equal: forall f g, f ~ g -> forall i, f[i] == g[i].
 Proof.
-  intros p q H. induction H; simpl; intros.
+  intros f g H. induction H; simpl; intros.
   - repeat rewrite coeff_empty by auto. reflexivity.
   - destruct i.
-    + reflexivity.
+    + fsatz.
     + apply IHeq_poly.
 Qed.
 
+
+(**************************************
+ *               Degree               *
+ **************************************)
+
 Definition degree := option nat.
 Definition mk_degree (n: nat) := Some n.
-Fixpoint deg (p: polynomial) : degree := 
-  match p with
+Fixpoint deg (f: polynomial) : degree := 
+  match f with
   | nil => None
-  | a::p' =>
-    match deg p' with
+  | c::f' =>
+    match deg f' with
     | Some d => Some (S d)
-    | None => if (dec (a == 0)) then None else Some O
+    | None => if eq_dec c 0 then None else Some O
     end
   end.
 
@@ -232,71 +287,231 @@ Definition degree_add d1 d2 :=
   | Some d1, Some d2 => Some (d1 + d2)%nat
   end.
 
-Require Import Coq.Lists.List.
+
+(**************************************
+ *             Arithmetic             *
+ **************************************)
+
 Definition uncurry {A B C: Type} (f: A -> B -> C) := fun xy => f (fst xy) (snd xy).
-Fixpoint padd (p q: polynomial) : polynomial := 
-  match p, q with
-  | nil, _ => q
-  | _, nil => p
-  | a :: p', b :: q' => (a+b) :: padd p' q'
+Fixpoint pairwise {A: Type} (op: A -> A -> A) (f g: list A) : list A :=
+  match f, g with
+  | nil, _ => g
+  | _, nil => f
+  | (a :: f), (b :: g) => (op a b) :: pairwise op f g
   end.
-Notation "p p+ q" := (padd p q) (at level 50).
+
+Definition padd : polynomial -> polynomial -> polynomial := pairwise add.
+Notation "f p+ g" := (padd f g) (at level 18).
 
 Definition pscale (k: F) : polynomial -> polynomial := map (fun a => k * a).
+Notation "k p$ f" := (pscale k f) (at level 17).
 
-Lemma peval_padd: forall (p q: polynomial) (x: F),
-  peval x (p p+ q) == peval x p + peval x q.
+Definition psub (f g: polynomial) : polynomial := padd f (pscale (opp 1) g).
+Notation "f p- g" := (psub f g) (at level 18).
+
+Fixpoint pmul (f g: polynomial) : polynomial :=
+  match f with
+  | nil => nil
+  | (a :: f') => padd (pscale a g) (0 :: (pmul f' g))
+  end.
+
+Notation "f p* g" := (pmul f g) (at level 17).
+
+
+
+(**************************************
+ *     Arithmetic and Evaluation      *
+ **************************************)
+
+Lemma peval_padd: forall f g x,
+  (f p+ g) ([x]) == f ([x]) + g ([x]).
 Proof.
-  induction p; simpl; intros.
+  induction f; simpl; intros.
   - fsatz.
-  - destruct q; simpl.
+  - destruct g; simpl.
     + fsatz.
-    + rewrite IHp. fsatz.
+    + rewrite IHf. fsatz.
 Qed.
 
-Lemma peval_pscale: forall p k x,
-  peval x (pscale k p) == k * peval x p.
+Lemma peval_pscale: forall f k x,
+  (k p$ f) ([x]) == k * f ([x]).
 Proof.
-  induction p; simpl; intros.
+  induction f; simpl; intros.
   - fsatz.
-  - rewrite IHp. fsatz.
+  - rewrite IHf. fsatz.
+Qed.
+
+Lemma eval_popp: forall f x,
+  ((opp 1) p$ f) ([x]) == opp (f ([x])).
+Proof.
+  induction f; simpl; intros.
+  - fsatz.
+  - rewrite IHf. fsatz.
+Qed.
+
+
+Lemma eval_psub: forall f g x,
+  (f p- g) ([x]) == f ([x]) - g ([x]).
+Proof.
+  unfold psub. intros. rewrite peval_padd. rewrite eval_popp. fsatz.
+Qed.
+
+Lemma padd_0_r: forall f g, g ~ p0 -> f p+ g ~ f.
+Proof.
+  induction f; unfold padd in *; intros; auto.
+  invert H. invert H0.
+  - simpl. auto.
+  - simpl. apply eq_poly_cons; auto.
+Qed.
+  
+Lemma padd_comm: forall f g,
+  padd f g ~ padd g f.
+Proof.
+  induction f; unfold padd in *; simpl; intros.
+  - rewrite padd_0_r; auto.
+  - destruct g as [|b g]; simpl. auto.
+    rewrite IHf. auto. 
+Qed.
+
+(* Instance padd_r_p0_Proper:
+  Proper (eq_poly ==> eq_poly) (padd p0).
+Proof.
+  intros f g H. induction H.
+  - auto.
+  - apply eq_poly_cons; auto.
+Qed. *)
+
+Instance padd_r_Proper: forall f,
+  Proper (eq_poly ==> eq_poly) (padd f).
+Proof.
+  unfold Proper, respectful.
+  intros f g1 g2 H. generalize dependent f.
+  induction H as [g1 g2 H1 H2 | c d g1 g2 Hcd IH]; unfold padd in *; intros.
+  - apply empty_eq_0 in H1, H2. repeat rewrite padd_eq0_r; auto.
+    repeat rewrite padd_0_r; auto.
+  - destruct f as [|a f]; simpl; auto.
 Qed.
 
 Instance padd_Proper:
   Proper (eq_poly ==> eq_poly ==> eq_poly) padd.
-Abort.
+Proof.
+  unfold Proper, respectful.
+  intros f1 g1 H.
+  induction H as [f1 g1 Hf Hg| c d f1 g1]; simpl; intros f2 g2 H2.
+  - apply empty_eq_0 in Hf, Hg.
+    rewrite padd_comm. rewrite Hf.
+    rewrite padd_comm with (f := g1). rewrite Hg.
+    repeat rewrite padd_0_r; auto.
+  - unfold padd in *. invert H2.
+    + apply empty_eq_0 in H1, H3.
+      rewrite H1, H3. repeat rewrite padd_0_r; auto.
+    + simpl. rewrite IHeq_poly with (x:=f) (y:=g); auto.
+Qed.
+
+Lemma pscale_p0: forall f k, f ~ p0 -> k p$ f ~ p0.
+Proof.
+  induction f; simpl; intros; auto.
+  invert H. invert H0.
+  apply eq_poly_empty; auto.
+  constructor; auto.
+  eapply eq_poly_empty_imp; auto.
+Qed.
 
 Instance pscale_Proper:
   Proper (eq ==> eq_poly ==> eq_poly) pscale.
-Abort.
-
-Definition psub (p q: polynomial) : polynomial := padd p (pscale (opp 1) q).
-Notation "p p- q" := (psub p q) (at level 50).
-
-Lemma peval_psub: forall (p q: polynomial) (x: F), (*11*)
-  peval x (p p- q) = peval x p - peval x q.
-Admitted.
-
-Fixpoint pmul (p q: polynomial) : polynomial :=
-  match p with
-  | nil => nil
-  | (a :: p') => padd (List.map (fun b => a * b) q) (0 :: (pmul p' q))
-  end.
-Notation "p p* q" := (pmul p q) (at level 50).
-
-Lemma peval_pmul: forall (p q: polynomial) (x: F),
-  peval x (p p* q) = peval x p * peval x q.
 Proof.
-Abort.
+  intros x y Hxy f g Hfg.
+  induction Hfg.
+  + repeat rewrite pscale_p0; auto.
+  + simpl. apply eq_poly_cons; auto.
+Qed.
+
+Instance psub_Proper:
+  Proper (eq_poly ==> eq_poly ==> eq_poly) psub.
+Proof.
+  intros f1 g1 H1 f2 g2 H2.
+  unfold psub. rewrite H1, H2. auto.
+Qed.
 
 Instance pmul_Proper:
   Proper (eq_poly ==> eq_poly ==> eq_poly) pmul.
 Abort.
 
+Lemma pmul_0_r: forall f, f p* p0 ~ p0.
+Proof.
+  induction f; auto.
+  simpl. unfold padd. rewrite IHf. simpl. auto.
+Qed.
 
-Definition root x p := peval x p == 0.
+Lemma eval_repeat_0: forall k x, (List.repeat 0 k)([x]) == 0.
+Proof.
+  induction k; intros; simpl; auto.
+  rewrite IHk. auto.
+Qed.
 
-Definition linear a := (opp a :: 1 :: nil).
+Lemma peval_ppmul: forall f g x, (f p* g)([x]) == f([x]) * g([x]).
+Proof.
+  induction f; simpl; intros; auto.
+  rewrite peval_padd.
+  rewrite peval_pscale.
+  simpl. rewrite IHf. fsatz.
+Qed.
+
+
+(* 
+
+(* Hanzhi *)
+
+Definition toPoly {m} (xs: tuple (F q) m) : polynomial := to_list m xs.
+
+Lemma toPoly_length: forall {m} (xs: tuple (F q) m),
+  length (toPoly xs) = m.
+Proof.
+  intros. apply length_to_list.
+Qed.
+
+Definition coeff (i: nat) (cs: polynomial) := nth i cs 0.
+
+Lemma coeff_nth: forall {m} (xs: tuple (F q) m) i,
+  coeff i (toPoly xs) = nth_default 0 i xs.
+Proof.
+  unfold coeff. unfold toPoly. intros.
+  rewrite <- nth_default_eq. apply nth_default_to_list.
+Qed.
+
+
+Lemma firstn_toPoly: forall m (x: tuple (F q) m),
+  firstn m (toPoly x) = toPoly x.
+Proof.
+  intros.
+  apply firstn_all2. unfold toPoly.
+  rewrite length_to_list;lia.
+Qed.
+
+Lemma eval_app': forall cs0 cs1 n x,
+  eval' n (cs0 ++ cs1) x = eval' n cs0 x + eval' (n + N.of_nat (length cs0)) cs1 x.
+Proof.
+  induction cs0;simpl;intros.
+  - assert(n + 0 =n)%N by lia. rewrite H. fqsatz.
+  - rewrite IHcs0.
+    assert (N.pos (Pos.of_succ_nat (length cs0)) = (1 + N.of_nat (length cs0))%N).
+    rewrite Pos.of_nat_succ. lia.
+    rewrite H. 
+    assert(n + (1 + N.of_nat (length cs0)) = n + 1 + N.of_nat (length cs0))%N. lia.
+    rewrite H0. fqsatz.
+Qed.
+
+Lemma eval_app: forall cs0 cs1 x,
+  eval (cs0 ++ cs1) x = eval cs0 x + eval' (N.of_nat (length cs0)) cs1 x.
+Proof.
+  intros. apply eval_app'.
+Qed.
+
+
+
+(**************************************
+ *       Arithmetic and Degree        *
+ **************************************)
 
 Lemma deg_padd: forall p q,
   degree_leq (deg (p p+ q)) (degree_max (deg p) (deg q)).
@@ -313,6 +528,25 @@ Abort.
 Lemma deg_psub: forall p q, (*11*)
   degree_leq (deg (p p- q)) (degree_max (deg p) (deg q)).
 Admitted.
+
+Lemma degree_leq_tuple: forall n (l:tuple (F q) n),
+degree_leq (deg (toPoly l)) (Some (n-1)%nat).
+Proof.
+Admitted.
+
+Lemma degree_leq_pmul: forall ka kb (a:tuple (F q) ka)(b:tuple (F q) kb),
+degree_leq (deg (pmul (toPoly a) (toPoly b))) (Some (ka + kb - 2)%nat).
+Proof.
+Admitted.
+
+
+(**************************************
+ *        Unique Interpolant          *
+ **************************************)
+
+Definition root x p := peval x p == 0.
+
+Definition linear a := (opp a :: 1 :: nil).
 
 Lemma psub_0: forall p q,
   (p p- q) ~ p0 <-> p ~ q.
@@ -381,5 +615,78 @@ Proof.
   intros. apply H_X. unfold root. rewrite peval_psub.
   apply H3 in H4. fsatz.
 Qed.
+
+
+(* Hanzhi *)
+
+Lemma deg_psub: forall p q, (*11*)
+  degree_leq (deg (psub p q)) (degree_max (deg p) (deg q)).
+Proof.
+Admitted.
+
+Lemma eq_poly_decidable: forall p q : polynomial, (*11*)
+  p = q \/ ~ (p = q).
+Proof.
+  intros. pose proof (dec_eq_list p q0). destruct H;auto.
+Qed.
+
+Definition p0 : polynomial := nil.
+
+Lemma psub_0_neg: forall p q, (*11*)
+  ~((psub p q) = p0) <-> ~(p = q).
+Proof.
+Admitted.
+
+Lemma not0_implies_positive_deg: forall p, (*11*)
+  ~ (p = p0) -> exists n, deg p = Some n /\ (n > 0)%nat.
+  Proof.
+Admitted.
+
+Definition root x p := eval p x = 0.
+
+Lemma deg_d_has_most_d_roots: forall p d, (*11*)
+  deg p = Some d ->
+  (d > 0)%nat ->
+  exists X, length X = d /\ forall x, root x p -> In x X.
+Proof.
+Admitted.
+
+
+Lemma degree_leq_trans: forall a b d n,
+  degree_leq a (Some n) ->
+  degree_leq b (Some n) ->
+  degree_leq (Some d) (degree_max a b) ->
+  (d <= n)%nat.
+Proof.
+Admitted.
+
+Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
+  degree_leq (deg a) (Some n) ->
+  degree_leq (deg b) (Some n) ->
+  (length X > n)%nat ->
+  NoDup X ->
+  (forall x, In x X -> eval a x = eval b x) ->
+  a = b.
+Proof.
+  (* Proof: https://inst.eecs.berkeley.edu/~cs70/fa14/notes/n7.pdf *)
+  intros.
+  destruct (eq_poly_decidable a b).
+  trivial.
+  exfalso.
+  apply psub_0_neg in H4.
+  apply not0_implies_positive_deg in H4.
+  destruct H4 as [d [H_deg_r H_x] ].
+  pose proof (deg_psub a b) as H_deg_r_leq. 
+  rewrite H_deg_r in H_deg_r_leq. simpl in H_deg_r_leq.
+  assert (H_d_n: (d <= n)%nat).
+  { eapply degree_leq_trans. 3: apply H_deg_r_leq. all:auto. }
+  specialize (deg_d_has_most_d_roots _ _ H_deg_r H_x).
+  intro HX. destruct HX as [X' [H_len_X H_X] ].
+  eapply In_pigeon_hole with (X := X ) (X' := X');auto.
+  lia.
+  intros. apply H_X. unfold root. rewrite eval_psub.
+  apply H3 in H4. fqsatz.
+Qed.
+ *)
 
 End Polynomial.

@@ -28,17 +28,16 @@ Section Polynomial.
 
 Context {F eq zero one opp add sub mul inv div}
         {fld:@Hierarchy.field F eq zero one opp add sub mul inv div}
-        {eq_dec:DecidableRel eq}
-        {pow: F -> nat -> F}.
+        {eq_dec:DecidableRel eq}.
 
 Local Infix "==" := eq. 
-(* Local Notation "a <> b" := (not (a = b)). *)
-(* Local Notation "a <> b" := (not (a = b)) : type_scope. *)
+Local Notation "a <> b" := (not (a == b)).
 Local Infix "==" := eq : type_scope. 
+Local Notation "a <> b" := (not (a == b)) : type_scope.
 Local Notation "0" := zero.  Local Notation "1" := one.
 Local Infix "+" := add. Local Infix "*" := mul.
 Local Infix "-" := sub. Local Infix "/" := div.
-Local Infix "^" := pow.
+(* Local Infix "^" := pow. *)
 
 Ltac invert H := inversion H; subst; clear H.
 
@@ -171,24 +170,11 @@ Proof.
   intros. induction H; simpl; auto.
 Qed.
 
-(* proof that peval depends only upon the equivalence class of the
-* polynomial, not its concrete representation as a list *)
-(* Instance peval_Proper: forall x, Proper (eq_poly ==> eq) (peval x).
+Lemma peval_nil: forall f x,
+  f ~ 0p -> f ([x]) == 0.
 Proof.
-  intros; unfold Proper; unfold respectful; intros.
-  induction H.
-  rewrite peval_empty_zero; auto.
-  rewrite peval_empty_zero; auto. fsatz.
-  simpl; rewrite IHeq_poly; fsatz.
-Defined. *)
-
-Instance peval_Proper: Proper (eq ==> eq_poly ==> eq) peval.
-Proof.
-  intros; unfold Proper; unfold respectful; intros.
-  induction H0.
-  - repeat rewrite peval_empty_zero; auto.
-  - simpl. rewrite IHeq_poly. fsatz.
-Defined.
+  intros. p0_to_empty. induction H; simpl; auto.
+Qed.
 
 (* 
 (* accumulative evaluation *)
@@ -207,23 +193,61 @@ Lemma peval *)
  *     Evaluation under context       *
  **************************************)
 
-Definition peval_then (op: F -> F -> F) (x: F) (f g: polynomial) : F :=
+ (* proof that peval depends only upon the equivalence class of the
+* polynomial, not its concrete representation as a list *)
+(* Instance peval_r_Proper: forall x, Proper (eq_poly ==> eq) (peval x).
+Proof.
+  intros; unfold Proper; unfold respectful; intros.
+  induction H.
+  rewrite peval_empty_zero; auto.
+  rewrite peval_empty_zero; auto.
+  simpl; rewrite IHeq_poly; fsatz.
+Defined. *)
+
+Instance peval_Proper: Proper (eq ==> eq_poly ==> eq) peval.
+Proof.
+  intros x y Hxy f g Hfg.
+  induction Hfg.
+  - repeat rewrite peval_empty_zero; auto.
+  - simpl. rewrite IHHfg. fsatz.
+Defined.
+
+(* Definition peval_then (op: F -> F -> F) (x: F) (f g: polynomial) : F :=
   op (f ([x])) (g ([x])).
 
 Definition peval_then_add := peval_then add.
 Definition peval_then_sub := peval_then sub.
 Definition peval_then_mul := peval_then mul.
-Definition peval_then_div := peval_then div.
+Definition peval_then_div := peval_then div. *)
 
-Instance peval_then_add_Proper:
+(* Instance peval_then_add_Proper: forall x,
+  Proper (eq_poly ==> eq_poly ==> eq) (peval_then_add x).
+Proof.
+  intros ? ? ? ? ? ? ?.
+  unfold peval_then_add, peval_then.
+  rewrite H. rewrite H0.
+  reflexivity.
+Defined.
+
+Instance peval_then_mul_Proper: forall x,
+  Proper (eq_poly ==> eq_poly ==> eq) (peval_then_mul x).
+Proof.
+  intros ? ? ? ? ? ? ?.
+  unfold peval_then_mul, peval_then.
+  rewrite H. rewrite H0.
+  reflexivity.
+Defined. *)
+
+(* Instance peval_then_add_Proper:
   Proper (eq ==> eq_poly ==> eq_poly ==> eq) peval_then_add.
 Proof.
   intros. unfold Proper. unfold respectful. intros.
   unfold peval_then_add, peval_then.
   rewrite H0. rewrite H1.
+  Set Printing All.
   rewrite H.
   reflexivity.
-Qed.
+Defined.
 
 Instance peval_then_sub_Proper:
   Proper (eq ==> eq_poly ==> eq_poly ==> eq) peval_then_sub.
@@ -233,7 +257,7 @@ Proof.
   rewrite H0. rewrite H1.
   rewrite H.
   reflexivity.
-Qed.
+Defined.
 
 Instance peval_then_mul_Proper:
   Proper (eq ==> eq_poly ==> eq_poly ==> eq) peval_then_mul.
@@ -243,7 +267,7 @@ Proof.
   rewrite H0. rewrite H1.
   rewrite H.
   reflexivity.
-Qed.
+Defined.
 
 Instance peval_then_div_Proper:
   Proper (eq ==> eq_poly ==> eq_poly ==> eq) peval_then_div.
@@ -253,7 +277,7 @@ Proof.
   rewrite H0. rewrite H1.
   rewrite H.
   reflexivity.
-Qed.
+Defined. *)
 
 
 (**************************************
@@ -292,9 +316,6 @@ Proof.
     + apply IHeq_poly.
 Qed.
 
-
-
-
 Lemma coeff_all_0: forall g, (forall i, g[i] == 0) -> g ~ 0p.
 Proof.
   unfold coeff; induction g; intros; auto.
@@ -317,6 +338,7 @@ Proof.
       { apply IHf. intros. specialize (H (S i)). auto. }
       auto.
 Qed.
+
 
 
 
@@ -372,7 +394,7 @@ Proof.
   intros f g H. induction H; simpl.
   - empty_to_0p. repeat rewrite isnil_complete; auto.
   - destruct (eq_dec x 0); destruct (eq_dec y 0); (auto || fsatz).
-Qed.
+Defined.
 
 Instance eqb_nil_Proper: forall f, f ~ nil -> Proper (eq_poly ==> Logic.eq) (eqb f).
 Proof.
@@ -493,14 +515,6 @@ Proof.
   - destruct g as [|b g]; simpl. auto.
     rewrite IHf. auto. 
 Qed.
-
-(* Instance padd_r_0p_Proper:
-  Proper (eq_poly ==> eq_poly) (padd 0p).
-Proof.
-  intros f g H. induction H.
-  - auto.
-  - apply eq_poly_cons; auto.
-Qed. *)
 
 Instance padd_r_Proper: forall f,
   Proper (eq_poly ==> eq_poly) (padd f).
@@ -783,7 +797,7 @@ Admitted.
 
 
 (**************************************
- *       Arithmetic and Degree        *
+ *         Degree and Others          *
  **************************************)
 
 Lemma degree_padd: forall p q,
@@ -826,6 +840,13 @@ Proof.
   simpl. lia.
 Admitted.
 
+
+Lemma deg_coeff: forall f n,
+  deg f = Some n ->
+  f[n] <> 0 /\
+  forall i, i > n -> f[i] == 0.
+Admitted.
+
 Local Close Scope nat_scope.
 
 
@@ -836,7 +857,6 @@ Local Close Scope nat_scope.
 Definition root x p := peval x p == 0.
 
 Definition linear a := (opp a :: 1 :: nil).
-
 
 Lemma pscale_0_invert: forall f k,
   (k p$ f) ~ 0p -> k == 0 \/ f ~ 0p.
@@ -879,17 +899,30 @@ Proof.
     auto.
 Qed.
 
-(* Hint Extern 10 (nil ~ ?A) => symmetry : core. *)
-(* Hint Extern 10 (?c :: ?f ~ nil) =>  : core. *)
+Lemma psub_0_neg: forall f g, (*11*)
+  ~((f p- g) ~ 0p) <-> ~(f ~ g).
+Proof.
+  split; intros; unfold not; intros.
+  - apply psub_0 in H0; auto.
+  - apply H. apply psub_0. auto.
+Qed.
 
 
-Lemma psub_0_neg: forall p q, (*11*)
-  ~((p p- q) ~ 0p) <-> ~(p ~ q).
-Admitted.
-
-Lemma not0_implies_positive_deg: forall p, (*11*)
-  ~ (p ~ 0p) -> exists n, deg p = Some n /\ (n > 0)%nat.
-Admitted.
+Lemma not0_implies_positive_deg: forall f, (*11*)
+  ~ (f ~ 0p) -> exists n, deg f = Some n /\ (n >= 0)%nat.
+Proof.
+  induction f; intros.
+  - exfalso. auto.
+  - destruct (eq_dec a 0).
+    + assert (Hf: ~ (f ~ nil)). intros Hf. apply H. auto.
+      apply IHf in Hf.
+      destruct Hf. destruct H0.
+      eexists. simpl. split. rewrite H0. auto. lia. 
+    + simpl. destruct (deg f).
+      * exists (S n0). split; auto || lia.
+      * destruct (eq_dec a 0); auto.
+        exists 0%nat; split; auto || lia.
+Qed.
 
 Lemma deg_d_has_most_d_roots: forall p d, (*11*)
   deg p = Some d ->
@@ -918,6 +951,23 @@ Lemma In_pigeon_hole: forall {A: Type} (X X': list A), (*11*)
 Proof.
 Admitted.
 
+Lemma deg_0_has_no_root: forall f,
+  deg f = Some O -> forall x, f([x]) <> 0.
+Proof.
+  intros. 
+  destruct f as [| c fnil]. discriminate.
+  apply deg_coeff in H. destruct H.
+  unfold coeff in *.
+  simpl in H.
+  simpl.
+  assert (fnil ~ 0p). {
+    apply coeff_equal_eq.
+    intros. specialize (H0 (S i)). rewrite coeff_nil. apply H0. lia.
+  }
+  rewrite H1.
+  rewrite peval_nil; auto.
+Qed.
+
 Lemma unique_interpolant: forall p q n X,
   deg p = Some n ->
   deg q = Some n ->
@@ -929,19 +979,34 @@ Proof.
   (* Proof: https://inst.eecs.berkeley.edu/~cs70/fa14/notes/n7.pdf *)
   intros.
   destruct (eq_poly_decidable p q).
+  (* p ~ q *)
   trivial.
-  exfalso.
+  (* not p ~ q *)
   apply psub_0_neg in H4.
   apply not0_implies_positive_deg in H4.
   destruct H4 as [d [H_deg_r H_x] ].
-  assert (H_d_n: (d <= n)%nat). {
+
+  destruct d.
+  (* d = 0 *)
+  exfalso.
+  assert (Hx: exists x, In x X). destruct X; simpl in *. lia. exists f. auto.
+  destruct Hx.
+  apply H3 in H4.
+  assert (p([x]) - q([x]) == 0) by fsatz.
+  rewrite <- peval_psub in H5.
+  eapply deg_0_has_no_root in H_deg_r.
+  auto.
+  (* d > 0 *)
+  remember (S d) as d'. assert (Hd': (d' > 0)%nat) by lia.
+  assert (H_d'_n: (d' <= n)%nat). {
     pose proof (degree_psub p q) as H_deg_r_leq. rewrite H, H0 in H_deg_r_leq.
     replace (degree_max (Some n) (Some n)) with (Some n) in H_deg_r_leq by (simpl; f_equal; lia).
     rewrite H_deg_r in H_deg_r_leq. simpl in H_deg_r_leq.
     auto.
   }
-  specialize (deg_d_has_most_d_roots _ _ H_deg_r H_x).
+  specialize (deg_d_has_most_d_roots _ _ H_deg_r Hd').
   intro HX. destruct HX as [X' [H_NoDup [H_len_X H_X] ] ].
+  exfalso.
   eapply In_pigeon_hole with (X := X ) (X' := X'); auto.
   lia.
   intros. apply H_X. unfold root. rewrite peval_psub.

@@ -109,6 +109,15 @@ Proof.
   induction H; auto.
 Qed.
 
+Lemma eq_cons_invert: forall c d f g,
+  (c :: f) ~ (d :: g) -> c == d /\ f ~ g.
+Proof.
+  intros. invert H.
+  + invert H0. invert H1. split; auto.
+  + split; auto.
+Qed.
+
+
 (**************************************
  *            Evaluation              *
  **************************************)
@@ -356,43 +365,6 @@ Notation "f p* g" := (pmul f g) (at level 17).
 
 
 
-(**************************************
- *     Arithmetic and Evaluation      *
- **************************************)
-
-Lemma peval_padd: forall f g x,
-  (f p+ g) ([x]) == f ([x]) + g ([x]).
-Proof.
-  induction f; simpl; intros.
-  - fsatz.
-  - destruct g; simpl.
-    + fsatz.
-    + rewrite IHf. fsatz.
-Qed.
-
-Lemma peval_pscale: forall f k x,
-  (k p$ f) ([x]) == k * f ([x]).
-Proof.
-  induction f; simpl; intros.
-  - fsatz.
-  - rewrite IHf. fsatz.
-Qed.
-
-Lemma eval_popp: forall f x,
-  ((opp 1) p$ f) ([x]) == opp (f ([x])).
-Proof.
-  induction f; simpl; intros.
-  - fsatz.
-  - rewrite IHf. fsatz.
-Qed.
-
-
-Lemma peval_psub: forall f g x,
-  (f p- g) ([x]) == f ([x]) - g ([x]).
-Proof.
-  unfold psub. intros. rewrite peval_padd. rewrite eval_popp. fsatz.
-Qed.
-
 Lemma padd_0_r: forall f g, g ~ p0 -> f p+ g ~ f.
 Proof.
   induction f; unfold padd in *; intros; auto.
@@ -424,8 +396,7 @@ Proof.
   unfold Proper, respectful.
   intros f g1 g2 H. generalize dependent f.
   induction H as [g1 g2 H1 H2 | c d g1 g2 Hcd IH]; unfold padd in *; intros.
-  - apply empty_eq_0 in H1, H2. repeat rewrite padd_eq0_r; auto.
-    repeat rewrite padd_0_r; auto.
+  - repeat rewrite padd_0_r; auto.
   - destruct f as [|a f]; simpl; auto.
 Qed.
 
@@ -435,13 +406,11 @@ Proof.
   unfold Proper, respectful.
   intros f1 g1 H.
   induction H as [f1 g1 Hf Hg| c d f1 g1]; simpl; intros f2 g2 H2.
-  - apply empty_eq_0 in Hf, Hg.
-    rewrite padd_comm. rewrite Hf.
-    rewrite padd_comm with (f := g1). rewrite Hg.
+  - rewrite padd_comm. 
+    rewrite padd_comm with (f := g1).
     repeat rewrite padd_0_r; auto.
   - unfold padd in *. invert H2.
-    + apply empty_eq_0 in H1, H3.
-      rewrite H1, H3. repeat rewrite padd_0_r; auto.
+    + repeat rewrite padd_0_r; auto.
     + simpl. rewrite IHeq_poly with (x:=f) (y:=g); auto.
 Qed.
 
@@ -483,32 +452,91 @@ Proof.
   - rewrite pmul_0_r; auto.
 Admitted.
 
+Lemma pmul_cons_r: forall f d g,
+  f p* (d :: g) ~ d p$ f p+ (0 :: f p* g).
+Admitted.
+
+Lemma padd_congruence: forall f1 f2 g1 g2,
+  f1 ~ f2 -> g1 ~ g2 -> f1 p+ g1 ~ f2 p+ g2.
+Proof. intros. rewrite H, H0; auto. Qed.
+
+Lemma pscale_congruence: forall k1 k2 f1 f2,
+  k1 == k2 -> f1 ~ f2 -> k1 p$ f1 ~ k2 p$ f2.
+Proof. intros. rewrite H, H0; auto. Qed.
+
+
+Hint Extern 10 (?k1 p$ ?f ~ ?k2 p$ ?g) => apply pscale_congruence : core.
+Hint Extern 10 (?c :: ?f ~ ?d :: ?g) => apply eq_poly_cons : core.
+Hint Extern 10 (?f1 p+ ?g1 ~ ?f2 p+ ?g2) => apply padd_congruence : core.
+
 Instance pmul_r_Proper: forall f,
   Proper (eq_poly ==> eq_poly) (pmul f).
 Proof.
-Admitted.
+  intros f g1. generalize dependent f.
+  induction g1 as [| d1 g1]; intros f g2 Hg.
+  - repeat rewrite pmul_0_r; auto. symmetry. auto.
+  - destruct g2 as [| d2 g2].
+    + repeat rewrite pmul_0_r; auto.
+    + destruct f as [| c f]; simpl; auto.
+      * apply eq_cons_invert in Hg. destruct Hg.
+        rewrite pmul_cons_r.
+        rewrite pmul_cons_r.
+        rewrite IHg1 with (y:=g2); auto.
+Qed.
 
 Instance pmul_Proper:
   Proper (eq_poly ==> eq_poly ==> eq_poly) pmul.
 Proof.
   intros f1 f2 Hf g1 g2 Hg.
   induction Hf.
-  - rewrite pmul_comm with (f:=f). apply empty_eq_0 in H. rewrite H.
-    rewrite pmul_comm with (f:=g). apply empty_eq_0 in H0. rewrite H0.
+  - rewrite pmul_comm with (f:=f).
+    rewrite pmul_comm with (f:=g).
     repeat rewrite pmul_0_r; auto.
-  - simpl. rewrite IHHf. rewrite padd_comm. etransitivity.
-    2: { rewrite padd_comm. reflexivity. }
-    assert (x p$ g1 ~ y p$ g2). rewrite Hg. rewrite H. auto.
-    rewrite H0.
-    reflexivity.
+  - simpl. auto.
 Qed.
 
-(* 
-Lemma eval_repeat_0: forall k x, (List.repeat 0 k)([x]) == 0.
+Lemma pmul_congruence: forall f1 f2 g1 g2,
+  f1 ~ f2 -> g1 ~ g2 -> f1 p* g1 ~ f2 p* g2.
+Proof. intros. rewrite H, H0; auto. Qed.
+
+
+
+(**************************************
+ *     Arithmetic and Evaluation      *
+ **************************************)
+
+Lemma peval_padd: forall f g x,
+  (f p+ g) ([x]) == f ([x]) + g ([x]).
 Proof.
-  induction k; intros; simpl; auto.
-  rewrite IHk. auto.
-Qed. *)
+  induction f; simpl; intros.
+  - fsatz.
+  - destruct g; simpl.
+    + fsatz.
+    + rewrite IHf. fsatz.
+Qed.
+
+Lemma peval_pscale: forall f k x,
+  (k p$ f) ([x]) == k * f ([x]).
+Proof.
+  induction f; simpl; intros.
+  - fsatz.
+  - rewrite IHf. fsatz.
+Qed.
+
+Lemma peval_popp: forall f x,
+  ((opp 1) p$ f) ([x]) == opp (f ([x])).
+Proof.
+  induction f; simpl; intros.
+  - fsatz.
+  - rewrite IHf. fsatz.
+Qed.
+
+
+Lemma peval_psub: forall f g x,
+  (f p- g) ([x]) == f ([x]) - g ([x]).
+Proof.
+  unfold psub. intros. rewrite peval_padd, peval_popp. auto.
+Qed.
 
 Lemma peval_ppmul: forall f g x, (f p* g)([x]) == f([x]) * g([x]).
 Proof.
@@ -519,36 +547,45 @@ Proof.
 Qed.
 
 
+(* 
+Lemma eval_repeat_0: forall k x, (List.repeat 0 k)([x]) == 0.
+Proof.
+  induction k; intros; simpl; auto.
+  rewrite IHk. auto.
+Qed. *)
 
-  (**************************************
+
+
+(**************************************
  *       Arithmetic and Degree        *
  **************************************)
 
- Lemma deg_padd: forall p q,
- degree_leq (deg (p p+ q)) (degree_max (deg p) (deg q)).
- Abort.
+Lemma deg_padd: forall p q,
+  degree_leq (deg (p p+ q)) (degree_max (deg p) (deg q)).
+Abort.
+
  
- Lemma deg_pmul: forall p q,
- degree_leq (deg (p p* q)) (degree_add (deg p) (deg q)).
- Abort.
- 
- Lemma deg_pscale: forall p k,
- degree_leq (deg (pscale k p)) (deg p).
- Abort.
- 
- Lemma deg_psub: forall p q, (*11*)
- degree_leq (deg (p p- q)) (degree_max (deg p) (deg q)).
- Admitted.
- 
- Lemma degree_leq_tuple: forall n (l:tuple F n),
-  degree_leq (deg (toPoly l)) (Some (n-1)%nat).
- Proof.
- Admitted.
- 
- Lemma degree_leq_pmul: forall ka kb (a: tuple F ka) (b: tuple F kb),
-  degree_leq (deg (pmul (toPoly a) (toPoly b))) (Some (ka + kb - 2)%nat).
- Proof.
- Admitted.
+Lemma deg_pmul: forall p q,
+  degree_leq (deg (p p* q)) (degree_add (deg p) (deg q)).
+Abort.
+
+Lemma deg_pscale: forall p k,
+  degree_leq (deg (k p$ p)) (deg p).
+Abort.
+
+Lemma deg_psub: forall p q, (*11*)
+degree_leq (deg (p p- q)) (degree_max (deg p) (deg q)).
+Admitted.
+
+Lemma degree_leq_tuple: forall n (l:tuple F n),
+degree_leq (deg (toPoly l)) (Some (n-1)%nat).
+Proof.
+Admitted.
+
+Lemma degree_leq_pmul: forall ka kb (a: tuple F ka) (b: tuple F kb),
+degree_leq (deg (pmul (toPoly a) (toPoly b))) (Some (ka + kb - 2)%nat).
+Proof.
+Admitted.
 
 
 
@@ -562,7 +599,7 @@ Definition linear a := (opp a :: 1 :: nil).
 
 Lemma psub_0: forall p q,
   (p p- q) ~ p0 <-> p ~ q.
-Abort.
+Admitted.
 
 Lemma eq_poly_decidable: forall p q, (*11*)
   p ~ q \/ ~ (p ~ q).
@@ -587,11 +624,11 @@ Lemma pdiv: forall a b,
   ~ (a ~ p0) ->
   exists q r, a ~ ((q p* b) p+ r) /\
   (r ~ p0 \/ degree_leq (deg r) (deg b)).
-Abort.
+Admitted.
 
 Lemma factor_root: forall p a, root a p ->
   exists q, p ~ (linear a p* q).
-Abort.
+Admitted.
 
 Lemma In_pigeon_hole: forall {A: Type} (X X': list A), (*11*)
   (length X > length X')%nat ->
@@ -651,8 +688,10 @@ Proof.
   intros. apply eval_app'.
 Qed. *)
 
-(* Hanzhi *)
 
+
+(* Hanzhi's version *)
+(* 
 Lemma deg_psub: forall p q, (*11*)
   degree_leq (deg (psub p q)) (degree_max (deg p) (deg q)).
 Proof.
@@ -719,6 +758,6 @@ Proof.
   lia.
   intros. apply H_X. unfold root. rewrite eval_psub.
   apply H3 in H4. fqsatz.
-Qed.
+Qed. *)
 
 End Polynomial.

@@ -18,10 +18,11 @@ Require Import Coq.NArith.Nnat.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Coq.Lists.ListSet.
-Require Import Crypto.Util.Decidable Crypto.Util.Notations.
+Require Import Crypto.Util.Decidable Crypto.Util.Notations Crypto.Util.Tuple.
 Require Import Crypto.Algebra.Ring.
 
 Require Import Util.
+
 
 Section Polynomial.
 
@@ -242,6 +243,41 @@ Proof.
 Qed.
 
 
+
+(**************************************
+ *         Tuple Conversion           *
+ **************************************)
+
+Definition toPoly {m} (xs: tuple F m) : polynomial := to_list m xs.
+Lemma toPoly_length: forall {m} (xs: tuple F m),
+  length (toPoly xs) = m.
+Proof.
+  intros. apply length_to_list.
+Qed.
+
+
+Lemma firstn_toPoly: forall m (x: tuple F m),
+  firstn m (toPoly x) = toPoly x.
+Proof.
+  intros.
+  apply firstn_all2. unfold toPoly.
+  rewrite length_to_list; lia.
+Qed.
+
+
+
+(**************************************
+ *  Tuple Conversion and Coefficient  *
+ **************************************)
+
+ Lemma coeff_nth: forall {m} (xs: tuple F m) i,
+  coeff i (toPoly xs) = nth_default 0 i xs.
+Proof.
+  unfold coeff. unfold toPoly. intros.
+  rewrite <- nth_default_eq. apply nth_default_to_list.
+Qed.
+
+
 (**************************************
  *               Degree               *
  **************************************)
@@ -288,6 +324,7 @@ Definition degree_add d1 d2 :=
   end.
 
 
+
 (**************************************
  *             Arithmetic             *
  **************************************)
@@ -303,7 +340,7 @@ Fixpoint pairwise {A: Type} (op: A -> A -> A) (f g: list A) : list A :=
 Definition padd : polynomial -> polynomial -> polynomial := pairwise add.
 Notation "f p+ g" := (padd f g) (at level 18).
 
-Definition pscale (k: F) : polynomial -> polynomial := map (fun a => k * a).
+Definition pscale (k: F) : polynomial -> polynomial := List.map (fun a => k * a).
 Notation "k p$ f" := (pscale k f) (at level 17).
 
 Definition psub (f g: polynomial) : polynomial := padd f (pscale (opp 1) g).
@@ -350,7 +387,7 @@ Proof.
 Qed.
 
 
-Lemma eval_psub: forall f g x,
+Lemma peval_psub: forall f g x,
   (f p- g) ([x]) == f ([x]) - g ([x]).
 Proof.
   unfold psub. intros. rewrite peval_padd. rewrite eval_popp. fsatz.
@@ -433,21 +470,45 @@ Proof.
   unfold psub. rewrite H1, H2. auto.
 Qed.
 
-Instance pmul_Proper:
-  Proper (eq_poly ==> eq_poly ==> eq_poly) pmul.
-Abort.
-
-Lemma pmul_0_r: forall f, f p* p0 ~ p0.
+Lemma pmul_0_r: forall f g, g ~ p0 -> f p* g ~ p0.
 Proof.
   induction f; auto.
-  simpl. unfold padd. rewrite IHf. simpl. auto.
+  intros. simpl. rewrite pscale_p0; auto. unfold padd. rewrite IHf; simpl; auto.
 Qed.
 
+Lemma pmul_comm: forall f g,
+  f p* g ~ g p* f.
+Proof.
+  induction f; simpl; intros.
+  - rewrite pmul_0_r; auto.
+Admitted.
+
+Instance pmul_r_Proper: forall f,
+  Proper (eq_poly ==> eq_poly) (pmul f).
+Proof.
+Admitted.
+
+Instance pmul_Proper:
+  Proper (eq_poly ==> eq_poly ==> eq_poly) pmul.
+Proof.
+  intros f1 f2 Hf g1 g2 Hg.
+  induction Hf.
+  - rewrite pmul_comm with (f:=f). apply empty_eq_0 in H. rewrite H.
+    rewrite pmul_comm with (f:=g). apply empty_eq_0 in H0. rewrite H0.
+    repeat rewrite pmul_0_r; auto.
+  - simpl. rewrite IHHf. rewrite padd_comm. etransitivity.
+    2: { rewrite padd_comm. reflexivity. }
+    assert (x p$ g1 ~ y p$ g2). rewrite Hg. rewrite H. auto.
+    rewrite H0.
+    reflexivity.
+Qed.
+
+(* 
 Lemma eval_repeat_0: forall k x, (List.repeat 0 k)([x]) == 0.
 Proof.
   induction k; intros; simpl; auto.
   rewrite IHk. auto.
-Qed.
+Qed. *)
 
 Lemma peval_ppmul: forall f g x, (f p* g)([x]) == f([x]) * g([x]).
 Proof.
@@ -458,86 +519,37 @@ Proof.
 Qed.
 
 
-(* 
 
-(* Hanzhi *)
-
-Definition toPoly {m} (xs: tuple (F q) m) : polynomial := to_list m xs.
-
-Lemma toPoly_length: forall {m} (xs: tuple (F q) m),
-  length (toPoly xs) = m.
-Proof.
-  intros. apply length_to_list.
-Qed.
-
-Definition coeff (i: nat) (cs: polynomial) := nth i cs 0.
-
-Lemma coeff_nth: forall {m} (xs: tuple (F q) m) i,
-  coeff i (toPoly xs) = nth_default 0 i xs.
-Proof.
-  unfold coeff. unfold toPoly. intros.
-  rewrite <- nth_default_eq. apply nth_default_to_list.
-Qed.
-
-
-Lemma firstn_toPoly: forall m (x: tuple (F q) m),
-  firstn m (toPoly x) = toPoly x.
-Proof.
-  intros.
-  apply firstn_all2. unfold toPoly.
-  rewrite length_to_list;lia.
-Qed.
-
-Lemma eval_app': forall cs0 cs1 n x,
-  eval' n (cs0 ++ cs1) x = eval' n cs0 x + eval' (n + N.of_nat (length cs0)) cs1 x.
-Proof.
-  induction cs0;simpl;intros.
-  - assert(n + 0 =n)%N by lia. rewrite H. fqsatz.
-  - rewrite IHcs0.
-    assert (N.pos (Pos.of_succ_nat (length cs0)) = (1 + N.of_nat (length cs0))%N).
-    rewrite Pos.of_nat_succ. lia.
-    rewrite H. 
-    assert(n + (1 + N.of_nat (length cs0)) = n + 1 + N.of_nat (length cs0))%N. lia.
-    rewrite H0. fqsatz.
-Qed.
-
-Lemma eval_app: forall cs0 cs1 x,
-  eval (cs0 ++ cs1) x = eval cs0 x + eval' (N.of_nat (length cs0)) cs1 x.
-Proof.
-  intros. apply eval_app'.
-Qed.
-
-
-
-(**************************************
+  (**************************************
  *       Arithmetic and Degree        *
  **************************************)
 
-Lemma deg_padd: forall p q,
-  degree_leq (deg (p p+ q)) (degree_max (deg p) (deg q)).
-Abort.
+ Lemma deg_padd: forall p q,
+ degree_leq (deg (p p+ q)) (degree_max (deg p) (deg q)).
+ Abort.
+ 
+ Lemma deg_pmul: forall p q,
+ degree_leq (deg (p p* q)) (degree_add (deg p) (deg q)).
+ Abort.
+ 
+ Lemma deg_pscale: forall p k,
+ degree_leq (deg (pscale k p)) (deg p).
+ Abort.
+ 
+ Lemma deg_psub: forall p q, (*11*)
+ degree_leq (deg (p p- q)) (degree_max (deg p) (deg q)).
+ Admitted.
+ 
+ Lemma degree_leq_tuple: forall n (l:tuple F n),
+  degree_leq (deg (toPoly l)) (Some (n-1)%nat).
+ Proof.
+ Admitted.
+ 
+ Lemma degree_leq_pmul: forall ka kb (a: tuple F ka) (b: tuple F kb),
+  degree_leq (deg (pmul (toPoly a) (toPoly b))) (Some (ka + kb - 2)%nat).
+ Proof.
+ Admitted.
 
-Lemma deg_pmul: forall p q,
-  degree_leq (deg (p p* q)) (degree_add (deg p) (deg q)).
-Abort.
-
-Lemma deg_pscale: forall p k,
-  degree_leq (deg (pscale k p)) (deg p).
-Abort.
-
-Lemma deg_psub: forall p q, (*11*)
-  degree_leq (deg (p p- q)) (degree_max (deg p) (deg q)).
-Admitted.
-
-Lemma degree_leq_tuple: forall n (l:tuple (F q) n),
-degree_leq (deg (toPoly l)) (Some (n-1)%nat).
-Proof.
-Admitted.
-
-Lemma degree_leq_pmul: forall ka kb (a:tuple (F q) ka)(b:tuple (F q) kb),
-degree_leq (deg (pmul (toPoly a) (toPoly b))) (Some (ka + kb - 2)%nat).
-Proof.
-Admitted.
 
 
 (**************************************
@@ -570,7 +582,7 @@ Lemma deg_d_has_most_d_roots: forall p d, (*11*)
   exists X, length X = d /\ forall x, root x p -> In x X.
 Admitted.
 
-
+(* polynomial long division *)
 Lemma pdiv: forall a b,
   ~ (a ~ p0) ->
   exists q r, a ~ ((q p* b) p+ r) /\
@@ -617,6 +629,28 @@ Proof.
 Qed.
 
 
+(* 
+The following requires the pow function.
+
+Lemma eval_app': forall cs0 cs1 n x,
+  eval' n (cs0 ++ cs1) x = eval' n cs0 x + eval' (n + N.of_nat (length cs0)) cs1 x.
+Proof.
+  induction cs0;simpl;intros.
+  - assert(n + 0 =n)%N by lia. rewrite H. fqsatz.
+  - rewrite IHcs0.
+    assert (N.pos (Pos.of_succ_nat (length cs0)) = (1 + N.of_nat (length cs0))%N).
+    rewrite Pos.of_nat_succ. lia.
+    rewrite H. 
+    assert(n + (1 + N.of_nat (length cs0)) = n + 1 + N.of_nat (length cs0))%N. lia.
+    rewrite H0. fqsatz.
+Qed.
+
+Lemma eval_app: forall cs0 cs1 x,
+  eval (cs0 ++ cs1) x = eval cs0 x + eval' (N.of_nat (length cs0)) cs1 x.
+Proof.
+  intros. apply eval_app'.
+Qed. *)
+
 (* Hanzhi *)
 
 Lemma deg_psub: forall p q, (*11*)
@@ -630,7 +664,6 @@ Proof.
   intros. pose proof (dec_eq_list p q0). destruct H;auto.
 Qed.
 
-Definition p0 : polynomial := nil.
 
 Lemma psub_0_neg: forall p q, (*11*)
   ~((psub p q) = p0) <-> ~(p = q).
@@ -687,6 +720,5 @@ Proof.
   intros. apply H_X. unfold root. rewrite eval_psub.
   apply H3 in H4. fqsatz.
 Qed.
- *)
 
 End Polynomial.

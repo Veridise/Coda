@@ -52,7 +52,7 @@ Inductive empty_poly : polynomial -> Prop :=
 | empty_poly_nil : empty_poly nil
 | empty_poly_cons : forall f x, x == 0 -> empty_poly f -> empty_poly (x::f).
 
-Definition p0 : polynomial := nil.
+Notation "0p" := (nil : polynomial).
 
 (* A [polynomial] with trailing zeros is equivalent to one without. *)
 Reserved Notation "a ~ b" (at level 20).
@@ -66,6 +66,7 @@ Hint Constructors eq_poly : core.
 
 Hint Extern 10 (_ == _) => fsatz : core.
 Hint Extern 10 (?A ~ ?A) => reflexivity : core.
+Hint Extern 10 (nil ~ ?A) => symmetry : core.
 
 Lemma eq_poly_empty_imp: forall f g, f ~ g -> empty_poly g -> empty_poly f.
 Proof.
@@ -73,7 +74,6 @@ Proof.
   induction H; intro; auto.
   invert H1. auto.
 Qed.
-
 
 Instance eq_poly_equivalence : Equivalence eq_poly.
 Proof.
@@ -96,10 +96,10 @@ Proof.
       constructor. fsatz. eapply eq_poly_empty_imp; eauto.
 Qed.
 
-(* Lemma p0_empty: empty_poly p0.
+(* Lemma 0p_empty: empty_poly 0p.
 Proof. constructor. Qed. *)
 
-Lemma empty_eq_0: forall f, empty_poly f -> f ~ p0.
+Lemma empty_eq_0: forall f, empty_poly f -> f ~ 0p.
 Proof. auto. Qed.
 
 Instance cons_Proper: forall c, Proper (eq_poly ==> eq_poly) (cons c).
@@ -116,6 +116,42 @@ Proof.
   + invert H0. invert H1. split; auto.
   + split; auto.
 Qed.
+
+Ltac p0_to_empty := repeat match goal with
+  | [ H: ?f ~ nil |- _] => apply eq_poly_empty_imp in H; auto
+  | [ H: nil ~ _ |- _] => symmetry in H
+  | [ _: _ |- nil ~ ?f ] => symmetry
+  | [ _: _ |- ?f ~ nil ] => apply empty_eq_0; auto
+  end.
+
+Ltac empty_to_0p := repeat match goal with
+  | [ H: empty_poly ?f |- _] => apply empty_eq_0 in H; auto 
+  | [ _: _ |- empty_poly ?f ] => apply eq_poly_empty_imp with (g:= 0p); auto
+  end.
+
+Lemma cons_eq_nil: forall c f, (c == 0 /\ f ~ nil) <-> (c :: f) ~ nil.
+Proof.
+  intros. split; intros.
+  destruct H. p0_to_empty.
+  invert H. invert H0. auto.
+Qed.
+
+Lemma cons_eq_cons: forall c d f g, (c == d /\ f ~ g) <-> (c::f) ~ (d::g).
+Proof.
+  intros. split; intros.
+  destruct H. apply eq_poly_cons; auto.
+  invert H; auto. 
+  invert H0; invert H1. auto.
+Qed.
+
+Hint Extern 10 ((_::_) ~ nil) => apply cons_eq_nil : core.
+Hint Extern 10 => match goal with
+  [ H: ((_::_) ~ nil) |- _ ] =>  apply cons_eq_nil in H; destruct H
+  end: core.
+Hint Extern 10 ((_::_) ~ (_::_)) => apply cons_eq_cons : core.
+Hint Extern 10 => match goal with 
+  [ H: (_::_) ~ (_::_) |- _ ] => apply cons_eq_cons in H; destruct H
+  end : core.
 
 
 (**************************************
@@ -233,6 +269,11 @@ Proof.
   intros. destruct i; reflexivity.
 Qed.
 
+Lemma coeff_nil: forall i, 0p [i] = 0.
+Proof.
+  intros. unfold coeff. apply nth_nil.
+Qed.
+
 Lemma coeff_empty: forall f, empty_poly f -> forall i, f[i] == 0.
 Proof.
   intros f H. unfold coeff. induction H; intros.
@@ -242,13 +283,135 @@ Proof.
     + cbn. apply IHempty_poly.
 Qed.
 
-Lemma coeff_equal: forall f g, f ~ g -> forall i, f[i] == g[i].
+Lemma eq_coeff_equal: forall f g, f ~ g -> forall i, f[i] == g[i].
 Proof.
   intros f g H. induction H; simpl; intros.
   - repeat rewrite coeff_empty by auto. reflexivity.
   - destruct i.
     + fsatz.
     + apply IHeq_poly.
+Qed.
+
+
+
+
+Lemma coeff_all_0: forall g, (forall i, g[i] == 0) -> g ~ 0p.
+Proof.
+  unfold coeff; induction g; intros; auto.
+  pose proof (H 0%nat).
+  assert (g ~ nil). apply IHg. intros. specialize (H (S i)). auto.
+  auto.
+Qed.
+
+Lemma coeff_equal_eq: forall f g,
+  (forall i, f[i] == g[i] ) -> f ~ g.
+Proof.
+  induction f; intros g H.
+  - symmetry. apply coeff_all_0. intros.
+    rewrite <- H, coeff_nil. auto.
+  - pose proof (H 0%nat). destruct g as [| d g].
+    + assert (f ~ nil).
+      { apply IHf. intros. specialize (H (S i)). rewrite coeff_nil in *. auto. }
+      auto.
+    + assert (f ~ g). 
+      { apply IHf. intros. specialize (H (S i)). auto. }
+      auto.
+Qed.
+
+
+
+(**************************************
+ *            Reflection              *
+ **************************************)
+
+Fixpoint isnil f :=
+  match f with
+  | nil => true
+  | c::f => if eq_dec c 0 then isnil f else false
+  end.
+
+Lemma isnil_sound: forall f, isnil f = true -> f ~ nil.
+Proof.
+  induction f; simpl; intros; auto.
+  destruct (eq_dec a 0); auto.
+  invert H.
+Qed.
+
+Lemma isnil_complete: forall f, f ~ nil -> isnil f = true.
+Proof.
+  intros f H. p0_to_empty. induction H; simpl; auto.
+  destruct (eq_dec x 0); auto.
+Qed.
+
+Fixpoint eqb f g :=
+  match f, g with
+  | nil, _ => isnil g
+  | _, nil => isnil f
+  | c::f, d::g => if (eq_dec c d) then (eqb f g) else false
+  end.
+
+Lemma eqb_sound: forall f g, eqb f g = true -> f ~ g.
+Proof.
+  induction f as [| c f]; intros g; destruct g as [| d g]; simpl; auto;
+  intros;
+  repeat match goal with
+  | [ H: context[eq_dec ?a ?b] |- _ ] => destruct (eq_dec a b)
+  | [ H: isnil ?f = true |- _] => apply isnil_sound in H
+  | [ H: false = true |- _] => invert H
+  end; (auto || p0_to_empty).
+Qed.
+
+Lemma eqb_comm: forall f g, eqb f g = eqb g f.
+Proof.
+  induction f; intros; destruct g; simpl; auto.
+  rewrite IHf. destruct (eq_dec a f0); destruct (eq_dec f0 a); auto; fsatz.
+Qed.
+
+Instance isnil_Proper: Proper (eq_poly ==> Logic.eq) (isnil).
+Proof.
+  intros f g H. induction H; simpl.
+  - empty_to_0p. repeat rewrite isnil_complete; auto.
+  - destruct (eq_dec x 0); destruct (eq_dec y 0); (auto || fsatz).
+Qed.
+
+Instance eqb_nil_Proper: forall f, f ~ nil -> Proper (eq_poly ==> Logic.eq) (eqb f).
+Proof.
+  intros f Hf.
+  induction Hf; intros g1 g2 Hg.
+Admitted.
+
+
+Instance eqb_r_Proper: forall f, Proper (eq_poly ==> Logic.eq) (eqb f).
+Proof.
+  intros f g1 g2 Hg. generalize dependent f.
+  induction Hg as [g1 g2 | c1 c2 g1 g2]; intros.
+Admitted.
+
+Instance eqb_Proper: Proper (eq_poly ==> eq_poly ==> Logic.eq) eqb.
+Proof.
+  intros f1 f2 Hf. induction Hf; intros g1 g2 Hg; induction Hg.
+  - empty_to_0p.
+    rewrite eqb_comm. rewrite H. rewrite eqb_comm.
+    rewrite eqb_comm with (f:=g). rewrite H0.
+    rewrite eqb_comm with (f:=g0). simpl.
+    simpl.
+Admitted.
+
+Lemma eqb_complete: forall f g, f ~ g -> eqb f g = true.
+Proof.
+  intros. induction H.
+  - empty_to_0p. rewrite H, H0. auto.
+  - simpl. destruct (eq_dec x y); auto.
+Qed.
+
+Lemma eq_poly_decidable: forall f g,
+  f ~ g \/ ~ (f ~ g).
+Proof.
+  intros.
+  pose proof (eqb_sound f g).
+  pose proof (eqb_complete f g).
+  destruct (eqb f g); auto.
+  right. intuition idtac. discriminate.
 Qed.
 
 
@@ -287,66 +450,17 @@ Proof.
 Qed.
 
 
-(**************************************
- *               Degree               *
- **************************************)
-
-Definition degree := option nat.
-Definition mk_degree (n: nat) := Some n.
-Fixpoint deg (f: polynomial) : degree := 
-  match f with
-  | nil => None
-  | c::f' =>
-    match deg f' with
-    | Some d => Some (S d)
-    | None => if eq_dec c 0 then None else Some O
-    end
-  end.
-
-Definition degree_leqb d1 d2 :=
-  match d1, d2 with
-  | Some d1, Some d2 => (d1 <=? d2)%nat
-  | None, _ => true
-  | _, None => false
-  end.
-Definition degree_leq d1 d2 : Prop := degree_leqb d1 d2 = true.
-
-Definition degree_max d1 d2 :=
-  match d1, d2 with
-  | None, _ => d2
-  | _, None => d1
-  | Some d1, Some d2 => Some (max d1 d2)
-  end.
-
-Definition degree_min d1 d2 :=
-  match d1, d2 with
-  | None, _ => d1
-  | _, None => d2
-  | Some d1, Some d2 => Some (min d1 d2)
-  end.
-
-Definition degree_add d1 d2 :=
-  match d1, d2 with
-  | None, _ => d2
-  | _, None => d1
-  | Some d1, Some d2 => Some (d1 + d2)%nat
-  end.
-
-
 
 (**************************************
  *             Arithmetic             *
  **************************************)
 
-Definition uncurry {A B C: Type} (f: A -> B -> C) := fun xy => f (fst xy) (snd xy).
-Fixpoint pairwise {A: Type} (op: A -> A -> A) (f g: list A) : list A :=
+Fixpoint padd (f g: polynomial) : polynomial :=
   match f, g with
   | nil, _ => g
   | _, nil => f
-  | (a :: f), (b :: g) => (op a b) :: pairwise op f g
+  | (a :: f), (b :: g) => a + b :: padd f g
   end.
-
-Definition padd : polynomial -> polynomial -> polynomial := pairwise add.
 Notation "f p+ g" := (padd f g) (at level 18).
 
 Definition pscale (k: F) : polynomial -> polynomial := List.map (fun a => k * a).
@@ -360,14 +474,12 @@ Fixpoint pmul (f g: polynomial) : polynomial :=
   | nil => nil
   | (a :: f') => padd (pscale a g) (0 :: (pmul f' g))
   end.
-
 Notation "f p* g" := (pmul f g) (at level 17).
 
 
-
-Lemma padd_0_r: forall f g, g ~ p0 -> f p+ g ~ f.
+Lemma padd_0_r: forall f g, g ~ 0p -> f p+ g ~ f.
 Proof.
-  induction f; unfold padd in *; intros; auto.
+  induction f; intros; auto.
   invert H. invert H0.
   - simpl. auto.
   - simpl. apply eq_poly_cons; auto.
@@ -376,14 +488,14 @@ Qed.
 Lemma padd_comm: forall f g,
   padd f g ~ padd g f.
 Proof.
-  induction f; unfold padd in *; simpl; intros.
+  induction f; simpl; intros.
   - rewrite padd_0_r; auto.
   - destruct g as [|b g]; simpl. auto.
     rewrite IHf. auto. 
 Qed.
 
-(* Instance padd_r_p0_Proper:
-  Proper (eq_poly ==> eq_poly) (padd p0).
+(* Instance padd_r_0p_Proper:
+  Proper (eq_poly ==> eq_poly) (padd 0p).
 Proof.
   intros f g H. induction H.
   - auto.
@@ -395,7 +507,7 @@ Instance padd_r_Proper: forall f,
 Proof.
   unfold Proper, respectful.
   intros f g1 g2 H. generalize dependent f.
-  induction H as [g1 g2 H1 H2 | c d g1 g2 Hcd IH]; unfold padd in *; intros.
+  induction H as [g1 g2 H1 H2 | c d g1 g2 Hcd IH]; intros.
   - repeat rewrite padd_0_r; auto.
   - destruct f as [|a f]; simpl; auto.
 Qed.
@@ -405,22 +517,28 @@ Instance padd_Proper:
 Proof.
   unfold Proper, respectful.
   intros f1 g1 H.
-  induction H as [f1 g1 Hf Hg| c d f1 g1]; simpl; intros f2 g2 H2.
+  induction H as [f1 g1 Hf Hg| c d f1 g1]; intros f2 g2 H2.
   - rewrite padd_comm. 
     rewrite padd_comm with (f := g1).
     repeat rewrite padd_0_r; auto.
-  - unfold padd in *. invert H2.
+  - invert H2.
     + repeat rewrite padd_0_r; auto.
     + simpl. rewrite IHeq_poly with (x:=f) (y:=g); auto.
 Qed.
 
-Lemma pscale_p0: forall f k, f ~ p0 -> k p$ f ~ p0.
+
+Lemma padd_assoc: forall f g h,
+  (f p+ g) p+ h ~ f p+ (g p+ h).
+Proof.
+  induction f; intros.
+  - reflexivity.
+  - destruct g as [| d g]; destruct h as [|e h]; simpl; try reflexivity.
+    rewrite IHf. auto.
+Qed.
+
+Lemma pscale_0p: forall f k, f ~ 0p -> (k p$ f) ~ 0p.
 Proof.
   induction f; simpl; intros; auto.
-  invert H. invert H0.
-  apply eq_poly_empty; auto.
-  constructor; auto.
-  eapply eq_poly_empty_imp; auto.
 Qed.
 
 Instance pscale_Proper:
@@ -428,7 +546,7 @@ Instance pscale_Proper:
 Proof.
   intros x y Hxy f g Hfg.
   induction Hfg.
-  + repeat rewrite pscale_p0; auto.
+  + repeat rewrite pscale_0p; auto.
   + simpl. apply eq_poly_cons; auto.
 Qed.
 
@@ -439,23 +557,6 @@ Proof.
   unfold psub. rewrite H1, H2. auto.
 Qed.
 
-Lemma pmul_0_r: forall f g, g ~ p0 -> f p* g ~ p0.
-Proof.
-  induction f; auto.
-  intros. simpl. rewrite pscale_p0; auto. unfold padd. rewrite IHf; simpl; auto.
-Qed.
-
-Lemma pmul_comm: forall f g,
-  f p* g ~ g p* f.
-Proof.
-  induction f; simpl; intros.
-  - rewrite pmul_0_r; auto.
-Admitted.
-
-Lemma pmul_cons_r: forall f d g,
-  f p* (d :: g) ~ d p$ f p+ (0 :: f p* g).
-Admitted.
-
 Lemma padd_congruence: forall f1 f2 g1 g2,
   f1 ~ f2 -> g1 ~ g2 -> f1 p+ g1 ~ f2 p+ g2.
 Proof. intros. rewrite H, H0; auto. Qed.
@@ -464,10 +565,47 @@ Lemma pscale_congruence: forall k1 k2 f1 f2,
   k1 == k2 -> f1 ~ f2 -> k1 p$ f1 ~ k2 p$ f2.
 Proof. intros. rewrite H, H0; auto. Qed.
 
+Lemma psub_congruence: forall f1 f2 g1 g2,
+  f1 ~ f2 -> g1 ~ g2 -> f1 p- g1 ~ f2 p- g2.
+Proof. intros. rewrite H, H0; auto. Qed.
+
 
 Hint Extern 10 (?k1 p$ ?f ~ ?k2 p$ ?g) => apply pscale_congruence : core.
 Hint Extern 10 (?c :: ?f ~ ?d :: ?g) => apply eq_poly_cons : core.
 Hint Extern 10 (?f1 p+ ?g1 ~ ?f2 p+ ?g2) => apply padd_congruence : core.
+Hint Extern 10 (?f1 p- ?g1 ~ ?f2 p- ?g2) => apply padd_congruence : core.
+
+Lemma pmul_0_r: forall f g, g ~ 0p -> f p* g ~ 0p.
+Proof.
+  induction f; auto.
+  intros. simpl. rewrite pscale_0p; auto. rewrite IHf; simpl; auto.
+Qed.
+
+Lemma pmul_cons_r: forall f d g,
+  f p* (d :: g) ~ d p$ f p+ (0 :: f p* g).
+Proof.
+  induction f; simpl; intros; auto.
+  rewrite IHf.
+  apply cons_eq_cons. split; auto.
+  (* FIXME: we should really prove polynomials form a ring and do Add Ring *)
+  rewrite <- padd_assoc. rewrite padd_comm with (f:=a p$ g). rewrite padd_assoc.
+  reflexivity.
+Qed.
+
+Lemma pmul_comm: forall f g,
+  f p* g ~ g p* f.
+Proof.
+  induction f; simpl; intros.
+  - rewrite pmul_0_r; auto.
+  - rewrite pmul_cons_r. rewrite IHf. reflexivity.
+Qed.
+
+Lemma pmul_assoc: forall f g h,
+  (f p* g) p* h ~ f p* (g p* h).
+Proof.
+Abort.
+
+
 
 Instance pmul_r_Proper: forall f,
   Proper (eq_poly ==> eq_poly) (pmul f).
@@ -531,7 +669,6 @@ Proof.
   - rewrite IHf. fsatz.
 Qed.
 
-
 Lemma peval_psub: forall f g x,
   (f p- g) ([x]) == f ([x]) - g ([x]).
 Proof.
@@ -555,38 +692,141 @@ Proof.
 Qed. *)
 
 
+(**************************************
+ *               Degree               *
+ **************************************)
+
+Local Open Scope nat_scope.
+
+Definition degree := option nat.
+Definition mk_degree (n: nat) := Some n.
+Definition d0 := (mk_degree 0).
+
+Fixpoint deg (f: polynomial) : degree := 
+  match f with
+  | nil => None
+  | c::f' =>
+    match deg f' with
+    | Some d => Some (S d)
+    | None => if eq_dec c zero then None else Some O
+    end
+  end.
+
+Definition degree_leq d1 d2 :=
+  match d1, d2 with
+  | Some d1, Some d2 => (d1 <= d2)
+  | None, _ => True
+  | _, None => False
+  end.
+
+Notation "d1 p<= d2" := (degree_leq d1 d2) (at level 20). 
+(* Notation "d1 p< d2" := (degree_leq (S d1) d2) (at level 20). *)
+
+
+Lemma degree_leq_reflexive: forall d, d p<= d.
+Admitted.
+
+Lemma degree_leq_transitive: forall d1 d2 d3, d1 p<= d2 -> d2 p<= d3 -> d1 p<= d3.
+Admitted.
+
+Lemma degree_leq_total: forall d1 d2, d1 p<= d2 \/ d2 p<= d1.
+Admitted.
+
+Lemma degree_leq_bottom: forall d, d0 p<= d.
+Admitted.
+
+Definition degree_max d1 d2 :=
+  match d1, d2 with
+  | None, _ => d2
+  | _, None => d1
+  | Some d1, Some d2 => Some (max d1 d2)
+  end.
+
+Definition degree_min d1 d2 :=
+  match d1, d2 with
+  | None, _ => d1
+  | _, None => d2
+  | Some d1, Some d2 => Some (min d1 d2)
+  end.
+
+Definition degree_add d1 d2 :=
+  match d1, d2 with
+  | None, _ => d2
+  | _, None => d1
+  | Some d1, Some d2 => Some (d1 + d2)
+  end.
+
+Lemma degree_max_self: forall d1 d2,
+  d1 p<= degree_max d1 d2.
+Proof. Admitted.
+
+Lemma degree_max_comm: forall d1 d2,
+  degree_max d1 d2 = degree_max d2 d1.
+Admitted.
+
+Lemma degree_add_le: forall d1 d2 b1 b2,
+  d1 p<= Some b1 ->
+  d2 p<= Some b2 ->
+  degree_add d1 d2 p<= Some (b1 + b2).
+Admitted.
+
+Lemma degree_le_length: forall f,
+  deg f p<= Some (length f - 1).
+Admitted.
+
+Lemma degree_max_congruence: forall d1 d2 b1 b2,
+  d1 p<= b1 ->
+  d2 p<= b2 ->
+  degree_max d1 d2 p<= degree_max b1 b2.
+Admitted.
+
+
 
 (**************************************
  *       Arithmetic and Degree        *
  **************************************)
 
-Lemma deg_padd: forall p q,
+Lemma degree_padd: forall p q,
   degree_leq (deg (p p+ q)) (degree_max (deg p) (deg q)).
-Abort.
+Proof.
+Admitted.
 
- 
-Lemma deg_pmul: forall p q,
-  degree_leq (deg (p p* q)) (degree_add (deg p) (deg q)).
-Abort.
-
-Lemma deg_pscale: forall p k,
+Lemma degree_pscale: forall p k,
   degree_leq (deg (k p$ p)) (deg p).
-Abort.
-
-Lemma deg_psub: forall p q, (*11*)
-degree_leq (deg (p p- q)) (degree_max (deg p) (deg q)).
 Admitted.
 
-Lemma degree_leq_tuple: forall n (l:tuple F n),
-degree_leq (deg (toPoly l)) (Some (n-1)%nat).
+Lemma degree_psub: forall p q, (*11*)
+  degree_leq (deg (p p- q)) (degree_max (deg p) (deg q)).
 Proof.
+  intros. unfold psub.
+  eapply degree_leq_transitive.
+  apply degree_padd.
+  eapply degree_max_congruence. apply degree_leq_reflexive.
+  apply degree_pscale.
+Qed.
+
+Lemma degree_pmul: forall f g,
+  degree_leq (deg (f p* g)) (degree_add (deg f) (deg g)).
 Admitted.
 
-Lemma degree_leq_pmul: forall ka kb (a: tuple F ka) (b: tuple F kb),
-degree_leq (deg (pmul (toPoly a) (toPoly b))) (Some (ka + kb - 2)%nat).
+Lemma degree_toPoly: forall n (l:tuple F n),
+  degree_leq (deg (toPoly l)) (Some (n-1)).
 Proof.
+  intros. eapply degree_leq_transitive. apply degree_le_length.
+  simpl. rewrite toPoly_length. lia.
+Qed.
+
+Lemma degree_pmul_from_tuple: forall ka kb (a: tuple F ka) (b: tuple F kb),
+  ka > 0 -> kb > 0 ->
+  degree_leq (deg (pmul (toPoly a) (toPoly b))) (Some (ka + kb - 2)).
+Proof.
+  intros. eapply degree_leq_transitive. apply degree_pmul.
+  eapply degree_leq_transitive.
+  apply degree_add_le; apply degree_toPoly.
+  simpl. lia.
 Admitted.
 
+Local Close Scope nat_scope.
 
 
 (**************************************
@@ -597,40 +837,81 @@ Definition root x p := peval x p == 0.
 
 Definition linear a := (opp a :: 1 :: nil).
 
-Lemma psub_0: forall p q,
-  (p p- q) ~ p0 <-> p ~ q.
+
+Lemma pscale_0_invert: forall f k,
+  (k p$ f) ~ 0p -> k == 0 \/ f ~ 0p.
+Proof.
+  induction f; simpl; intros; auto.
+  destruct (eq_dec k 0); auto.
+  right.
+  invert H. invert H0.
+  assert (a == 0) by fsatz.
+  assert ((k p$ f) ~ 0p) by auto.
+  apply IHf in H0. destruct H0. fsatz.
+  auto.
+Qed.
+
+Lemma psub_cons: forall c d f g,
+  (c :: f) p- (d :: g) ~ ((c-d) :: (f p- g)).
 Admitted.
 
-Lemma eq_poly_decidable: forall p q, (*11*)
-  p ~ q \/ ~ (p ~ q).
-Admitted.
+Lemma eq_poly_invert: forall c d f g,
+  (c :: f) ~ (d :: g) -> c == d /\ f ~ g.
+Proof.
+  intros. invert H.
+  - invert H0. invert H1; auto.
+  - auto.
+Qed.
+
+Lemma psub_0: forall f g,
+  (f p- g) ~ 0p <-> f ~ g.
+Proof.
+  induction f as [| c f]; intros g; split; intros H.
+  - apply pscale_0_invert in H. destruct H. fsatz. symmetry. auto.
+  - unfold psub. simpl. rewrite pscale_0p. auto. symmetry. auto.
+  - destruct g as [| d g]; auto.
+    rewrite psub_cons in H.
+    assert (f ~ g). apply IHf. auto.
+    auto.
+  - destruct g as [| d g]; auto.
+    rewrite psub_cons.
+    assert (f p- g ~ nil). apply IHf. auto.
+    auto.
+Qed.
+
+(* Hint Extern 10 (nil ~ ?A) => symmetry : core. *)
+(* Hint Extern 10 (?c :: ?f ~ nil) =>  : core. *)
+
 
 Lemma psub_0_neg: forall p q, (*11*)
-  ~((p p- q) ~ p0) <-> ~(p ~ q).
+  ~((p p- q) ~ 0p) <-> ~(p ~ q).
 Admitted.
 
 Lemma not0_implies_positive_deg: forall p, (*11*)
-  ~ (p ~ p0) -> exists n, deg p = Some n /\ (n > 0)%nat.
+  ~ (p ~ 0p) -> exists n, deg p = Some n /\ (n > 0)%nat.
 Admitted.
 
 Lemma deg_d_has_most_d_roots: forall p d, (*11*)
   deg p = Some d ->
   (d > 0)%nat ->
-  exists X, length X = d /\ forall x, root x p -> In x X.
+  exists X, NoDup X /\ length X = d /\ forall x, root x p -> In x X.
 Admitted.
 
 (* polynomial long division *)
 Lemma pdiv: forall a b,
-  ~ (a ~ p0) ->
+  ~ (a ~ 0p) ->
   exists q r, a ~ ((q p* b) p+ r) /\
-  (r ~ p0 \/ degree_leq (deg r) (deg b)).
+  (r ~ 0p \/ degree_leq (deg r) (deg b)).
 Admitted.
 
+(* if a polynomial has a root at a, then it is divi *)
 Lemma factor_root: forall p a, root a p ->
   exists q, p ~ (linear a p* q).
 Admitted.
 
 Lemma In_pigeon_hole: forall {A: Type} (X X': list A), (*11*)
+  NoDup X ->
+  NoDup X' ->
   (length X > length X')%nat ->
   (forall x, In x X -> In x X') ->
   False.
@@ -653,13 +934,15 @@ Proof.
   apply psub_0_neg in H4.
   apply not0_implies_positive_deg in H4.
   destruct H4 as [d [H_deg_r H_x] ].
-  pose proof (deg_psub p q) as H_deg_r_leq. rewrite H, H0 in H_deg_r_leq.
-  rewrite H_deg_r in H_deg_r_leq. simpl in H_deg_r_leq.
-  assert (H_d_n: (d <= n)%nat). apply leb_complete in H_deg_r_leq. lia.
-  replace (degree_max (Some n) (Some n)) with (Some n) in H_deg_r_leq by (simpl; f_equal; lia).
+  assert (H_d_n: (d <= n)%nat). {
+    pose proof (degree_psub p q) as H_deg_r_leq. rewrite H, H0 in H_deg_r_leq.
+    replace (degree_max (Some n) (Some n)) with (Some n) in H_deg_r_leq by (simpl; f_equal; lia).
+    rewrite H_deg_r in H_deg_r_leq. simpl in H_deg_r_leq.
+    auto.
+  }
   specialize (deg_d_has_most_d_roots _ _ H_deg_r H_x).
-  intro HX. destruct HX as [X' [H_len_X H_X] ].
-  eapply In_pigeon_hole with (X := X ) (X' := X').
+  intro HX. destruct HX as [X' [H_NoDup [H_len_X H_X] ] ].
+  eapply In_pigeon_hole with (X := X ) (X' := X'); auto.
   lia.
   intros. apply H_X. unfold root. rewrite peval_psub.
   apply H3 in H4. fsatz.
@@ -705,12 +988,12 @@ Qed.
 
 
 Lemma psub_0_neg: forall p q, (*11*)
-  ~((psub p q) = p0) <-> ~(p = q).
+  ~((psub p q) = 0p) <-> ~(p = q).
 Proof.
 Admitted.
 
 Lemma not0_implies_positive_deg: forall p, (*11*)
-  ~ (p = p0) -> exists n, deg p = Some n /\ (n > 0)%nat.
+  ~ (p = 0p) -> exists n, deg p = Some n /\ (n > 0)%nat.
   Proof.
 Admitted.
 

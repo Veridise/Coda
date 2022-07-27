@@ -1,125 +1,123 @@
+Require Import Coq.Lists.List.
+Require Import Coq.micromega.Lia.
+Require Import Coq.Init.Peano.
+Require Import Coq.Arith.PeanoNat.
+Require Import Coq.Arith.Compare_dec.
 Require Import Coq.PArith.BinPosDef.
-Require Import Crypto.Util.Decidable Crypto.Util.Notations.
-Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
+Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Znumtheory Coq.NArith.NArith. (* import Zdiv before Znumtheory *)
+Require Import Coq.NArith.Nnat.
 
-(* Circuit:
+Require Import Crypto.Spec.ModularArithmetic.
+Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
+
+Require Import Crypto.Util.Tuple.
+Require Import Crypto.Util.Decidable Crypto.Util.Notations.
+Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
+Require Import Circom.circomlib.bitify.
+Require Import Circom.Circom.
+
+Local Open Scope list_scope.
+Local Open Scope F_scope.
+
+(* Circuits:
  * https://github.com/iden3/circomlib/blob/master/circuits/comparators.circom
  *)
-
-Section _comparators.
-
-Context {F eq zero one opp add sub mul inv div}
-        {fld:@Hierarchy.field F eq zero one opp add sub mul inv div}
-        {eq_dec:DecidableRel eq}.
-Local Infix "=" := eq. Local Notation "a <> b" := (not (a = b)).
-Local Infix "=" := eq : type_scope. Local Notation "a <> b" := (not (a = b)) : type_scope.
-Local Notation "0" := zero.  Local Notation "1" := one.
-Local Infix "+" := add. Local Infix "*" := mul.
-Local Infix "-" := sub. Local Infix "/" := div.
-
-Definition eqb := bool_rel_of_dec_rel eq.
-Local Infix "=?" := eqb.
-
-Ltac split_eqns :=
-  repeat match goal with
-  | [ |- _ /\ _ ] => split
-  | [ H: exists _, _ |- _ ] => destruct H
-  | [ H: {s | _ } |- _ ] => destruct H
-  | [ H: _ /\ _ |- _ ] => destruct H
-  end.
-
+Module Comparators (C: CIRCOM).
+Import C.
 
 (***********************
  *       IsZero
  ***********************)
 
+Module IsZero.
+
 (* IsZero constraints *)
-Definition IsZero_cons (_in _out _inv: F) :=
+Definition cons (_in _out _inv: F) :=
   _out = 1 - _in * _inv /\
   _in * _out = 0.
 
-(* IsZero template (hides intermediate variables) *)
-Definition IsZeroTemplate (_in _out: F) :=
-  exists _inv, IsZero_cons _in _out _inv.
-
 (* IsZero *)
-Class IsZero : Type := mkIsZero
-{ IsZeroin: F; 
-  IsZeroout: F;
-  IsZerocons: IsZeroTemplate IsZeroin IsZeroout}.
+Class t : Type := mk { _in: F; _out: F; _cons: exists _inv, cons _in _out _inv }.
 
 (* IsZero spec *)
-Definition IsZero_spec (_in _out: F) :=
-  (_in = 0 -> _out = 1) /\
-  (~(_in = 0) -> _out = 0).
+Definition spec (w: t) : Prop :=
+  (w.(_in) = 0 -> w.(_out) = 1) /\
+  (~(w.(_in) = 0) -> w.(_out) = 0).
 
-(* IsZero correctness theorem *)
-Theorem IsZero_correct: forall _in _out,
-IsZeroTemplate _in _out <-> IsZero_spec _in _out.
+(* IsZero is sound *)
+Theorem soundness:
+  forall (w: t), spec w.
 Proof using Type*.
-  intros _in _out.
-  split; intros H;
-  unfold IsZeroTemplate, IsZero_spec, IsZero_cons in *.
-  - repeat (split_eqns; intro); fsatz.
-  - destruct (dec (eq _in 0)).
-    exists 1; repeat split_eqns; intuition idtac; fsatz.
-    exists (1/_in). repeat split_eqns. pose proof n. apply H0 in n. fsatz.
-    fsatz.
+  unwrap_C.
+  intros.
+  destruct w as [_in _out].
+  unfold spec, cons in *.
+  simpl.
+  split_eqns;
+  intros;
+  split_eqns; fqsatz.
 Qed.
 
-(* use Record to repr template *)
-Theorem IsZeroSoundness: 
-  forall (t : IsZero), IsZero_spec t.(IsZeroin) t.(IsZeroout).
+(* Theorem IsZero_complete: forall (w: t),
+  IsZero_spec w -> cons w.
 Proof.
-  intros. apply IsZero_correct. exact t.(IsZerocons).
-Qed.
+  unwrap_C. intros. destruct w as [_in _out];
+  unfold cons, IsZero_template, IsZero_spec, IsZero_cons in *;
+  intros.
+  - destruct (dec (_in = 0)).
+    + exists 1; split_eqns; intuition idtac; fqsatz.
+    + exists (1/_in). destruct H as [_ H]. specialize (H n).
+      split_eqns; fqsatz.
+Qed. *)
+
+End IsZero.
 
 (***********************
  *       IsEqual
  ***********************)
 
-(* IsEqual constraints *)
-Definition IsEqual_cons x y _out := IsZeroTemplate (x-y) _out.
+Module IsEqual.
 
-(* IsEqual template *)
-Definition IsEqualTemplate := IsEqual_cons.
+(* Hint Extern 10 (_ = _) => fqsatz : core. *)
+(* Hint Extern 10 (_ <> _) => fqsatz : core. *)
 
-(* IsEqual *)
-Class IsEqual : Type := mkIsEqual
-{ IsEqualx: F; 
-  IsEqualy: F; 
-  IsEqualout: F; 
-  IsEqualcons: IsEqualTemplate IsEqualx IsEqualy IsEqualout}.
-
-(* IsEqual spec *)
-Definition IsEqual_spec x y _out :=
-  (x = y -> _out = 1) /\ (~ x = y -> _out = 0).
-
-(* IsEqual correctness theorem *)
-Theorem IsEqual_correct: forall x y _out,
-  IsEqualTemplate x y _out <-> IsEqual_spec x y _out.
-Proof using Type*.
-  intros; unfold IsEqualTemplate, IsEqual_spec, IsEqual_cons in *;
-  split; intro H;
-  (* try applying correctness lemma to every hyp and conclusion *)
+(* Ltac extract :=
   match goal with
-  | [ H: IsZeroTemplate _ _ |- _ ] => apply IsZero_correct in H
-  | [ |- IsZeroTemplate _ _  ] =>  apply IsZero_correct
-  end;
-  unfold IsZero_spec in *;
-  destruct (dec (x = y));
-  try (assert (x - y = 0) by fsatz; intuition idtac);
-  try (assert (x - y <> 0) by fsatz; intuition idtac).
-Qed.
+  | [ H: forall _ : ?a = _?b, _ |- _] => assert (a=b) by fqsatz; intuition idtac
+  | [ H: forall _ : ?a <> _?b, _ |- _] => assert (a<>b) by fqsatz; intuition idtac
+  end. *)
 
-(* use Record to repr template *)
-Theorem IsEqualSoundness: 
-  forall (t : IsEqual), IsEqual_spec t.(IsEqualx) t.(IsEqualy) t.(IsEqualout).
-Proof.
-  intros. apply IsEqual_correct. exact t.(IsEqualcons).
-Qed.
+(* TODO: how to encode anonymous circuit instantiation? *)
+Definition cons x y _out := exists (isz: IsZero.t),
+    isz.(IsZero._in) = (x - y) /\
+    _out = isz.(IsZero._out).
 
-(***********************
+Class t : Type := mk { x: F; y: F; _out: F; _cons: cons x y _out }.
+
+Definition spec t :=
+  (t.(x) = t.(y) -> t.(_out) = 1) /\ (~ t.(x) = t.(y) -> t.(_out) = 0).
+
+Theorem sound: forall t, spec t.
+Proof using Type*.
+  unwrap_C.
+  intros t. destruct t as [x y _out].
+  unfold spec, cons in *.
+  destruct _cons0.
+  pose proof (IsZero.soundness x0).
+  unfold IsZero.spec in H.
+  simpl in *.
+  split_eqns.
+  (* FIXME: automate this *)
+  - assert (IsZero._in = 0) by fqsatz.
+    intuition idtac. fqsatz.
+  - assert (IsZero._in <> 0) by fqsatz. intuition idtac. fqsatz.
+(* FIXME: The term "eq_refl" has type "true = true" while it is expected to have type *)
+Admitted.
+
+End IsEqual.
+
+
+(* (***********************
  *      IsNotEqual
  ***********************)
 Definition IsNotEqual_cons x y _out _tmp :=
@@ -129,36 +127,44 @@ Definition IsNotEqualTemplate x y _out :=
   exists _tmp, IsNotEqual_cons x y _out _tmp.
 
 (* IsNotEqual *)
-Class IsNotEqual : Type := mkIsNotEqual
-{ IsNotEqualx: F; 
-  IsNotEqualy: F; 
-  IsNotEqualout: F; 
-  IsNotEqualcons: IsNotEqualTemplate IsNotEqualx IsNotEqualy IsNotEqualout}.
+Class IsNotEqual : Type := mkIsNotEqual { 
+  x: F; 
+  y: F; 
+  out: F; 
+  cons: IsNotEqualTemplate x y out
+}.
 
-Definition IsNotEqual_spec x y _out :=
+Definition IsNotEqual_spec (x y _out: F) :=
   (x = y -> _out = 0) /\ (~ x = y -> _out = 1).
 
 Theorem IsNotEqual_correct: forall x y _out,
-  IsNotEqualTemplate x y _out <-> IsNotEqual_spec x y _out.
+  IsNotEqualTemplate x y _out -> IsNotEqual_spec x y _out.
 Proof.
-  intros; unfold IsNotEqualTemplate, IsNotEqual_spec, IsNotEqual_cons in *;
-  split; intro H.
-  - split_eqns;
-    apply IsEqual_correct in H; unfold IsEqual_spec in H;
-    repeat (split_eqns; intros);
-    destruct (dec (x = y)); intuition; fsatz.
-  - destruct (dec (x = y));
-    eexists; split;
-    try apply IsEqual_correct; unfold IsEqual_spec;
-    repeat (split_eqns; intros);
-    intuition idtac; (reflexivity || fsatz).
+  unfold IsNotEqualTemplate, IsNotEqual_spec, IsNotEqual_cons.
+  intros.
+  destruct H as [inv [Heq Hout] ].
+  apply IsEqual_correct in Heq. unfold IsEqual_spec in Heq.
+  split_eqns; intuition; fqsatz. 
 Qed.
 
 (* use Record to repr template *)
 Theorem IsNotEqualSoundness: 
-  forall (t : IsNotEqual), IsNotEqual_spec t.(IsNotEqualx) t.(IsNotEqualy) t.(IsNotEqualout).
+  forall (t : IsNotEqual), IsNotEqual_spec t.(x) t.(y) t.(out).
 Proof.
-  intros. apply IsNotEqual_correct. exact t.(IsNotEqualcons).
+  intros. apply IsNotEqual_correct. exact t.(cons).
 Qed.
+ *)
 
-End _comparators.
+(***********************
+ *       LessThan
+ ***********************)
+
+Module LessThan.
+
+(* Definition LessThan_cons (n: nat) (_in: tuple F 2) (_out: F) := *)
+  (* Num2Bits (S n) _out _in. *)
+
+End LessThan.
+
+
+End Comparators.

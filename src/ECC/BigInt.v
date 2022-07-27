@@ -10,7 +10,6 @@ Require Import Coq.NArith.Nnat.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 
-
 Require Import Crypto.Util.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
 Require Import BabyJubjub.
@@ -19,6 +18,8 @@ Require Import Ring.
 
 Require Import Util.
 Require Import Circom.circomlib.bitify.
+
+Require Import VST.zlist.Zlist.
 
 Require Import Crypto.Spec.ModularArithmetic.
 (* Circuit:
@@ -338,6 +339,7 @@ Proof.
             + lia.
             + assert (H_toPoly_len: length (toPoly x) = S m) by apply toPoly_length.
               assert (H_split: exists cs c ds, toPoly x = cs ++ (c::nil) ++ ds /\ length cs = j). {
+                (* TODO: simplify this monstrosity *)
                 remember (toPoly x) as xs.
                 assert (exists cs ds, xs = cs ++ ds /\ length cs = S j). {
                   exists (firstn (S j) xs). exists (skipn (S j) xs).
@@ -353,7 +355,8 @@ Proof.
                   rewrite app_length in H6. simpl in H6. lia.
               }
               destruct H_split as [cs H_split]. destruct H_split as [c H_split]. destruct H_split as [cs' H_split]. destruct H_split as [H_split H_cs_len].
-              rewrite H_split. 
+              rewrite H_split.
+              (* TODO: simplify this monstrosity *)
               rewrite firstn_app. replace (j-length cs)%nat with 0%nat by lia. rewrite firstn_O. rewrite app_nil_r.
               replace (firstn j cs) with (firstn (length cs) cs) by (rewrite <- H_cs_len; reflexivity).
               rewrite firstn_all.

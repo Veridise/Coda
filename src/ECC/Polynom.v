@@ -736,6 +736,7 @@ Definition degree_leq d1 d2 :=
 Notation "d1 p<= d2" := (degree_leq d1 d2) (at level 20). 
 (* Notation "d1 p< d2" := (degree_leq (S d1) d2) (at level 20). *)
 
+(* TODO: probably need a ton of tactics to do case split here *)
 
 Lemma degree_leq_reflexive: forall d, d p<= d.
 Admitted.
@@ -772,7 +773,7 @@ Definition degree_add d1 d2 :=
 
 Lemma degree_max_self: forall d1 d2,
   d1 p<= degree_max d1 d2.
-Proof. Admitted.
+Admitted.
 
 Lemma degree_max_comm: forall d1 d2,
   degree_max d1 d2 = degree_max d2 d1.
@@ -843,8 +844,8 @@ Admitted.
 
 Lemma deg_coeff: forall f n,
   deg f = Some n ->
-  f[n] <> 0 /\
-  forall i, i > n -> f[i] == 0.
+  f[n] <> zero /\
+  forall i, i > n -> f[i] == zero.
 Admitted.
 
 Local Close Scope nat_scope.
@@ -899,7 +900,7 @@ Proof.
     auto.
 Qed.
 
-Lemma psub_0_neg: forall f g, (*11*)
+Lemma psub_0_neg: forall f g,
   ~((f p- g) ~ 0p) <-> ~(f ~ g).
 Proof.
   split; intros; unfold not; intros.
@@ -908,7 +909,7 @@ Proof.
 Qed.
 
 
-Lemma not0_implies_positive_deg: forall f, (*11*)
+Lemma not0_implies_positive_deg: forall f,
   ~ (f ~ 0p) -> exists n, deg f = Some n /\ (n >= 0)%nat.
 Proof.
   induction f; intros.
@@ -924,7 +925,7 @@ Proof.
         exists 0%nat; split; auto || lia.
 Qed.
 
-Lemma deg_d_has_most_d_roots: forall p d, (*11*)
+Lemma deg_d_has_most_d_roots: forall p d,
   deg p = Some d ->
   (d > 0)%nat ->
   exists X, NoDup X /\ length X = d /\ forall x, root x p -> In x X.
@@ -985,10 +986,9 @@ Proof.
   apply psub_0_neg in H4.
   apply not0_implies_positive_deg in H4.
   destruct H4 as [d [H_deg_r H_x] ].
-
+  exfalso.
   destruct d.
   (* d = 0 *)
-  exfalso.
   assert (Hx: exists x, In x X). destruct X; simpl in *. lia. exists f. auto.
   destruct Hx.
   apply H3 in H4.
@@ -1006,7 +1006,6 @@ Proof.
   }
   specialize (deg_d_has_most_d_roots _ _ H_deg_r Hd').
   intro HX. destruct HX as [X' [H_NoDup [H_len_X H_X] ] ].
-  exfalso.
   eapply In_pigeon_hole with (X := X ) (X' := X'); auto.
   lia.
   intros. apply H_X. unfold root. rewrite peval_psub.
@@ -1040,36 +1039,6 @@ Qed. *)
 
 (* Hanzhi's version *)
 (* 
-Lemma deg_psub: forall p q, (*11*)
-  degree_leq (deg (psub p q)) (degree_max (deg p) (deg q)).
-Proof.
-Admitted.
-
-Lemma eq_poly_decidable: forall p q : polynomial, (*11*)
-  p = q \/ ~ (p = q).
-Proof.
-  intros. pose proof (dec_eq_list p q0). destruct H;auto.
-Qed.
-
-
-Lemma psub_0_neg: forall p q, (*11*)
-  ~((psub p q) = 0p) <-> ~(p = q).
-Proof.
-Admitted.
-
-Lemma not0_implies_positive_deg: forall p, (*11*)
-  ~ (p = 0p) -> exists n, deg p = Some n /\ (n > 0)%nat.
-  Proof.
-Admitted.
-
-Definition root x p := eval p x = 0.
-
-Lemma deg_d_has_most_d_roots: forall p d, (*11*)
-  deg p = Some d ->
-  (d > 0)%nat ->
-  exists X, length X = d /\ forall x, root x p -> In x X.
-Proof.
-Admitted.
 
 
 Lemma degree_leq_trans: forall a b d n,
@@ -1106,6 +1075,7 @@ Proof.
   lia.
   intros. apply H_X. unfold root. rewrite eval_psub.
   apply H3 in H4. fqsatz.
-Qed. *)
+Qed. 
+*)
 
 End Polynomial.

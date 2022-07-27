@@ -8,64 +8,46 @@ Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Zn
 Require Import Coq.NArith.Nnat.
 
 Require Import Crypto.Spec.ModularArithmetic.
-Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
-
 
 Require Import Crypto.Util.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
-Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
-Require Import Ring.
+Require Import Circom.Circom.
+Require Import Circom.Util.
+(* Require Import VST.zlist.Zlist. *)
 
-Require Import Util.
 
-(* Require Import Crypto.Spec.ModularArithmetic. *)
-(* Circuit:
-* https://github.com/iden3/circomlib/blob/master/circuits/bitify.circom
-*)
-
-Section _bitify.
+(* Circuits:
+ * https://github.com/iden3/circomlib/blob/master/circuits/comparators.circom
+ *)
+Module Bitify (C: CIRCOM).
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
+Import C.
 
-Ltac fqsatz := fsatz_safe; autorewrite with core; auto.
+Module Num2Bits.
 
-Context (q:positive) (k:Z) {prime_q: prime q} {two_lt_q: 2 < q} {k_positive: 1 < k} {q_lb: 2^k < q}.
-
-Lemma q_gtb_1: (1 <? q)%positive = true.
-Proof.
-  apply Pos.ltb_lt. lia.
-Qed.
-
-Lemma q_gt_2: 2 < q.
-Proof.
-  replace 2%Z with (2^1)%Z by lia.
-  apply Z.le_lt_trans with (m := (2 ^ k)%Z); try lia.
-  eapply Zpow_facts.Zpower_le_monotone; try lia.
-Qed.
-
-Hint Rewrite q_gtb_1 : core.
 
 (***********************
  *      Num2Bits
  ***********************)
 
 (* test whether a field element is binary *)
-Definition binary (x: F q) := x = 0 \/ x = 1.
-Definition two : F q := 1 + 1.
-Notation "2" := two.
+Definition binary (x: F) := x = 0 \/ x = 1.
 
-Lemma to_Z_2: F.to_Z 2 = 2%Z.
-Proof. simpl. repeat rewrite Z.mod_small; lia. Qed.
+Notation "2" := (1 + 1 : F).
+
+Lemma to_Z_2: @F.to_Z q 2 = 2%Z.
+Proof. unwrap_C. simpl. repeat rewrite Z.mod_small; lia. Qed.
 
 
 (* peel off 1 from x^(i+1) in field exp *)
-Lemma pow_S_N: forall (x: F q) i,
+Lemma pow_S_N: forall (x: F) i,
   x ^ (N.of_nat (S i)) = x * x ^ (N.of_nat i).
 Proof.
-  intros.
+  unwrap_C. intros.
   replace (N.of_nat (S i)) with (N.succ (N.of_nat i)).
   apply F.pow_succ_r.
   induction i.
@@ -77,7 +59,7 @@ Qed.
 Lemma pow_S_Z: forall (x: Z) i,
   (x ^ (Z.of_nat (S i)) = x * x ^ (Z.of_nat i))%Z.
 Proof.
-  intros.
+  unwrap_C. intros.
   replace (Z.of_nat (S i)) with (Z.of_nat i + 1)%Z by lia.
   rewrite Zpower_exp; lia.
 Qed.
@@ -85,10 +67,10 @@ Qed.
 (* [repr]esentation [func]tion:
  * interpret a list of weights as representing a little-endian base-2 number
  *)
-Fixpoint repr_to_le' (i: nat) (ws: list (F q)) : F q :=
+Fixpoint repr_to_le' (i: nat) (ws: list F) : F :=
   match ws with
   | nil => 0
-  | w::ws' => w * two^(N.of_nat i) + repr_to_le' (S i) ws'
+  | w::ws' => w * 2^(N.of_nat i) + repr_to_le' (S i) ws'
   end.
 
 Definition repr_to_le := repr_to_le' 0%nat.
@@ -97,7 +79,7 @@ Definition repr_to_le := repr_to_le' 0%nat.
 Lemma repr_to_le'_S: forall ws i,
   repr_to_le' (S i) ws = 2 * repr_to_le' i ws.
 Proof.
-  induction ws as [| w ws]; intros.
+  unwrap_C. induction ws as [| w ws]; intros.
   - fqsatz.
   - unfold repr_to_le'.
     rewrite IHws.
@@ -110,7 +92,7 @@ Qed.
 Lemma repr_to_le'_n: forall ws i j,
   repr_to_le' (i+j) ws = 2^(N.of_nat i) * repr_to_le' j ws.
 Proof.
-  induction i; intros; simpl.
+  unwrap_C. induction i; intros; simpl.
   - rewrite F.pow_0_r. fqsatz.
   - rewrite repr_to_le'_S. rewrite IHi.
     replace (N.pos (Pos.of_succ_nat i)) with (1 + N.of_nat i)%N.
@@ -121,11 +103,11 @@ Proof.
 Qed.
 
 (* repr func lemma: decomposing weight list *)
-Lemma repr_to_le_app: forall ws2 ws1 ws i,
+Lemma repr_to_le_app': forall ws2 ws1 ws i,
   ws = ws1 ++ ws2 ->
   repr_to_le' i ws = repr_to_le' i ws1 + repr_to_le' (i + length ws1) ws2.
 Proof.
-  induction ws1; simpl; intros.
+  unwrap_C. induction ws1; simpl; intros.
   - subst. replace (i+0)%nat with i by lia. fqsatz.
   - destruct ws; inversion H; subst.
     simpl.
@@ -137,19 +119,25 @@ Proof.
     fqsatz.
 Qed.
 
+Lemma repr_to_le_app: forall ws1 ws2 i,
+  repr_to_le' i (ws1 ++ ws2) = repr_to_le' i ws1 + repr_to_le' (i + length ws1) ws2.
+Proof.
+  intros. apply repr_to_le_app'. reflexivity.
+Qed.
+
 (* [repr]esentation [inv]ariant for Num2Bits *)
 Definition repr_binary x n ws :=
   length ws = n /\
   (forall i, (i < n)%nat -> binary (nth i ws 0)) /\
   x = repr_to_le' 0%nat ws.
 
-Fixpoint repr_to_le'_tuple {n} (i: nat) {struct n} : tuple' (F q) n -> F q :=
+Fixpoint repr_to_le'_tuple {n} (i: nat) {struct n} : tuple' F n -> F :=
   match n with
   | O => fun t => 0
   | S n' => fun '(ws, w) => w * 2^(N.of_nat i) + @repr_to_le'_tuple n' (S i) ws
   end.
 
-(* Definition repr_binary_tuple x n (ws: tuple (F q) n) :=
+(* Definition repr_binary_tuple x n (ws: tuple F n) :=
   (forall i, (i < n)%nat -> binary (nth_default 0 i ws)) /\
   x = repr_to_le'_tuple 0%nat ws. *)
 
@@ -209,10 +197,10 @@ Proof.
 Qed.
 
 (* pseudo-order on field elements *)
-Definition lt (x y: F q) := F.to_Z x <= F.to_Z y.
-Definition lt_z (x: F q) y := F.to_Z x <= y.
-Definition geq_z (x: F q) y := F.to_Z x >= y.
-Definition leq_z (x: F q) y := F.to_Z x <= y.
+Definition lt (x y: F) := F.to_Z x <= F.to_Z y.
+Definition lt_z (x: F) y := F.to_Z x <= y.
+Definition geq_z (x: F) y := F.to_Z x >= y.
+Definition leq_z (x: F) y := F.to_Z x <= y.
 
 
 (* repr inv: x <= 2^n - 1 *)
@@ -221,7 +209,7 @@ Theorem repr_binary_ub: forall ws x n,
   Z.of_nat n <= k ->
   leq_z x (2^(Z.of_nat n)-1)%Z.
 Proof with (lia || nia || eauto).
-  unfold leq_z.
+  unwrap_C. unfold leq_z.
   induction ws as [| w ws]; intros x n H_repr H_n.
   - unfold repr_binary.
     destruct H_repr. destruct H0.
@@ -284,7 +272,7 @@ Theorem repr_binary_lb: forall n ws x i,
 Proof.
   (* we can't do induction on ws, since we need to decompose
     (w :: ws) as (ms ++ [m]) in the inductive case *)
-  induction n;
+  unwrap_C. induction n;
   intros ws x i H_n_k H_repr Hi H_ws_i;
   pose proof H_repr as H_repr';
   destruct H_repr as [H_len H_repr];
@@ -394,7 +382,7 @@ Proof.
     lia.
 Qed.
 
-Definition Num2Bits (n: nat) (_in: F q) (_out: tuple (F q) n) : Prop :=
+Definition Num2Bits (n: nat) (_in: F) (_out: tuple F n) : Prop :=
   let lc1 := 0 in
   let e2 := 1 in
   let '(lc1, e2, _C) := (iter n (fun (i: nat) '(lc1, e2, _C) =>
@@ -405,12 +393,12 @@ Definition Num2Bits (n: nat) (_in: F q) (_out: tuple (F q) n) : Prop :=
     (lc1, e2, True)) in
   (lc1 = _in) /\ _C.
 
-Theorem Num2Bits_correct n _in _out:
+Theorem Num2Bits_is_binary n _in _out:
   Num2Bits n _in _out -> (forall i, (i < n)%nat -> binary (Tuple.nth_default 0 i _out)).
 Proof.
-  unfold Num2Bits.
+  unwrap_C. unfold Num2Bits.
   (* provide loop invariant *)
-  pose (Inv := fun i '((lc1, e2, _C): (F.F q * F.F q * Prop)) =>
+  pose (Inv := fun i '((lc1, e2, _C): (F * F * Prop)) =>
     (_C -> (forall j, (j < i)%nat -> binary (Tuple.nth_default 0 j _out)))).
   (* iter initialization *)
   remember (0, 1, True) as a0.
@@ -447,4 +435,124 @@ Proof.
   intuition.
 Qed.
 
-End _bitify.
+Lemma firstn_nth {A: Type}: forall l i j (d: A),
+  (i < j)%nat ->
+  nth i (firstn j l) d = nth i l d.
+Proof.
+  induction l; simpl; intros.
+  - rewrite firstn_nil. destruct i; reflexivity.
+  - destruct j. lia. destruct i.
+    + rewrite firstn_cons. reflexivity.
+    + simpl. rewrite IHl. auto. lia.
+Qed.
+
+Lemma fistn_prev {A: Type}: forall l i j (d: A),
+  (i < j)%nat ->
+  (j < length l)%nat ->
+  nth i (firstn (S j) l) d = nth i (firstn j l) d.
+Proof.
+  induction l; intros.
+  - simpl in *. lia.
+  - simpl. destruct i. destruct j. lia. reflexivity.
+    destruct j. lia.
+    rewrite IHl. simpl. reflexivity.
+    lia.
+    simpl in H0. lia.
+Qed.
+
+Lemma firstn_1 {A: Type}: forall l (d: A),
+  (length l > 0)%nat ->
+  firstn 1 l = nth 0 l d :: nil.
+Proof.
+  destruct l; simpl; intros. lia. reflexivity.
+Qed.
+
+Lemma firstn_to_list: forall m (x: tuple F m),
+  firstn m (to_list m x) = to_list m x.
+Proof.
+  intros. apply firstn_all2. rewrite length_to_list; lia.
+Qed.
+
+Lemma nth_skipn {A: Type}: forall l i j (d: A),
+  (i+j < length l)%nat ->
+  nth i (skipn j l) d = nth (i+j) l d.
+Proof.
+  induction l; simpl; intros.
+  - destruct i; destruct j; lia.
+  - destruct i; destruct j; simpl; repeat first [
+      reflexivity
+      | progress rewrite IHl by lia
+      | progress rewrite Nat.add_0_r
+      | progress rewrite Nat.add_succ_r
+    ].
+Qed.
+
+Lemma firstn_S {A: Type}: forall i l (d: A),
+  (i < length l)%nat ->
+  firstn (S i) l = firstn i l ++ (nth i l d :: nil).
+Proof.
+  intros.
+  replace (firstn (S i) l) with (firstn (S i) (firstn i l ++ skipn i l)).
+  rewrite firstn_app. rewrite firstn_firstn.
+  rewrite firstn_length_le by lia.
+  replace (min (S i) i) with i by lia.
+  replace (S i - i)%nat with 1%nat by lia.
+  erewrite firstn_1.
+  erewrite nth_skipn by lia.
+  simpl. reflexivity.
+  rewrite skipn_length. lia.
+  rewrite firstn_skipn. reflexivity.
+Qed.
+
+Definition Num2Bits_sound: forall n _in _out,
+  Num2Bits n _in _out -> repr_binary _in n (to_list n _out).
+
+Proof.
+  unwrap_C.
+  unfold Num2Bits. intros.
+  pose (Inv := fun i '((lc1, e2, _C)) => 
+    (_C: Prop) ->
+      (e2 = (2^N.of_nat i) /\
+      let firsti := firstn i (to_list n _out) in
+      repr_binary lc1 i firsti)).
+  remember (fun (i : nat) '(y, _C) =>
+  let
+  '(lc1, e2) := y in
+   (lc1 + nth_default 0 i _out * e2, 
+   e2 + e2,
+   nth_default 0 i _out * (nth_default 0 i _out - 1) = 0 /\
+   _C)) as f.
+  assert (Hinv: Inv n (iter n f (0,1,True))). {
+    apply iter_inv; unfold Inv.
+    - intuition. simpl. rewrite F.pow_0_r. fqsatz.
+      simpl. apply repr_binary_base.
+    - intros j acc. destruct acc as [acc _C]. destruct acc as [lc1 e2].
+      intros Hprev Hjn. subst. intuition.
+      + rewrite pow_S_N. rewrite H3. fqsatz.
+      + unfold repr_binary.
+        pose proof (length_to_list _out).
+        unfold repr_binary in H4. intuition.
+        intuition.
+        * rewrite firstn_length_le; lia.
+        * destruct (dec (i < j)%nat).
+          rewrite fistn_prev by lia. intuition.
+          rewrite firstn_nth by lia.
+          assert (i = j) by lia. subst.
+          rewrite <- nth_default_eq, nth_default_to_list.
+          unfold binary.
+          destruct (dec (nth_default 0 j _out = 0)); (left; fqsatz) || (right; fqsatz).
+        * subst. erewrite firstn_S with (d:=0) by lia.
+          rewrite repr_to_le_app.
+          rewrite <- nth_default_eq, nth_default_to_list.
+          simpl.
+          rewrite firstn_length_le. fqsatz.
+          rewrite length_to_list. lia.
+  }
+  destruct (iter n f (0,1,True)) as [ [lc1 e2] _C].
+  unfold Inv in Hinv. intuition.
+  subst. rewrite <- firstn_to_list. auto.
+Qed.
+
+End Num2Bits.
+
+End Bitify.

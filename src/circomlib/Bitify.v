@@ -27,6 +27,11 @@ Local Open Scope list_scope.
 Local Open Scope F_scope.
 Import C.
 
+Declare Scope B_scope.
+Delimit Scope B_scope with B.
+Notation "w [ i ]" := (Tuple.nth_default 0 i w) : B_scope.
+Local Notation "F ^ n" := (tuple F n) : type_scope.
+
 Module Num2Bits.
 
 
@@ -137,7 +142,7 @@ Fixpoint repr_to_le'_tuple {n} (i: nat) {struct n} : tuple' F n -> F :=
   | S n' => fun '(ws, w) => w * 2^(N.of_nat i) + @repr_to_le'_tuple n' (S i) ws
   end.
 
-(* Definition repr_binary_tuple x n (ws: tuple F n) :=
+(* Definition repr_binary_tuple x n (ws: F^n) :=
   (forall i, (i < n)%nat -> binary (nth_default 0 i ws)) /\
   x = repr_to_le'_tuple 0%nat ws. *)
 
@@ -382,24 +387,25 @@ Proof.
     lia.
 Qed.
 
-Definition Num2Bits (n: nat) (_in: F) (_out: tuple F n) : Prop :=
+Local Open Scope B_scope.
+Definition cons (n: nat) (_in: F) (_out: F^n) : Prop :=
   let lc1 := 0 in
   let e2 := 1 in
   let '(lc1, e2, _C) := (iter n (fun (i: nat) '(lc1, e2, _C) =>
-    let out_i := (Tuple.nth_default 0 i _out) in
+    let out_i := (_out [i] ) in
       (lc1 + out_i * e2,
       e2 + e2,
       (out_i * (out_i - 1) = 0) /\ _C))
     (lc1, e2, True)) in
   (lc1 = _in) /\ _C.
 
-Theorem Num2Bits_is_binary n _in _out:
-  Num2Bits n _in _out -> (forall i, (i < n)%nat -> binary (Tuple.nth_default 0 i _out)).
+Theorem cons_imply_binary n _in _out:
+  cons n _in _out -> (forall i, (i < n)%nat -> binary (_out[i])).
 Proof.
-  unwrap_C. unfold Num2Bits.
+  unwrap_C. unfold cons.
   (* provide loop invariant *)
   pose (Inv := fun i '((lc1, e2, _C): (F * F * Prop)) =>
-    (_C -> (forall j, (j < i)%nat -> binary (Tuple.nth_default 0 j _out)))).
+    (_C -> (forall j, (j < i)%nat -> binary (_out[j])))).
   (* iter initialization *)
   remember (0, 1, True) as a0.
   intros prog i H_i_lt_n.
@@ -424,7 +430,7 @@ Proof.
     + auto.
     + unfold binary. intros.
       replace j0 with j by lia.
-      destruct (dec (Tuple.nth_default 0 j _out = 0)).
+      destruct (dec (_out[j] = 0)).
       * auto.
       * right. fqsatz.
    }
@@ -467,7 +473,7 @@ Proof.
   destruct l; simpl; intros. lia. reflexivity.
 Qed.
 
-Lemma firstn_to_list: forall m (x: tuple F m),
+Lemma firstn_to_list: forall m (x: F^m),
   firstn m (to_list m x) = to_list m x.
 Proof.
   intros. apply firstn_all2. rewrite length_to_list; lia.
@@ -504,12 +510,20 @@ Proof.
   rewrite firstn_skipn. reflexivity.
 Qed.
 
-Definition Num2Bits_sound: forall n _in _out,
-  Num2Bits n _in _out -> repr_binary _in n (to_list n _out).
+Class t: Type := mk {
+  n: nat;
+  _in: F; 
+  _out: F^n; 
+  _cons: cons n _in _out
+}.
 
+Definition spec (w: t) := 
+  repr_binary w.(_in) w.(n) (to_list w.(n) w.(_out)).
+
+Theorem soundness: forall (w: t), spec w.
 Proof.
-  unwrap_C.
-  unfold Num2Bits. intros.
+  unwrap_C. intros.
+  destruct w as [n _in _out _cons]. unfold spec, cons in *. simpl.
   pose (Inv := fun i '((lc1, e2, _C)) => 
     (_C: Prop) ->
       (e2 = (2^N.of_nat i) /\
@@ -528,10 +542,9 @@ Proof.
       simpl. apply repr_binary_base.
     - intros j acc. destruct acc as [acc _C]. destruct acc as [lc1 e2].
       intros Hprev Hjn. subst. intuition.
-      + rewrite pow_S_N. rewrite H3. fqsatz.
-      + unfold repr_binary.
+      + rewrite pow_S_N. subst. fqsatz.
+      + unfold repr_binary in *.
         pose proof (length_to_list _out).
-        unfold repr_binary in H4. intuition.
         intuition.
         * rewrite firstn_length_le; lia.
         * destruct (dec (i < j)%nat).
@@ -556,3 +569,7 @@ Qed.
 End Num2Bits.
 
 End Bitify.
+
+Declare Scope B_scope.
+Delimit Scope B_scope with B.
+Notation "w [ i ]" := (Tuple.nth_default 0 i w) : B_scope.

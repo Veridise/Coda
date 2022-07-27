@@ -24,6 +24,7 @@ Require Import Crypto.Algebra.Ring.
 Require Import Util.
 
 
+Module Polynomial.
 Section Polynomial.
 
 Context {F eq zero one opp add sub mul inv div}
@@ -839,7 +840,7 @@ Proof.
   eapply degree_leq_transitive.
   apply degree_add_le; apply degree_toPoly.
   simpl. lia.
-Admitted.
+Qed.
 
 
 Lemma deg_coeff: forall f n,
@@ -1012,6 +1013,33 @@ Proof.
   apply H3 in H4. fsatz.
 Qed.
 
+End Polynomial.
+
+End Polynomial.
+
+Notation polynomial := Polynomial.polynomial.
+
+Declare Scope P_scope.
+Delimit Scope P_scope with P.
+(* Bind Scope F_scope with F.F. *)
+(* Infix "+" := F.add : F_scope.
+Infix "*" := F.mul : F_scope.
+Infix "-" := F.sub : F_scope.
+Infix "/" := F.div : F_scope.
+Infix "^" := F.pow : F_scope. *)
+(* Notation "0" := F.zero : F_scope. *)
+(* Notation "1" := F.one : F_scope. *)
+
+Notation "0p" := (nil : polynomial) : P_scope.
+Notation "a ~ b" := (Polynomial.eq_poly a b) (at level 20) : P_scope.
+Notation "f ([ x ]) " := (Polynomial.peval x f) (at level 19) : P_scope.
+(* Notation "f [ i ]" := (Polynomial.coeff i f) : P_scope. *)
+Notation "f p+ g" := (Polynomial.padd f g) (at level 18) : P_scope.
+Notation "k p$ f" := (Polynomial.pscale k f) (at level 17) : P_scope.
+Notation "f p- g" := (Polynomial.psub f g) (at level 18) : P_scope.
+Notation "f p* g" := (Polynomial.pmul f g) (at level 17) : P_scope.
+Notation "d1 p<= d2" := (Polynomial.degree_leq d1 d2) (at level 20) : P_scope. 
+
 
 (* 
 The following requires the pow function.
@@ -1078,4 +1106,3 @@ Proof.
 Qed. 
 *)
 
-End Polynomial.

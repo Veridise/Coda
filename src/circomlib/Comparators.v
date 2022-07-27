@@ -13,7 +13,7 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
-Require Import Circom.circomlib.bitify.
+Require Import Circom.circomlib.Bitify.
 Require Import Circom.Circom.
 
 Local Open Scope list_scope.
@@ -24,6 +24,8 @@ Local Open Scope F_scope.
  *)
 Module Comparators (C: CIRCOM).
 Import C.
+Module B := (Bitify C).
+Import B.
 
 (***********************
  *       IsZero
@@ -47,7 +49,7 @@ Definition spec (w: t) : Prop :=
 (* IsZero is sound *)
 Theorem soundness:
   forall (w: t), spec w.
-Proof using Type*.
+Proof.
   unwrap_C.
   intros.
   destruct w as [_in _out].
@@ -97,8 +99,8 @@ Class t : Type := mk { x: F; y: F; _out: F; _cons: cons x y _out }.
 Definition spec t :=
   (t.(x) = t.(y) -> t.(_out) = 1) /\ (~ t.(x) = t.(y) -> t.(_out) = 0).
 
-Theorem sound: forall t, spec t.
-Proof using Type*.
+Theorem soundness: forall t, spec t.
+Proof.
   unwrap_C.
   intros t. destruct t as [x y _out].
   unfold spec, cons in *.
@@ -111,7 +113,7 @@ Proof using Type*.
   - assert (IsZero._in = 0) by fqsatz.
     intuition idtac. fqsatz.
   - assert (IsZero._in <> 0) by fqsatz. intuition idtac. fqsatz.
-(* FIXME: The term "eq_refl" has type "true = true" while it is expected to have type *)
+(* FIXME: type error *)
 Admitted.
 
 End IsEqual.
@@ -161,10 +163,22 @@ Qed.
 
 Module LessThan.
 
-(* Definition LessThan_cons (n: nat) (_in: tuple F 2) (_out: F) := *)
-  (* Num2Bits (S n) _out _in. *)
+Local Notation "2" := (1 + 1 : F).
+
+Local Open Scope B_scope.
+
+Definition LessThan_cons (n: nat) (_in: tuple F 2) (_out: F) :=
+  exists (n2b: Num2Bits.t),
+    n2b.(Num2Bits.n) = S n /\
+    n2b.(Num2Bits._in) = (_in [0] + 2^(N.of_nat n) - _in[1]) /\
+    _out = 1 - n2b.(Num2Bits._out)[n].
+
+Class t: Type := mk {
+  n: nat;
+  _in: tuple F 2;
+  _out: F
+}.
 
 End LessThan.
-
 
 End Comparators.

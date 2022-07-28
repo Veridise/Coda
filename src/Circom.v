@@ -45,6 +45,7 @@ Module Type CIRCOM.
   Qed.
   
   Global Hint Rewrite q_gtb_1 : core.
+  Global Hint Rewrite two_lt_q : core.
   
   Global Ltac fqsatz := fsatz_safe; autorewrite with core; auto.
   
@@ -58,6 +59,8 @@ Module Type CIRCOM.
     | [ H: _ /\ _ |- _ ] => destruct H
     | [ _: _ |- _ -> _ ] => intros
     end.
+  
+  (* Global Notation "2" := (1 + 1 : F) : Circom_scope. *)
 End CIRCOM.
 
 Print CIRCOM.

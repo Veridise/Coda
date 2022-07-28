@@ -170,6 +170,12 @@ Proof.
   auto.
 Qed.
 
+Lemma repr_binary_last0: forall ws x n,
+  repr_binary x (S n) (ws ++ 0 :: nil) ->
+  repr_binary x n ws.
+Admitted.
+
+
 (* repr inv: trivial satisfaction *)
 Lemma repr_trivial: forall ws,
   (forall i, (i < length ws)%nat -> binary (nth i ws 0)) ->
@@ -202,7 +208,7 @@ Proof.
 Qed.
 
 (* pseudo-order on field elements *)
-Definition lt (x y: F) := F.to_Z x <= F.to_Z y.
+Definition lt (x y: F) := F.to_Z x < F.to_Z y.
 Definition lt_z (x: F) y := F.to_Z x <= y.
 Definition geq_z (x: F) y := F.to_Z x >= y.
 Definition leq_z (x: F) y := F.to_Z x <= y.

@@ -167,7 +167,7 @@ Local Notation "2" := (1 + 1 : F).
 
 Local Open Scope B_scope.
 
-Definition LessThan_cons (n: nat) (_in: tuple F 2) (_out: F) :=
+Definition cons (n: nat) (_in: tuple F 2) (_out: F) :=
   exists (n2b: Num2Bits.t),
     n2b.(Num2Bits.n) = S n /\
     n2b.(Num2Bits._in) = (_in [0] + 2^(N.of_nat n) - _in[1]) /\
@@ -176,9 +176,133 @@ Definition LessThan_cons (n: nat) (_in: tuple F 2) (_out: F) :=
 Class t: Type := mk {
   n: nat;
   _in: tuple F 2;
-  _out: F
+  _out: F;
+  _cons: cons n _in _out;
 }.
 
+Local Notation "a q< b" := (Num2Bits.lt a b) (at level 50).
+(* FIXME: define q<= q>= q> *)
+(* Local Notation "a q<= b" := (Num2Bits.leq a b) (at level 50). *)
+Local Notation "a z<= z" := (Num2Bits.leq_z a z) (at level 50).
+Local Notation "a z>= z" := (Num2Bits.geq_z a z) (at level 50).
+
+Definition spec (w: t) :=
+  (Num2Bits.binary _out) /\
+  (_out = 1 -> w.(_in)[0] q< w.(_in)[1]) /\
+  (_out = 0 -> ~(w.(_in)[0] q< w.(_in)[1])).
+
+Lemma one_minus_binary: forall x y,
+  x = 1 - y ->
+  Num2Bits.binary y ->
+  Num2Bits.binary x.
+Proof.
+Admitted.
+
+Lemma to_Z_sub: forall x y, F.to_Z y < q ->
+@F.to_Z q (x - y) = (F.to_Z x - F.to_Z y mod q) mod q.
+Proof.
+  unwrap_C.
+  intros ? ? Hy. unfold F.sub. rewrite F.to_Z_add. rewrite F.to_Z_opp.
+  destruct (dec (F.to_Z y = 0)%Z).
+  - rewrite e. rewrite Z_mod_zero_opp_full. replace (F.to_Z x + 0)%Z with (F.to_Z x - 0)%Z by lia. reflexivity.
+    apply Zmod_0_l.
+  - rewrite Z_mod_nz_opp_full.
+    replace (F.to_Z x + (q - F.to_Z y mod q))%Z with ((F.to_Z x - F.to_Z y mod q) + 1 * q)%Z by lia.
+    rewrite Z_mod_plus by lia.
+    reflexivity.
+    rewrite Z.mod_small. auto.
+    apply F.to_Z_range. lia.
+Qed.
+
+
+Lemma eq_forall {A: Type}: forall l1 l2 (d: A),
+  length l1 = length l2 ->
+  (forall i, (i < length l1)%nat -> nth i l1 d = nth i l2 d)
+  -> l1 = l2.
+Proof.
+  induction l1; simpl; intros; destruct l2; simpl in H; try lia.
+  - reflexivity.
+  - assert (a = a0). specialize (H0 0%nat). apply H0. lia.
+    rewrite H1. f_equal.
+    eapply IHl1. lia.
+    intros. specialize (H0 (S i)). apply H0. lia.
+Qed.
+
+(* Lemma Fto_Z_sub: forall x y,  *)
+
+Local Notation "2" := (1 + 1).
+
+Local Coercion N.of_nat: nat >-> N.
+
+Lemma soundness: forall (w : t)
+  (H_nk: w.(n) <= k - 1)
+  (H_x: 0 <= F.to_Z (w.(_in)[0]) <= 2 ^ n )
+  (H_y: 0 <= F.to_Z (w.(_in)[1]) <= 2 ^ n ),
+  spec w.
+Proof.
+  unwrap_C. intros. unfold spec.
+  remember (_in[0]) as x. eremember (_in[1]) as y.
+  destruct w as [n _in _out _cons].
+  unfold Num2Bits.binary. unfold cons in *.
+  destruct _cons as [n2b H].
+  cbn [LessThan._in LessThan._out LessThan.n] in *.
+  assert (H_pow_nk: 2 * 2^(Z.of_nat n) <= 2^k). {
+    replace (2 * 2 ^ Z.of_nat n)%Z with (2 ^ (Z.of_nat n + 1))%Z by (rewrite Zpower_exp; lia).
+    apply Zpow_facts.Zpower_le_monotone; lia.
+  }
+  rewrite <- Heqx, <- Heqy in *.
+  pose proof (Num2Bits.soundness n2b) as H_n2b. unfold Num2Bits.spec in H_n2b.
+  intuition idtac.
+  - destruct H_n2b as [_ [H_bin _] ]. specialize (H_bin n).
+    eapply one_minus_binary; eauto. 
+    rewrite <- nth_default_eq, nth_default_to_list in H_bin.
+    apply H_bin. lia.
+  - assert (H_n2b_out: Num2Bits._out [n] = 0) by fqsatz.
+    assert (H_last: exists ws, ws ++ 0 :: nil = to_list Num2Bits.n Num2Bits._out). {
+      exists (firstn n (to_list Num2Bits.n Num2Bits._out)).
+      erewrite <- firstn_skipn with (n:=n).
+      apply app_inv_head_iff.
+      eapply eq_forall. simpl. rewrite skipn_length, length_to_list. lia.
+      intros.
+      simpl in H7.
+      destruct i; try lia.
+      simpl. 
+      rewrite Num2Bits.nth_skipn.
+      simpl. rewrite <- nth_default_eq, nth_default_to_list. symmetry. exact H_n2b_out.
+      rewrite length_to_list. lia.
+    }
+    destruct H_last as [ws H_ws].
+    rewrite <- H_ws in H_n2b.
+    rewrite H0 in H_n2b.
+    apply Num2Bits.repr_binary_last0 in H_n2b.
+    apply Num2Bits.repr_binary_ub in H_n2b; try lia.
+    rewrite H5 in H_n2b.
+    assert (F.to_Z x + 2 ^ Z.of_nat n - F.to_Z y <= 2^Z.of_nat n - 1 ). {
+      unfold Num2Bits.leq_z in H_n2b.
+      replace (x + 2 ^ N.of_nat n - y) with (x + (2 ^ N.of_nat n - y)) in * by fqsatz.
+        rewrite F.to_Z_add, to_Z_sub, F.to_Z_pow, Num2Bits.to_Z_2 in H_n2b by lia.
+        (* rewrite nat_N_Z in *. *)
+        do 4 rewrite Z.mod_small in H_n2b;
+        try lia;
+        repeat rewrite Z.mod_small; lia.
+    }
+    unfold Num2Bits.lt. lia.
+  - 
+    assert (H_n2b_out: Num2Bits._out [n] = 1) by fqsatz.
+    eapply Num2Bits.repr_binary_lb with (i:=n) in H_n2b; try lia.
+    + rewrite H5 in *. clear H5.
+      unfold Num2Bits.geq_z in H_n2b.
+      assert (F.to_Z x + 2 ^ Z.of_nat n - F.to_Z y >= 2^Z.of_nat n). {
+        replace (x + 2 ^ N.of_nat n - y) with (x + (2 ^ N.of_nat n - y)) in * by fqsatz.
+        rewrite F.to_Z_add, to_Z_sub, F.to_Z_pow, Num2Bits.to_Z_2 in H_n2b by lia.
+        (* rewrite nat_N_Z in *. *)
+        do 4 rewrite Z.mod_small in H_n2b;
+        try lia;
+        repeat rewrite Z.mod_small; try lia.
+      }
+      unfold Num2Bits.lt in *. lia.
+    + rewrite <- nth_default_eq, nth_default_to_list. auto.
+Qed.
 End LessThan.
 
 End Comparators.

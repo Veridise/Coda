@@ -104,9 +104,9 @@ Proof.
   unwrap_C.
   intros t. destruct t as [x y _out].
   unfold spec, cons in *.
-  destruct _cons0.
-  pose proof (IsZero.soundness x0).
-  unfold IsZero.spec in H.
+  destruct _cons0 as [iszero H].
+  pose proof (IsZero.soundness iszero).
+  unfold IsZero.spec in *.
   simpl in *.
   split_eqns.
   (* FIXME: automate this *)
@@ -191,12 +191,15 @@ Definition spec (w: t) :=
   (_out = 1 -> w.(_in)[0] q< w.(_in)[1]) /\
   (_out = 0 -> ~(w.(_in)[0] q< w.(_in)[1])).
 
-Lemma one_minus_binary: forall x y,
+Lemma one_minus_binary: forall (x y: F),
   x = 1 - y ->
   Num2Bits.binary y ->
   Num2Bits.binary x.
 Proof.
-Admitted.
+  unwrap_C.
+  intros.
+  destruct H0; ((right; fqsatz) || (left; fqsatz)).
+Qed.
 
 Lemma to_Z_sub: forall x y, F.to_Z y < q ->
 @F.to_Z q (x - y) = (F.to_Z x - F.to_Z y mod q) mod q.
@@ -227,10 +230,6 @@ Proof.
     eapply IHl1. lia.
     intros. specialize (H0 (S i)). apply H0. lia.
 Qed.
-
-(* Lemma Fto_Z_sub: forall x y,  *)
-
-Local Notation "2" := (1 + 1).
 
 Local Coercion N.of_nat: nat >-> N.
 

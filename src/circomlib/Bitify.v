@@ -93,6 +93,32 @@ Proof.
     fqsatz.
 Qed.
 
+Fixpoint repr_to_le0 (ws: list F) : F :=
+  match ws with
+  | nil => 0
+  | w :: ws' => w + 2 * repr_to_le0 ws'
+  end.
+
+Lemma repr_to_le0_ok: forall ws,
+  repr_to_le0 ws = repr_to_le ws.
+Proof.
+  unwrap_C.
+  induction ws; simpl.
+  - reflexivity.
+  - unfold repr_to_le. simpl. rewrite repr_to_le'_S. rewrite IHws. rewrite F.pow_0_r. unfold repr_to_le.
+  fqsatz.
+Qed.
+
+Fixpoint repr_to_be' i ws :=
+  match ws with
+  | nil => 0
+  | w::ws' => 2^(N.of_nat i) * w + repr_to_be' (i-1)%nat ws'
+  end.
+
+Definition repr_to_be ws := repr_to_be' (length ws - 1) ws.
+
+  
+
 (* repr func lemma: multi-step index change *)
 Lemma repr_to_le'_n: forall ws i j,
   repr_to_le' (i+j) ws = 2^(N.of_nat i) * repr_to_le' j ws.
@@ -130,11 +156,63 @@ Proof.
   intros. apply repr_to_le_app'. reflexivity.
 Qed.
 
+
+Lemma repr_be_rev_le: forall l,
+  repr_to_be l = repr_to_le0 (rev l).
+Proof.
+  unwrap_C.
+  induction l.
+  - reflexivity.
+  - simpl. rewrite repr_to_le0_ok. unfold repr_to_le. rewrite repr_to_le_app. simpl.
+    rewrite <- repr_to_le0_ok.
+    rewrite <- IHl.
+    unfold repr_to_be. simpl.
+    rewrite rev_length.
+    replace (length l - 0)%nat with (length l) by lia.
+    fqsatz.
+Qed.
+
+Lemma repr_le_rev_be: forall l,
+  repr_to_be (rev l) = repr_to_le0 l.
+Proof.
+  unwrap_C. intros.
+  remember (rev l) as l'.
+  replace l with (rev (rev l)). rewrite repr_be_rev_le. subst. reflexivity.
+  apply rev_involutive.
+Qed.
+    
+    
+
 (* [repr]esentation [inv]ariant for Num2Bits *)
 Definition repr_binary x n ws :=
   length ws = n /\
   (forall i, (i < n)%nat -> binary (nth i ws 0)) /\
   x = repr_to_le' 0%nat ws.
+
+Definition repr_binary_be x n ws :=
+  length ws = n /\
+  (forall i, (i < n)%nat -> binary (nth i ws 0)) /\
+  x = repr_to_be ws.
+
+Lemma repr_rev: forall x n ws, repr_binary x n ws <-> repr_binary_be x n (rev ws).
+Proof.
+  split; intros; unfold repr_binary, repr_binary_be in *.
+  - intuition.
+    + rewrite rev_length. auto.
+    + rewrite rev_nth by lia. apply H. lia.
+    + rewrite repr_be_rev_le. rewrite rev_involutive. rewrite H2. rewrite repr_to_le0_ok. reflexivity.
+  - intuition.
+    + rewrite rev_length in H0. auto.
+    + assert (exists j, (j < n)%nat /\ nth i ws 0 = nth j (rev ws) 0). {
+      rewrite rev_length in H0.
+      exists (length ws - 1 - i)%nat. intuition.
+      lia. rewrite rev_nth by lia. replace (length ws - S (length ws - 1 - i))%nat with i by lia.
+      reflexivity.
+      }
+      destruct H3 as [j [Hjn Hn] ]. rewrite Hn. apply H.
+      lia.
+    + rewrite <- repr_to_le0_ok. rewrite <- repr_le_rev_be. auto.
+Qed.
 
 Fixpoint repr_to_le'_tuple {n} (i: nat) {struct n} : tuple' F n -> F :=
   match n with
@@ -173,8 +251,16 @@ Qed.
 Lemma repr_binary_last0: forall ws x n,
   repr_binary x (S n) (ws ++ 0 :: nil) ->
   repr_binary x n ws.
-Admitted.
-
+Proof.
+  unwrap_C.
+  intros. rewrite repr_rev in *. rewrite rev_unit in H.
+  unfold repr_binary_be in *.
+  intuition.
+  specialize (H (S i)). apply H. lia.
+  unfold repr_to_be in *. simpl in *. 
+  replace (length (rev ws) - 0 - 1)%nat with (length (rev ws) - 1)%nat in H2 by lia.
+  fqsatz.
+Qed.
 
 (* repr inv: trivial satisfaction *)
 Lemma repr_trivial: forall ws,

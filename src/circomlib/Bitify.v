@@ -367,6 +367,8 @@ Theorem repr_binary_lb: forall n ws x i,
   nth i ws 0 = 1 ->
   geq_z x (2^Z.of_nat i).
 Proof.
+  (* FIXME: use big-endian repr to simplify this proof *)
+  
   (* we can't do induction on ws, since we need to decompose
     (w :: ws) as (ms ++ [m]) in the inductive case *)
   unwrap_C. induction n;

@@ -17,77 +17,43 @@ Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Ring.
 
-Require Import Util.
-Require Import Circom.circomlib.bitify.
+Require Import Circom.Circom.
+Require Import Circom.Util.
+Require Import Circom.circomlib.Bitify.
+
 
 Require Import Crypto.Spec.ModularArithmetic.
 (* Circuit:
 * https://github.com/0xPARC/circom-ecdsa/blob/08c2c905b918b563c81a71086e493cb9d39c5a08/circuits/bigint.circom
 *)
 
-Section _bigint.
+Module PrimeReduce (C: CIRCOM).
+
+Import C.
+Module B := (Bitify C).
+Import B.
+
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
-
-Ltac fqsatz := fsatz_safe; autorewrite with core; auto.
-
-Context (q:positive) (k:Z) {prime_q: prime q} {two_lt_q: 2 < q} {k_positive: 1 < k} {q_lb: 2^k < q}.
-
-Lemma q_gtb_1: (1 <? q)%positive = true.
-Proof.
-  apply Pos.ltb_lt. lia.
-Qed.
-
-Lemma q_gt_2: 2 < q.
-Proof.
-  replace 2%Z with (2^1)%Z by lia.
-  apply Z.le_lt_trans with (m := (2 ^ k)%Z); try lia.
-  eapply Zpow_facts.Zpower_le_monotone; try lia.
-Qed.
-
-Hint Rewrite q_gtb_1 : core.
 
 Notation "x [ i ]" := (Tuple.nth_default 0 i x).
 
 (**************************
  * Overflow Representation
  **************************)
-Definition two : F q := 1 + 1.
-Notation "2" := two.
 
-Lemma to_Z_2: F.to_Z 2 = 2%Z.
-Proof. simpl. repeat rewrite Z.mod_small; lia. Qed.
+Notation "2" := (1 + 1 : F).
 
 
-(* peel off 1 from x^(i+1) in field exp *)
-Lemma pow_S_N: forall (x: F q) i,
-  x ^ (N.of_nat (S i)) = x * x ^ (N.of_nat i).
-Proof.
-  intros.
-  replace (N.of_nat (S i)) with (N.succ (N.of_nat i)).
-  apply F.pow_succ_r.
-  induction i.
-  - reflexivity.
-  - simpl. f_equal.
-Qed.
-
-(* peel off 1 from x^(i+1) in int exp *)
-Lemma pow_S_Z: forall (x: Z) i,
-  (x ^ (Z.of_nat (S i)) = x * x ^ (Z.of_nat i))%Z.
-Proof.
-  intros.
-  replace (Z.of_nat (S i)) with (Z.of_nat i + 1)%Z by lia.
-  rewrite Zpower_exp; lia.
-Qed.
 
 (* [repr]esentation [func]tion:
  * interpret a list of weights as representing a little-endian base-2^n number
  *)
-Fixpoint repr_to_le' (n: nat) (i: nat) (ws: list (F q)) : F q :=
+Fixpoint repr_to_le' (n: nat) (i: nat) (ws: list F) : F :=
   match ws with
   | nil => 0
-  | w::ws' => w * two^(N.of_nat n * N.of_nat i) + repr_to_le' n (S i) ws'
+  | w::ws' => w * 2^(N.of_nat n * N.of_nat i) + repr_to_le' n (S i) ws'
   end.
 
 Definition repr_to_le n := repr_to_le' n 0%nat.
@@ -96,6 +62,7 @@ Definition repr_to_le n := repr_to_le' n 0%nat.
 Lemma repr_to_le'_S: forall ws n i,
   repr_to_le' n (S i) ws = 2^(N.of_nat n) * repr_to_le' n i ws.
 Proof.
+  unwrap_C.
   induction ws as [| w ws]; intros.
   - fqsatz.
   - cbn [repr_to_le'].
@@ -126,6 +93,7 @@ Lemma repr_to_le_app: forall ws2 ws1 ws n i,
   ws = ws1 ++ ws2 ->
   repr_to_le' n i ws = repr_to_le' n i ws1 + repr_to_le' n (i + length ws1) ws2.
 Proof.
+  unwrap_C.
   induction ws1; simpl; intros.
   - subst. replace (i+0)%nat with i by lia. fqsatz.
   - destruct ws; inversion H; subst.
@@ -141,7 +109,7 @@ Qed.
 (* 
 (* overflow representation *)
 (* interpret a list of weights as representing a little-endian base-2^n number *)
-Fixpoint repr_to_le_Z' (n: nat) (i: nat) (ws: list (F q)) : Z :=
+Fixpoint repr_to_le_Z' (n: nat) (i: nat) (ws: list F) : Z :=
   match ws with
   | nil => 0
   | w::ws' => (toSZ w) * 2^(N.of_nat n * N.of_nat i) + repr_to_le_Z' n (S i) ws'
@@ -158,7 +126,7 @@ Definition half: Z. exact (Z.div q 2). Defined.
 Notation "r//2" := half.
 
 (* To signed integer *)
-Definition toSZ (x: F q) := let z := F.to_Z x in
+Definition toSZ (x: F) := let z := F.to_Z x in
   if z >=? r//2 + 1 then (z-q)%Z else z.
 
 Lemma toSZ_add: forall a b,
@@ -176,8 +144,8 @@ Proof. Abort.
 
 (* source: https://github.com/yi-sun/circom-pairing/blob/743d761f07254ea6407d29ba05f29886cfd14aec/circuits/bigint_func.circom *)
 
-Definition F_mod {m} (a b: F m) :=
-  F.of_Z m ((F.to_Z a) mod (F.to_Z b))%Z.
+Definition F_mod (a b: F) :=
+  F.of_Z q ((F.to_Z a) mod (F.to_Z b))%Z.
 
 (* // a is a n-bit scalar
 // b has k registers
@@ -194,7 +162,7 @@ function long_scalar_mult(n, k, a, b) {
     return out;
 } *)
 Definition long_scalar_mult
-n k a (_b : tuple (F q) k) (out : tuple (F q) 50) :=
+n k a (_b : tuple F k) (out : tuple F 50) :=
 let _C := True in
 let '( _C) :=
   (* loop: construct out[i] *)
@@ -236,7 +204,7 @@ function long_sub(n, k, a, b) {
     }
     return diff;
 } *)
-Definition long_sub (n : nat) (_k : nat) (a b : tuple (F q) _k) : tuple (F q) 50.
+Definition long_sub (n : nat) (_k : nat) (a b : tuple F _k) : tuple F 50.
 Admitted.
 
 (* // 1 if true, 0 if false
@@ -251,7 +219,7 @@ function long_gt(n, k, a, b) {
     }
     return 0;
 } *)
-Definition long_gt (n : nat) (_k : nat) (a b : tuple (F q) _k) : F q.
+Definition long_gt (n : nat) (_k : nat) (a b : tuple F _k) : F.
 Admitted.
 
 (* // n bits per register
@@ -277,7 +245,7 @@ function short_div_norm(n, k, a, b) {
        return qhat;
    }
 } *)
-Definition short_div_norm (n : nat) (_k : nat) (a : tuple (F q) (_k + 1)) (b : tuple (F q) _k) : F q.
+Definition short_div_norm (n : nat) (_k : nat) (a : tuple F (_k + 1)) (b : tuple F _k) : F.
 Admitted.
 
 (* // n bits per register
@@ -300,7 +268,7 @@ function short_div(n, k, a, b) {
     }
     return ret;
 }*)
-Definition short_div (n : nat) (_k : nat) (a : tuple (F q) (_k + 1)) (b : tuple (F q) _k) : F q.
+Definition short_div (n : nat) (_k : nat) (a : tuple F (_k + 1)) (b : tuple F _k) : F.
 Admitted.
 
 (* // n bits per register
@@ -310,7 +278,7 @@ Admitted.
 // out[1] has length k -- remainder
 // implements algorithm of https://people.eecs.berkeley.edu/~fateman/282/F%20Wright%20notes/week4.pdf
 // b[k-1] must be nonzero! *)
-Definition long_div2 (n : nat) (_k m : nat) (a : tuple (F q) (_k + m)) (b : tuple (F q) _k) : tuple (F q) 2.
+Definition long_div2 (n : nat) (_k m : nat) (a : tuple F (_k + m)) (b : tuple F _k) : tuple F 2.
 Admitted.
 
 Definition long_div := long_div2.
@@ -319,7 +287,7 @@ Definition long_div := long_div2.
     return [in % (1 << n), (in \ (1 << n)) % (1 << m), (in \ (1 << n + m)) % (1 << k)];
 } *)
 
-Definition SplitThreeFn _in n m k (out : tuple (F q) 3):=
+Definition SplitThreeFn _in n m k (out : tuple F 3):=
   out[0] = F_mod _in (2^n) /\
   out[1] = F_mod (F.div _in (2^n)) (2^m) /\
   out[2] = F_mod (F.div _in (2^n + (F.of_Z q m))) (2^k).
@@ -328,7 +296,7 @@ Definition SplitThreeFn _in n m k (out : tuple (F q) 3):=
 (* function SplitFn(in, n, m) {
     return [in % (1 << n), (in \ (1 << n)) % (1 << m)];
 } *)
-Definition SplitFn _in n m (out : tuple (F q) 2):=
+Definition SplitFn _in n m (out : tuple F 2):=
   out[0] = F_mod _in (2^n) /\
   out[1] = F_mod (F.div _in (2^n)) (2^m).
 
@@ -336,7 +304,7 @@ Definition SplitFn _in n m (out : tuple (F q) 2):=
 // a and b both have k registers
 // out[0] has length 2 * k
 // adapted from BigMulShortLong and LongToShortNoEndCarry witness computation *)
-Definition prod (n : nat) (_k : nat) (a : tuple (F q) _k) (b : tuple (F q) _k) : tuple (F q) 50.
+Definition prod (n : nat) (_k : nat) (a : tuple F _k) (b : tuple F _k) : tuple F 50.
 Admitted.
 
 (* function prod_mod(n, k, a, b, p) {
@@ -344,16 +312,16 @@ Admitted.
     var temp[2][50] = long_div(n,k,prod,p);
     return temp[1];
 } *)
-Definition prod_mod {_k1 _k2 _k3}(n : nat) (_k : nat) (a : tuple (F q) _k1) (b: tuple (F q) _k2) (p: tuple (F q) _k3): tuple (F q) 50.
+Definition prod_mod {_k1 _k2 _k3}(n : nat) (_k : nat) (a : tuple F _k1) (b: tuple F _k2) (p: tuple F _k3): tuple F 50.
 Admitted.
 
 Definition repr_binary n x m ws :=
   length ws = m /\
-  (forall i, (i < m)%nat -> binary q (nth i ws 0)) /\
+  (forall i, (i < m)%nat -> Num2Bits.binary (nth i ws 0)) /\
   x = repr_to_le n ws.
 
 Hypothesis prod_mod_correct:
-  forall (n: nat) k (a b p: tuple (F q) k),
+  forall (n: nat) k (a b p: tuple F k),
   repr_binary n (F_mod ((repr_to_le n (to_list k a)) * (repr_to_le n (to_list k b))) (repr_to_le n (to_list k p))) 50
   (to_list 50 (prod_mod n k a b p)).
 
@@ -364,24 +332,24 @@ Hypothesis prod_mod_correct:
 // k * n <= 500
 // p is a prime
 // computes a^e mod p *)
-Definition mod_exp {_k1 _k2 _k3} (n: nat) (_k: nat) (a : tuple (F q) _k1) (p : tuple (F q) _k2) (e : tuple (F q) _k3) : tuple (F q) 50. Admitted.
+Definition mod_exp {_k1 _k2 _k3} (n: nat) (_k: nat) (a : tuple F _k1) (p : tuple F _k2) (e : tuple F _k3) : tuple F 50. Admitted.
 
 Hypothesis mod_exp_correct:
-  forall (n: nat) k (a p e : tuple (F q) k),
+  forall (n: nat) k (a p e : tuple F k),
   repr_binary n (F_mod ((repr_to_le n (to_list k a)) ^ (F.to_N (repr_to_le n (to_list k e))))
                         (repr_to_le n (to_list k p))) 50
   (to_list 50 (mod_exp n k a p e)).
 
 (* k < 2^n *)
 Definition PrimeReduce_cons
-  n k m (p : tuple (F q) k)
-  (_in : tuple (F q) (m+k))
-  (_out : tuple (F q) k)
-  (two : tuple (F q) k)
-  (e_1 : tuple (F q) k)
-  (e_2 : tuple (F q) k)
-  (_r : tuple (tuple (F q) 50) m)
-  (out_sum : tuple (F q) k)
+  n k m (p : tuple F k)
+  (_in : tuple F (m+k))
+  (_out : tuple F k)
+  (two : tuple F k)
+  (e_1 : tuple F k)
+  (e_2 : tuple F k)
+  (_r : tuple (tuple F 50) m)
+  (out_sum : tuple F k)
    :=
   let _C := two[0] = 2 /\ e_1[0] = (F.of_nat q n) /\ e_2[0] = (F.of_nat q k) in
   let _C :=
@@ -410,7 +378,7 @@ Definition PrimeReduce n k m p _in _out :=
   exists two e_1 e_2 _r out_sum,
   PrimeReduce_cons n k m p _in _out two e_1 e_2 _r out_sum.
 
-Definition PrimeReduce_spec n k m (p : tuple (F q) k) (_in : tuple (F q) (m+k)) (_out : tuple (F q) k) :=
+Definition PrimeReduce_spec n k m (p : tuple F k) (_in : tuple F (m+k)) (_out : tuple F k) :=
   F_mod (repr_to_le n (toPoly _in)) (repr_to_le n (toPoly p)) = 
   F_mod (repr_to_le n (toPoly _out)) (repr_to_le n (toPoly p)).
 

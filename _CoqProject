@@ -1,8 +1,11 @@
 -R src Circom
 src/BabyJubjub.v
 src/Util.v
-src/circomlib/comparators.v
-src/circomlib/bitify.v
+src/Circom.v
+src/circomlib/Comparators.v
+src/circomlib/Bitify.v
 src/circomlib/gates.v
 src/circomlib/multiplexer.v
-src/circom-ecc/Polynom.v
+src/ECC/Polynom.v
+src/ECC/Polynom_test.v
+src/ECC/PrimeReduce.v

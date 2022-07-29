@@ -335,8 +335,8 @@ Hypothesis prod_mod_correct:
 Definition mod_exp {_k1 _k2 _k3} (n: nat) (_k: nat) (a : tuple F _k1) (p : tuple F _k2) (e : tuple F _k3) : tuple F 50. Admitted.
 
 Hypothesis mod_exp_correct:
-  forall (n: nat) k (a p e : tuple F k),
-  repr_binary n (F_mod ((repr_to_le n (to_list k a)) ^ (F.to_N (repr_to_le n (to_list k e))))
+  forall (n: nat) k k1 (a: tuple F k1)(p e : tuple F k),
+  repr_binary n (F_mod ((repr_to_le n (to_list k1 a)) ^ (F.to_N (repr_to_le n (to_list k e))))
                         (repr_to_le n (to_list k p))) 50
   (to_list 50 (mod_exp n k a p e)).
 
@@ -378,6 +378,22 @@ Definition PrimeReduce n k m p _in _out :=
   exists two e_1 e_2 _r out_sum,
   PrimeReduce_cons n k m p _in _out two e_1 e_2 _r out_sum.
 
+Definition toPoly {m} (xs: tuple F m) : list F := to_list m xs.
+
+Lemma toPoly_length: forall {m} (xs: tuple F m),
+  length (toPoly xs) = m.
+Proof.
+  intros. apply length_to_list.
+Qed.
+
+Definition sum_in_helper n m _k (_in : tuple F (m+_k)) (_r : tuple (tuple F 50) m) :=
+  iter (_k) (fun i a => a + _in[i]) 0 +
+  iter' m (m+_k) (fun i a => a + _in[i] * (repr_to_le n (toPoly (nth_default (repeat 0 50) i _r)))) 0.
+
+Definition sum_in_helper1 n m _k (_in : tuple F (m+_k)) (_r : tuple (tuple F 50) m) :=
+  iter (_k) (fun i a => a + (_in[i] +
+  (iter' m (m+_k) (fun j b => b + _in[j] * ((nth_default (repeat 0 50) j _r)[i])) 0)) * (2^((N.of_nat n)*(N.of_nat i))) ) 0.
+
 Definition PrimeReduce_spec n k m (p : tuple F k) (_in : tuple F (m+k)) (_out : tuple F k) :=
   F_mod (repr_to_le n (toPoly _in)) (repr_to_le n (toPoly p)) = 
   F_mod (repr_to_le n (toPoly _out)) (repr_to_le n (toPoly p)).
@@ -385,4 +401,44 @@ Definition PrimeReduce_spec n k m (p : tuple F k) (_in : tuple F (m+k)) (_out : 
 Theorem PrimeReduce_correct n _k m p _in _out:
   PrimeReduce n _k m p _in _out -> PrimeReduce_spec n _k m p _in _out.
 Proof.
+  unfold PrimeReduce, PrimeReduce_spec, PrimeReduce_cons.
+  intros. unwrap_C.
+  destruct H as [two H]. destruct H as [e_1 H]. destruct H as [e_2 H].
+  destruct H as [_r H]. destruct H as [out_sum H].
+  remember ((two [0] = 2 /\ e_1 [0] = F.of_nat q n /\ e_2 [0] = F.of_nat q _k)) as init_two.
+  remember (iter' (_k - 1) _k
+  (fun (i : nat) (_C : Prop) =>
+   _C /\ two [i] = 0 /\ e_1 [i] = 0 /\ e_2 [i] = 0) init_two) as init_two_e.
+  remember (mod_exp n _k two p e_1) as pow2n.
+  remember (mod_exp n _k pow2n p e_2) as pow2nk.
+  remember ((iter' (m - 1) m
+               (fun (i : nat) (_C : Prop) =>
+                _C /\
+                nth_default (repeat 0 50) i _r =
+                prod_mod n _k (nth_default (repeat 0 50) (i - 1) _r) pow2n p)
+               (nth_default (repeat 0 50) 0 _r = pow2nk /\ init_two_e))) as init_r.
+  remember ((iter _k (fun (i : nat) (_C : Prop) => _C /\ out_sum [i] = _in [i]) init_r)) as init_out_sum.
+  remember ((iter m
+         (fun (i : nat) (_C : Prop) =>
+          _C /\
+          iter _k
+            (fun (j : nat) (_C0 : Prop) =>
+             _C0 /\
+             out_sum [j] = out_sum [j] + _in [i + _k] * nth_default (repeat 0 50) i _r [j])
+            _C) init_out_sum)) as init_out_sum'.
+  (* init_two *)
+  assert(init_two_correct_1: repr_to_le _k (toPoly two) = 2). { admit. }
+  assert(init_two_correct_2: repr_to_le _k (toPoly e_1) = F.of_nat q n). { admit. }
+  assert(init_two_correct_3: repr_to_le _k (toPoly e_2) = F.of_nat q _k). { admit. }
+  (* pow2n pow2nk *)
+  pose proof (mod_exp_correct n _k _k two p e_1) as pow2n_correct.
+  pose proof (mod_exp_correct n _k 50 pow2n p e_2) as pow2nk_correct.
+  (* init_r *)
+  (* r_i = repr_to_le _k (toPoly r[i]) *)
+  assert(init_r_correct: forall i, F_mod ((_in[i]) * (2^((N.of_nat n)*(N.of_nat i)))) (repr_to_le n
+        (toPoly p)) = F_mod (_in[i] * (repr_to_le _k (toPoly (nth_default (repeat 0 50) i _r)))) (repr_to_le n
+        (toPoly p))). { admit. }
+  (* proof *)
+  assert(mainProof: sum_in_helper n m _k _in _r = sum_in_helper1 n m _k _in _r).
+  { unfold sum_in_helper, sum_in_helper1. admit. }
 Admitted.

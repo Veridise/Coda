@@ -62,5 +62,3 @@ Module Type CIRCOM.
   
   (* Global Notation "2" := (1 + 1 : F) : Circom_scope. *)
 End CIRCOM.
-
-Print CIRCOM.

@@ -16,7 +16,7 @@ Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
 
-Require Import Util.
+Require Import Circom.Circom Circom.Util.
 
 (* Circuit:
 * https://github.com/iden3/circomlib/blob/master/circuits/multiplexer.circom
@@ -25,22 +25,12 @@ Require Import Util.
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 
-Section Multiplexer.
+Module Multiplexer (C: CIRCOM).
+Module U := Util C.
+Import C U.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
-
-
-Context (q:positive) {prime_q:prime q}.
-
-Definition F_q := F q.
-Ltac split_eqns :=
-  repeat match goal with
-  | [ |- _ /\ _ ] => split
-  | [ H: exists _, _ |- _ ] => destruct H
-  | [ H: {s | _ } |- _ ] => destruct H
-  | [ H: _ /\ _ |- _ ] => destruct H
-  end.
 
 Local Notation "a [ b ]" := (Tuple.nth_default 0 b a).
 
@@ -57,18 +47,19 @@ Local Notation "a [ b ]" := (Tuple.nth_default 0 b a).
     out <== lc;
 } *)
 
-Definition EscalarProduct w (in1 in2: tuple F_q w) out : Prop :=
-  exists (aux: tuple F_q w),
+Definition EscalarProduct w (in1 in2: tuple F w) out : Prop :=
+  exists (aux: tuple F w),
   let lc := 0 in
-  let '(lc, _C) := (iter w (fun i '(lc, _C) =>
+  let '(lc, _C) := (iter (fun i '(lc, _C) =>
       (lc + aux[i],
       (aux[i] = in1[i] * in2[i]) /\ _C))
+    w
     (lc, True)) in
   (lc = out) /\ _C.
 
-Definition EscalarProductSpec n w (in1 in2 : tuple F_q w) out :=
-  out = fold_right (fun a b : F_q => a + b) 0
-         (firstn n (to_list w (map2 (fun a b : F_q => a * b) in1 in2))).
+Definition EscalarProductSpec n w (in1 in2 : tuple F w) out :=
+  out = fold_right (fun a b : F => a + b) 0
+         (firstn n (to_list w (map2 (fun a b : F => a * b) in1 in2))).
 
 Theorem EscalarProductSoundness:
   forall w in1 in2 out,
@@ -83,11 +74,11 @@ Proof.
        (_C -> EscalarProductSpec i w in1 in2 out)).
   (* iter function *)
   match goal with
-  | [ H: context[match ?it ?n ?f ?init with _ => _ end] |- _ ] =>
+  | [ H: context[match ?it ?f ?n ?init with _ => _ end] |- _ ] =>
     let x := fresh "f" in remember f as x
   end.
   (* invariant holds *)
-  assert (Hinv: forall i, Inv i (iter i f a0)). {
+  assert (Hinv: forall i, Inv i (iter f i a0)). {
   intros. apply iter_inv; unfold Inv.
   - (* base case *) 
     subst. intros. unfold EscalarProductSpec in *. admit.
@@ -103,7 +94,7 @@ Proof.
    }
   unfold Inv in Hinv.
   specialize (Hinv O).
-  destruct (iter O f a0).
+  destruct (iter f O a0).
   intuition.
 Abort.
 
@@ -126,16 +117,17 @@ Abort.
 
 Definition ite {T:Type}{T1:Prop} (e: Decidable T1) (a b: T) := if e then a else b.
 
-Definition Decoder w inp (out: tuple F_q w) success : Prop :=
+Definition Decoder w inp (out: tuple F w) success : Prop :=
   let lc := 0 in
-  let '(lc, _C) := (iter w (fun i '(lc, _C) =>
+  let '(lc, _C) := (iter (fun i '(lc, _C) =>
       (lc + out[i],
         (out[i] = ite (F.eq_dec inp (F.of_nat q i)) 1 0) /\
         (out[i] * (inp - (F.of_nat q i)) = 0) /\ _C))
+    w
     (lc, True)) in
   (lc = success) /\ (success * (success -1) = 0) /\ _C.
 
-Definition get_n_m {wIn nIn}(t: tuple (tuple F_q wIn) (S nIn)) p m := 
+Definition get_n_m {wIn nIn}(t: tuple (tuple F wIn) (S nIn)) p m := 
   let ins := (nth_default (hd t) p t) in
   nth_default 0 m ins.
 
@@ -163,18 +155,18 @@ Definition get_n_m {wIn nIn}(t: tuple (tuple F_q wIn) (S nIn)) p m :=
 
 (* require: nIn > 0 *)
 Definition Multiplexer 
-  wIn nIn sel (inp: tuple (tuple F_q wIn) (S (nIn - 1))) 
-  (out: tuple F_q wIn) : Prop :=
-exists (ep_in1 ep_in2: tuple (tuple F_q nIn) (S (wIn - 1))) (ep_out: tuple F_q nIn) dec_out,
-  let '_C2 := (iter wIn (fun j '_C =>
-      (let '_C3 := (iter nIn (fun k '_C =>
+  wIn nIn sel (inp: tuple (tuple F wIn) (S (nIn - 1))) 
+  (out: tuple F wIn) : Prop :=
+exists (ep_in1 ep_in2: tuple (tuple F nIn) (S (wIn - 1))) (ep_out: tuple F nIn) dec_out,
+  let '_C2 := (iter  (fun j '_C =>
+      (let '_C3 := (iter (fun k '_C =>
           (get_n_m inp k j = get_n_m ep_in1 j k /\ 
            dec_out[k] = get_n_m ep_in2 j k /\ _C))
-        True) in
+           nIn True) in
               ep_out[j] = out[j] /\
               EscalarProduct nIn (nth_default (hd ep_in1) j ep_in1) (nth_default (hd ep_in2) j ep_in2) (ep_out[j]) /\ _C3
         ))
-    True) in
+    wIn True) in
   (Decoder nIn sel dec_out 1) /\ _C2.
 
 End Multiplexer.

@@ -70,7 +70,7 @@ Theorem XOR_correct: forall a b out,
 Proof using Type*.
   intros.
   unfold XOR, XOR_spec in *.
-  repeat (split_eqns; intro);inversion H0;try fsatz.
+  repeat (split_eqns; intro); inversion H0; fsatz.
 Qed.
 
 (* template AND() {
@@ -99,7 +99,7 @@ Theorem AND_correct: forall a b out,
 Proof using Type*.
   intros.
   unfold AND, AND_spec in *.
-  repeat (split_eqns; intro); inversion H0;try fsatz.
+  repeat (split_eqns; intro); inversion H0; fsatz.
 Qed.
 
 (* template OR() {
@@ -128,7 +128,7 @@ Theorem OR_correct: forall a b out,
 Proof using Type*.
   intros.
   unfold OR, OR_spec in *.
-  repeat (split_eqns; intro); inversion H0;try fsatz.
+  repeat (split_eqns; intro); inversion H0; fsatz.
 Qed.
 
 (* template NOT() {
@@ -154,7 +154,7 @@ Theorem NOT_correct: forall _in out,
 Proof using Type*.
   intros.
   unfold NOT, NOT_spec in *.
-  repeat (split_eqns; intro);try fsatz.
+  repeat (split_eqns; intro); fsatz.
 Qed.
 
 (* template NAND() {
@@ -183,7 +183,7 @@ Theorem NAND_correct: forall a b out,
 Proof using Type*.
   intros.
   unfold NAND, NAND_spec in *.
-  repeat (split_eqns; intro); inversion H0;try fsatz.
+  repeat (split_eqns; intro); inversion H0; fsatz.
 Qed.
 
 (* template NOR() {
@@ -212,7 +212,7 @@ Theorem NOR_correct: forall a b out,
 Proof using Type*.
   intros.
   unfold NOR, NOR_spec in *.
-  repeat (split_eqns; intro); inversion H0;try fsatz.
+  repeat (split_eqns; intro); inversion H0; fsatz.
 Qed.
 
 (* template MultiAND(n) {

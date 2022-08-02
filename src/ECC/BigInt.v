@@ -7,8 +7,9 @@ Require Import Coq.PArith.BinPosDef.
 Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Znumtheory Coq.NArith.NArith. (* import Zdiv before Znumtheory *)
 Require Import Coq.NArith.Nnat.
 
+Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
 Require Import Crypto.Spec.ModularArithmetic.
-Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
+Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
 
 Require Import Crypto.Util.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
@@ -17,52 +18,43 @@ Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.seto
 Require Import Ring.
 
 Require Import Util.
-Require Import Circom.circomlib.bitify.
+Require Import Circom.circomlib.Bitify.
 
-Require Import VST.zlist.Zlist.
+(* Require Import VST.zlist.Zlist. *)
 
-Require Import Crypto.Spec.ModularArithmetic.
+Require Import Circom.Circom.
+Require Import Circom.ECC.Polynom.
+
+Locate Ltac ring_simplify_subterms.
+
+
 (* Circuit:
 * https://github.com/0xPARC/circom-ecdsa/blob/08c2c905b918b563c81a71086e493cb9d39c5a08/circuits/bigint.circom
 *)
 
-Section _bigint.
+Module BigInt (C: CIRCOM).
+
+Import C.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
+Local Open Scope P_scope.
 
-Ltac fqsatz := fsatz_safe; autorewrite with core; auto.
-
-Context (q:positive) (k:Z) {prime_q: prime q} {two_lt_q: 2 < q} {k_positive: 1 < k} {q_lb: 2^k < q}.
-
-Lemma q_gtb_1: (1 <? q)%positive = true.
-Proof.
-  apply Pos.ltb_lt. lia.
-Qed.
-
-Lemma q_gt_2: 2 < q.
-Proof.
-  replace 2%Z with (2^1)%Z by lia.
-  apply Z.le_lt_trans with (m := (2 ^ k)%Z); try lia.
-  eapply Zpow_facts.Zpower_le_monotone; try lia.
-Qed.
-
-Hint Rewrite q_gtb_1 : core.
 
 (**************************
  * Overflow Representation
  **************************)
-Definition two : F q := 1 + 1.
-Notation "2" := two.
+Notation "2" := (1+1: F).
 
 Lemma to_Z_2: F.to_Z 2 = 2%Z.
-Proof. simpl. repeat rewrite Z.mod_small; lia. Qed.
+Proof. unwrap_C. simpl. repeat rewrite Z.mod_small; lia. Qed.
 
 
 (* peel off 1 from x^(i+1) in field exp *)
-Lemma pow_S_N: forall (x: F q) i,
+Lemma pow_S_N: forall (x: F) i,
   x ^ (N.of_nat (S i)) = x * x ^ (N.of_nat i).
 Proof.
+  unwrap_C.
   intros.
   replace (N.of_nat (S i)) with (N.succ (N.of_nat i)).
   apply F.pow_succ_r.
@@ -79,6 +71,8 @@ Proof.
   replace (Z.of_nat (S i)) with (Z.of_nat i + 1)%Z by lia.
   rewrite Zpower_exp; lia.
 Qed.
+
+(* 
 
 (* [repr]esentation [func]tion:
  * interpret a list of weights as representing a little-endian base-2^n number
@@ -136,7 +130,6 @@ Proof.
       }
     fqsatz.
 Qed.
-
 
 Definition polynomial := list (F q).
 
@@ -277,10 +270,12 @@ Lemma eval_app: forall cs0 cs1 x,
 Proof.
   intros. apply eval_app'.
 Qed.
+*)
 
-Notation "x [ i ]" := (Tuple.nth_default 0 i x).
+Local Notation "x [ i ]" := (Tuple.nth_default 0 i x).
 
-Definition init_poly ka kb (poly: tuple (F q) (ka+ kb -1)) {m} (x: tuple (F q) m) _C := 
+
+Definition init_poly ka kb (poly: tuple F (ka+ kb -1)) {m} (x: tuple F m) _C := 
   iter (ka+kb-1) (fun i _C => _C /\
         (* inner loop: poly[i] = \sum_{j=0...ka+kb-1} x[j] * i ** j *)
         poly[i] = iter m (fun j poly_i =>
@@ -297,10 +292,25 @@ Proof.
   eexists. eexists. eauto.
 Qed.
 
-Lemma init_poly_correct: forall {ka kb} (poly: tuple (F q) (ka+ kb -1)) {m} (x: tuple (F q) m) _C,
+Import Polynomial.
+
+Print polynomial.
+
+Definition x : F := 0.
+Definition p : polynomial := @nil F.
+Definition y : F := (1 + (peval x p)).
+(* 
+Variable m: nat.
+Variable x: tuple F m.
+Definition f := toPoly x.
+Print f.
+*)
+
+Lemma init_poly_correct: forall {ka kb} (poly: tuple F (ka+ kb -1)) {m} (x: tuple F m) _C,
   init_poly ka kb poly x _C ->
   (_C (* output constraint preserves _C *)
-  /\ forall i, (i < ka + kb -1)%nat -> poly [i] = eval (toPoly x) (F.of_nat q i)).
+  /\ forall i, (i < ka + kb -1)%nat -> 
+    poly [i] = peval (F.of_nat q i : F) (toPoly x: polynomial) ).
 Proof.
   unfold init_poly.
   intros ka kb poly m x _C0.

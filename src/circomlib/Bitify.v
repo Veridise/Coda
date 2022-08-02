@@ -26,6 +26,8 @@ Module Bitify (C: CIRCOM).
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 Import C.
+Module U := Util C.
+Import U.
 
 Declare Scope B_scope.
 Delimit Scope B_scope with B.
@@ -368,7 +370,7 @@ Theorem repr_binary_lb: forall n ws x i,
   geq_z x (2^Z.of_nat i).
 Proof.
   (* FIXME: use big-endian repr to simplify this proof *)
-  
+
   (* we can't do induction on ws, since we need to decompose
     (w :: ws) as (ms ++ [m]) in the inductive case *)
   unwrap_C. induction n;
@@ -481,15 +483,18 @@ Proof.
     lia.
 Qed.
 
+
+
 Local Open Scope B_scope.
 Definition cons (n: nat) (_in: F) (_out: F^n) : Prop :=
   let lc1 := 0 in
   let e2 := 1 in
-  let '(lc1, e2, _C) := (iter n (fun (i: nat) '(lc1, e2, _C) =>
+  let '(lc1, e2, _C) := (iter (fun (i: nat) '(lc1, e2, _C) =>
     let out_i := (_out [i] ) in
       (lc1 + out_i * e2,
       e2 + e2,
       (out_i * (out_i - 1) = 0) /\ _C))
+    n
     (lc1, e2, True)) in
   (lc1 = _in) /\ _C.
 
@@ -505,11 +510,11 @@ Proof.
   intros prog i H_i_lt_n.
   (* iter function *)
   match goal with
-  | [ H: context[match ?it ?n ?f ?init with _ => _ end] |- _ ] =>
+  | [ H: context[match ?it ?f ?n ?init with _ => _ end] |- _ ] =>
     let x := fresh "f" in remember f as x
   end.
   (* invariant holds *)
-  assert (Hinv: forall i, Inv i (iter i f a0)). {
+  assert (Hinv: forall i, Inv i (iter f i a0)). {
   intros. apply iter_inv; unfold Inv.
   - (* base case *) 
     subst. intros _ j impossible. lia.
@@ -530,7 +535,7 @@ Proof.
    }
   unfold Inv in Hinv.
   specialize (Hinv n).
-  destruct (iter n f a0).
+  destruct (iter f n a0).
   destruct p.
   intuition.
 Qed.
@@ -630,7 +635,7 @@ Proof.
    e2 + e2,
    nth_default 0 i _out * (nth_default 0 i _out - 1) = 0 /\
    _C)) as f.
-  assert (Hinv: Inv n (iter n f (0,1,True))). {
+  assert (Hinv: Inv n (iter f n (0,1,True))). {
     apply iter_inv; unfold Inv.
     - intuition. simpl. rewrite F.pow_0_r. fqsatz.
       simpl. apply repr_binary_base.
@@ -655,7 +660,7 @@ Proof.
           rewrite firstn_length_le. fqsatz.
           rewrite length_to_list. lia.
   }
-  destruct (iter n f (0,1,True)) as [ [lc1 e2] _C].
+  destruct (iter f n (0,1,True)) as [ [lc1 e2] _C].
   unfold Inv in Hinv. intuition.
   subst. rewrite <- firstn_to_list. auto.
 Qed.

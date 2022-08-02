@@ -29,9 +29,9 @@ Require Import Crypto.Spec.ModularArithmetic.
 
 Module PrimeReduce (C: CIRCOM).
 
-Import C.
 Module B := (Bitify C).
-Import B.
+Module U := Util C.
+Import C B U.
 
 
 Local Open Scope list_scope.
@@ -166,13 +166,13 @@ n k a (_b : tuple F k) (out : tuple F 50) :=
 let _C := True in
 let '( _C) :=
   (* loop: construct out[i] *)
-  iter 50 (fun i '( _C) => (_C /\ out[i] = 0))
-    ( _C) in
+  iter (fun i '( _C) => (_C /\ out[i] = 0))
+    50 ( _C) in
 let '( _C) :=
-  iter k (fun i _C => _C /\ 
+  iter (fun i _C => _C /\ 
               out[i] = F_mod (out[i] + (a * _b[i]))  (2^n) /\
               out[i + 1] = out[i + 1] + F.div (out[i] + (a * _b[i])) (2^n))
-    _C in
+    k _C in
   _C
 .
 
@@ -340,6 +340,7 @@ Hypothesis mod_exp_correct:
                         (repr_to_le n (to_list k p))) 50
   (to_list 50 (mod_exp n k a p e)).
 
+Print iter'.
 (* k < 2^n *)
 Definition PrimeReduce_cons
   n k m (p : tuple F k)
@@ -353,24 +354,25 @@ Definition PrimeReduce_cons
    :=
   let _C := two[0] = 2 /\ e_1[0] = (F.of_nat q n) /\ e_2[0] = (F.of_nat q k) in
   let _C :=
-    iter' (Nat.sub k 1) k (fun i _C => _C /\ 
-      two[i] = 0 /\ e_1[i] = 0 /\ e_2[i] = 0) _C in
+    iter' (fun i _C => _C /\ 
+      two[i] = 0 /\ e_1[i] = 0 /\ e_2[i] = 0) (Nat.sub k 1) k _C in
   let pow2n := mod_exp n k two p e_1 in
   let pow2nk := mod_exp n k pow2n p e_2 in
   let _C :=
-    iter' (Nat.sub m 1) m (fun i _C => _C /\ 
+    iter' (fun i _C => _C /\ 
           (nth_default (repeat 0 50) i _r) = prod_mod n k (nth_default (repeat 0 50) (i-1) _r) pow2n p) 
+          (Nat.sub m 1) m
           ((nth_default (repeat 0 50) 0 _r) = pow2nk /\ _C) in
   let _C :=
-    iter k (fun i _C => _C /\ 
-      out_sum[i] = _in[i]) _C in
+    iter (fun i _C => _C /\ 
+      out_sum[i] = _in[i]) k _C in
   let _C :=
-    iter m (fun i _C => _C /\ 
-      (iter k (fun j _C => _C /\ 
-                  out_sum[j] = out_sum[j] + _in[i+k] * (nth_default (repeat 0 50) i _r)[j]) _C)) _C in
+    iter (fun i _C => _C /\ 
+      (iter (fun j _C => _C /\ 
+                  out_sum[j] = out_sum[j] + _in[i+k] * (nth_default (repeat 0 50) i _r)[j]) k _C)) m _C in
   let _C :=
-    iter k (fun i _C => _C /\ 
-      _out[i] = out_sum[i]) _C in
+    iter (fun i _C => _C /\ 
+      _out[i] = out_sum[i]) k _C in
   _C
   .
 

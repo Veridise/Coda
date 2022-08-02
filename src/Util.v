@@ -1,20 +1,45 @@
+Require Import Coq.Init.Peano.
+Require Import Coq.Arith.PeanoNat.
+Require Import Coq.Arith.Compare_dec.
+Require Import Coq.PArith.BinPosDef.
+Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Znumtheory Coq.NArith.NArith. (* import Zdiv before Znumtheory *)
+Require Import Coq.NArith.Nnat.
 Require Import Coq.Lists.List.
-Import ListNotations.
 Require Import Coq.micromega.Lia.
+
+Require Import Crypto.Util.Tuple.
+Require Import Crypto.Util.Decidable Crypto.Util.ZUtil Crypto.Algebra.Ring.
+Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
+Require Import Crypto.Spec.ModularArithmetic.
+Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
+Require Import Circom.Circom.
+
+Module Util (C: CIRCOM).
+
+Import C.
+
+Import ListNotations.
 
 Create HintDb iter discriminated.
 
+Local Open Scope nat_scope.
+
+Section iter.
+
+Variable A: Type.
+Variable f: nat -> A -> A.
+
 (* functional iteration *)
 
-Fixpoint iter' {A: Type} (m n: nat) (f: nat -> A -> A) (a: A) : A :=
+Fixpoint iter' (m n: nat) (a: A) : A :=
   match m with
   | O => a
-  | S m' => iter' m' n f (f (n-m) a)
+  | S m' => iter' m' n (f (n-m) a)
   end.
   
 Lemma iter'_S:
-  forall A f i j (a: A),
-  iter' (S i) (S j) f a = f j (iter' i j f a).
+  forall i j a,
+  iter' (S i) (S j) a = f j (iter' i j a).
 Proof.
   induction i; intros.
   - simpl. replace (j - 0) with j by lia. reflexivity.
@@ -22,23 +47,73 @@ Proof.
 Qed.
 
 Local Hint Rewrite iter'_S : iter.
-Definition iter (A: Type) (n: nat) := @iter' A n n.
+Definition iter (n: nat) := iter' n n.
 Local Hint Unfold iter : iter.
 
-Theorem iter_inv {A: Type} (Inv: nat -> A -> Prop):
-  forall f a i,
+Theorem iter_inv (Inv: nat -> A -> Prop):
+  forall a i,
   Inv 0 a ->
   (forall j b, Inv j b -> j < i -> Inv (S j) (f j b)) ->
-  Inv i (iter A i f a).
+  Inv i (iter i a).
 Proof.
-  intros f a.
+  intros a.
   induction i; intros H0 Hind; eauto.
-  - replace (iter A (S i) f a) with (f i (iter A i f a)) by
+  - replace (iter (S i) a) with (f i (iter i a)) by
       (unfold iter; rewrite iter'_S; reflexivity).
     apply Hind. apply IHi; auto. lia.
 Qed.
 
+End iter.
+
+Arguments iter' {A}.
 Arguments iter {A}.
+
+
+Section init.
+
+Variable A: Type.
+Variable f: nat -> A.
+
+Fixpoint init' (i n m: nat) : list A :=
+  match m with
+  | O => nil
+  | S m' => if dec (i >= n) then nil else f i :: init' (S i) n m'
+  end.
+
+Definition init (i n: nat) := init' i n n.
+
+Lemma init'_length: forall m i n, length (init' i n m) = min m (n-i).
+Proof.
+  induction m; simpl; intros.
+  reflexivity.
+  destruct (dec (i>=n)).
+  subst. replace (n-i) with O by lia. auto.
+  destruct (n-i) eqn:E. lia.
+  simpl. rewrite IHm. lia.
+Qed.
+  
+
+Lemma init_length: forall i n, length (init i n) = n - i.
+Proof.
+  intros. unfold init. rewrite init'_length. lia.
+Qed.
+
+Definition initT (i n: nat) := from_list (n-i) (init i n).
+Definition initT0 (n: nat) := from_list (n) (init O n).
+
+End init.
+
+Arguments init {A}.
+Arguments initT {A}.
+Arguments initT0 {A}.
+
+Section opsT.
+
+Local Open Scope F_scope.
+Definition opT {n} (op: F -> F -> F) (xs ys: tuple F n) := map2 op xs ys.
+Definition addT {n} := @opT n (fun x y => x + y : F).
+Definition mulT {n} := @opT n (fun x y => x * y : F).
+End opsT.
 
 
 (* pigeon hole principle *)
@@ -466,3 +541,5 @@ Proof.
   - eapply NoDup_lhd_ff;eauto.
   - apply perm_length in H1;lia.
 Qed.
+
+End Util.

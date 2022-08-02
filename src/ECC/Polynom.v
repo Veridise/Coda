@@ -16,20 +16,21 @@ Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Zn
 Require Import Coq.NArith.Nnat.
 
 Require Import Crypto.Spec.ModularArithmetic.
-Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
+Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field Crypto.Algebra.Ring.
 Require Import Coq.Lists.ListSet.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations Crypto.Util.Tuple.
-Require Import Crypto.Algebra.Ring.
+Require Import Crypto.Arithmetic.PrimeFieldTheorems.
 
 Require Import Util.
 
 
 Module Polynomial.
+
 Section Polynomial.
 
 Context {F eq zero one opp add sub mul inv div}
-        {fld:@Hierarchy.field F eq zero one opp add sub mul inv div}
-        {eq_dec:DecidableRel eq}.
+        `{fld:@Hierarchy.field F eq zero one opp add sub mul inv div}
+        `{eq_dec:DecidableRel eq}.
 
 Local Infix "==" := eq. 
 Local Notation "a <> b" := (not (a == b)).
@@ -75,7 +76,7 @@ Proof.
   invert H1. auto.
 Qed.
 
-Instance eq_poly_equivalence : Equivalence eq_poly.
+Global Instance eq_poly_equivalence : Equivalence eq_poly.
 Proof.
   constructor.
   (* reflexive *)
@@ -102,7 +103,7 @@ Proof. constructor. Qed. *)
 Lemma empty_eq_0: forall f, empty_poly f -> f ~ 0p.
 Proof. auto. Qed.
 
-Instance cons_Proper: forall c, Proper (eq_poly ==> eq_poly) (cons c).
+Global Instance cons_Proper: forall c, Proper (eq_poly ==> eq_poly) (cons c).
 Proof.
   intros. unfold Proper, respectful.
   intros f g H.
@@ -205,7 +206,7 @@ Proof.
   simpl; rewrite IHeq_poly; fsatz.
 Defined. *)
 
-Instance peval_Proper: Proper (eq ==> eq_poly ==> eq) peval.
+Global Instance peval_Proper: Proper (eq ==> eq_poly ==> eq) peval.
 Proof.
   intros x y Hxy f g Hfg.
   induction Hfg.
@@ -390,27 +391,27 @@ Proof.
   rewrite IHf. destruct (eq_dec a f0); destruct (eq_dec f0 a); auto; fsatz.
 Qed.
 
-Instance isnil_Proper: Proper (eq_poly ==> Logic.eq) (isnil).
+Global Instance isnil_Proper: Proper (eq_poly ==> Logic.eq) (isnil).
 Proof.
   intros f g H. induction H; simpl.
   - empty_to_0p. repeat rewrite isnil_complete; auto.
   - destruct (eq_dec x 0); destruct (eq_dec y 0); (auto || fsatz).
 Defined.
 
-Instance eqb_nil_Proper: forall f, f ~ nil -> Proper (eq_poly ==> Logic.eq) (eqb f).
+Global Instance eqb_nil_Proper: forall f, f ~ nil -> Proper (eq_poly ==> Logic.eq) (eqb f).
 Proof.
   intros f Hf.
   induction Hf; intros g1 g2 Hg.
 Admitted.
 
 
-Instance eqb_r_Proper: forall f, Proper (eq_poly ==> Logic.eq) (eqb f).
+Global Instance eqb_r_Proper: forall f, Proper (eq_poly ==> Logic.eq) (eqb f).
 Proof.
   intros f g1 g2 Hg. generalize dependent f.
   induction Hg as [g1 g2 | c1 c2 g1 g2]; intros.
 Admitted.
 
-Instance eqb_Proper: Proper (eq_poly ==> eq_poly ==> Logic.eq) eqb.
+Global Instance eqb_Proper: Proper (eq_poly ==> eq_poly ==> Logic.eq) eqb.
 Proof.
   intros f1 f2 Hf. induction Hf; intros g1 g2 Hg; induction Hg.
   - empty_to_0p.
@@ -517,7 +518,7 @@ Proof.
     rewrite IHf. auto. 
 Qed.
 
-Instance padd_r_Proper: forall f,
+Local Instance padd_r_Proper: forall f,
   Proper (eq_poly ==> eq_poly) (padd f).
 Proof.
   unfold Proper, respectful.
@@ -527,7 +528,7 @@ Proof.
   - destruct f as [|a f]; simpl; auto.
 Qed.
 
-Instance padd_Proper:
+Global Instance padd_Proper:
   Proper (eq_poly ==> eq_poly ==> eq_poly) padd.
 Proof.
   unfold Proper, respectful.
@@ -556,7 +557,7 @@ Proof.
   induction f; simpl; intros; auto.
 Qed.
 
-Instance pscale_Proper:
+Global Instance pscale_Proper:
   Proper (eq ==> eq_poly ==> eq_poly) pscale.
 Proof.
   intros x y Hxy f g Hfg.
@@ -565,7 +566,7 @@ Proof.
   + simpl. apply eq_poly_cons; auto.
 Qed.
 
-Instance psub_Proper:
+Global Instance psub_Proper:
   Proper (eq_poly ==> eq_poly ==> eq_poly) psub.
 Proof.
   intros f1 g1 H1 f2 g2 H2.
@@ -622,7 +623,7 @@ Abort.
 
 
 
-Instance pmul_r_Proper: forall f,
+Global Instance pmul_r_Proper: forall f,
   Proper (eq_poly ==> eq_poly) (pmul f).
 Proof.
   intros f g1. generalize dependent f.
@@ -637,7 +638,7 @@ Proof.
         rewrite IHg1 with (y:=g2); auto.
 Qed.
 
-Instance pmul_Proper:
+Global Instance pmul_Proper:
   Proper (eq_poly ==> eq_poly ==> eq_poly) pmul.
 Proof.
   intros f1 f2 Hf g1 g2 Hg.
@@ -1013,11 +1014,18 @@ Proof.
   apply H3 in H4. fsatz.
 Qed.
 
-End Polynomial.
+End Polynomial. (* section *)
 
-End Polynomial.
+End Polynomial. (* polynomial *)
 
-Notation polynomial := Polynomial.polynomial.
+Require Import Circom.
+Module _polynomial_test (C: CIRCOM).
+Import C.
+Import Polynomial.
+Definition x : F := 0.
+Definition p: polynomial := @nil F.
+Compute (peval x p).
+End _polynomial_test.
 
 Declare Scope P_scope.
 Delimit Scope P_scope with P.
@@ -1030,7 +1038,7 @@ Infix "^" := F.pow : F_scope. *)
 (* Notation "0" := F.zero : F_scope. *)
 (* Notation "1" := F.one : F_scope. *)
 
-Notation "0p" := (nil : polynomial) : P_scope.
+Notation "0p" := (nil : Polynomial.polynomial) : P_scope.
 Notation "a ~ b" := (Polynomial.eq_poly a b) (at level 20) : P_scope.
 Notation "f ([ x ]) " := (Polynomial.peval x f) (at level 19) : P_scope.
 (* Notation "f [ i ]" := (Polynomial.coeff i f) : P_scope. *)

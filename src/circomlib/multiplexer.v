@@ -16,7 +16,7 @@ Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
 
-Require Import Circom.Circom Circom.Util.
+Require Import Circom.Circom Circom.DSL.
 
 (* Circuit:
 * https://github.com/iden3/circomlib/blob/master/circuits/multiplexer.circom
@@ -26,8 +26,8 @@ Local Open Scope list_scope.
 Local Open Scope F_scope.
 
 Module Multiplexer (C: CIRCOM).
-Module U := Util C.
-Import C U.
+Module D := DSL C.
+Import C D.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.

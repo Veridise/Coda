@@ -1,7 +1,8 @@
 -R src Circom
 src/BabyJubjub.v
-src/Util.v
 src/Circom.v
+src/Util.v
+src/DSL.v
 src/circomlib/Comparators.v
 src/circomlib/Bitify.v
 src/circomlib/gates.v

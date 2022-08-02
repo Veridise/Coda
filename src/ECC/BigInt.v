@@ -17,7 +17,7 @@ Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Ring.
 
-Require Import Util.
+Require Import Util DSL.
 Require Import Circom.circomlib.Bitify.
 
 (* Require Import VST.zlist.Zlist. *)

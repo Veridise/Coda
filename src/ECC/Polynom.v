@@ -21,7 +21,7 @@ Require Import Coq.Lists.ListSet.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations Crypto.Util.Tuple.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems.
 
-Require Import Util.
+Require Import Util DSL.
 
 
 Module Polynomial.
@@ -797,6 +797,7 @@ Lemma degree_max_congruence: forall d1 d2 b1 b2,
   degree_max d1 d2 p<= degree_max b1 b2.
 Admitted.
 
+Locate Decidable.
 
 
 (**************************************

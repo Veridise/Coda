@@ -1,1 +1,0 @@
-From Coqprime.PrimalityTest Require Import Pocklington PocklingtonCertificat.

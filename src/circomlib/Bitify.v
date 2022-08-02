@@ -14,7 +14,7 @@ Require Import Crypto.Util.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Circom.Circom.
-Require Import Circom.Util.
+Require Import Circom.DSL.
 (* Require Import VST.zlist.Zlist. *)
 
 
@@ -25,9 +25,8 @@ Module Bitify (C: CIRCOM).
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
-Import C.
-Module U := Util C.
-Import U.
+Module D := DSL C.
+Import C D.
 
 Declare Scope B_scope.
 Delimit Scope B_scope with B.

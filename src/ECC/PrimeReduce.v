@@ -18,7 +18,7 @@ Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.seto
 Require Import Ring.
 
 Require Import Circom.Circom.
-Require Import Circom.Util.
+Require Import Circom.DSL.
 Require Import Circom.circomlib.Bitify.
 
 
@@ -30,8 +30,8 @@ Require Import Crypto.Spec.ModularArithmetic.
 Module PrimeReduce (C: CIRCOM).
 
 Module B := (Bitify C).
-Module U := Util C.
-Import C B U.
+Module D := DSL C.
+Import B C D.
 
 
 Local Open Scope list_scope.

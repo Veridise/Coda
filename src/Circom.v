@@ -57,8 +57,11 @@ Global Ltac fqsatz := fsatz_safe; autorewrite with circom; auto.
 
 Definition lt (x y: F q) := F.to_Z x < F.to_Z y.
 Definition leq (x y: F q) := F.to_Z x <= F.to_Z y.
-Definition lt_z (x: F q) y := F.to_Z x <= y.
+Definition lt_z (x: F q) y := F.to_Z x < y.
 Definition leq_z (x: F q) y := F.to_Z x <= y.
+Definition gt_z (x: F q) y := F.to_Z x > y.
+Definition geq_z (x: F q) y := F.to_Z x >= y.
+Definition binary (x: F q) := x = F.zero \/ x = F.one.
 
 (* TODO: replace this Ltac with destruct;intuition *)
 Global Ltac split_eqns :=
@@ -75,8 +78,8 @@ Delimit Scope circom_scope with circom.
 
 Global Infix "<z" := Circom.lt_z (at level 50) : circom_scope.
 Global Infix "<=z" := Circom.leq_z (at level 50) : circom_scope.
-Global Notation "a >z b" := (Circom.lt_z b a) (at level 50) : circom_scope.
-Global Notation "a >=z b" := (Circom.leq_z b a) (at level 50) : circom_scope.
+Global Notation "a >z b" := (Circom.gt_z a b) (at level 50) : circom_scope.
+Global Notation "a >=z b" := (Circom.geq_z a b) (at level 50) : circom_scope.
 
 Global Infix "<q" := Circom.lt (at level 50) : circom_scope.
 Global Infix "<=q" := Circom.leq (at level 50) : circom_scope.

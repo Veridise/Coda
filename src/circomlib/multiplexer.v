@@ -25,9 +25,9 @@ Require Import Circom.Circom Circom.DSL.
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 
-Module Multiplexer (C: CIRCOM).
-Module D := DSL C.
-Import C D.
+Module Multiplexer.
+Module D := DSL.
+Import Circom.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -50,7 +50,7 @@ Local Notation "a [ b ]" := (Tuple.nth_default 0 b a).
 Definition EscalarProduct w (in1 in2: tuple F w) out : Prop :=
   exists (aux: tuple F w),
   let lc := 0 in
-  let '(lc, _C) := (iter (fun i '(lc, _C) =>
+  let '(lc, _C) := (D.iter (fun i '(lc, _C) =>
       (lc + aux[i],
       (aux[i] = in1[i] * in2[i]) /\ _C))
     w
@@ -58,7 +58,7 @@ Definition EscalarProduct w (in1 in2: tuple F w) out : Prop :=
   (lc = out) /\ _C.
 
 Definition EscalarProductSpec n w (in1 in2 : tuple F w) out :=
-  out = fold_right (fun a b : F => a + b) 0
+  out = List.fold_right (fun a b : F => a + b) 0
          (firstn n (to_list w (map2 (fun a b : F => a * b) in1 in2))).
 
 Theorem EscalarProductSoundness:
@@ -78,8 +78,8 @@ Proof.
     let x := fresh "f" in remember f as x
   end.
   (* invariant holds *)
-  assert (Hinv: forall i, Inv i (iter f i a0)). {
-  intros. apply iter_inv; unfold Inv.
+  assert (Hinv: forall i, Inv i (D.iter f i a0)). {
+  intros. apply D.iter_inv; unfold Inv.
   - (* base case *) 
     subst. intros. unfold EscalarProductSpec in *. admit.
   - (* inductive case *)
@@ -94,7 +94,7 @@ Proof.
    }
   unfold Inv in Hinv.
   specialize (Hinv O).
-  destruct (iter f O a0).
+  destruct (D.iter f O a0).
   intuition.
 Abort.
 
@@ -119,7 +119,7 @@ Definition ite {T:Type}{T1:Prop} (e: Decidable T1) (a b: T) := if e then a else 
 
 Definition Decoder w inp (out: tuple F w) success : Prop :=
   let lc := 0 in
-  let '(lc, _C) := (iter (fun i '(lc, _C) =>
+  let '(lc, _C) := (D.iter (fun i '(lc, _C) =>
       (lc + out[i],
         (out[i] = ite (F.eq_dec inp (F.of_nat q i)) 1 0) /\
         (out[i] * (inp - (F.of_nat q i)) = 0) /\ _C))
@@ -158,8 +158,8 @@ Definition Multiplexer
   wIn nIn sel (inp: tuple (tuple F wIn) (S (nIn - 1))) 
   (out: tuple F wIn) : Prop :=
 exists (ep_in1 ep_in2: tuple (tuple F nIn) (S (wIn - 1))) (ep_out: tuple F nIn) dec_out,
-  let '_C2 := (iter  (fun j '_C =>
-      (let '_C3 := (iter (fun k '_C =>
+  let '_C2 := (D.iter  (fun j '_C =>
+      (let '_C3 := (D.iter (fun k '_C =>
           (get_n_m inp k j = get_n_m ep_in1 j k /\ 
            dec_out[k] = get_n_m ep_in2 j k /\ _C))
            nIn True) in

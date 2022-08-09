@@ -25,29 +25,21 @@ Require Import Circom.circomlib.Bitify.
 Require Import Circom.Circom.
 Require Import Circom.ECC.Polynom.
 
-Locate Ltac ring_simplify_subterms.
-
-
 (* Circuit:
 * https://github.com/0xPARC/circom-ecdsa/blob/08c2c905b918b563c81a71086e493cb9d39c5a08/circuits/bigint.circom
 *)
 
-Module BigInt (C: CIRCOM).
 
-Import C.
+Import Circom.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 Local Open Scope P_scope.
-
+Local Open Scope circom_scope.
 
 (**************************
  * Overflow Representation
  **************************)
-Notation "2" := (1+1: F).
-
-Lemma to_Z_2: F.to_Z 2 = 2%Z.
-Proof. unwrap_C. simpl. repeat rewrite Z.mod_small; lia. Qed.
 
 
 (* peel off 1 from x^(i+1) in field exp *)
@@ -72,66 +64,10 @@ Proof.
   rewrite Zpower_exp; lia.
 Qed.
 
-(* 
 
-(* [repr]esentation [func]tion:
- * interpret a list of weights as representing a little-endian base-2^n number
- *)
-Fixpoint repr_to_le' (n: nat) (i: nat) (ws: list (F q)) : F q :=
-  match ws with
-  | nil => 0
-  | w::ws' => w * two^(N.of_nat n * N.of_nat i) + repr_to_le' n (S i) ws'
-  end.
 
-Definition repr_to_le n := repr_to_le' n 0%nat.
 
-(* repr func lemma: single-step index change *)
-Lemma repr_to_le'_S: forall ws n i,
-  repr_to_le' n (S i) ws = 2^(N.of_nat n) * repr_to_le' n i ws.
-Proof.
-  induction ws as [| w ws]; intros.
-  - fqsatz.
-  - cbn [repr_to_le'].
-    rewrite IHws.
-    remember (N.of_nat n) as m.
-    replace (2^(m * N.of_nat (S i))) with (2^m * 2 ^ (m * N.of_nat i)).
-    fqsatz.
-    rewrite <- F.pow_add_r. f_equal. lia.
-Qed.
-
-(* Probably not needed
-(* repr func lemma: multi-step index change *)
-Lemma repr_to_le'_n: forall ws i j,
-  repr_to_le' (i+j) ws = 2^(N.of_nat i) * repr_to_le' j ws.
-Proof.
-  induction i; intros; simpl.
-  - rewrite F.pow_0_r. fqsatz.
-  - rewrite repr_to_le'_S. rewrite IHi.
-    replace (N.pos (Pos.of_succ_nat i)) with (1 + N.of_nat i)%N.
-    rewrite F.pow_add_r.
-    rewrite F.pow_1_r.
-    fqsatz.
-    lia.
-Qed. *)
-
-(* repr func lemma: decomposing weight list *)
-Lemma repr_to_le_app: forall ws2 ws1 ws n i,
-  ws = ws1 ++ ws2 ->
-  repr_to_le' n i ws = repr_to_le' n i ws1 + repr_to_le' n (i + length ws1) ws2.
-Proof.
-  induction ws1; simpl; intros.
-  - subst. replace (i+0)%nat with i by lia. fqsatz.
-  - destruct ws; inversion H; subst.
-    simpl.
-    assert (repr_to_le' n (S i) (ws1 ++ ws2) = 
-      repr_to_le' n (S i) ws1 + repr_to_le' n (i + S (length ws1)) ws2). {
-        rewrite <- plus_n_Sm, <- plus_Sn_m.
-        eapply IHws1. reflexivity.
-      }
-    fqsatz.
-Qed.
-
-Definition polynomial := list (F q).
+Definition polynomial := list F.
 
 (* polynomial addition *)
 Fixpoint pairwise {A: Type} (op: A -> A -> A) (p q: list A) : list A :=
@@ -151,7 +87,7 @@ Fixpoint pmul (xs ys: polynomial) : polynomial :=
   end.
 
 (* polynomial evaluation *)
-Fixpoint eval' (i: N) (cs: polynomial) (x: F q) : F q :=
+Fixpoint eval' (i: N) (cs: polynomial) (x: F) : F :=
   match cs with
   | nil => 0
   | c::cs' => c * x^i + eval' (i+1)%N cs' x
@@ -159,9 +95,9 @@ Fixpoint eval' (i: N) (cs: polynomial) (x: F q) : F q :=
 
 Definition eval := eval' 0.
 
-Definition toPoly {m} (xs: tuple (F q) m) : polynomial := to_list m xs.
+Definition toPoly {m} (xs: tuple F m) : polynomial := to_list m xs.
 
-Lemma toPoly_length: forall {m} (xs: tuple (F q) m),
+Lemma toPoly_length: forall {m} (xs: tuple F m),
   length (toPoly xs) = m.
 Proof.
   intros. apply length_to_list.
@@ -169,7 +105,7 @@ Qed.
 
 Definition coeff (i: nat) (cs: polynomial) := nth i cs 0.
 
-Lemma coeff_nth: forall {m} (xs: tuple (F q) m) i,
+Lemma coeff_nth: forall {m} (xs: tuple F m) i,
   coeff i (toPoly xs) = nth_default 0 i xs.
 Proof.
   unfold coeff. unfold toPoly. intros.
@@ -178,6 +114,7 @@ Qed.
 
 Lemma eval'_ppadd: forall c n d x, eval' n (padd c d) x = eval' n c x + eval' n d x.
 Proof.
+  unwrap_C.
   unfold padd.
   induction c; simpl;intros; try fqsatz.
   destruct d.
@@ -198,22 +135,22 @@ Qed.
 
 Lemma eval_repeat_0: forall k n x, eval' n (List.repeat 0 k) x = 0.
 Proof.
-  induction k0;intros;simpl;auto. 
-  rewrite IHk0. fqsatz.
+  unwrap_C. induction k;intros;simpl;auto. 
+  rewrite IHk. fqsatz.
 Qed.
 
 Lemma eval'_ppmul_inner:
   forall d a n x,
-  eval' n (List.map (fun y : F q => a * y) d) x = 
+  eval' n (List.map (fun y : F => a * y) d) x = 
    a * eval' n d x.
 Proof.
-  induction d;simpl;intros;try fqsatz.
+  unwrap_C. induction d;simpl;intros;try fqsatz.
   rewrite IHd. fqsatz.
 Qed.
 
 Lemma eval'_n_plus_1: forall c n x, eval' (n + 1) c x = x * eval' n c x.
 Proof.
-  induction c; simpl;intros; try fqsatz. 
+  unwrap_C. induction c; simpl;intros; try fqsatz. 
   rewrite IHc.
   assert(x * (a * x ^ n + eval' (n + 1) c x) = x * a * x ^ n + x * eval' (n + 1) c x) by
   fqsatz.
@@ -233,7 +170,7 @@ Qed.
 
 Lemma eval'_ppmul: forall c d x, eval' 0 (pmul c d) x = eval' 0 c x * eval' 0 d x.
 Proof.
-  induction c; simpl;intros; try fqsatz. 
+  unwrap_C. induction c; simpl;intros; try fqsatz. 
   rewrite eval'_ppadd. simpl. repeat rewrite eval'_n_plus_1_0.
   rewrite IHc. rewrite eval'_ppmul_inner.
   rewrite F.pow_0_r. fqsatz.
@@ -244,7 +181,7 @@ Proof.
   intros. apply eval'_ppmul.
 Qed.
 
-Lemma firstn_toPoly: forall m (x: tuple (F q) m),
+Lemma firstn_toPoly: forall m (x: tuple F m),
   firstn m (toPoly x) = toPoly x.
 Proof.
   intros.
@@ -255,7 +192,7 @@ Qed.
 Lemma eval_app': forall cs0 cs1 n x,
   eval' n (cs0 ++ cs1) x = eval' n cs0 x + eval' (n + N.of_nat (length cs0)) cs1 x.
 Proof.
-  induction cs0;simpl;intros.
+  unwrap_C. induction cs0;simpl;intros.
   - assert(n + 0 =n)%N by lia. rewrite H. fqsatz.
   - rewrite IHcs0.
     assert (N.pos (Pos.of_succ_nat (length cs0)) = (1 + N.of_nat (length cs0))%N).
@@ -270,17 +207,20 @@ Lemma eval_app: forall cs0 cs1 x,
 Proof.
   intros. apply eval_app'.
 Qed.
-*)
+
 
 Local Notation "x [ i ]" := (Tuple.nth_default 0 i x).
 
+Definition nth2 {m n} (i: nat) (x: tuple (tuple F n) m) := Tuple.nth_default (repeat 0 n) i x.
+(* Local Notation "x [ i ][ j ]" := (Tuple.nth_default 0 j (nth2 i x)). *)
 
-Definition init_poly ka kb (poly: tuple F (ka+ kb -1)) {m} (x: tuple F m) _C := 
-  iter (ka+kb-1) (fun i _C => _C /\
+Module D := DSL.
+Definition init_poly ka kb (poly: tuple F (ka+ kb -1)) {m: nat} (x: tuple F m) _C := 
+  D.iter (fun i _C => _C /\
         (* inner loop: poly[i] = \sum_{j=0...ka+kb-1} x[j] * i ** j *)
-        poly[i] = iter m (fun j poly_i =>
-          (poly_i + x[j] * (F.of_nat q i)^(N.of_nat j))) 0)
-      _C.
+        poly[i] = D.iter (fun j poly_i =>
+          (poly_i + x[j] * (F.of_nat q i)^(N.of_nat j))) m 0)
+          (ka+kb-1)  _C.
 
 Lemma exists_last': forall {A: Type} (l: list A),
   l <> nil ->
@@ -292,13 +232,13 @@ Proof.
   eexists. eexists. eauto.
 Qed.
 
-Import Polynomial.
+(* Import Polynomial. *)
 
-Print polynomial.
+(* Print polynomial. *)
 
-Definition x : F := 0.
-Definition p : polynomial := @nil F.
-Definition y : F := (1 + (peval x p)).
+(* Definition x : F := 0. *)
+(* Definition p : polynomial := @nil F. *)
+(* Definition y : F := (1 + (peval x p)). *)
 (* 
 Variable m: nat.
 Variable x: tuple F m.
@@ -310,24 +250,24 @@ Lemma init_poly_correct: forall {ka kb} (poly: tuple F (ka+ kb -1)) {m} (x: tupl
   init_poly ka kb poly x _C ->
   (_C (* output constraint preserves _C *)
   /\ forall i, (i < ka + kb -1)%nat -> 
-    poly [i] = peval (F.of_nat q i : F) (toPoly x: polynomial) ).
+    poly [i] = eval (toPoly x) (F.of_nat q i : F)).
 Proof.
-  unfold init_poly.
+  unwrap_C. unfold init_poly.
   intros ka kb poly m x _C0.
   remember (ka+kb-1)%nat as outer_bound.
   (* invariant for the inner loop *)
   remember (fun (i : nat) (_C : Prop) =>
   _C /\
   poly [i] =
-  iter m
-    (fun (j : nat) (poly_i : F q) =>
-     poly_i + x [j] * F.of_nat q i ^ N.of_nat j) 0)
+  D.iter
+    (fun (j : nat) (poly_i : F) =>
+     poly_i + x [j] * F.of_nat q i ^ N.of_nat j) m 0)
   as outer.
   
   pose (Inv_outer := fun i _C =>
     _C -> _C0 /\ forall i0, (i0 < i)%nat -> poly [i0] = eval (toPoly x) (F.of_nat q i0)).
-  assert (Hinv_outer: Inv_outer outer_bound (iter outer_bound outer _C0)). {
-    apply iter_inv; unfold Inv_outer.
+  assert (Hinv_outer: Inv_outer outer_bound (D.iter outer outer_bound _C0)). {
+    apply D.iter_inv; unfold Inv_outer.
     (* outer: base case *)
     - intuition idtac. lia.
     (* outer: inductive case *)
@@ -339,10 +279,10 @@ Proof.
       + apply H3. lia.
       + assert (i1 = i0) by lia. subst.
         pose (Inv_inner := fun j acc => acc = eval (firstn j (toPoly x)) (F.of_nat q i0)).
-        remember (fun (j : nat) (poly_i : F q) => poly_i + x [j] * F.of_nat q i0 ^ N.of_nat j)
+        remember (fun (j : nat) (poly_i : F) => poly_i + x [j] * F.of_nat q i0 ^ N.of_nat j)
           as inner.
-        assert (Hinv_inner: Inv_inner m (iter m inner 0)). {
-          apply iter_inv; unfold Inv_inner.
+        assert (Hinv_inner: Inv_inner m (D.iter inner m 0)). {
+          apply D.iter_inv; unfold Inv_inner.
           - intuition idtac.
           - intros j acc Hacc H_j_m. subst.
             destruct m.
@@ -375,7 +315,7 @@ Proof.
               rewrite firstn_app. rewrite firstn_all.
               replace (length (cs ++ c :: nil) - length (cs ++ c :: nil))%nat with 0%nat by lia.
               rewrite firstn_O. rewrite app_nil_r. rewrite eval_app. cbn [eval'].
-              replace c with (x [j]). subst. replace (length cs + 0)%nat with (length cs) by lia.
+              replace c with (x [j] ). subst. replace (length cs + 0)%nat with (length cs) by lia.
               fqsatz.
               rewrite <- coeff_nth. rewrite H_split.
               replace (cs ++ (c :: nil) ++ cs') with ((cs ++ (c :: nil)) ++ cs') by (rewrite app_assoc; reflexivity).
@@ -384,8 +324,8 @@ Proof.
               rewrite app_length. simpl. lia.
         }
         unfold Inv_inner in Hinv_inner.
-        rewrite firstn_toPoly in *. 
-        rewrite H0. rewrite Hinv_inner. reflexivity.
+        rewrite firstn_toPoly in Hinv_inner. 
+        rewrite H0, Hinv_inner. reflexivity.
   }
   intros.
   unfold Inv_outer in Hinv_outer.
@@ -394,12 +334,12 @@ Qed.
 
 Definition BigMultNoCarry_cons
   ka kb
-  (a: tuple (F q) ka)
-  (b: tuple (F q) kb)
-  (out: tuple (F q) (ka + kb - 1))
-  (a_poly: tuple (F q) (ka+ kb -1))
-  (b_poly: tuple (F q) (ka+ kb -1))
-  (out_poly: tuple (F q) (ka+ kb -1)) 
+  (a: tuple F ka)
+  (b: tuple F kb)
+  (out: tuple F (ka + kb - 1))
+  (a_poly: tuple F (ka+ kb -1))
+  (b_poly: tuple F (ka+ kb -1))
+  (out_poly: tuple F (ka+ kb -1)) 
   :=
   let _C := True in
   let _C :=
@@ -409,24 +349,54 @@ Definition BigMultNoCarry_cons
   let _C :=
     init_poly ka kb b_poly b _C in
   let _C :=
-    iter (ka+kb-1) (fun i _C => _C /\ 
-      out_poly[i] = a_poly[i] * b_poly[i]) _C in
+    D.iter (fun i _C => _C /\ 
+      out_poly[i] = a_poly[i] * b_poly[i] ) (ka+kb-1) _C in
   _C.
+
+Declare Scope DSL_scope.
+Delimit Scope DSL_scope with DSL.
+
+Module DL := DSLL.
+Import DL.
+
+Notation "a +d b" := (addL a b) (at level 50) : DSL_scope.
+Notation "a *d b" := (mulL a b) (at level 40) : DSL_scope.
+Notation "a $d b" := (scaleL a b) (at level 30) : DSL_scope.
+Notation "a ==d b" := (eqL a b) (at level 60) : DSL_scope.
+
+Local Open Scope DSL_scope.
+
+Local Coercion N.of_nat: nat >-> N.
+Local Coercion Z.of_nat: nat >-> Z.
+Print init0.
+Definition BigMultNoCarry_cons'
+  ka kb
+  (a: list F)
+  (b: list F)
+  (out: list F) 
+  (Ha: length a = ka )
+  (Hb: length b = kb )
+  :=
+  let k := (ka + kb - 1)%nat in
+  length out = k /\
+  let powers := init0 (fun i => init0 (fun j => (F.of_nat q i)^j) k) k in
+  let poly := fun k x => init0 (fun i => sumL_F (x *d (List.nth i powers nil))) k in
+  poly k out ==d poly ka a *d poly kb b.
 
 Definition BigMultNoCarry
   ka kb
-  (a: tuple (F q) ka)
-  (b: tuple (F q) kb)
-  (out: tuple (F q) (ka + kb - 1)) :=
-  exists a_poly b_poly out_poly, 
+  (a: tuple F ka)
+  (b: tuple F kb)
+  (out: tuple F (ka + kb - 1)) :=
+  exists a_poly b_poly out_poly,
     BigMultNoCarry_cons ka kb a b out a_poly b_poly out_poly.
 
 (* Partial spec *)
 Definition BigMultNoCarry_spec
   ka kb
-  (a: tuple (F q) ka)
-  (b: tuple (F q) kb)
-  (out: tuple (F q) (ka + kb -1)) :=
+  (a: tuple F ka)
+  (b: tuple F kb)
+  (out: tuple F (ka + kb -1)) :=
   to_list (ka + kb -1) out = pmul (to_list ka a) (to_list kb b).
 
 (* Complete spec *)
@@ -531,26 +501,28 @@ Definition degree_leqb d1 d2 :=
   end.
 Definition degree_leq d1 d2 : Prop := degree_leqb d1 d2 = true.
 
-Definition pscale (k: F q) : polynomial -> polynomial := List.map (fun a => k * a).
+Definition pscale (k: F) : polynomial -> polynomial := List.map (fun a => k * a).
 Definition psub (p q: polynomial) : polynomial := padd p (pscale (F.opp 1) q).
 
-Lemma eval_popp': forall p0 n (x: F q), 
+Lemma eval_popp': forall p0 n (x: F), 
 eval' n (pscale (F.opp 1) p0) x = 0 - eval' n p0 x.
 Proof.
+  unwrap_C.
   unfold pscale. 
   induction p0; simpl;intros; try fqsatz.
   rewrite IHp0. fqsatz.
 Qed.
 
-Lemma eval_popp: forall p0 (x: F q), 
+Lemma eval_popp: forall p0 (x: F), 
 eval (pscale (F.opp 1) p0) x = 0 - eval p0 x.
 Proof.
   intros. apply eval_popp'.
 Qed.
 
-Lemma eval_psub: forall (p0 q0: polynomial) (x: F q), (*11*)
+Lemma eval_psub: forall (p0 q0: polynomial) (x: F), (*11*)
   eval (psub p0 q0) x = eval p0 x - eval q0 x.
 Proof.
+  unwrap_C.
   unfold psub. intros. rewrite eval_ppadd. rewrite eval_popp. fqsatz.
 Qed.
 
@@ -562,7 +534,7 @@ Admitted.
 Lemma eq_poly_decidable: forall p q : polynomial, (*11*)
   p = q \/ ~ (p = q).
 Proof.
-  intros. pose proof (dec_eq_list p q0). destruct H;auto.
+  intros. pose proof (dec_eq_list p q). destruct H;auto.
 Qed.
 
 Definition p0 : polynomial := nil.
@@ -595,7 +567,7 @@ Lemma degree_leq_trans: forall a b d n,
 Proof.
 Admitted.
 
-Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
+Theorem interpolant_unique: forall (a b: polynomial) n (X: list F),
   degree_leq (deg a) (Some n) ->
   degree_leq (deg b) (Some n) ->
   (length X > n)%nat ->
@@ -604,6 +576,7 @@ Theorem interpolant_unique: forall (a b: polynomial) n (X: list (F q)),
   a = b.
 Proof.
   (* Proof: https://inst.eecs.berkeley.edu/~cs70/fa14/notes/n7.pdf *)
+  unwrap_C.
   intros.
   destruct (eq_poly_decidable a b).
   trivial.
@@ -617,21 +590,25 @@ Proof.
   { eapply degree_leq_trans. 3: apply H_deg_r_leq. all:auto. }
   specialize (deg_d_has_most_d_roots _ _ H_deg_r H_x).
   intro HX. destruct HX as [X' [H_len_X H_X] ].
-  eapply In_pigeon_hole with (X := X ) (X' := X');auto.
+  eapply Util.In_pigeon_hole with (X := X ) (X' := X');auto.
   lia.
   intros. apply H_X. unfold root. rewrite eval_psub.
   apply H3 in H4. fqsatz.
 Qed.
 
-Lemma degree_leq_tuple: forall n (l:tuple (F q) n),
+Lemma degree_leq_tuple: forall n (l:tuple F n),
 degree_leq (deg (toPoly l)) (Some (n-1)%nat).
 Proof.
 Admitted.
 
-Lemma degree_leq_pmul: forall ka kb (a:tuple (F q) ka)(b:tuple (F q) kb),
+Lemma degree_leq_pmul: forall ka kb (a:tuple F ka)(b:tuple F kb),
 degree_leq (deg (pmul (toPoly a) (toPoly b))) (Some (ka + kb - 2)%nat).
 Proof.
 Admitted.
+
+(* Theorem BigMultNoCarry_correct ka kb a b out
+  (RANGE1: (ka + kb <= Pos.to_nat q)%nat) (RANGE2: (2 <= ka + kb)%nat):
+  BigMultNoCarry ka kb a b out -> BigMultNoCarry_spec ka kb a b out. *)
 
 Theorem BigMultNoCarry_correct ka kb a b out
   (RANGE1: (ka + kb <= Pos.to_nat q)%nat) (RANGE2: (2 <= ka + kb)%nat):
@@ -647,14 +624,14 @@ Proof.
   pose proof (init_poly_correct b_poly b init_a) as H_b.
 
   remember (fun (i : nat) (_C : Prop) =>
-    _C /\ out_poly [i] = a_poly [i] * b_poly [i]) as f.
+    _C /\ out_poly [i] = a_poly [i] * b_poly [i] ) as f.
 
   pose (Inv := fun (i: nat) _C => _C ->
     init_b /\
-    forall i0, (i0 < i)%nat -> out_poly [i0] = a_poly [i0] * b_poly [i0]).
+    forall i0, (i0 < i)%nat -> out_poly [i0] = a_poly [i0] * b_poly [i0] ).
 
-  assert (Hind: forall i, Inv i (iter i f init_b)). {
-    intros i. unfold Inv; apply iter_inv.
+  assert (Hind: forall i, Inv i (D.iter f i init_b)). {
+    intros i. unfold Inv; apply D.iter_inv.
     - intuition idtac. lia.
     - intros i0. intros.
       rewrite Heqf in H2.

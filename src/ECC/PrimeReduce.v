@@ -27,10 +27,11 @@ Require Import Crypto.Spec.ModularArithmetic.
 * https://github.com/0xPARC/circom-ecdsa/blob/08c2c905b918b563c81a71086e493cb9d39c5a08/circuits/bigint.circom
 *)
 
-Module PrimeReduce (C: CIRCOM).
+Module PrimeReduce.
 
-Module B := (Bitify C).
-Module D := DSL C.
+Module B := Bitify.
+Module D := DSL.
+Module C := Circom.
 Import B C D.
 
 

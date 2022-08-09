@@ -14,9 +14,9 @@ Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
 Require Import Circom.Circom.
 
-Module Util (C: CIRCOM).
+Module Util.
 
-Import C.
+Import Circom.
 
 Import ListNotations.
 

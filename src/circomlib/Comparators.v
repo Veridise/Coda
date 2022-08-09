@@ -22,10 +22,8 @@ Local Open Scope F_scope.
 (* Circuits:
  * https://github.com/iden3/circomlib/blob/master/circuits/comparators.circom
  *)
-Module Comparators (C: CIRCOM).
-Import C.
-Module B := (Bitify C).
-Import B.
+Module Comparators.
+Import Circom Bitify.
 
 (***********************
  *       IsZero
@@ -33,7 +31,6 @@ Import B.
 
 Module IsZero.
 
-(* IsZero constraints *)
 Definition cons (_in _out _inv: F) :=
   _out = 1 - _in * _inv /\
   _in * _out = 0.
@@ -42,22 +39,21 @@ Definition cons (_in _out _inv: F) :=
 Class t : Type := mk { _in: F; _out: F; _cons: exists _inv, cons _in _out _inv }.
 
 (* IsZero spec *)
-Definition spec (w: t) : Prop :=
-  (w.(_in) = 0 -> w.(_out) = 1) /\
-  (~(w.(_in) = 0) -> w.(_out) = 0).
+Definition spec (c: t) : Prop :=
+  (c.(_in) = 0 -> c.(_out) = 1) /\
+  (~(c.(_in) = 0) -> c.(_out) = 0).
 
 (* IsZero is sound *)
 Theorem soundness:
-  forall (w: t), spec w.
+  forall (c: t), spec c.
 Proof.
   unwrap_C.
-  intros.
-  destruct w as [_in _out].
-  unfold spec, cons in *.
+  intros. destruct c as [_in _out].
+  unfold spec, cons in *. simpl. destruct _cons0.
   simpl.
   split_eqns;
   intros;
-  split_eqns; fqsatz.
+  split_eqns. fqsatz. fqsatz.
 Qed.
 
 (* Theorem IsZero_complete: forall (w: t),

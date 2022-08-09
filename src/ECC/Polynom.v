@@ -1020,8 +1020,8 @@ End Polynomial. (* section *)
 End Polynomial. (* polynomial *)
 
 Require Import Circom.
-Module _polynomial_test (C: CIRCOM).
-Import C.
+Module _polynomial_test.
+Import Circom.
 Import Polynomial.
 Definition x : F := 0.
 Definition p: polynomial := @nil F.

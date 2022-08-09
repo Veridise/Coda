@@ -21,12 +21,13 @@ Require Import Circom.DSL.
 (* Circuits:
  * https://github.com/iden3/circomlib/blob/master/circuits/comparators.circom
  *)
-Module Bitify (C: CIRCOM).
+Module Bitify.
+Import Circom.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
-Module D := DSL C.
-Import C D.
+Local Open Scope circom_scope.
+Module D := DSL.
 
 Declare Scope B_scope.
 Delimit Scope B_scope with B.
@@ -35,7 +36,6 @@ Local Notation "F ^ n" := (tuple F n) : type_scope.
 
 Module Num2Bits.
 
-
 (***********************
  *      Num2Bits
  ***********************)
@@ -43,7 +43,7 @@ Module Num2Bits.
 (* test whether a field element is binary *)
 Definition binary (x: F) := x = 0 \/ x = 1.
 
-Notation "2" := (1 + 1 : F).
+Locate "2".
 
 Lemma to_Z_2: @F.to_Z q 2 = 2%Z.
 Proof. unwrap_C. simpl. repeat rewrite Z.mod_small; lia. Qed.
@@ -352,7 +352,8 @@ Proof with (lia || nia || eauto).
     unfold repr_to_le in *.
     rewrite repr_to_le'_S.
     (* get rid of mod and generate range goals *)
-    cbn; repeat rewrite Z.mod_small...
+    rewrite F.to_Z_add, F.to_Z_mul, F.to_Z_pow, to_Z_2, F.to_Z_mul, to_Z_2.
+    repeat rewrite Z.mod_small...
 Qed.
 
 Ltac to_Z_ranges :=
@@ -488,7 +489,7 @@ Local Open Scope B_scope.
 Definition cons (n: nat) (_in: F) (_out: F^n) : Prop :=
   let lc1 := 0 in
   let e2 := 1 in
-  let '(lc1, e2, _C) := (iter (fun (i: nat) '(lc1, e2, _C) =>
+  let '(lc1, e2, _C) := (D.iter (fun (i: nat) '(lc1, e2, _C) =>
     let out_i := (_out [i] ) in
       (lc1 + out_i * e2,
       e2 + e2,
@@ -513,8 +514,8 @@ Proof.
     let x := fresh "f" in remember f as x
   end.
   (* invariant holds *)
-  assert (Hinv: forall i, Inv i (iter f i a0)). {
-  intros. apply iter_inv; unfold Inv.
+  assert (Hinv: forall i, Inv i (D.iter f i a0)). {
+  intros. apply D.iter_inv; unfold Inv.
   - (* base case *) 
     subst. intros _ j impossible. lia.
   - (* inductive case *)
@@ -534,7 +535,7 @@ Proof.
    }
   unfold Inv in Hinv.
   specialize (Hinv n).
-  destruct (iter f n a0).
+  destruct (D.iter f n a0).
   destruct p.
   intuition.
 Qed.
@@ -634,8 +635,8 @@ Proof.
    e2 + e2,
    nth_default 0 i _out * (nth_default 0 i _out - 1) = 0 /\
    _C)) as f.
-  assert (Hinv: Inv n (iter f n (0,1,True))). {
-    apply iter_inv; unfold Inv.
+  assert (Hinv: Inv n (D.iter f n (0,1,True))). {
+    apply D.iter_inv; unfold Inv.
     - intuition. simpl. rewrite F.pow_0_r. fqsatz.
       simpl. apply repr_binary_base.
     - intros j acc. destruct acc as [acc _C]. destruct acc as [lc1 e2].
@@ -659,7 +660,7 @@ Proof.
           rewrite firstn_length_le. fqsatz.
           rewrite length_to_list. lia.
   }
-  destruct (iter f n (0,1,True)) as [ [lc1 e2] _C].
+  destruct (D.iter f n (0,1,True)) as [ [lc1 e2] _C].
   unfold Inv in Hinv. intuition.
   subst. rewrite <- firstn_to_list. auto.
 Qed.

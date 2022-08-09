@@ -9,4 +9,5 @@ src/circomlib/gates.v
 src/circomlib/multiplexer.v
 src/ECC/Polynom.v
 src/ECC/Polynom_test.v
+src/ECC/BigInt.v
 src/ECC/PrimeReduce.v

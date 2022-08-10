@@ -130,19 +130,17 @@ End IsEqual.
 Module LessThan.
 
 Definition cons (n: nat) (_in: tuple F 2) (_out: F) :=
-  exists (n2b: Num2Bits.t),
-    n2b.(Num2Bits.n) = S n /\
+  exists (n2b: Num2Bits.t (S n)),
     n2b.(Num2Bits._in) = (_in [0] + 2^n - _in[1]) /\
     _out = 1 - n2b.(Num2Bits._out)[n].
 
-Class t: Type := mk {
-  n: nat;
+Class t (n: nat): Type := mk {
   _in: tuple F 2;
   _out: F;
   _cons: cons n _in _out;
 }.
 
-Definition spec (w: t) :=
+Definition spec (n: nat) (w: t n) :=
   (binary _out) /\
   (_out = 1 -> w.(_in)[0] <q w.(_in)[1]) /\
   (_out = 0 -> w.(_in)[0] >=q w.(_in)[1]).
@@ -185,50 +183,52 @@ Hint Rewrite to_Z_sub : F_to_Z.
 Hint Rewrite Z.mod_small : F_to_Z.
 
 
-Lemma soundness: forall (w : t)
-  (H_nk: w.(n) <= k - 1)
+Lemma soundness: forall (n: nat) (w : t n)
+  (H_nk: n <= k - 1)
   (H_x: 0 <= F.to_Z (w.(_in)[0]) <= 2 ^ n )
   (H_y: 0 <= F.to_Z (w.(_in)[1]) <= 2 ^ n ),
-  spec w.
+  spec n w.
 Proof.
   unwrap_C. intros. unfold spec.
   remember (_in[0]) as x. eremember (_in[1]) as y.
-  destruct w as [n _in _out _cons].
+  destruct w as [_in _out _cons].
   unfold binary. unfold cons in *.
   destruct _cons as [n2b H].
-  cbn [LessThan._in LessThan._out LessThan.n] in *.
+  cbn [LessThan._in LessThan._out] in *.
   assert (H_pow_nk: 2 * 2^n <= 2^k). {
     replace (2 * 2^n)%Z with (2 ^ (n + 1))%Z by (rewrite Zpower_exp; lia).
     apply Zpow_facts.Zpower_le_monotone; lia.
   }
   rewrite <- Heqx, <- Heqy in *.
-  pose proof (Num2Bits.soundness n2b) as H_n2b.
+  pose proof (Num2Bits.soundness _ n2b) as H_n2b.
   pose proof H_n2b as H_n2b'.
   unfold Num2Bits.spec in *. unfold repr_le2, repr_le in H_n2b.
-  destruct H as [H_n [H_in H_out] ].
+  destruct H as [H_n H_out ].
   intuition.
   - eapply one_minus_binary; eauto.
-    rewrite <- nth_default_to_list, nth_default_eq. apply Forall_nth. auto. lia.
+    rewrite <- nth_default_to_list, nth_default_eq. apply Forall_nth. apply Forall_in_range. auto.
+    lia.
   - assert (Hn: Num2Bits._out [n] = 0) by fqsatz.
     rewrite <- nth_default_to_list, nth_default_eq in Hn.
-    remember (to_list Num2Bits.n Num2Bits._out) as n2b_out.
+    remember (to_list (S n) Num2Bits._out) as n2b_out.
       unfold repr_le2 in *.
-      rewrite H_in in *.
       eapply repr_le_last0' in Hn. 2: { rewrite H_n in H_n2b'. apply H_n2b'. }
       fold repr_le2 in Hn.
       apply repr_le_ub in Hn; try lia.
     assert (F.to_Z x + 2^n - F.to_Z y <= 2^n - 1 ). {
-      autorewrite with F_to_Z zsimplify in Hn; try lia;
-      repeat autorewrite with F_to_Z zsimplify; try lia.
+      autorewrite with F_to_Z in Hn; try lia;
+      repeat autorewrite with F_to_Z; simpl; try lia.
+      simpl in Hn. lia.
     }
     lia.
   - assert (Hn: Num2Bits._out [n] = 1) by fqsatz.
-    rewrite H_n, H_in in *.
+    rewrite H_n in *.
     rewrite <- nth_default_to_list, nth_default_eq in Hn.
     eapply repr_le_lb with (i:=n) in Hn; eauto; try lia.
     assert (F.to_Z x + 2^n - F.to_Z y >= 2^n). {
-      autorewrite with F_to_Z zsimplify in Hn; try lia;
-      repeat autorewrite with F_to_Z zsimplify; try lia.
+      autorewrite with F_to_Z in Hn; try lia;
+      repeat autorewrite with F_to_Z; simpl; try lia.
+      simpl in Hn. lia.
     }
     lia.
 Qed.

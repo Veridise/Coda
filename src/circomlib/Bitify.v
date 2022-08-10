@@ -236,18 +236,21 @@ Qed.
 
 End Endianness.
     
-(* [repr]esentation [inv]ariant for Num2Bits *)
-Definition repr_le x n ws :=
-  length ws = n /\
-  List.Forall binary ws /\
+Section Representation.
+
+Definition in_range (x: F) := (x <=z (2^n-1)%Z).
+
+Definition repr_le x m ws :=
+  length ws = m /\
+  List.Forall in_range ws /\
   x = as_le ws.
 
-Definition repr_be x n ws :=
-  length ws = n /\
-  List.Forall binary ws /\
+Definition repr_be x m ws :=
+  length ws = m /\
+  List.Forall in_range ws /\
   x = as_be ws.
 
-Lemma repr_rev: forall x n ws, repr_le x n ws <-> repr_be x n (rev ws).
+Lemma repr_rev: forall x m ws, repr_le x m ws <-> repr_be x m (rev ws).
 Proof.
   split; intros; unfold repr_le, repr_be in *.
   - intuition.
@@ -270,10 +273,8 @@ Lemma repr_le_invert: forall w ws,
   repr_le (as_le ws) (length ws) ws.
 Proof.
   unfold repr_le.
-  intros.
-  destruct H as [H_len [ H_bin H_le] ].
-  inversion H_bin.
-  intuition.
+  intros. intuition.
+  invert H. auto.
 Qed.
 
 Lemma as_be_0: forall ws, as_be (0::ws) = as_be ws.
@@ -282,9 +283,7 @@ Proof.
   intros. unfold as_be. simpl. autorewrite with natsimplify. fqsatz.
 Qed.
 
-
-
-Lemma skipn_last: forall {A: Type} i xs (d: A),
+Lemma skipn_nth_last: forall {A: Type} i xs (d: A),
   length xs = S i ->
   skipn i xs = nth i xs d :: nil.
 Proof.
@@ -298,8 +297,17 @@ Proof.
   rewrite H. autorewrite  with natsimplify. reflexivity.
   rewrite rev_length. lia.
 Qed.
-  
 
+Lemma firstn_split_last {A: Type}: forall (l: list A) n d,
+  length l = S n ->
+  firstn n l ++ nth n l d :: nil = l.
+Proof.
+  intros l m d Hlen.
+  assert (l=l) by reflexivity.
+  rewrite <- firstn_skipn with (n:=m) in H.
+  erewrite skipn_nth_last in H by lia.
+  rewrite <- H. reflexivity.
+Qed.
 
 Lemma skipn_skipn {A: Type}: forall (j i: nat) (l: list A),
   skipn i (skipn j l) = skipn (i+j)%nat l.
@@ -351,36 +359,38 @@ Lemma repr_le_last0': forall ws x i,
 Proof.
   intros.
   pose proof H0 as H_repr. unfold repr_le in H0.
-  assert (Hws: ws = ws) by reflexivity.
-  rewrite <- firstn_skipn with (n:=i) in Hws.
-  erewrite skipn_last in Hws by lia.
-  rewrite H in Hws.
   apply repr_le_last0.
-  rewrite Hws in H_repr. auto.
+  rewrite <- H.
+  erewrite firstn_split_last by lia.
+  auto.
 Qed.
 
 (* repr inv: trivial satisfaction *)
 Lemma repr_trivial: forall ws,
-  Forall binary ws ->
+  Forall in_range ws ->
   repr_le (as_le ws) (length ws) ws.
 Proof.
   induction ws; unfold repr_le; intuition idtac.
 Qed.
 
 (* repr inv: any prefix of weights also satisfies the inv *)
-Lemma repr_le_prefix: forall ws1 ws2 ws,
+Lemma repr_le_prefix: forall ws1 ws2 x x1 l l1 ws,
   ws = ws1 ++ ws2 ->
-  repr_le (as_le ws) (length ws) ws ->
-  repr_le (as_le ws1) (length ws1) ws1.
+  x = as_le ws ->
+  x1 = as_le ws1 ->
+  l = length ws ->
+  l1 = length ws1 ->
+  repr_le x l ws ->
+  repr_le x1 l1 ws1.
 Proof.
-  unwrap_C. unfold repr_le. induction ws1; intros.
-  - apply repr_trivial. constructor.
-  - intuition idtac.
-    subst.
-    simpl in H0. invert H0.
-    constructor. auto.
-    apply Forall_app in H5. intuition.
+  unwrap_C. unfold repr_le. 
+  induction ws1; intros; subst; simpl in *; intuition.
+  invert H1.
+  constructor; auto.
+  apply Forall_app in H5. intuition.
 Qed.
+
+End Representation.
 
 End Base2n.
 
@@ -391,6 +401,18 @@ Definition repr_le2 := (repr_le 1).
 Definition repr_be2 := (repr_be 1).
 Definition as_le2 := (as_le 1).
 Definition as_be2 := (as_be 1).
+
+
+Lemma in_range_binary: forall x, in_range 1 x <-> binary x.
+Admitted.
+
+Lemma Forall_if: forall {A: Type} (P Q: A -> Prop) (l: list A),
+  (forall x, P x -> Q x) -> Forall P l -> Forall Q l.
+Admitted.
+
+Lemma Forall_in_range: forall xs, Forall (in_range 1) xs <-> Forall binary xs.
+Proof. intuition; eapply Forall_if; try apply in_range_binary; auto.
+Qed.
 
 Create HintDb F_to_Z discriminated.
 Hint Rewrite (@F.to_Z_add q) : F_to_Z.
@@ -407,7 +429,8 @@ Theorem repr_le_ub: forall ws x n,
   x <=z (2^n - 1)%Z.
 Proof with (lia || nia || eauto).
   unwrap_C.
-  induction ws as [| w ws]; intros x n [] H_k; intuition.
+  induction ws as [| w ws]; intros x n [] H_k; intuition;
+  apply Forall_in_range in H1.
   - subst. discriminate.
   - (* analyze n: is has to be S n for some n *)
     destruct n. subst. discriminate.
@@ -417,7 +440,7 @@ Proof with (lia || nia || eauto).
     (* extract consequence of IHws *)
     assert (IH: F.to_Z (as_le 1 ws) <= 2 ^ l - 1). {
       apply IHws...
-      unfold repr_le2, repr_le. invert H1. intuition.
+      unfold repr_le2, repr_le. invert H1. intuition. apply Forall_in_range. auto.
     }
     
     (* introduce lemmas into scope *)
@@ -474,6 +497,7 @@ Proof with (lia || auto).
   intros.
   pose proof H0 as H_repr.
   unfold repr_le2, repr_le in H0. intuition idtac. subst.
+  apply Forall_in_range in H0.
   fold (as_le2 ws).
 
   assert (Hws: ws = ws) by reflexivity.
@@ -500,7 +524,7 @@ Proof with (lia || auto).
     remember (firstn i ws) as f.
     replace i with (length (firstn i ws)).
     subst. apply repr_trivial.
-    apply Forall_firstn. auto.
+    apply Forall_firstn. apply Forall_in_range. auto.
     rewrite firstn_length_le; lia. lia.
   }
 
@@ -509,7 +533,7 @@ Proof with (lia || auto).
     split. apply F.to_Z_range...
     eapply repr_le_ub with (skipn (1 + i) ws).
     apply repr_trivial.
-    apply Forall_skipn. auto.
+    apply Forall_skipn. apply Forall_in_range. auto.
     rewrite skipn_length. lia.
   }
 
@@ -616,20 +640,19 @@ Proof.
 Qed.
 
 
-Class t: Type := mk {
-  n: nat;
+Class t (n: nat): Type := mk {
   _in: F; 
   _out: F^n; 
   _cons: cons n _in _out
 }.
 
-Definition spec (w: t) := 
-  repr_le2 w.(_in) w.(n) (to_list w.(n) w.(_out)).
+Definition spec (n: nat) (w: t n) := 
+  repr_le2 w.(_in) n (to_list n w.(_out)).
 
-Theorem soundness: forall (w: t), spec w.
+Theorem soundness: forall (n: nat) (w: t n), spec n w.
 Proof.
   unwrap_C. intros.
-  destruct w as [n _in _out _cons]. unfold spec, cons in *. simpl.
+  destruct w as [_in _out _cons]. unfold spec, cons in *. simpl.
   pose (Inv := fun i '((lc1, e2, _C)) => 
     (_C: Prop) ->
       (e2 = (2^N.of_nat i) /\
@@ -653,7 +676,8 @@ Proof.
         pose proof (length_to_list _out).
         intuition.
         * rewrite firstn_length_le; lia.
-        * apply Forall_nth. intros. subst.
+        * apply Forall_in_range in H3. apply Forall_in_range.
+          apply Forall_nth. intros. subst.
           destruct (dec (i < j)%nat).
           -- rewrite fistn_prev by lia. pose proof Forall_nth.
             apply Forall_nth. apply H3. lia.

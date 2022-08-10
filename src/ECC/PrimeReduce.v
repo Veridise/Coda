@@ -37,90 +37,13 @@ Import C.
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 
-Notation "x [ i ]" := (Tuple.nth_default 0 i x).
+Local Notation "x [ i ]" := (Tuple.nth_default 0 i x).
 
 (**************************
  * Overflow Representation
  **************************)
 
 Notation "2" := (1 + 1 : F).
-
-
-
-(* [repr]esentation [func]tion:
- * interpret a list of weights as representing a little-endian base-2^n number
- *)
-Fixpoint repr_to_le' (n: nat) (i: nat) (ws: list F) : F :=
-  match ws with
-  | nil => 0
-  | w::ws' => w * 2^(N.of_nat n * N.of_nat i) + repr_to_le' n (S i) ws'
-  end.
-
-Definition repr_to_le n := repr_to_le' n 0%nat.
-
-(* repr func lemma: single-step index change *)
-Lemma repr_to_le'_S: forall ws n i,
-  repr_to_le' n (S i) ws = 2^(N.of_nat n) * repr_to_le' n i ws.
-Proof.
-  unwrap_C.
-  induction ws as [| w ws]; intros.
-  - fqsatz.
-  - cbn [repr_to_le'].
-    rewrite IHws.
-    remember (N.of_nat n) as m.
-    replace (2^(m * N.of_nat (S i))) with (2^m * 2 ^ (m * N.of_nat i)).
-    fqsatz.
-    rewrite <- F.pow_add_r. f_equal. lia.
-Qed.
-
-(* Probably not needed
-(* repr func lemma: multi-step index change *)
-Lemma repr_to_le'_n: forall ws i j,
-  repr_to_le' (i+j) ws = 2^(N.of_nat i) * repr_to_le' j ws.
-Proof.
-  induction i; intros; simpl.
-  - rewrite F.pow_0_r. fqsatz.
-  - rewrite repr_to_le'_S. rewrite IHi.
-    replace (N.pos (Pos.of_succ_nat i)) with (1 + N.of_nat i)%N.
-    rewrite F.pow_add_r.
-    rewrite F.pow_1_r.
-    fqsatz.
-    lia.
-Qed. *)
-
-(* repr func lemma: decomposing weight list *)
-Lemma repr_to_le_app: forall ws2 ws1 ws n i,
-  ws = ws1 ++ ws2 ->
-  repr_to_le' n i ws = repr_to_le' n i ws1 + repr_to_le' n (i + length ws1) ws2.
-Proof.
-  unwrap_C.
-  induction ws1; simpl; intros.
-  - subst. replace (i+0)%nat with i by lia. fqsatz.
-  - destruct ws; inversion H; subst.
-    simpl.
-    assert (repr_to_le' n (S i) (ws1 ++ ws2) = 
-      repr_to_le' n (S i) ws1 + repr_to_le' n (i + S (length ws1)) ws2). {
-        rewrite <- plus_n_Sm, <- plus_Sn_m.
-        eapply IHws1. reflexivity.
-      }
-    fqsatz.
-Qed.
-
-(* 
-(* overflow representation *)
-(* interpret a list of weights as representing a little-endian base-2^n number *)
-Fixpoint repr_to_le_Z' (n: nat) (i: nat) (ws: list F) : Z :=
-  match ws with
-  | nil => 0
-  | w::ws' => (toSZ w) * 2^(N.of_nat n * N.of_nat i) + repr_to_le_Z' n (S i) ws'
-  end.
-
-(* overflow representation *)
-(* FIXME: repr_to_le' should call toSZ *)
-Definition repr_overflow x l n ws :=
-  length ws = l /\
-  x = repr_to_le_Z' n 0%nat ws. *)
-
 
 Definition half: Z. exact (Z.div q 2). Defined.
 Notation "r//2" := half.
@@ -318,7 +241,7 @@ Admitted.
 
 Hypothesis prod_mod_correct:
   forall (n: nat) k (a b p: tuple F k),
-  B.repr_le n (F_mod ((repr_to_le n (to_list k a)) * (repr_to_le n (to_list k b))) (repr_to_le n (to_list k p))) 50
+  B.repr_le n (F_mod ((B.as_le n (to_list k a)) * (B.as_le n (to_list k b))) (B.as_le n (to_list k p))) 50
   (to_list 50 (prod_mod n k a b p)).
 
 (* // n bits per register
@@ -332,8 +255,8 @@ Definition mod_exp {_k1 _k2 _k3} (n: nat) (_k: nat) (a : tuple F _k1) (p : tuple
 
 Hypothesis mod_exp_correct:
   forall (n: nat) k k1 (a: tuple F k1)(p e : tuple F k),
-  B.repr_le n (F_mod ((repr_to_le n (to_list k1 a)) ^ (F.to_N (repr_to_le n (to_list k e))))
-                        (repr_to_le n (to_list k p))) 50
+  B.repr_le n (F_mod ((B.as_le n (to_list k1 a)) ^ (F.to_N (B.as_le n (to_list k e))))
+                        (B.as_le n (to_list k p))) 50
   (to_list 50 (mod_exp n k a p e)).
 
 Print D.iter'.
@@ -386,15 +309,15 @@ Qed.
 
 Definition sum_in_helper n m _k (_in : tuple F (m+_k)) (_r : tuple (tuple F 50) m) :=
   D.iter (_k) (fun i a => a + _in[i]) 0 +
-  D.iter' m (m+_k) (fun i a => a + _in[i] * (repr_to_le n (toPoly (nth_default (repeat 0 50) i _r)))) 0.
+  D.iter' m (m+_k) (fun i a => a + _in[i] * (B.as_le n (toPoly (nth_default (repeat 0 50) i _r)))) 0.
 
 Definition sum_in_helper1 n m _k (_in : tuple F (m+_k)) (_r : tuple (tuple F 50) m) :=
   D.iter (_k) (fun i a => a + (_in[i] +
   (D.iter' m (m+_k) (fun j b => b + _in[j] * ((nth_default (repeat 0 50) j _r)[i])) 0)) * (2^((N.of_nat n)*(N.of_nat i))) ) 0.
 
 Definition PrimeReduce_spec n k m (p : tuple F k) (_in : tuple F (m+k)) (_out : tuple F k) :=
-  F_mod (repr_to_le n (toPoly _in)) (repr_to_le n (toPoly p)) = 
-  F_mod (repr_to_le n (toPoly _out)) (repr_to_le n (toPoly p)).
+  F_mod (B.as_le n (toPoly _in)) (B.as_le n (toPoly p)) = 
+  F_mod (B.as_le n (toPoly _out)) (B.as_le n (toPoly p)).
 
 Theorem PrimeReduce_correct n _k m p _in _out:
   PrimeReduce n _k m p _in _out -> PrimeReduce_spec n _k m p _in _out.
@@ -425,16 +348,16 @@ Proof.
              out_sum [j] = out_sum [j] + _in [i + _k] * nth_default (repeat 0 50) i _r [j])
             _C) init_out_sum)) as init_out_sum'.
   (* init_two *)
-  assert(init_two_correct_1: repr_to_le _k (toPoly two) = 2). { admit. }
-  assert(init_two_correct_2: repr_to_le _k (toPoly e_1) = F.of_nat q n). { admit. }
-  assert(init_two_correct_3: repr_to_le _k (toPoly e_2) = F.of_nat q _k). { admit. }
+  assert(init_two_correct_1: B.as_le _k (toPoly two) = 2). { admit. }
+  assert(init_two_correct_2: B.as_le _k (toPoly e_1) = F.of_nat q n). { admit. }
+  assert(init_two_correct_3: B.as_le _k (toPoly e_2) = F.of_nat q _k). { admit. }
   (* pow2n pow2nk *)
   pose proof (mod_exp_correct n _k _k two p e_1) as pow2n_correct.
   pose proof (mod_exp_correct n _k 50 pow2n p e_2) as pow2nk_correct.
   (* init_r *)
-  (* r_i = repr_to_le _k (toPoly r[i]) *)
-  assert(init_r_correct: forall i, F_mod ((_in[i]) * (2^((N.of_nat n)*(N.of_nat i)))) (repr_to_le n
-        (toPoly p)) = F_mod (_in[i] * (repr_to_le _k (toPoly (nth_default (repeat 0 50) i _r)))) (repr_to_le n
+  (* r_i = B.as_le _k (toPoly r[i]) *)
+  assert(init_r_correct: forall i, F_mod ((_in[i]) * (2^((N.of_nat n)*(N.of_nat i)))) (B.as_le n
+        (toPoly p)) = F_mod (_in[i] * (B.as_le _k (toPoly (nth_default (repeat 0 50) i _r)))) (B.as_le n
         (toPoly p))). { admit. }
   (* proof *)
   assert(mainProof: sum_in_helper n m _k _in _r = sum_in_helper1 n m _k _in _r).

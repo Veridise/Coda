@@ -1018,15 +1018,14 @@ Qed.
 End Polynomial. (* section *)
 
 End Polynomial. (* polynomial *)
-
-Require Import Circom.
+(* 
 Module _polynomial_test.
 Import Circom.
 Import Polynomial.
 Definition x : F := 0.
 Definition p: polynomial := @nil F.
 Compute (peval x p).
-End _polynomial_test.
+End _polynomial_test. *)
 
 Declare Scope P_scope.
 Delimit Scope P_scope with P.

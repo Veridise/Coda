@@ -38,7 +38,6 @@ Local Open Scope list_scope.
 Local Open Scope F_scope.
 
 Local Notation "x [ i ]" := (nth_default 0 i x).
-Local Notation "2" := (1 + 1 : F).
 
 Coercion N.of_nat: nat >-> N.
  

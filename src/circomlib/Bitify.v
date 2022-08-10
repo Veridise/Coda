@@ -13,44 +13,36 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
-Require Import Circom.Circom.
-Require Import Circom.DSL.
+Require Import Circom.Circom Circom.DSL Circom.Util.
 (* Require Import VST.zlist.Zlist. *)
 
 
 (* Circuits:
  * https://github.com/iden3/circomlib/blob/master/circuits/comparators.circom
  *)
-Module Bitify.
-Module D := DSL.
-Import Circom.
+Module Bitify (C: CIRCOM).
 
-Ltac invert H := inversion H; subst; clear H.
+Import C.
+
+Module D := DSL C.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 Local Open Scope circom_scope.
-
-Declare Scope B_scope.
-Delimit Scope B_scope with B.
-Notation "w [ i ]" := (Tuple.nth_default 0 i w) : B_scope.
+Local Notation "w [ i ]" := (Tuple.nth_default 0 i w).
 Local Notation "F ^ n" := (tuple F n) : type_scope.
-
-Module Num2Bits.
 
 Local Coercion Z.of_nat : nat >-> Z.
 Local Coercion N.of_nat : nat >-> N.
 
-(***********************
- *      Num2Bits
- ***********************)
 
-Section Representation.
+(* Base 2^n representations *)
+Section Base2n.
+
 Variable n: nat.
 
 Lemma to_Z_2: @F.to_Z q 2 = 2%Z.
 Proof. unwrap_C. simpl. repeat rewrite Z.mod_small; lia. Qed.
-
 
 (* peel off 1 from x^(i+1) in field exp *)
 Lemma pow_S_N: forall (x: F) (i: nat),
@@ -147,7 +139,7 @@ Qed.
 End Firstn.
 
 
-
+(* Little- and big-endian *)
 Section Endianness.
 
 (* interpret a list of weights as representing a little-endian base-2 number *)
@@ -211,30 +203,6 @@ Proof.
     replace (n * S l)%N with (n * l + n)%N by lia.
     rewrite F.pow_add_r. fqsatz.
 Qed.
-(* 
-
-(* repr func lemma: decomposing weight list *)
-Lemma as_le_app': forall ws2 ws1 ws (i: nat),
-  ws = ws1 ++ ws2 ->
-  as_le' i ws = as_le' i ws1 + as_le' (i + length ws1) ws2.
-Proof.
-  unwrap_C. induction ws1; simpl; intros.
-  - subst. replace (i+0)%nat with i by lia. fqsatz.
-  - destruct ws; inversion H; subst.
-    simpl.
-    assert (as_le' (S i) (ws1 ++ ws2) = 
-      as_le' (S i) ws1 + as_le' (i + S (length ws1)) ws2). {
-        rewrite <- plus_n_Sm, <- plus_Sn_m.
-        eapply IHws1. reflexivity.
-      }
-    fqsatz.
-Qed. *)
-
-(* Lemma as_le_app: forall ws1 ws2 i,
-  as_le' i (ws1 ++ ws2) = as_le' i ws1 + as_le' (i + length ws1) ws2.
-Proof.
-  intros. apply as_le_app'. reflexivity.
-Qed. *)
 
 Fixpoint as_be_acc (i: nat) ws :=
   match ws with
@@ -315,6 +283,54 @@ Proof.
 Qed.
 
 
+
+Lemma skipn_last: forall {A: Type} i xs (d: A),
+  length xs = S i ->
+  skipn i xs = nth i xs d :: nil.
+Proof.
+  intros.
+  rewrite <- rev_involutive with (l:=xs).
+  rewrite skipn_rev. rewrite rev_length. rewrite H. autorewrite with natsimplify.
+  erewrite firstn_1.
+  simpl.
+  rewrite rev_involutive.
+  rewrite rev_nth by lia.
+  rewrite H. autorewrite  with natsimplify. reflexivity.
+  rewrite rev_length. lia.
+Qed.
+  
+
+
+Lemma skipn_skipn {A: Type}: forall (j i: nat) (l: list A),
+  skipn i (skipn j l) = skipn (i+j)%nat l.
+Proof.
+  induction j; simpl; intros.
+  autorewrite with natsimplify. reflexivity.
+  destruct l. repeat rewrite skipn_nil. reflexivity.
+  rewrite Nat.add_succ_r. simpl. rewrite IHj. reflexivity.
+Qed.
+
+Lemma Forall_firstn {A: Type}: forall (l: list A) i P,
+  Forall P l -> Forall P (firstn i l).
+Proof.
+  induction l; intros.
+  - rewrite firstn_nil. constructor.
+  - invert H. 
+    destruct i. simpl. constructor.
+    simpl. constructor; auto.
+Qed.
+
+Lemma Forall_skipn {A: Type}: forall (l: list A) i P,
+  Forall P l -> Forall P (skipn i l).
+Proof.
+  induction l; intros.
+  - rewrite skipn_nil. auto.
+  - invert H.
+    destruct i; simpl. auto.
+    auto.
+Qed.
+
+
 Lemma repr_le_last0: forall ws x n,
   repr_le x (S n) (ws ++ 0 :: nil) ->
   repr_le x n ws.
@@ -326,6 +342,21 @@ Proof.
   auto.
   invert H_bin. auto.
   rewrite <- as_be_0. auto.
+Qed.
+
+Lemma repr_le_last0': forall ws x i,
+  nth i ws 0 = 0 ->
+  repr_le x (S i) ws ->
+  repr_le x i (firstn i ws).
+Proof.
+  intros.
+  pose proof H0 as H_repr. unfold repr_le in H0.
+  assert (Hws: ws = ws) by reflexivity.
+  rewrite <- firstn_skipn with (n:=i) in Hws.
+  erewrite skipn_last in Hws by lia.
+  rewrite H in Hws.
+  apply repr_le_last0.
+  rewrite Hws in H_repr. auto.
 Qed.
 
 (* repr inv: trivial satisfaction *)
@@ -351,12 +382,15 @@ Proof.
     apply Forall_app in H5. intuition.
 Qed.
 
-End Representation.
+End Base2n.
 
+(* Base 2^1 representation *)
 Section Base2.
 
 Definition repr_le2 := (repr_le 1).
+Definition repr_be2 := (repr_be 1).
 Definition as_le2 := (as_le 1).
+Definition as_be2 := (as_be 1).
 
 Create HintDb F_to_Z discriminated.
 Hint Rewrite (@F.to_Z_add q) : F_to_Z.
@@ -366,13 +400,13 @@ Hint Rewrite (@F.to_Z_1 q) : F_to_Z.
 Hint Rewrite (to_Z_2) : F_to_Z.
 Hint Rewrite (@F.pow_1_r q) : F_to_Z.
 
-(* repr inv: x <= 2^n - 1 *)
+(* [|ws|] <= 2^n - 1 *)
 Theorem repr_le_ub: forall ws x n,
   repr_le2 x n ws ->
   n <= k ->
   x <=z (2^n - 1)%Z.
 Proof with (lia || nia || eauto).
-  unwrap_C. unfold leq_z.
+  unwrap_C.
   induction ws as [| w ws]; intros x n [] H_k; intuition.
   - subst. discriminate.
   - (* analyze n: is has to be S n for some n *)
@@ -420,34 +454,7 @@ Proof.
   intros. rewrite H, H0. easy.
 Qed.
 
-Lemma skipn_skipn {A: Type}: forall (j i: nat) (l: list A),
-  skipn i (skipn j l) = skipn (i+j)%nat l.
-Proof.
-  induction j; simpl; intros.
-  autorewrite with natsimplify. reflexivity.
-  destruct l. repeat rewrite skipn_nil. reflexivity.
-  rewrite Nat.add_succ_r. simpl. rewrite IHj. reflexivity.
-Qed.
 
-Lemma Forall_firstn {A: Type}: forall (l: list A) i P,
-  Forall P l -> Forall P (firstn i l).
-Proof.
-  induction l; intros.
-  - rewrite firstn_nil. constructor.
-  - invert H. 
-    destruct i. simpl. constructor.
-    simpl. constructor; auto.
-Qed.
-
-Lemma Forall_skipn {A: Type}: forall (l: list A) i P,
-  Forall P l -> Forall P (skipn i l).
-Proof.
-  induction l; intros.
-  - rewrite skipn_nil. auto.
-  - invert H.
-    destruct i; simpl. auto.
-    auto.
-Qed.
 
 Lemma Z_le_mul_pos: forall a b c,
   c > 0 ->
@@ -455,7 +462,7 @@ Lemma Z_le_mul_pos: forall a b c,
   a * c <= b * c.
 Proof. intros. nia. Qed.
 
-(* repr inv: ws[i] = 1 -> x >= 2^i *)
+(* ws[i] = 1 -> [|ws|] >= 2^i *)
 Theorem repr_le_lb: forall (n i: nat) ws x,
   n <= k ->
   repr_le2 x n ws ->
@@ -465,7 +472,6 @@ Theorem repr_le_lb: forall (n i: nat) ws x,
 Proof with (lia || auto).
   unwrap_C.
   intros.
-  unfold geq_z.
   pose proof H0 as H_repr.
   unfold repr_le2, repr_le in H0. intuition idtac. subst.
   fold (as_le2 ws).
@@ -515,7 +521,7 @@ Proof with (lia || auto).
 
   autorewrite with F_to_Z...
   autorewrite with zsimplify.
-  replace (2 mod q) with 2%Z by reflexivity.
+  replace (2 mod q) with 2%Z by (rewrite Zmod_small; lia).
 
   remember (F.to_Z (as_le2 (firstn i ws))) as pre.
   remember (F.to_Z (as_le2 (skipn (1 + i) ws))) as post.
@@ -545,7 +551,8 @@ Qed.
 End Base2.
 
 
-Local Open Scope B_scope.
+Module Num2Bits.
+
 Definition cons (n: nat) (_in: F) (_out: F^n) : Prop :=
   let lc1 := 0 in
   let e2 := 1 in
@@ -674,7 +681,3 @@ Qed.
 End Num2Bits.
 
 End Bitify.
-
-Declare Scope B_scope.
-Delimit Scope B_scope with B.
-Notation "w [ i ]" := (Tuple.nth_default 0 i w) : B_scope.

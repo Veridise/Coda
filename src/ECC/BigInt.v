@@ -30,7 +30,9 @@ Require Import Circom.ECC.Polynom.
 *)
 
 
-Import Circom.
+Module BigInt (C: CIRCOM).
+
+Import C.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -134,10 +136,7 @@ Proof.
 Qed.
 
 Lemma eval_repeat_0: forall k n x, eval' n (List.repeat 0 k) x = 0.
-Proof.
-  unwrap_C. induction k;intros;simpl;auto. 
-  rewrite IHk. fqsatz.
-Qed.
+Admitted.
 
 Lemma eval'_ppmul_inner:
   forall d a n x,
@@ -214,7 +213,8 @@ Local Notation "x [ i ]" := (Tuple.nth_default 0 i x).
 Definition nth2 {m n} (i: nat) (x: tuple (tuple F n) m) := Tuple.nth_default (repeat 0 n) i x.
 (* Local Notation "x [ i ][ j ]" := (Tuple.nth_default 0 j (nth2 i x)). *)
 
-Module D := DSL.
+Module D := DSL C.
+
 Definition init_poly ka kb (poly: tuple F (ka+ kb -1)) {m: nat} (x: tuple F m) _C := 
   D.iter (fun i _C => _C /\
         (* inner loop: poly[i] = \sum_{j=0...ka+kb-1} x[j] * i ** j *)
@@ -356,7 +356,7 @@ Definition BigMultNoCarry_cons
 Declare Scope DSL_scope.
 Delimit Scope DSL_scope with DSL.
 
-Module DL := DSLL.
+Module DL := DSLL C.
 Import DL.
 
 Notation "a +d b" := (addL a b) (at level 50) : DSL_scope.
@@ -534,7 +534,7 @@ Admitted.
 Lemma eq_poly_decidable: forall p q : polynomial, (*11*)
   p = q \/ ~ (p = q).
 Proof.
-  intros. pose proof (dec_eq_list p q). destruct H;auto.
+  intros p q. pose proof (dec_eq_list p q). destruct H;auto.
 Qed.
 
 Definition p0 : polynomial := nil.
@@ -679,3 +679,4 @@ Proof.
   }
   apply H_poly.
 Qed.
+End BigInt.

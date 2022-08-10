@@ -25,9 +25,10 @@ Require Import Circom.Circom Circom.DSL.
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 
-Module Multiplexer.
-Module D := DSL.
-Import Circom.
+Module Multiplexer (C: CIRCOM).
+
+Import C.
+Module D := DSL C.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.

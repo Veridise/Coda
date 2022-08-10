@@ -27,12 +27,11 @@ Require Import Crypto.Spec.ModularArithmetic.
 * https://github.com/0xPARC/circom-ecdsa/blob/08c2c905b918b563c81a71086e493cb9d39c5a08/circuits/bigint.circom
 *)
 
-Module PrimeReduce.
+Module PrimeReduce (C: CIRCOM).
 
-Module B := Bitify.
-Module D := DSL.
-Module C := Circom.
-Import B C D.
+Module B := Bitify C.
+Module D := DSL C.
+Import C.
 
 
 Local Open Scope list_scope.
@@ -167,10 +166,10 @@ n k a (_b : tuple F k) (out : tuple F 50) :=
 let _C := True in
 let '( _C) :=
   (* loop: construct out[i] *)
-  iter (fun i '( _C) => (_C /\ out[i] = 0))
+  D.iter (fun i '( _C) => (_C /\ out[i] = 0))
     50 ( _C) in
 let '( _C) :=
-  iter (fun i _C => _C /\ 
+  D.iter (fun i _C => _C /\ 
               out[i] = F_mod (out[i] + (a * _b[i]))  (2^n) /\
               out[i + 1] = out[i + 1] + F.div (out[i] + (a * _b[i])) (2^n))
     k _C in
@@ -316,14 +315,10 @@ Admitted.
 Definition prod_mod {_k1 _k2 _k3}(n : nat) (_k : nat) (a : tuple F _k1) (b: tuple F _k2) (p: tuple F _k3): tuple F 50.
 Admitted.
 
-Definition repr_binary n x m ws :=
-  length ws = m /\
-  (forall i, (i < m)%nat -> Num2Bits.binary (nth i ws 0)) /\
-  x = repr_to_le n ws.
 
 Hypothesis prod_mod_correct:
   forall (n: nat) k (a b p: tuple F k),
-  repr_binary n (F_mod ((repr_to_le n (to_list k a)) * (repr_to_le n (to_list k b))) (repr_to_le n (to_list k p))) 50
+  B.repr_le n (F_mod ((repr_to_le n (to_list k a)) * (repr_to_le n (to_list k b))) (repr_to_le n (to_list k p))) 50
   (to_list 50 (prod_mod n k a b p)).
 
 (* // n bits per register
@@ -337,11 +332,11 @@ Definition mod_exp {_k1 _k2 _k3} (n: nat) (_k: nat) (a : tuple F _k1) (p : tuple
 
 Hypothesis mod_exp_correct:
   forall (n: nat) k k1 (a: tuple F k1)(p e : tuple F k),
-  repr_binary n (F_mod ((repr_to_le n (to_list k1 a)) ^ (F.to_N (repr_to_le n (to_list k e))))
+  B.repr_le n (F_mod ((repr_to_le n (to_list k1 a)) ^ (F.to_N (repr_to_le n (to_list k e))))
                         (repr_to_le n (to_list k p))) 50
   (to_list 50 (mod_exp n k a p e)).
 
-Print iter'.
+Print D.iter'.
 (* k < 2^n *)
 Definition PrimeReduce_cons
   n k m (p : tuple F k)
@@ -355,24 +350,24 @@ Definition PrimeReduce_cons
    :=
   let _C := two[0] = 2 /\ e_1[0] = (F.of_nat q n) /\ e_2[0] = (F.of_nat q k) in
   let _C :=
-    iter' (fun i _C => _C /\ 
+    D.iter' (fun i _C => _C /\ 
       two[i] = 0 /\ e_1[i] = 0 /\ e_2[i] = 0) (Nat.sub k 1) k _C in
   let pow2n := mod_exp n k two p e_1 in
   let pow2nk := mod_exp n k pow2n p e_2 in
   let _C :=
-    iter' (fun i _C => _C /\ 
+    D.iter' (fun i _C => _C /\ 
           (nth_default (repeat 0 50) i _r) = prod_mod n k (nth_default (repeat 0 50) (i-1) _r) pow2n p) 
           (Nat.sub m 1) m
           ((nth_default (repeat 0 50) 0 _r) = pow2nk /\ _C) in
   let _C :=
-    iter (fun i _C => _C /\ 
+    D.iter (fun i _C => _C /\ 
       out_sum[i] = _in[i]) k _C in
   let _C :=
-    iter (fun i _C => _C /\ 
-      (iter (fun j _C => _C /\ 
+    D.iter (fun i _C => _C /\ 
+      (D.iter (fun j _C => _C /\ 
                   out_sum[j] = out_sum[j] + _in[i+k] * (nth_default (repeat 0 50) i _r)[j]) k _C)) m _C in
   let _C :=
-    iter (fun i _C => _C /\ 
+    D.iter (fun i _C => _C /\ 
       _out[i] = out_sum[i]) k _C in
   _C
   .
@@ -390,12 +385,12 @@ Proof.
 Qed.
 
 Definition sum_in_helper n m _k (_in : tuple F (m+_k)) (_r : tuple (tuple F 50) m) :=
-  iter (_k) (fun i a => a + _in[i]) 0 +
-  iter' m (m+_k) (fun i a => a + _in[i] * (repr_to_le n (toPoly (nth_default (repeat 0 50) i _r)))) 0.
+  D.iter (_k) (fun i a => a + _in[i]) 0 +
+  D.iter' m (m+_k) (fun i a => a + _in[i] * (repr_to_le n (toPoly (nth_default (repeat 0 50) i _r)))) 0.
 
 Definition sum_in_helper1 n m _k (_in : tuple F (m+_k)) (_r : tuple (tuple F 50) m) :=
-  iter (_k) (fun i a => a + (_in[i] +
-  (iter' m (m+_k) (fun j b => b + _in[j] * ((nth_default (repeat 0 50) j _r)[i])) 0)) * (2^((N.of_nat n)*(N.of_nat i))) ) 0.
+  D.iter (_k) (fun i a => a + (_in[i] +
+  (D.iter' m (m+_k) (fun j b => b + _in[j] * ((nth_default (repeat 0 50) j _r)[i])) 0)) * (2^((N.of_nat n)*(N.of_nat i))) ) 0.
 
 Definition PrimeReduce_spec n k m (p : tuple F k) (_in : tuple F (m+k)) (_out : tuple F k) :=
   F_mod (repr_to_le n (toPoly _in)) (repr_to_le n (toPoly p)) = 
@@ -409,22 +404,22 @@ Proof.
   destruct H as [two H]. destruct H as [e_1 H]. destruct H as [e_2 H].
   destruct H as [_r H]. destruct H as [out_sum H].
   remember ((two [0] = 2 /\ e_1 [0] = F.of_nat q n /\ e_2 [0] = F.of_nat q _k)) as init_two.
-  remember (iter' (_k - 1) _k
+  remember (D.iter' (_k - 1) _k
   (fun (i : nat) (_C : Prop) =>
    _C /\ two [i] = 0 /\ e_1 [i] = 0 /\ e_2 [i] = 0) init_two) as init_two_e.
   remember (mod_exp n _k two p e_1) as pow2n.
   remember (mod_exp n _k pow2n p e_2) as pow2nk.
-  remember ((iter' (m - 1) m
+  remember ((D.iter' (m - 1) m
                (fun (i : nat) (_C : Prop) =>
                 _C /\
                 nth_default (repeat 0 50) i _r =
                 prod_mod n _k (nth_default (repeat 0 50) (i - 1) _r) pow2n p)
                (nth_default (repeat 0 50) 0 _r = pow2nk /\ init_two_e))) as init_r.
-  remember ((iter _k (fun (i : nat) (_C : Prop) => _C /\ out_sum [i] = _in [i]) init_r)) as init_out_sum.
-  remember ((iter m
+  remember ((D.iter _k (fun (i : nat) (_C : Prop) => _C /\ out_sum [i] = _in [i]) init_r)) as init_out_sum.
+  remember ((D.iter m
          (fun (i : nat) (_C : Prop) =>
           _C /\
-          iter _k
+          D.iter _k
             (fun (j : nat) (_C0 : Prop) =>
              _C0 /\
              out_sum [j] = out_sum [j] + _in [i + _k] * nth_default (repeat 0 50) i _r [j])

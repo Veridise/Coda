@@ -14,6 +14,8 @@ Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
 Require Import Circom.Circom.
 
+Ltac invert H := inversion H; subst; clear H.
+
 Module Util.
 
 Import Circom.

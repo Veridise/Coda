@@ -14,9 +14,9 @@ Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
 Require Import Circom.Circom.
 
-Module DSL.
+Module DSL (C: CIRCOM).
 
-Import Circom.
+Import C.
 
 Import ListNotations.
 
@@ -135,9 +135,9 @@ End DSL.
 
 
 
-Module DSLL.
+Module DSLL (C: CIRCOM).
+Import C.
 
-Import Circom.
 
 Import ListNotations.
 

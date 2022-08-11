@@ -33,35 +33,33 @@ Module BigAdd (C: CIRCOM).
 
 Module B := Bitify C.
 Module Cmp := Comparators C.
-Import C.
+Import B C.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 Local Open Scope circom_scope.
-
-
 Local Notation "x [ i ]" := (nth_default 0 i x).
-
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
 Module ModSumThree.
-(* template ModSumThree(n) {
-    assert(n + 2 <= 253);
-    signal input a;
-    signal input b;
-    signal input c;
-    signal output sum;
-    signal output carry;
-
-    component n2b = Num2Bits(n + 2);
-    n2b.in <== a + b + c;
-    carry <== n2b.out[n] + 2 * n2b.out[n + 1];
-    sum <== a + b + c - carry * (1 << n);
-} *)
-
-Import B.
 (* Note: this is a simplified version from circom-pairing *)
+(* 
+template ModSumThree(n) {
+  assert(n + 1 <= 253);
+  signal input a;
+  signal input b;
+  signal input c;
+  signal output sum;
+  signal output carry;
+
+  component n2b = Num2Bits(n + 1);
+  n2b.in <== a + b + c;
+  carry <== n2b.out[n];
+  sum <== a + b + c - carry * (1 << n);
+} 
+*)
+
 Definition cons (n: nat) (a b c sum carry: F) :=
   exists (n2b: Num2Bits.t (S n)),
     n2b.(Num2Bits._in) = a + b + c /\
@@ -73,8 +71,6 @@ Class t (n: nat) : Type := {
   sum: F; carry: F;
   _cons: cons n a b c sum carry;
 }.
-
-
 
 (* x is a valid digit in base-2^n representation *)
 Local Notation "x | ( n )" := (in_range n x) (at level 40).
@@ -106,9 +102,15 @@ Hint Rewrite <- (Nat2N.inj_mul) : Fsimplify.
 
 
 Definition spec (n: nat) (w: t n) :=
+  (* pre-conditions *)
   ( S n <= k )%Z ->
-  w.(a) | (n) -> w.(b) | (n) -> binary c ->
+  (* a and b are n-bits, i.e., <= 2^n-1 *)
+  w.(a) | (n) -> 
+  w.(b) | (n) -> 
+  binary c ->
+  (* post-conditions *)
   w.(sum) + 2^n * w.(carry) = w.(a) + w.(b) + w.(c) /\
+  (* sum is n-bits, i.e., <= 2^n-1 *)
   w.(sum) | (n) /\
   binary w.(carry).
 
@@ -148,7 +150,6 @@ Proof.
   rewrite <- H in *.
   rewrite length_to_list. rewrite <- H_as_le. auto.
   rewrite length_to_list. auto.
-  lia.
 
   - rewrite H_carry.
   pose proof (Num2Bits.soundness _ n2b) as H_n2b. unfold Num2Bits.spec, repr_le2, repr_le in *.
@@ -161,7 +162,57 @@ Proof.
   lia.
   Unshelve. auto. (* ??? what is this *)
 Qed.
+
+Instance wgen (n: nat) : t n.
+Admitted.
+
 End ModSumThree.
+
+Module _BigAdd.
+(* template BigAdd(n, k) {
+    assert(n <= 252);
+    signal input a[k];
+    signal input b[k];
+    signal output out[k + 1];
+
+    component unit0 = ModSum(n);
+    unit0.a <== a[0];
+    unit0.b <== b[0];
+    out[0] <== unit0.sum;
+
+    component unit[k - 1];
+    for (var i = 1; i < k; i++) {
+        unit[i - 1] = ModSumThree(n);
+        unit[i - 1].a <== a[i];
+        unit[i - 1].b <== b[i];
+        if (i == 1) {
+            unit[i - 1].c <== unit0.carry;
+        } else {
+            unit[i - 1].c <== unit[i - 2].carry;
+        }
+        out[i] <== unit[i - 1].sum;
+    }
+    out[k] <== unit[k - 2].carry;
+} *)
+
+Variables a b carry: F.
+Variable n: nat.
+Check (ex_proj1 (exists (w: ModSumThree.t n),
+      w.(ModSumThree.a) = a /\ w.(ModSumThree.b) = b /\ w.(ModSumThree.c) = carry)).
+
+Print mapi_with.
+Definition cons (n k: nat) (a b: tuple F k) (out: tuple F (S k)) :=
+  mapi_with (fun i '(carry, _cons) '(a,b) =>
+    exists (w: ModSumThree.t n),
+      w.(ModSumThree.a) = a /\ w.(ModSumThree.b) = b /\ w.(ModSumThree.c) = carry /\
+      
+
+  
+
+
+
+End _BigAdd.
+
 End BigAdd.
 
 (* // addition mod 2**n with carry bit

@@ -74,6 +74,8 @@ Class t (n: nat) : Type := {
   _cons: cons n a b c sum carry;
 }.
 
+
+
 (* x is a valid digit in base-2^n representation *)
 Local Notation "x | ( n )" := (in_range n x) (at level 40).
 
@@ -88,6 +90,20 @@ Hint Rewrite (@F.to_Z_1 q) : F_to_Z.
 Hint Rewrite (@F.pow_1_r q) : F_to_Z.
 Hint Rewrite Cmp.LessThan.to_Z_sub : F_to_Z.
 Hint Rewrite Z.mod_small : F_to_Z.
+
+Lemma Fmul_0_r: forall (x: F), x * 0 = 0.
+Proof. unwrap_C. intros. fqsatz. Qed.
+Lemma Fadd_0_r: forall (x: F), x + 0 = x.
+Proof. unwrap_C. intros. fqsatz. Qed.
+
+Create HintDb Fsimplify discriminated.
+Hint Rewrite (@F.to_Z_0 q) : Fsimplify.
+Hint Rewrite (@F.to_Z_1 q) : Fsimplify.
+Hint Rewrite (Fmul_0_r) : Fsimplify.
+Hint Rewrite (Fadd_0_r) : Fsimplify.
+Hint Rewrite (Nat.mul_1_l) : Fsimplify.
+Hint Rewrite <- (Nat2N.inj_mul) : Fsimplify.
+
 
 Definition spec (n: nat) (w: t n) :=
   ( S n <= k )%Z ->
@@ -110,33 +126,20 @@ Proof.
   - fqsatz.
   - subst.
   unfold in_range in *.
-  (* remember (Num2Bits._out [n + 1] ) as on1. *)
   remember (Num2Bits._out [n] ) as out_n.
   pose proof (Num2Bits.soundness _ n2b) as H_n2b. unfold Num2Bits.spec, repr_le2 in *.
   rewrite <- H_in.
   pose proof H_n2b as H_n2b'. unfold repr_le in H_n2b. destruct H_n2b as [_ [_ H_as_le] ].
   rewrite H_as_le.
+  (* rewrite [| out |] as [| out[:n] |] + 2^n * out[n] *)
   erewrite <- firstn_split_last with (l := (to_list (S n) Num2Bits._out)) (n:=n) (d:=0) by (rewrite length_to_list; lia).
   rewrite <- nth_default_eq, nth_default_to_list.
   rewrite as_le_app. cbn [as_le].
-  rewrite <- Heqout_n.
-  rewrite firstn_length_le by (rewrite length_to_list; lia).
-  (* FIXME: use autorewrite *)
-  replace (as_le 1 (firstn n (to_list (S n) Num2Bits._out)) +
-  (1 + 1) ^ (1%nat * n) * (out_n + (1 + 1) ^ 1%nat * 0) - 
-  out_n * (1 + 1) ^ n) with (as_le 1 (firstn n (to_list (S n) Num2Bits._out))).
-  2: {
-    replace (as_le 1 (firstn n (to_list (S n) Num2Bits._out)) +
-    (1 + 1) ^ (1%nat * n) * (out_n + (1 + 1) ^ 1%nat * 0) - 
-    out_n * (1 + 1) ^ n) with (as_le 1 (firstn n (to_list (S n) Num2Bits._out)) + (
-    (1 + 1) ^ (1%nat * n) * (out_n + (1 + 1) ^ 1%nat * 0) - 
-    out_n * (1 + 1) ^ n)) by fqsatz.
-    rewrite add_0_r. fqsatz.
-    replace (1%nat * n)%N with (N.of_nat n) by lia.
-      replace ((out_n + (1 + 1) ^ 1%nat * 0)) with (out_n) by fqsatz.
-      fqsatz. 
-  }
-  eapply repr_le_ub.
+  rewrite <- Heqout_n, firstn_length_le by (rewrite length_to_list; lia).
+  autorewrite with Fsimplify.
+  replace (as_le 1 (firstn n (to_list (S n) Num2Bits._out)) + (1 + 1) ^ n * out_n -
+    out_n * (1 + 1) ^ n) with (as_le 1 (firstn n (to_list (S n) Num2Bits._out))) by fqsatz.
+  eapply repr_le_ub; try lia.
   unfold repr_le2. 
   eapply repr_le_prefix; eauto.
   rewrite firstn_length_le. lia. rewrite length_to_list. lia.

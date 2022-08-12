@@ -10,7 +10,7 @@ Require Import Coq.NArith.Nnat.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 
-Require Import Crypto.Util.Tuple.
+Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Circom.circomlib.Bitify.

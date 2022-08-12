@@ -8,10 +8,10 @@ Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Zn
 Require Import Coq.NArith.Nnat.
 
 Require Import Crypto.Spec.ModularArithmetic.
-Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field Crypto.Util.Tuple.
+Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field Circom.Tuple.
 
 Require Import Circom.BabyJubjub.
-(* Require Import Crypto.Util.Tuple. *)
+(* Require Import Circom.Tuple. *)
 (* Require Import Crypto.Util.Decidable Crypto.Util.Notations. *)
 (* Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac. *)
 

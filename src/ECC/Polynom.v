@@ -18,7 +18,7 @@ Require Import Coq.NArith.Nnat.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field Crypto.Algebra.Ring.
 Require Import Coq.Lists.ListSet.
-Require Import Crypto.Util.Decidable Crypto.Util.Notations Crypto.Util.Tuple.
+Require Import Crypto.Util.Decidable Crypto.Util.Notations.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems.
 
 Require Import Util DSL.
@@ -441,8 +441,10 @@ Qed.
 
 
 (**************************************
- *         Tuple Conversion           *
+ *         Tuple.Conversion           *
  **************************************)
+
+Require Import Circom.Tuple.
 
 Definition toPoly {m} (xs: tuple F m) : polynomial := to_list m xs.
 Lemma toPoly_length: forall {m} (xs: tuple F m),
@@ -463,7 +465,7 @@ Qed.
 
 
 (**************************************
- *  Tuple Conversion and Coefficient  *
+ *  Tuple.Conversion and Coefficient  *
  **************************************)
 
  Lemma coeff_nth: forall {m} (xs: tuple F m) i,

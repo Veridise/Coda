@@ -7,7 +7,7 @@ Require Import Coq.NArith.Nnat.
 Require Import Coq.Lists.List.
 Require Import Coq.micromega.Lia.
 
-Require Import Crypto.Util.Tuple.
+Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.ZUtil Crypto.Algebra.Ring.
 Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
 Require Import Crypto.Spec.ModularArithmetic.
@@ -116,16 +116,8 @@ Definition addT {n} := @opT n (fun x y => x + y : F).
 Definition mulT {n} := @opT n (fun x y => x * y : F).
 Definition scaleT {n} (k: F) (xs: tuple F n) := map (fun x => k * x) xs.
 Definition eqT {A n} (xs ys: tuple A n) := xs = ys.
-Fixpoint fold_right' {A B: Type} (n:nat) (f: A -> B -> B) (b0: B) : tuple' A n -> B :=
-  match n return tuple' A n -> B with
-  | O => fun a => f a b0
-  | S n' => fun aa => let (aa', a) := aa in f a (fold_right' n' f b0 aa')
-  end.
-Definition fold_right {A B: Type} (n:nat) (f: A -> B -> B) (b0: B) : tuple A n -> B :=
-  match n return tuple A n -> B with
-  | O => fun _ => b0
-  | S n' => fun aa => fold_right' n' f b0 aa
-  end.
+
+
 Definition sumT_F {n} := fold_right n (fun x y => x + y) (0:F).
 Definition sum_nat {n} := fold_right n (fun x y => x + y)%nat (0)%nat.
 End opsT.

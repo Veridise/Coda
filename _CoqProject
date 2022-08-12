@@ -3,12 +3,15 @@ src/BabyJubjub.v
 src/Circom.v
 src/Util.v
 src/DSL.v
+src/CTuple.v
+src/Tuple.v
+src/ListUtil.v
 src/circomlib/Comparators.v
 src/circomlib/Bitify.v
 src/circomlib/gates.v
 src/circomlib/multiplexer.v
+src/ECC/BigAdd.v
 src/ECC/Polynom.v
 src/ECC/Polynom_test.v
 src/ECC/BigInt.v
-src/ECC/BigAdd.v
 src/ECC/PrimeReduce.v

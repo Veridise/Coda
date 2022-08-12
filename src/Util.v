@@ -7,7 +7,7 @@ Require Import Coq.NArith.Nnat.
 Require Import Coq.Lists.List.
 Require Import Coq.micromega.Lia.
 
-Require Import Crypto.Util.Tuple.
+Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.ZUtil Crypto.Algebra.Ring.
 Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
 Require Import Crypto.Spec.ModularArithmetic.

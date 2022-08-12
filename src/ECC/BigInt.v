@@ -11,7 +11,7 @@ Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
 
-Require Import Crypto.Util.Tuple.
+Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
 Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.

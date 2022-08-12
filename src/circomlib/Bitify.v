@@ -10,10 +10,10 @@ Require Import Coq.NArith.Nnat.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 
-Require Import Crypto.Util.Tuple.
+Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable Crypto.Util.Notations.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
-Require Import Circom.Circom Circom.DSL Circom.Util.
+Require Import Circom.Circom Circom.DSL Circom.Util Circom.ListUtil.
 (* Require Import VST.zlist.Zlist. *)
 
 
@@ -64,80 +64,6 @@ Proof.
   replace (Z.of_nat (S i)) with (Z.of_nat i + 1)%Z by lia.
   rewrite Zpower_exp; lia.
 Qed.
-
-
-Section Firstn.
-
-Lemma firstn_nth {A: Type}: forall l i j (d: A),
-  (i < j)%nat ->
-  nth i (firstn j l) d = nth i l d.
-Proof.
-  induction l; simpl; intros.
-  - rewrite firstn_nil. destruct i; reflexivity.
-  - destruct j. lia. destruct i.
-    + rewrite firstn_cons. reflexivity.
-    + simpl. rewrite IHl. auto. lia.
-Qed.
-
-Lemma fistn_prev {A: Type}: forall l i j (d: A),
-  (i < j)%nat ->
-  (j < length l)%nat ->
-  nth i (firstn (S j) l) d = nth i (firstn j l) d.
-Proof.
-  induction l; intros.
-  - simpl in *. lia.
-  - simpl. destruct i. destruct j. lia. reflexivity.
-    destruct j. lia.
-    rewrite IHl. simpl. reflexivity.
-    lia.
-    simpl in H0. lia.
-Qed.
-
-Lemma firstn_1 {A: Type}: forall l (d: A),
-  (length l > 0)%nat ->
-  firstn 1 l = nth 0 l d :: nil.
-Proof.
-  destruct l; simpl; intros. lia. reflexivity.
-Qed.
-
-Lemma firstn_to_list: forall m (x: F^m),
-  firstn m (to_list m x) = to_list m x.
-Proof.
-  intros. apply firstn_all2. rewrite length_to_list; lia.
-Qed.
-
-Lemma nth_skipn {A: Type}: forall l i j (d: A),
-  (i+j < length l)%nat ->
-  nth i (skipn j l) d = nth (i+j) l d.
-Proof.
-  induction l; simpl; intros.
-  - destruct i; destruct j; lia.
-  - destruct i; destruct j; simpl; repeat first [
-      reflexivity
-      | progress rewrite IHl by lia
-      | progress rewrite Nat.add_0_r
-      | progress rewrite Nat.add_succ_r
-    ].
-Qed.
-
-Lemma firstn_S {A: Type}: forall i l (d: A),
-  (i < length l)%nat ->
-  firstn (S i) l = firstn i l ++ (nth i l d :: nil).
-Proof.
-  intros.
-  replace (firstn (S i) l) with (firstn (S i) (firstn i l ++ skipn i l)).
-  rewrite firstn_app. rewrite firstn_firstn.
-  rewrite firstn_length_le by lia.
-  replace (min (S i) i) with i by lia.
-  replace (S i - i)%nat with 1%nat by lia.
-  erewrite firstn_1.
-  erewrite nth_skipn by lia.
-  simpl. reflexivity.
-  rewrite skipn_length. lia.
-  rewrite firstn_skipn. reflexivity.
-Qed.
-End Firstn.
-
 
 (* Little- and big-endian *)
 Section Endianness.
@@ -283,60 +209,6 @@ Proof.
   intros. unfold as_be. simpl. autorewrite with natsimplify. fqsatz.
 Qed.
 
-Lemma skipn_nth_last: forall {A: Type} i xs (d: A),
-  length xs = S i ->
-  skipn i xs = nth i xs d :: nil.
-Proof.
-  intros.
-  rewrite <- rev_involutive with (l:=xs).
-  rewrite skipn_rev. rewrite rev_length. rewrite H. autorewrite with natsimplify.
-  erewrite firstn_1.
-  simpl.
-  rewrite rev_involutive.
-  rewrite rev_nth by lia.
-  rewrite H. autorewrite  with natsimplify. reflexivity.
-  rewrite rev_length. lia.
-Qed.
-
-Lemma firstn_split_last {A: Type}: forall (l: list A) n d,
-  length l = S n ->
-  firstn n l ++ nth n l d :: nil = l.
-Proof.
-  intros l m d Hlen.
-  assert (l=l) by reflexivity.
-  rewrite <- firstn_skipn with (n:=m) in H.
-  erewrite skipn_nth_last in H by lia.
-  rewrite <- H. reflexivity.
-Qed.
-
-Lemma skipn_skipn {A: Type}: forall (j i: nat) (l: list A),
-  skipn i (skipn j l) = skipn (i+j)%nat l.
-Proof.
-  induction j; simpl; intros.
-  autorewrite with natsimplify. reflexivity.
-  destruct l. repeat rewrite skipn_nil. reflexivity.
-  rewrite Nat.add_succ_r. simpl. rewrite IHj. reflexivity.
-Qed.
-
-Lemma Forall_firstn {A: Type}: forall (l: list A) i P,
-  Forall P l -> Forall P (firstn i l).
-Proof.
-  induction l; intros.
-  - rewrite firstn_nil. constructor.
-  - invert H. 
-    destruct i. simpl. constructor.
-    simpl. constructor; auto.
-Qed.
-
-Lemma Forall_skipn {A: Type}: forall (l: list A) i P,
-  Forall P l -> Forall P (skipn i l).
-Proof.
-  induction l; intros.
-  - rewrite skipn_nil. auto.
-  - invert H.
-    destruct i; simpl. auto.
-    auto.
-Qed.
 
 
 Lemma repr_le_last0: forall ws x n,
@@ -353,7 +225,7 @@ Proof.
 Qed.
 
 Lemma repr_le_last0': forall ws x i,
-  nth i ws 0 = 0 ->
+  List.nth i ws 0 = 0 ->
   repr_le x (S i) ws ->
   repr_le x i (firstn i ws).
 Proof.
@@ -388,6 +260,19 @@ Proof.
   invert H1.
   constructor; auto.
   apply Forall_app in H5. intuition.
+Qed.
+
+Lemma repr_le_firstn: forall x x' l l' ws ws' i,
+  x = as_le ws ->
+  x' = as_le ws' ->
+  l' = length ws' ->
+  l = length ws ->
+  ws' = firstn i ws ->
+  repr_le x l ws ->
+  repr_le x' l' ws'.
+Proof.
+  intros. eapply repr_le_prefix with (ws2:=skipn i ws); subst; eauto.
+  rewrite firstn_skipn. auto.
 Qed.
 
 End Representation.
@@ -490,7 +375,7 @@ Theorem repr_le_lb: forall (n i: nat) ws x,
   n <= k ->
   repr_le2 x n ws ->
   i < n ->
-  nth i ws 0 = 1 ->
+  List.nth i ws 0 = 1 ->
   x >=z 2^i.
 Proof with (lia || auto).
   unwrap_C.
@@ -633,10 +518,10 @@ Qed.
 
 Lemma nth_oblivious: forall {A: Type} l (i: nat) (d1 d2: A),
   i < length l ->  
-  nth i l d1 = nth i l d2.
+  List.nth i l d1 = List.nth i l d2.
 Proof.
   induction l; intros; destruct i; cbn [nth length] in *; try lia; auto.
-  erewrite IHl. reflexivity. lia.
+  simpl. erewrite IHl. reflexivity. lia.
 Qed.
 
 

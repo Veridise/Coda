@@ -15,6 +15,10 @@ Require Import Crypto.Util.Decidable Crypto.Util.Notations.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Ring.
 
+Require Import Coq.Logic.FunctionalExtensionality.
+Require Import Coq.Logic.PropExtensionality.
+
+
 Require Import Util DSL.
 Require Import Circom.Circom.
 Require Import Circom.Tuple.
@@ -39,7 +43,9 @@ Local Open Scope list_scope.
 Local Open Scope F_scope.
 Local Open Scope circom_scope.
 Local Notation "xs [ i ]" := (nth_Default i xs).
-Local Notation "xs ! i " := (List.nth i xs 0) (at level 20).
+
+Definition List_nth_Default {T} `{Default T} i xs := List.nth_default default xs i.
+Local Notation "xs ! i " := (List_nth_Default i xs) (at level 20).
 Local Notation "xs [: i ]" := (firstn i xs) (at level 20).
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
@@ -305,9 +311,10 @@ Proof.
   pose proof (as_le_app n (ws[:i]) (ws!i::nil)).
   rewrite firstn_length_le in H1 by lia.
   replace ([|ws ! i :: nil|]) with (ws ! i) in H1 by (simpl; fqsatz).
-  rewrite Hws in H1.
-  rewrite <- Hws' in H1. 
-  rewrite H1. rewrite Nat2N.inj_mul. reflexivity.
+  rewrite Nat2N.inj_mul, <- H1.
+  subst.
+  f_equal.
+  unfold List_nth_Default. rewrite nth_default_eq. auto.
 Qed.
 
 
@@ -332,15 +339,24 @@ Hint Rewrite (Nat.add_0_r): natsimplify.
 Hint Rewrite (Nat.add_0_l): natsimplify.
 Hint Rewrite (Nat.mul_succ_r): natsimplify.
 
+Lemma List_nth_Default_nth_Default {T n} `{Default T} (xs: tuple T n) i:
+  (to_list n xs) ! i = xs [i].
+Proof.
+  unfold List_nth_Default. unfold nth_Default, nth. rewrite nth_default_to_list. reflexivity.
+Qed.
+
 
 Ltac split_as_le xs i := 
   erewrite as_le_split_last with (ws:=xs[:S i]) (i:=i);
   try rewrite firstn_firstn; autorewrite with natsimplify;
   try rewrite firstn_nth by lia.
 
-Ltac lift_nth := repeat match goal with
-| [H: context[nth_Default _ _] |- _] => erewrite <-nth_Default_to_list with (d:=0) in H; rewrite ?nth_default_eq in H; try lia
-| [ |- context[nth_Default _ _] ] => erewrite <-nth_Default_to_list with (d:=0); rewrite ?nth_default_eq; try lia
+
+Ltac lift_to_list := repeat match goal with
+| [H: context[nth_Default _ _] |- _] => rewrite <-List_nth_Default_nth_Default in H; try lia
+| [ |- context[nth_Default _ _] ] => rewrite <-List_nth_Default_nth_Default; try lia
+| [H: tforall _ _ |- _] => apply tforall_Forall in H
+| [ |- tforall _ _] => apply tforall_Forall
 end.
 
 Lemma binary_in_range: forall n x,
@@ -356,12 +372,27 @@ Proof.
 Qed.
 
 
+Axiom propositional_extensionality :
+  forall (P Q : Prop), (P <-> Q) -> P = Q.
+
+
+Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
+  i < length l ->
+  List.nth i l d = List_nth_Default i l.
+Proof. intros. unfold List_nth_Default. rewrite nth_default_eq. erewrite nth_oblivious; eauto. lia. Qed.
+
+Ltac unfold_default := unfold List_nth_Default; rewrite nth_default_eq.
+Ltac fold_default := rewrite fold_nth; try lia.
+Ltac simpl_default := repeat unfold_default; simpl; repeat fold_default; try lia.
+Ltac default_apply L := repeat unfold_default; L; repeat fold_default; try lia.
+
 Theorem soundness: forall (w: t), spec w.
 Proof.
   unwrap_C.
   intros. destruct w as [a b out _cons]. unfold spec.
   intros. cbn [_BigAdd.out _BigAdd.a _BigAdd.b] in *.
   unfold cons in _cons. destruct _cons as [unit prog].
+  lift_to_list.
   remember (fun (i : nat) (_cons : Prop) =>
       _cons /\
       M.a (unit [i] ) = a [i] /\
@@ -370,30 +401,51 @@ Proof.
       then M.c (unit [i] ) = 0
       else M.c (unit [i] ) = M.carry (unit [i - 1] )) /\
       out [i] = M.sum (unit [i] )) as f.
+  pose proof (length_to_list a) as Hlen_a.
+  pose proof (length_to_list b) as Hlen_b.
+  pose proof (length_to_list out) as Hlen_out.
+  pose proof (length_to_list unit) as Hlen_unit'.
   remember (to_list _ out) as out'.
   remember (to_list _ a) as a'.
   remember (to_list _ b) as b'.
+  remember (to_list _ unit) as unit'.
+  
+  pose (g := fun (i : nat) (_cons : Prop) =>
+      _cons /\
+      M.a (unit' ! i) = a' ! i /\
+      M.b (unit' ! i) = b' ! i /\
+      (if dec (i = 0%nat)
+      then M.c (unit' ! i) = 0
+      else M.c (unit' ! i) = M.carry (unit' ! (i - 1))) /\
+      out' ! i = M.sum (unit' ! i)).
+  assert (swap: forall i _cons, (i<=k)%nat -> f i _cons <-> g i _cons). {
+    intros i _cons. rewrite Heqf. unfold g. intros.
+    lift_to_list. subst. intuition.
+  }
+
   destruct prog as [p_iter out_k].
-  pose (Inv := fun (i: nat) (_cons: Prop) =>
-    _cons -> 
-    (forall (j: nat), j < i -> binary (unit[j].(M.carry))) /\
-      Forall (in_range n) (out'[:i]) /\
-      [|  out'[:i] |] +  2^(n*i)%nat * (if dec (i = 0)%nat then 0 else unit[i-1].(M.carry))
+  pose (Inv := fun (i: nat) (_cons: Prop) => _cons -> 
+    (* carry bits are binary *)
+    (forall (j: nat), j < i -> binary ((unit' ! j).(M.carry))) /\
+    (* out are in range *)
+    Forall (in_range n) (out'[:i]) /\
+    (* addition is ok for prefix *)
+    [|  out'[:i] |] +  2^(n*i)%nat * (if dec (i = 0)%nat then 0 else (unit' ! (i-1)).(M.carry))
       = [|  a'[:i] |] +  [|  b'[:i] |]).
-  assert (HInv: Inv k (D.iter f k True)).
+  assert (HInv: Inv k (D.iter g k True)).
   apply D.iter_inv.
   - unfold Inv. intuition.
     + lia.
     + simpl. constructor.
     + destruct (dec (0=0)%nat). simpl. fqsatz. lia.
   - intros i _cons IH H_bound.
-    unfold Inv in *. intros Hf.
-    rewrite Heqf in Hf. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
-    pose proof (ModSumThree.soundness (unit[i] )) as M0. unfold ModSumThree.spec in M0.
+    unfold Inv in *. intros Hg.
+    unfold g in Hg. destruct Hg as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
+    pose proof (ModSumThree.soundness (unit' ! i )) as M0. unfold ModSumThree.spec in M0.
     destruct IH as [IH_bin IH_eq]. auto.
     destruct M0 as [M_eq [M_sum M_bin] ]. lia.
-    rewrite Hai. apply tforall_nth_Default. auto. lia.
-    rewrite Hbi. apply tforall_nth_Default. auto. lia.
+    rewrite Hai. unfold_default. apply Forall_nth. auto. lia.
+    rewrite Hbi. unfold_default. apply Forall_nth. auto. lia.
     destruct (dec (i=0%nat)). rewrite Hci. left. fqsatz.
     rewrite Hci. apply IH_bin. lia.
     destruct (dec (S i = 0%nat)). discriminate.
@@ -403,53 +455,50 @@ Proof.
     + destruct (dec (j < i)). auto.
       assert (Hij: j=i) by lia. rewrite Hij in *. intuition.
     (* out[:i] |: (n) *)
-    + eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le; eauto. rewrite Heqout'. rewrite length_to_list. lia.
+    + eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le; eauto. lia.
       rewrite firstn_firstn. autorewrite with natsimplify. auto.
       rewrite firstn_nth by lia.
-      rewrite Heqout'.
-      rewrite <- Houti in M_sum.
-      rewrite <- nth_default_eq, nth_Default_to_list; auto.
+      fold_default. rewrite Houti. auto.
     + destruct (dec (i=0%nat)) as [].
-      * rewrite e in *. simpl.
-        rewrite Heqa', Heqb', Heqout'.
-        repeat erewrite <- nth_default_eq, nth_Default_to_list; try lia.
-        rewrite <- Hai, <- Hbi, Houti.
+      * (* i = 0 *) rewrite e in *.
         autorewrite with simplify_F natsimplify.
-        rewrite M_eq.
-        rewrite Hci.
+        repeat erewrite firstn_1; try lia.
+        simpl_default.
         fqsatz.
-      * rewrite Nat2N.inj_add.
-        autorewrite with natsimplify simplify_F.
-        lift_nth. subst. fqsatz.
-    + subst. eapply repr_le_firstn; eauto. rewrite firstn_length_le. lia. rewrite length_to_list. lia.
-        apply repr_trivial. apply tforall_Forall. auto.
-    + subst. eapply repr_le_firstn; eauto. rewrite firstn_length_le. lia. rewrite length_to_list. lia.
-      apply repr_trivial. apply tforall_Forall. auto.
-    + unfold repr_le. intuition. rewrite firstn_length_le. lia. rewrite Heqout'. rewrite length_to_list. lia.
-      eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le. reflexivity. rewrite Heqout'. rewrite length_to_list. lia.
+      * (* i > 0 *) 
+        rewrite Nat2N.inj_add. autorewrite with natsimplify simplify_F.
+        repeat (unfold_default; rewrite firstn_nth; try lia; fold_default).
+        default_apply ltac:(repeat rewrite firstn_nth; try lia).
+        fqsatz.
+    + eapply repr_le_firstn; eauto. rewrite firstn_length_le; lia.
+      eauto using repr_trivial.
+    + eapply repr_le_firstn; eauto. rewrite firstn_length_le; lia.
+      eauto using repr_trivial.
+    + unfold repr_le. intuition. rewrite firstn_length_le; lia.
+      eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le. reflexivity. lia.
       rewrite firstn_firstn. autorewrite with natsimplify. auto.
       rewrite firstn_nth by lia.
-      rewrite Heqout'.
-      rewrite <- Houti in M_sum.
-      rewrite <- nth_default_eq, nth_Default_to_list; auto.
-  - unfold Inv in HInv. intuition. replace a' with (a'[:k]). replace b' with (b'[:k]).
+      fold_default.
+      rewrite Houti. auto.
+  - unfold Inv in HInv.
+    assert (Hfg: f = g). (* functional extensionality *) admit. rewrite Hfg in *. clear Hfg.
+    replace a' with (a'[:k]). replace b' with (b'[:k]).
     destruct (dec (k=0)%nat). lia.
+    intuition.
     rewrite <- H7. rewrite <- out_k.
-    lift_nth. rewrite <- Heqout'.
     apply as_le_split_last with (x:=[|out'|]).
-    replace (S k) with (length out'). apply repr_trivial.
-    eapply Forall_firstn_S with (d:=0); eauto. rewrite Heqout'. rewrite length_to_list. auto.
-    rewrite Heqout', out_k.
-    apply binary_in_range; try lia. apply H5. lia. rewrite Heqout', length_to_list. lia.
-    replace k with (length b'). apply firstn_all. rewrite Heqb', length_to_list. lia.
-    replace k with (length a'). apply firstn_all. rewrite Heqa', length_to_list. lia.
-    apply tforall_Forall. 
-    apply Forall_firstn_S with (i:=k) (d:=0).
-    rewrite length_to_list. lia.
-    rewrite <- Heqout'. auto.
-    rewrite <- nth_default_eq, nth_Default_to_list by lia.
-    apply binary_in_range. lia. rewrite out_k. apply H5. lia.
-Qed.
+    rewrite <- Hlen_out.
+    apply repr_trivial.
+    eapply Forall_firstn_S with (d:=0); eauto.
+    fold_default. rewrite out_k. 
+    apply binary_in_range; try lia. apply H5. lia.
+    lift_to_list. rewrite <- Heqout'. 
+    apply Forall_firstn_S with (i:=k) (d:=0); try eauto.
+    fold_default. apply binary_in_range; try lia. rewrite out_k. apply H5; lia.
+    rewrite <- Hlen_b. rewrite firstn_all. auto.
+    rewrite <- Hlen_a. rewrite firstn_all. auto.
+  Unshelve. exact F.zero. exact F.zero. exact F.zero.
+Admitted.
 
 
 End _BigAdd.

@@ -4,6 +4,14 @@ Require Import Lia.
 Require Import Util.
 
 
+Lemma nth_oblivious: forall {A: Type} l (i: nat) (d1 d2: A),
+  i < length l ->  
+  List.nth i l d1 = List.nth i l d2.
+Proof.
+  induction l; intros; destruct i; cbn [nth length] in *; try lia; auto.
+  simpl. erewrite IHl. reflexivity. lia.
+Qed.
+
 Lemma firstn_nth {A: Type}: forall l i j (d: A),
   (i < j)%nat ->
   nth i (firstn j l) d = nth i l d.

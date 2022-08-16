@@ -1,5 +1,7 @@
 # circom-coq
 
+Formally verified circom circuits with machine-checked proofs, in Coq.
+
 ## Requirements
 - opam
 - Coq v8.15.0

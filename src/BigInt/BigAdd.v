@@ -30,7 +30,7 @@ Require Import Circom.ListUtil.
 
 
 (* Circuit:
-* https://github.com/0xPARC/circom-ecdsa/blob/08c2c905b918b563c81a71086e493cb9d39c5a08/circuits/bigint.circom
+* https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
 *)
 
 Module BigAdd (C: CIRCOM).

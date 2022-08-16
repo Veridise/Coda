@@ -11,7 +11,7 @@ Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
 
-Require Import Crypto.Util.Decidable Crypto.Util.Notations.
+Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Ring.
 
@@ -20,7 +20,8 @@ Require Import Coq.Logic.PropExtensionality.
 
 
 Require Import Util DSL.
-Require Import Circom.Circom.
+Require Import Circom.Circom Circom.Default.
+Require Import Circom.LibTactics.
 Require Import Circom.Tuple.
 Require Import Circom.circomlib.Bitify Circom.circomlib.Comparators.
 Require Import Circom.ListUtil.
@@ -33,7 +34,7 @@ Require Import Circom.ListUtil.
 *)
 
 Module BigAdd (C: CIRCOM).
-
+Context {n: nat}.
 
 Module B := Bitify C.
 Module Cmp := Comparators C.
@@ -42,26 +43,18 @@ Import B C.
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 Local Open Scope circom_scope.
-Local Notation "xs [ i ]" := (nth_Default i xs).
+Local Open Scope tuple_scope.
 
-Definition List_nth_Default {T} `{Default T} i xs := List.nth_default default xs i.
-Local Notation "xs ! i " := (List_nth_Default i xs) (at level 20).
-Local Notation "xs [: i ]" := (firstn i xs) (at level 20).
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
-
-Lemma nth_Default_nth_default {T n} `{H: Default T}: forall i (xs: tuple T n),
-  nth_Default i xs = nth_default default i xs.
-Proof.
-  induction n; intros; firstorder || destruct i; firstorder.
-Qed.
-
-#[global] Instance F_default: Default F := { default := F.zero }.
-
 
 (* x is a valid digit in base-2^n representation *)
 Local Notation "x | ( n )" := (in_range n x) (at level 40).
 Local Notation "xs |: ( n )" := (tforall (in_range n) xs) (at level 40).
+
+(* interpret a tuple of weights as representing a little-endian base-2^n number *)
+Local Notation "[| xs |]" := (as_le n xs).
+Local Notation "[|| xs ||]" := (as_le n (to_list _ xs)).
 
 Module Comparators := Comparators C.
 Create HintDb F_to_Z discriminated.
@@ -112,11 +105,29 @@ Hint Rewrite (Nat.mul_1_l) : simplify_F.
 Hint Rewrite <- (Nat2N.inj_mul) : simplify_F.
 
 
+Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
+  i < length l ->
+  List.nth i l d = List_nth_Default i l.
+Proof. intros. unfold List_nth_Default. rewrite nth_default_eq. erewrite nth_oblivious; eauto. lia. Qed.
+
+Ltac unfold_default := unfold List_nth_Default; rewrite nth_default_eq.
+Ltac fold_default := rewrite fold_nth; try lia.
+Ltac simpl_default := repeat unfold_default; simpl; repeat fold_default; try lia.
+Ltac default_apply L := repeat unfold_default; L; repeat fold_default; try lia.
+
+
+
+Lemma nth_Default_List_tuple {T n} `{Default T} (xs: tuple T n) i:
+  (to_list n xs) ! i = xs [i].
+Proof.
+  unfold List_nth_Default. unfold nth_Default, nth. rewrite nth_default_to_list. reflexivity.
+Qed.
+
 
 Module ModSumThree.
 
 Section ModSumThree.
-Context {n: nat}.
+
 (* Note: this is a simplified version from circom-pairing *)
 (* 
 template ModSumThree(n) {
@@ -148,7 +159,7 @@ Record t : Type := {
 
 Definition spec (w: t) :=
   (* pre-conditions *)
-  ( S n <= k )%Z ->
+  ( S n <= C.k )%Z ->
   (* a and b are n-bits, i.e., <= 2^n-1 *)
   w.(a) | (n) -> 
   w.(b) | (n) -> 
@@ -176,43 +187,34 @@ Proof.
   - fqsatz.
   - subst.
   unfold in_range in *.
-  remember (Num2Bits._out [n] ) as out_n.
+  remember (Num2Bits._out [n] ) as out_n. pose proof (length_to_list Num2Bits._out).
   pose proof (Num2Bits.soundness _ n2b) as H_n2b. unfold Num2Bits.spec, repr_le2 in *.
   rewrite <- H_in.
   pose proof H_n2b as H_n2b'. unfold repr_le in H_n2b. destruct H_n2b as [_ [_ H_as_le] ].
   rewrite H_as_le.
-  (* rewrite [| out |] as [| out[:n] |] + 2^n * out[n] *)
-  erewrite <- firstn_split_last with (l := (to_list (S n) Num2Bits._out)) (n:=n) (d:=0) by (rewrite length_to_list; lia).
-  rewrite <- nth_default_eq, nth_default_to_list.
-  rewrite as_le_app. cbn [as_le].
-  unwrap_Default Heqout_n F_default.
-  rewrite <- Heqout_n, firstn_length_le by (rewrite length_to_list; lia).
+  erewrite as_le_split_last; eauto.
+
+  rewrite nth_Default_List_tuple.
+  rewrite <- Heqout_n.
   autorewrite with simplify_F.
-  replace (as_le 1 (firstn n (to_list (S n) Num2Bits._out)) + (1 + 1) ^ n * out_n -
+  
+  replace (as_le 1 ((to_list (S n) Num2Bits._out)[:n]) + (1 + 1) ^ n * out_n -
     out_n * (1 + 1) ^ n) with (as_le 1 (firstn n (to_list (S n) Num2Bits._out))) by fqsatz.
   eapply repr_le_ub; try lia.
-  unfold repr_le2. 
-  eapply repr_le_prefix; eauto.
-  rewrite firstn_length_le. lia. rewrite length_to_list. lia.
-  assert ((to_list (S n) Num2Bits._out) = (to_list (S n) Num2Bits._out)) by auto.
-  erewrite <- firstn_split_last in H.
-  rewrite <- H in *.
-  rewrite length_to_list. rewrite <- H_as_le. auto.
-  rewrite length_to_list. auto.
+  eapply repr_le_firstn; eauto.
+  rewrite firstn_length_le; lia.
+  rewrite H. auto.
 
   - rewrite H_carry.
-  pose proof (Num2Bits.soundness _ n2b) as H_n2b. unfold Num2Bits.spec, repr_le2, repr_le in *.
+  pose proof (Num2Bits.soundness _ n2b) as H_n2b. 
+  unfold Num2Bits.spec, repr_le2, repr_le in *.
   intuition.
-  unwrap_Default_goal F_default.
-  rewrite <- nth_default_to_list, nth_default_eq.
+  rewrite <- nth_Default_List_tuple. unfold_default.
   apply Forall_nth.
   apply Forall_in_range.
   auto. 
-  rewrite length_to_list.
   lia.
-  Unshelve. auto. (* ??? what is this *)
 Qed.
-
 
 (* for default values. never used *)
 Definition wgen : t.
@@ -222,12 +224,13 @@ Admitted.
 
 End ModSumThree.
 End ModSumThree.
-(* Arguments ModSumThree.t (n). *)
 
 
 
 Module _BigAdd.
-Context {n k: nat}.
+
+Context {k: nat}.
+
 (* template BigAdd(n, k) {
     assert(n <= 252);
     signal input a[k];
@@ -258,9 +261,8 @@ Module D := DSL C.
 
 Module M := ModSumThree.
 
-
 Definition cons (a b: tuple F k) (out: tuple F (S k)) :=
-  exists (unit: tuple (@M.t n) k),
+  exists (unit: tuple M.t k),
   D.iter (fun i _cons =>
     _cons /\
     unit [i].(M.a) = a [i] /\
@@ -281,10 +283,6 @@ Record t := {
   _cons: cons a b out
 }.
 
-(* interpret a tuple of weights as representing a little-endian base-2^n number *)
-Local Notation "[| xs |]" := (as_le n xs ).
-Local Notation "[|| xs ||]" := (as_le n (to_list _ xs)).
-
 Definition spec (w: t) :=
   (* pre-condition *)
   (n> 0)%Z ->
@@ -296,26 +294,6 @@ Definition spec (w: t) :=
   [|| w.(out) ||] = [|| w.(a) ||] + [|| w.(b) ||] /\
   w.(out) |: (n).
 
-Lemma as_le_split_last: forall i x ws,
-  repr_le n x (S i) ws ->
-  [| ws |] = [| ws[:i] |] + 2^(n*i)%nat * ws!i.
-Proof.
-  unwrap_C.
-  intros. pose proof H as H'.
-  unfold repr_le in H. intuition.
-  subst.
-  (* pose proof (firstn_split_last ws i 0) as Hws. *)
-  assert (exists ws', ws = ws'). exists ws. reflexivity.
-  destruct H1 as [ws' Hws]. pose proof Hws as Hws'.
-  erewrite <- firstn_split_last with (l:=ws) (n:=i)(d:=0) in Hws; auto.
-  pose proof (as_le_app n (ws[:i]) (ws!i::nil)).
-  rewrite firstn_length_le in H1 by lia.
-  replace ([|ws ! i :: nil|]) with (ws ! i) in H1 by (simpl; fqsatz).
-  rewrite Nat2N.inj_mul, <- H1.
-  subst.
-  f_equal.
-  unfold List_nth_Default. rewrite nth_default_eq. auto.
-Qed.
 
 
 Create HintDb simplify_F discriminated.
@@ -339,12 +317,6 @@ Hint Rewrite (Nat.add_0_r): natsimplify.
 Hint Rewrite (Nat.add_0_l): natsimplify.
 Hint Rewrite (Nat.mul_succ_r): natsimplify.
 
-Lemma List_nth_Default_nth_Default {T n} `{Default T} (xs: tuple T n) i:
-  (to_list n xs) ! i = xs [i].
-Proof.
-  unfold List_nth_Default. unfold nth_Default, nth. rewrite nth_default_to_list. reflexivity.
-Qed.
-
 
 Ltac split_as_le xs i := 
   erewrite as_le_split_last with (ws:=xs[:S i]) (i:=i);
@@ -353,8 +325,8 @@ Ltac split_as_le xs i :=
 
 
 Ltac lift_to_list := repeat match goal with
-| [H: context[nth_Default _ _] |- _] => rewrite <-List_nth_Default_nth_Default in H; try lia
-| [ |- context[nth_Default _ _] ] => rewrite <-List_nth_Default_nth_Default; try lia
+| [H: context[nth_Default _ _] |- _] => rewrite <-nth_Default_List_tuple in H; try lia
+| [ |- context[nth_Default _ _] ] => rewrite <-nth_Default_List_tuple; try lia
 | [H: tforall _ _ |- _] => apply tforall_Forall in H
 | [ |- tforall _ _] => apply tforall_Forall
 end.
@@ -366,25 +338,12 @@ Proof.
   unwrap_C. intros n x Hn Hbin. unfold in_range.
   destruct (dec (n>1)).
   destruct Hbin; subst; autorewrite with F_to_Z. lia.
-  assert (2^1 < 2^n). apply Zpow_facts.Zpower_lt_monotone. lia. lia.
+  assert (2^1 < 2^n)%Z. apply Zpow_facts.Zpower_lt_monotone. lia. lia.
   transitivity (2^1)%Z. simpl. lia. lia. lia.
   assert (n=1)%nat by lia. subst. simpl. destruct Hbin; subst; autorewrite with F_to_Z; lia.
 Qed.
 
-
-Axiom propositional_extensionality :
-  forall (P Q : Prop), (P <-> Q) -> P = Q.
-
-
-Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
-  i < length l ->
-  List.nth i l d = List_nth_Default i l.
-Proof. intros. unfold List_nth_Default. rewrite nth_default_eq. erewrite nth_oblivious; eauto. lia. Qed.
-
-Ltac unfold_default := unfold List_nth_Default; rewrite nth_default_eq.
-Ltac fold_default := rewrite fold_nth; try lia.
-Ltac simpl_default := repeat unfold_default; simpl; repeat fold_default; try lia.
-Ltac default_apply L := repeat unfold_default; L; repeat fold_default; try lia.
+Local Notation "' xs" := (to_list _ xs) (at level 20).
 
 Theorem soundness: forall (w: t), spec w.
 Proof.
@@ -404,44 +363,28 @@ Proof.
   pose proof (length_to_list a) as Hlen_a.
   pose proof (length_to_list b) as Hlen_b.
   pose proof (length_to_list out) as Hlen_out.
-  pose proof (length_to_list unit) as Hlen_unit'.
-  remember (to_list _ out) as out'.
-  remember (to_list _ a) as a'.
-  remember (to_list _ b) as b'.
-  remember (to_list _ unit) as unit'.
-  
-  pose (g := fun (i : nat) (_cons : Prop) =>
-      _cons /\
-      M.a (unit' ! i) = a' ! i /\
-      M.b (unit' ! i) = b' ! i /\
-      (if dec (i = 0%nat)
-      then M.c (unit' ! i) = 0
-      else M.c (unit' ! i) = M.carry (unit' ! (i - 1))) /\
-      out' ! i = M.sum (unit' ! i)).
-  assert (swap: forall i _cons, (i<=k)%nat -> f i _cons <-> g i _cons). {
-    intros i _cons. rewrite Heqf. unfold g. intros.
-    lift_to_list. subst. intuition.
-  }
+  pose proof (length_to_list unit) as Hlen_unit.
 
   destruct prog as [p_iter out_k].
   pose (Inv := fun (i: nat) (_cons: Prop) => _cons -> 
     (* carry bits are binary *)
-    (forall (j: nat), j < i -> binary ((unit' ! j).(M.carry))) /\
+    (forall (j: nat), j < i -> binary (('unit ! j).(M.carry))) /\
     (* out are in range *)
-    Forall (in_range n) (out'[:i]) /\
+    Forall (in_range n) ('out [:i]) /\
     (* addition is ok for prefix *)
-    [|  out'[:i] |] +  2^(n*i)%nat * (if dec (i = 0)%nat then 0 else (unit' ! (i-1)).(M.carry))
-      = [|  a'[:i] |] +  [|  b'[:i] |]).
-  assert (HInv: Inv k (D.iter g k True)).
+    [| 'out [:i] |] +  2^(n*i)%nat * (if dec (i = 0)%nat then 0 else ('unit ! (i-1)).(M.carry))
+      = [| 'a [:i] |] +  [| 'b [:i] |]).
+  assert (HInv: Inv k (D.iter f k True)).
   apply D.iter_inv.
   - unfold Inv. intuition.
     + lia.
     + simpl. constructor.
     + destruct (dec (0=0)%nat). simpl. fqsatz. lia.
   - intros i _cons IH H_bound.
-    unfold Inv in *. intros Hg.
-    unfold g in Hg. destruct Hg as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
-    pose proof (ModSumThree.soundness (unit' ! i )) as M0. unfold ModSumThree.spec in M0.
+    unfold Inv in *. intros Hf.
+    rewrite Heqf in *. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
+    lift_to_list.
+    pose proof (ModSumThree.soundness ('unit ! i )) as M0. unfold ModSumThree.spec in M0.
     destruct IH as [IH_bin IH_eq]. auto.
     destruct M0 as [M_eq [M_sum M_bin] ]. lia.
     rewrite Hai. unfold_default. apply Forall_nth. auto. lia.
@@ -449,7 +392,7 @@ Proof.
     destruct (dec (i=0%nat)). rewrite Hci. left. fqsatz.
     rewrite Hci. apply IH_bin. lia.
     destruct (dec (S i = 0%nat)). discriminate.
-    split_as_le out' i. split_as_le a' i. split_as_le b' i.
+    split_as_le ('out) i. split_as_le ('a) i. split_as_le ('b) i.
     intuition idtac.
     (* binary *)
     + destruct (dec (j < i)). auto.
@@ -463,7 +406,7 @@ Proof.
       * (* i = 0 *) rewrite e in *.
         autorewrite with simplify_F natsimplify.
         repeat erewrite firstn_1; try lia.
-        simpl_default.
+        repeat fold_default.
         fqsatz.
       * (* i > 0 *) 
         rewrite Nat2N.inj_add. autorewrite with natsimplify simplify_F.
@@ -481,61 +424,23 @@ Proof.
       fold_default.
       rewrite Houti. auto.
   - unfold Inv in HInv.
-    assert (Hfg: f = g). (* functional extensionality *) admit. rewrite Hfg in *. clear Hfg.
-    replace a' with (a'[:k]). replace b' with (b'[:k]).
+    replace ('a) with ('a[:k]) by (applys_eq firstn_all; f_equal; lia).
+    replace ('b) with ('b[:k]) by (applys_eq firstn_all; f_equal; lia).
     destruct (dec (k=0)%nat). lia.
-    intuition.
-    rewrite <- H7. rewrite <- out_k.
-    apply as_le_split_last with (x:=[|out'|]).
-    rewrite <- Hlen_out.
-    apply repr_trivial.
-    eapply Forall_firstn_S with (d:=0); eauto.
-    fold_default. rewrite out_k. 
-    apply binary_in_range; try lia. apply H5. lia.
-    lift_to_list. rewrite <- Heqout'. 
-    apply Forall_firstn_S with (i:=k) (d:=0); try eauto.
+    assert (H_out_inrange: Forall (in_range n) (' out)). {
+      intuition.
+      apply Forall_firstn_S with (i:=k) (d:=0); try eauto.
     fold_default. apply binary_in_range; try lia. rewrite out_k. apply H5; lia.
-    rewrite <- Hlen_b. rewrite firstn_all. auto.
-    rewrite <- Hlen_a. rewrite firstn_all. auto.
+    }
+    intuition; auto.
+    * rewrite <- H7. rewrite <- out_k.
+    apply as_le_split_last with (x:=[|' out|]).
+    applys_eq repr_trivial; auto.
+    * lift_to_list. auto.
   Unshelve. exact F.zero. exact F.zero. exact F.zero.
-Admitted.
+Qed.
 
 
 End _BigAdd.
 
 End BigAdd.
-
-(* // addition mod 2**n with carry bit
-template ModSum(n) {
-    assert(n <= 252);
-    signal input a;
-    signal input b;
-    signal output sum;
-    signal output carry;
-
-    component n2b = Num2Bits(n + 1);
-    n2b.in <== a + b;
-    carry <== n2b.out[n];
-    sum <== a + b - carry * (1 << n);
-} *)
-(* Definition ModSum_cons (n: nat) (a b sum carry: F) :=
-  exists (n2b: Num2Bits.t),
-    n2b.(Num2Bits._in) = a+b /\
-    n2b.(Num2Bits._out)[n] = carry /\
-    sum = a + b - carry * 2^n.
-
-(* TODO: define mod and quotient in F *)
-Definition ModSum_spec (n: nat) (a b sum carry: F) :=
-  sum + carry * 2^n = a + b.
-
-Lemma ModSum_sound (n: nat) (a b sum carry: F):
-  ModSum_cons n a b sum carry ->
-  ModSum_spec n a b sum carry.
-Proof.
-  unwrap_C.
-  unfold ModSum_cons, ModSum_spec.
-  intros H. destruct H as [n2b H]. intuition idtac.
-  pose proof Num2Bits.soundness as Hn2b. specialize (Hn2b n2b). unfold Num2Bits.spec, Num2Bits.repr_binary in Hn2b.
-  intuition idtac.
-  fqsatz.
-Qed. *)

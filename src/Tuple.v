@@ -11,6 +11,8 @@ Require Import Crypto.Util.Decidable.
 Require Import Crypto.Util.ListUtil.
 Require Export Crypto.Util.FixCoqMistakes.
 
+Require Import Circom.Default.
+
 Ltac invert H := inversion H; subst; clear H.
 
 (* left associative by default *)
@@ -126,10 +128,6 @@ Fixpoint nth_default {T n} (d: T) (i: nat) : tuple T n -> T :=
 
 Definition nth {n T} i (xs: tuple T n) d := nth_default d i xs.
 
-Class Default (T: Type) := { default: T }.
-
-Definition nth_Default {T n} `{Default T} i (xs: tuple T n) := nth i xs default.
-
 Lemma nth_default_to_list {A} n (xs : tuple A n) (d : A) :
   forall i, List.nth_default d (to_list n xs) i = @nth_default A n d i xs.
 Proof using Type.
@@ -144,6 +142,14 @@ Lemma nth_default_oblivious: forall {A n} (xs: tuple A n) (i: nat) (d1 d2: A),
 Proof.
   induction n; simpl; intros. lia.
   destruct xs; destruct i. auto. apply IHn. lia.
+Qed.
+
+Definition nth_Default {T n} `{Default T} i (xs: tuple T n) := nth i xs default.
+
+Lemma nth_Default_nth_default {T n} `{H: Default T}: forall i (xs: tuple T n),
+  nth_Default i xs = nth_default default i xs.
+Proof.
+  induction n; intros; firstorder || destruct i; firstorder.
 Qed.
 
 Lemma nth_Default_to_list {A} `{Default A} n (xs : tuple A n) (d: A):
@@ -1326,3 +1332,8 @@ Program Fixpoint from_list {T} (n:nat) (xs:list T) : length xs = n -> tuple T n 
 Definition from_list' {T} (xs: list T) : tuple T (length xs).
 Proof. induction xs; simpl. exact tt. auto. Defined.
 Compute (from_list' (1::2::3::nil)). *)
+
+Declare Scope tuple_scope.
+Delimit Scope tuple_scope with tuple.
+Global Notation "T ^ n" := (tuple T n) : type_scope.
+Global Notation "w [ i ]" := (Tuple.nth_Default i w) (at level 20) : tuple_scope.

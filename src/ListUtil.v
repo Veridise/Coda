@@ -1,7 +1,8 @@
 Require Import Coq.Lists.List Coq.Arith.PeanoNat.
 Require Import Crypto.Util.NatUtil.
 Require Import Lia.
-Require Import Util.
+Require Import Circom.Util.
+Require Import Circom.Default.
 
 
 Lemma nth_oblivious: forall {A: Type} l (i: nat) (d1 d2: A),
@@ -139,3 +140,9 @@ Proof.
     destruct i; simpl. auto.
     auto.
 Qed.
+
+
+
+Definition List_nth_Default {T} `{Default T} i xs := List.nth_default default xs i.
+Global Notation "xs ! i " := (List_nth_Default i xs) (at level 20) : list_scope.
+Global Notation "xs [: i ]" := (List.firstn i xs) (at level 20) : list_scope.

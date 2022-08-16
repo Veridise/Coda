@@ -11,9 +11,11 @@ Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 
 Require Import Circom.Tuple.
-Require Import Crypto.Util.Decidable Crypto.Util.Notations.
+Require Import Crypto.Util.Decidable.
+(* Require Import Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Circom.Circom Circom.DSL Circom.Util Circom.ListUtil.
+Require Import Circom.Default.
 (* Require Import VST.zlist.Zlist. *)
 
 
@@ -29,8 +31,6 @@ Module D := DSL C.
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 Local Open Scope circom_scope.
-Local Notation "w [ i ]" := (Tuple.nth_default 0 i w).
-Local Notation "F ^ n" := (tuple F n) : type_scope.
 
 Local Coercion Z.of_nat : nat >-> Z.
 Local Coercion N.of_nat : nat >-> N.
@@ -94,8 +94,10 @@ Fixpoint as_le (ws: list F) : F :=
   | w::ws' => w + 2^n * (as_le ws')
   end.
 
+Notation "[| xs |]" := (as_le xs).
+
 Lemma as_le_as_le': forall ws,
-  as_le ws = as_le' ws.
+  [| ws |] = as_le' ws.
 Proof.
   unwrap_C. unfold as_le'.
   induction ws; simpl.
@@ -119,7 +121,7 @@ Proof.
 Qed. *)
 
 Lemma as_le_app: forall ws1 ws2,
-  as_le (ws1 ++ ws2) = as_le ws1 + 2^(n * length ws1) * as_le ws2.
+  [| ws1 ++ ws2 |] = [| ws1 |] + 2^(n * length ws1) * [| ws2 |].
 Proof.
   unwrap_C. induction ws1; intros.
   - rewrite N.mul_0_r, F.pow_0_r. fqsatz.
@@ -162,6 +164,9 @@ Qed.
 
 End Endianness.
     
+
+Notation "[| xs |]" := (as_le xs).
+
 Section Representation.
 
 Definition in_range (x: F) := (x <=z (2^n-1)%Z).
@@ -169,7 +174,7 @@ Definition in_range (x: F) := (x <=z (2^n-1)%Z).
 Definition repr_le x m ws :=
   length ws = m /\
   List.Forall in_range ws /\
-  x = as_le ws.
+  x = [| ws |].
 
 Definition repr_be x m ws :=
   length ws = m /\
@@ -208,8 +213,6 @@ Proof.
   unwrap_C. 
   intros. unfold as_be. simpl. autorewrite with natsimplify. fqsatz.
 Qed.
-
-
 
 Lemma repr_le_last0: forall ws x n,
   repr_le x (S n) (ws ++ 0 :: nil) ->
@@ -273,6 +276,26 @@ Lemma repr_le_firstn: forall x x' l l' ws ws' i,
 Proof.
   intros. eapply repr_le_prefix with (ws2:=skipn i ws); subst; eauto.
   rewrite firstn_skipn. auto.
+Qed.
+
+Lemma as_le_split_last : forall i x ws,
+  repr_le x (S i) ws ->
+  [| ws |] = [| ws[:i] |] + 2^(n*i)%nat * ws ! i.
+Proof.
+  unwrap_C.
+  intros. pose proof H as H'.
+  unfold repr_le in H. intuition.
+  subst.
+  assert (exists ws', ws = ws'). exists ws. reflexivity.
+  destruct H1 as [ws' Hws]. pose proof Hws as Hws'.
+  erewrite <- firstn_split_last with (l:=ws) (n:=i)(d:=0) in Hws; auto.
+  pose proof (as_le_app (ws[:i]) (ws!i::nil)).
+  rewrite firstn_length_le in H1 by lia.
+  replace ([|ws ! i :: nil|]) with (ws ! i) in H1 by (simpl; fqsatz).
+  rewrite Nat2N.inj_mul, <- H1.
+  subst.
+  f_equal.
+  unfold List_nth_Default. rewrite nth_default_eq. auto.
 Qed.
 
 End Representation.
@@ -465,6 +488,7 @@ End Base2.
 
 Module Num2Bits.
 
+Local Open Scope tuple_scope.
 Definition cons (n: nat) (_in: F) (_out: F^n) : Prop :=
   let lc1 := 0 in
   let e2 := 1 in
@@ -529,21 +553,23 @@ Class t (n: nat): Type := mk {
 Definition spec (n: nat) (w: t n) := 
   repr_le2 w.(_in) n (to_list n w.(_out)).
 
+
 Theorem soundness: forall (n: nat) (w: t n), spec n w.
 Proof.
   unwrap_C. intros.
   destruct w as [_in _out _cons]. unfold spec, cons in *. simpl.
-  pose (Inv := fun i '((lc1, e2, _C)) => 
+  remember (to_list _ _out) as out.
+  pose (Inv := fun (i: nat) '((lc1, e2, _C)) => 
     (_C: Prop) ->
-      (e2 = (2^N.of_nat i) /\
+      (e2 = (2^i) /\
       let firsti := firstn i (to_list n _out) in
       repr_le2 lc1 i firsti)).
   remember (fun (i : nat) '(y, _C) =>
   let
   '(lc1, e2) := y in
-   (lc1 + nth_default 0 i _out * e2, 
+   (lc1 + _out[i] * e2, 
    e2 + e2,
-   nth_default 0 i _out * (nth_default 0 i _out - 1) = 0 /\
+   _out[i] * (_out[i] - 1) = 0 /\
    _C)) as f.
   assert (Hinv: Inv n (D.iter f n (0,1,True))). {
     apply D.iter_inv; unfold Inv.

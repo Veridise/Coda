@@ -23,7 +23,7 @@ Require Import Circom.circomlib.Bitify.
 (* Require Import VST.zlist.Zlist. *)
 
 Require Import Circom.Circom.
-Require Import Circom.ECC.Polynom.
+Require Import Circom.BigInt.Polynom.
 
 (* Circuit:
 * https://github.com/0xPARC/circom-ecdsa/blob/08c2c905b918b563c81a71086e493cb9d39c5a08/circuits/bigint.circom

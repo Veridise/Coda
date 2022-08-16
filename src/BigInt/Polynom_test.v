@@ -1,4 +1,4 @@
-Require Import Circom.ECC.Polynom.
+Require Import Circom.BigInt.Polynom.
 
 Locate "_ [ _ ]".
 

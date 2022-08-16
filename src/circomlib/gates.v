@@ -11,7 +11,7 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems.
 
 
 Require Import Circom.Tuple.
-Require Import Crypto.Util.Decidable Crypto.Util.Notations.
+Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.

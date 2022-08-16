@@ -11,7 +11,7 @@ Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 
 Require Import Circom.Tuple.
-Require Import Crypto.Util.Decidable Crypto.Util.Notations.
+Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Circom.circomlib.Bitify.
 Require Import Circom.Circom.
@@ -32,7 +32,7 @@ Local Coercion Z.of_nat : nat >-> Z.
 
 Local Open Scope circom_scope.
 Local Open Scope F_scope.
-Local Notation "w [ i ]" := (Tuple.nth_default 0 i w).
+Local Open Scope tuple_scope.
 
 (***********************
  *       IsZero
@@ -206,10 +206,11 @@ Proof.
   destruct H as [H_n H_out ].
   intuition.
   - eapply one_minus_binary; eauto.
-    rewrite <- nth_default_to_list, nth_default_eq. apply Forall_nth. apply Forall_in_range. auto.
+    rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq. 
+    apply Forall_nth. apply Forall_in_range. auto.
     lia.
   - assert (Hn: Num2Bits._out [n] = 0) by fqsatz.
-    rewrite <- nth_default_to_list, nth_default_eq in Hn.
+    rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq in Hn.
     remember (to_list (S n) Num2Bits._out) as n2b_out.
       unfold repr_le2 in *.
       eapply repr_le_last0' in Hn. 2: { rewrite H_n in H_n2b'. apply H_n2b'. }
@@ -223,7 +224,7 @@ Proof.
     lia.
   - assert (Hn: Num2Bits._out [n] = 1) by fqsatz.
     rewrite H_n in *.
-    rewrite <- nth_default_to_list, nth_default_eq in Hn.
+    rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq in Hn.
     eapply repr_le_lb with (i:=n) in Hn; eauto; try lia.
     assert (F.to_Z x + 2^n - F.to_Z y >= 2^n). {
       autorewrite with F_to_Z in Hn; try lia;

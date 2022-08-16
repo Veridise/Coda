@@ -108,7 +108,7 @@ Hint Rewrite <- (Nat2N.inj_mul) : simplify_F.
 Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
   i < length l ->
   List.nth i l d = List_nth_Default i l.
-Proof. intros. unfold List_nth_Default. rewrite nth_default_eq. erewrite nth_oblivious; eauto. lia. Qed.
+Proof. intros. unfold List_nth_Default. rewrite nth_default_eq. erewrite nth_oblivious; eauto.  Qed.
 
 Ltac unfold_default := unfold List_nth_Default; rewrite nth_default_eq.
 Ltac fold_default := rewrite fold_nth; try lia.

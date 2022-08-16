@@ -14,7 +14,7 @@ Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Circom.circomlib.Bitify.
-Require Import Circom.Circom.
+Require Import Circom.Circom Circom.Util.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -34,6 +34,13 @@ Local Open Scope circom_scope.
 Local Open Scope F_scope.
 Local Open Scope tuple_scope.
 
+Notation "P '?'" :=
+  (match (@dec P _) with
+   | left _ => true
+   | right _ => false
+   end)
+  (at level 100).
+
 (***********************
  *       IsZero
  ***********************)
@@ -45,24 +52,24 @@ Definition cons (_in _out _inv: F) :=
   _in * _out = 0.
 
 (* IsZero *)
-Class t : Type := mk { _in: F; _out: F; _cons: exists _inv, cons _in _out _inv }.
+Record t : Type := { _in: F; _out: F; _cons: exists _inv, cons _in _out _inv }.
 
 (* IsZero spec *)
 Definition spec (c: t) : Prop :=
-  (c.(_in) = 0 -> c.(_out) = 1) /\
-  (~(c.(_in) = 0) -> c.(_out) = 0).
+  if (c.(_in) = 0)? then
+    c.(_out) = 1
+  else
+    c.(_out) = 0.
 
 (* IsZero is sound *)
 Theorem soundness:
   forall (c: t), spec c.
 Proof.
   unwrap_C.
-  intros. destruct c as [_in _out].
-  unfold spec, cons in *. simpl. destruct _cons0.
-  simpl.
-  split_eqns;
-  intros;
-  split_eqns. fqsatz. fqsatz.
+  intros. destruct c as [x y [x_inv H]].
+  unfold spec, cons in *. simpl.
+  intuition.
+  destruct (dec (x = 0)); fqsatz.
 Qed.
 
 (* Theorem IsZero_complete: forall (w: t),
@@ -94,31 +101,28 @@ Module IsEqual.
   | [ H: forall _ : ?a <> _?b, _ |- _] => assert (a<>b) by fqsatz; intuition idtac
   end. *)
 
-(* TODO: how to encode anonymous circuit instantiation? *)
-Definition cons x y _out := exists (isz: IsZero.t),
+Definition cons x y _out := 
+  exists (isz: IsZero.t),
     isz.(IsZero._in) = (x - y) /\
-    _out = isz.(IsZero._out).
+    isz.(IsZero._out) = _out.
 
-Class t : Type := mk { x: F; y: F; _out: F; _cons: cons x y _out }.
+Record t : Type := { x: F; y: F; _out: F; _cons: cons x y _out }.
 
 Definition spec t :=
-  (t.(x) = t.(y) -> t.(_out) = 1) /\ (~ t.(x) = t.(y) -> t.(_out) = 0).
+  if (t.(x) = t.(y))? then
+    t.(_out) = 1
+  else
+    t.(_out) = 0.
 
 Theorem soundness: forall t, spec t.
 Proof.
   unwrap_C.
-  intros t. destruct t as [x y _out].
-  unfold spec, cons in *.
-  destruct _cons0 as [iszero H].
-  pose proof (IsZero.soundness iszero).
-  unfold IsZero.spec in *.
-  simpl in *.
-  split_eqns.
-  (* FIXME: automate this *)
-  - assert (IsZero._in = 0) by fqsatz. 
-    intuition idtac. fqsatz.
-  - assert (IsZero._in <> 0) by fqsatz.
-    intuition idtac. fqsatz. 
+  intros t. destruct t as [x y _out [isz H]].
+  unfold spec. simpl.
+  pose proof (IsZero.soundness isz) as H_isz. unfold IsZero.spec in H_isz.
+  intuition.
+  rewrite H0, H1 in *.
+  destruct (dec (x=y)); destruct (dec (x-y = 0)); try fqsatz.
 Qed.
 
 End IsEqual.
@@ -128,22 +132,26 @@ End IsEqual.
  ***********************)
 
 Module LessThan.
+Context {n: nat}.
 
-Definition cons (n: nat) (_in: tuple F 2) (_out: F) :=
+Definition cons (_in: tuple F 2) (_out: F) :=
   exists (n2b: Num2Bits.t (S n)),
     n2b.(Num2Bits._in) = (_in [0] + 2^n - _in[1]) /\
     _out = 1 - n2b.(Num2Bits._out)[n].
 
-Class t (n: nat): Type := mk {
-  _in: tuple F 2;
+Record t: Type := {
+  _in: F^2;
   _out: F;
-  _cons: cons n _in _out;
+  _cons: cons _in _out;
 }.
 
-Definition spec (n: nat) (w: t n) :=
-  (binary _out) /\
-  (_out = 1 -> w.(_in)[0] <q w.(_in)[1]) /\
-  (_out = 0 -> w.(_in)[0] >=q w.(_in)[1]).
+Definition spec (w: t) :=
+  binary w.(_out) /\
+  let '(x, y) := (w.(_in)[0], w.(_in)[1]) in
+  if (w.(_out) = 1)? then
+    x <q y
+  else
+    x >=q y.
 
 Lemma one_minus_binary: forall (x y: F),
   x = 1 - y ->
@@ -182,47 +190,49 @@ Hint Rewrite (@F.pow_1_r q) : F_to_Z.
 Hint Rewrite to_Z_sub : F_to_Z.
 Hint Rewrite Z.mod_small : F_to_Z.
 
-
-Lemma soundness: forall (n: nat) (w : t n)
-  (H_nk: n <= k - 1)
-  (H_x: 0 <= F.to_Z (w.(_in)[0]) <= 2 ^ n )
-  (H_y: 0 <= F.to_Z (w.(_in)[1]) <= 2 ^ n ),
-  spec n w.
+Lemma soundness: forall (w : t),
+  (* pre-conditions: both inputs are at most (k-1) bits *)
+  n <= C.k - 1 ->
+  (w.(_in)[0]) <=z 2^n ->
+  (w.(_in)[1]) <=z 2^n ->
+  (* post-condition *)
+  spec w.
 Proof.
-  unwrap_C. intros. unfold spec.
-  remember (_in[0]) as x. eremember (_in[1]) as y.
-  destruct w as [_in _out _cons].
-  unfold binary. unfold cons in *.
-  destruct _cons as [n2b H].
-  cbn [LessThan._in LessThan._out] in *.
-  assert (H_pow_nk: 2 * 2^n <= 2^k). {
-    replace (2 * 2^n)%Z with (2 ^ (n + 1))%Z by (rewrite Zpower_exp; lia).
-    apply Zpow_facts.Zpower_le_monotone; lia.
-  }
+  unwrap_C. intros w H_nk Hx Hy.
+  remember (w.(_in)[0]) as x. remember (w.(_in)[1]) as y.
+  destruct w as [_in _out [n2b H]]. unfold spec. simpl in *.
   rewrite <- Heqx, <- Heqy in *.
   pose proof (Num2Bits.soundness _ n2b) as H_n2b.
   pose proof H_n2b as H_n2b'.
   unfold Num2Bits.spec in *. unfold repr_le2, repr_le in H_n2b.
   destruct H as [H_n H_out ].
+  apply conj_use.
   intuition.
   - eapply one_minus_binary; eauto.
     rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq. 
     apply Forall_nth. apply Forall_in_range. auto.
     lia.
-  - assert (Hn: Num2Bits._out [n] = 0) by fqsatz.
-    rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq in Hn.
-    remember (to_list (S n) Num2Bits._out) as n2b_out.
-      unfold repr_le2 in *.
-      eapply repr_le_last0' in Hn. 2: { rewrite H_n in H_n2b'. apply H_n2b'. }
-      fold repr_le2 in Hn.
-      apply repr_le_ub in Hn; try lia.
-    assert (F.to_Z x + 2^n - F.to_Z y <= 2^n - 1 ). {
-      autorewrite with F_to_Z in Hn; try lia;
-      repeat autorewrite with F_to_Z; simpl; try lia.
-      simpl in Hn. lia.
+  - assert (H_pow_nk: 2 * 2^n <= 2^k). {
+      replace (2 * 2^n)%Z with (2 ^ (n + 1))%Z by (rewrite Zpower_exp; lia).
+      apply Zpow_facts.Zpower_le_monotone; lia.
     }
-    lia.
-  - assert (Hn: Num2Bits._out [n] = 1) by fqsatz.
+    assert (H_x_nonneg: 0 <= F.to_Z x). apply F.to_Z_range. lia.
+    assert (H_y_nonneg: 0 <= F.to_Z y). apply F.to_Z_range. lia.
+    destruct (dec (_out = 1)).
+    + assert (Hn: Num2Bits._out [n] = 0) by fqsatz.
+      rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq in Hn.
+      remember (to_list (S n) Num2Bits._out) as n2b_out.
+        unfold repr_le2 in *.
+        eapply repr_le_last0' in Hn. 2: { rewrite H_n in H_n2b'. apply H_n2b'. }
+        fold repr_le2 in Hn.
+        apply repr_le_ub in Hn; try lia.
+      assert (F.to_Z x + 2^n - F.to_Z y <= 2^n - 1 ). {
+        autorewrite with F_to_Z in Hn; try lia;
+        repeat autorewrite with F_to_Z; simpl; try lia.
+        simpl in Hn. lia.
+      }
+      lia.
+    + destruct H0; try fqsatz. assert (Hn: Num2Bits._out [n] = 1) by fqsatz.
     rewrite H_n in *.
     rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq in Hn.
     eapply repr_le_lb with (i:=n) in Hn; eauto; try lia.

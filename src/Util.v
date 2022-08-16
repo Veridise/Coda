@@ -16,7 +16,11 @@ Require Import Circom.Circom.
 
 Ltac invert H := inversion H; subst; clear H.
 
+Lemma conj_use: forall (P Q: Prop), P /\ (P -> Q) -> P /\ Q.
+Proof. tauto. Qed.
+
 Module Util.
+
 
 Import Circom.
 

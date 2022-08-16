@@ -18,7 +18,7 @@ Require Import Coq.NArith.Nnat.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field Crypto.Algebra.Ring.
 Require Import Coq.Lists.ListSet.
-Require Import Crypto.Util.Decidable Crypto.Util.Notations.
+Require Import Crypto.Util.Decidable.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems.
 
 Require Import Util DSL.
@@ -31,17 +31,15 @@ Section Polynomial.
 Context {F eq zero one opp add sub mul inv div}
         `{fld:@Hierarchy.field F eq zero one opp add sub mul inv div}
         `{eq_dec:DecidableRel eq}.
-
-Local Infix "==" := eq. 
-Local Notation "a <> b" := (not (a == b)).
+Declare Scope P_scope.
+Local Infix "==" := eq (at level 50).
+Local Notation "a <> b" := (not (eq a b)).
 Local Infix "==" := eq : type_scope. 
 Local Notation "a <> b" := (not (a == b)) : type_scope.
 Local Notation "0" := zero.  Local Notation "1" := one.
 Local Infix "+" := add. Local Infix "*" := mul.
 Local Infix "-" := sub. Local Infix "/" := div.
 (* Local Infix "^" := pow. *)
-
-Ltac invert H := inversion H; subst; clear H.
 
 
 (* Formalization due to 
@@ -164,16 +162,17 @@ Fixpoint peval x f : F :=
   | c::f' => c + x * peval x f'
   end.
 
-Notation "f ([ x ]) " := (peval x f) (at level 19).
+Notation "f [[ x ]] " := (peval x f) (at level 18) : P_scope.
+Local Open Scope P_scope.
 
 Lemma peval_empty_zero (f: polynomial): 
-  empty_poly f -> forall (x: F),  f([x]) == 0.
+  empty_poly f -> forall (x: F),  f[[x]] == 0.
 Proof.
   intros. induction H; simpl; auto.
 Qed.
 
 Lemma peval_nil: forall f x,
-  f ~ 0p -> f ([x]) == 0.
+  f ~ 0p -> f [[x]] == 0.
 Proof.
   intros. p0_to_empty. induction H; simpl; auto.
 Qed.
@@ -215,7 +214,7 @@ Proof.
 Defined.
 
 (* Definition peval_then (op: F -> F -> F) (x: F) (f g: polynomial) : F :=
-  op (f ([x])) (g ([x])).
+  op (f [[x]]) (g [[x]]).
 
 Definition peval_then_add := peval_then add.
 Definition peval_then_sub := peval_then sub.
@@ -288,19 +287,19 @@ Defined. *)
 
 Definition coeff (i: nat) (f: polynomial) : F := nth i f 0.
 
-Notation "f [ i ]" := (coeff i f).
+Notation "f @ i " := (coeff i f) (at level 19) : P_scope.
 
 Lemma nth_nil: forall {A: Type} i (d: A), nth i nil d = d.
 Proof.
   intros. destruct i; reflexivity.
 Qed.
 
-Lemma coeff_nil: forall i, 0p [i] = 0.
+Lemma coeff_nil: forall i, 0p @ i = 0.
 Proof.
   intros. unfold coeff. apply nth_nil.
 Qed.
 
-Lemma coeff_empty: forall f, empty_poly f -> forall i, f[i] == 0.
+Lemma coeff_empty: forall f, empty_poly f -> forall i, f@i == 0.
 Proof.
   intros f H. unfold coeff. induction H; intros.
   - rewrite nth_nil. fsatz.
@@ -309,7 +308,7 @@ Proof.
     + cbn. apply IHempty_poly.
 Qed.
 
-Lemma eq_coeff_equal: forall f g, f ~ g -> forall i, f[i] == g[i].
+Lemma eq_coeff_equal: forall f g, f ~ g -> forall i, f@i == g@i.
 Proof.
   intros f g H. induction H; simpl; intros.
   - repeat rewrite coeff_empty by auto. reflexivity.
@@ -318,7 +317,7 @@ Proof.
     + apply IHeq_poly.
 Qed.
 
-Lemma coeff_all_0: forall g, (forall i, g[i] == 0) -> g ~ 0p.
+Lemma coeff_all_0: forall g, (forall i, g@i == 0) -> g ~ 0p.
 Proof.
   unfold coeff; induction g; intros; auto.
   pose proof (H 0%nat).
@@ -327,7 +326,7 @@ Proof.
 Qed.
 
 Lemma coeff_equal_eq: forall f g,
-  (forall i, f[i] == g[i] ) -> f ~ g.
+  (forall i, f@i == g@i ) -> f ~ g.
 Proof.
   induction f; intros g H.
   - symmetry. apply coeff_all_0. intros.
@@ -438,7 +437,7 @@ Proof.
   right. intuition idtac. discriminate.
 Qed.
 
-
+Local Close Scope P_scope.
 
 (**************************************
  *         Tuple.Conversion           *
@@ -661,18 +660,21 @@ Proof. intros. rewrite H, H0; auto. Qed.
  *     Arithmetic and Evaluation      *
  **************************************)
 
+Local Open Scope P_scope.
+
+
 Lemma peval_padd: forall f g x,
-  (f p+ g) ([x]) == f ([x]) + g ([x]).
+  (f p+ g) [[x]] == (f [[x]] + g [[x]]).
 Proof.
   induction f; simpl; intros.
-  - fsatz.
+  -  fsatz.
   - destruct g; simpl.
     + fsatz.
     + rewrite IHf. fsatz.
 Qed.
 
 Lemma peval_pscale: forall f k x,
-  (k p$ f) ([x]) == k * f ([x]).
+  (k p$ f) [[x]] == k * f [[x]].
 Proof.
   induction f; simpl; intros.
   - fsatz.
@@ -680,7 +682,7 @@ Proof.
 Qed.
 
 Lemma peval_popp: forall f x,
-  ((opp 1) p$ f) ([x]) == opp (f ([x])).
+  ((opp 1) p$ f) [[x]] == opp (f [[x]]).
 Proof.
   induction f; simpl; intros.
   - fsatz.
@@ -688,12 +690,12 @@ Proof.
 Qed.
 
 Lemma peval_psub: forall f g x,
-  (f p- g) ([x]) == f ([x]) - g ([x]).
+  (f p- g) [[x]] == (f [[x]] - g [[x]]).
 Proof.
   unfold psub. intros. rewrite peval_padd, peval_popp. auto.
 Qed.
 
-Lemma peval_ppmul: forall f g x, (f p* g)([x]) == f([x]) * g([x]).
+Lemma peval_ppmul: forall f g x, (f p* g)[[x]] == (f[[x]] * g[[x]]).
 Proof.
   induction f; simpl; intros; auto.
   rewrite peval_padd.
@@ -703,7 +705,7 @@ Qed.
 
 
 (* 
-Lemma eval_repeat_0: forall k x, (List.repeat 0 k)([x]) == 0.
+Lemma eval_repeat_0: forall k x, (List.repeat 0 k)[[x]] == 0.
 Proof.
   induction k; intros; simpl; auto.
   rewrite IHk. auto.
@@ -849,8 +851,8 @@ Qed.
 
 Lemma deg_coeff: forall f n,
   deg f = Some n ->
-  f[n] <> zero /\
-  forall i, i > n -> f[i] == zero.
+  f @ n <> zero /\
+  forall i, i > n -> f@i == zero.
 Admitted.
 
 Local Close Scope nat_scope.
@@ -958,7 +960,7 @@ Proof.
 Admitted.
 
 Lemma deg_0_has_no_root: forall f,
-  deg f = Some O -> forall x, f([x]) <> 0.
+  deg f = Some O -> forall x, f[[x]] <> 0.
 Proof.
   intros. 
   destruct f as [| c fnil]. discriminate.
@@ -997,7 +999,7 @@ Proof.
   assert (Hx: exists x, In x X). destruct X; simpl in *. lia. exists f. auto.
   destruct Hx.
   apply H3 in H4.
-  assert (p([x]) - q([x]) == 0) by fsatz.
+  assert (p[[x]] - q[[x]] == 0) by fsatz.
   rewrite <- peval_psub in H5.
   eapply deg_0_has_no_root in H_deg_r.
   auto.
@@ -1042,7 +1044,7 @@ Infix "^" := F.pow : F_scope. *)
 
 Notation "0p" := (nil : Polynomial.polynomial) : P_scope.
 Notation "a ~ b" := (Polynomial.eq_poly a b) (at level 20) : P_scope.
-Notation "f ([ x ]) " := (Polynomial.peval x f) (at level 19) : P_scope.
+Notation "f [[ x ]] " := (Polynomial.peval x f) (at level 19) : P_scope.
 (* Notation "f [ i ]" := (Polynomial.coeff i f) : P_scope. *)
 Notation "f p+ g" := (Polynomial.padd f g) (at level 18) : P_scope.
 Notation "k p$ f" := (Polynomial.pscale k f) (at level 17) : P_scope.

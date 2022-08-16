@@ -12,7 +12,7 @@ Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
 
 Require Import Circom.Tuple.
-Require Import Crypto.Util.Decidable Crypto.Util.Notations.
+Require Import Crypto.Util.Decidable.
 Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Ring.
@@ -105,7 +105,7 @@ Proof.
   intros. apply length_to_list.
 Qed.
 
-Definition coeff (i: nat) (cs: polynomial) := nth i cs 0.
+Definition coeff (i: nat) (cs: polynomial) := List.nth i cs 0.
 
 Lemma coeff_nth: forall {m} (xs: tuple F m) i,
   coeff i (toPoly xs) = nth_default 0 i xs.

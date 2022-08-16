@@ -293,7 +293,10 @@ Admitted.
 
 Lemma Forall_if: forall {A: Type} (P Q: A -> Prop) (l: list A),
   (forall x, P x -> Q x) -> Forall P l -> Forall Q l.
-Admitted.
+Proof.
+  intros. apply Forall_forall. rewrite Forall_forall in H0.
+  intros. auto.
+Qed.
 
 Lemma Forall_in_range: forall xs, Forall (in_range 1) xs <-> Forall binary xs.
 Proof. intuition; eapply Forall_if; try apply in_range_binary; auto.

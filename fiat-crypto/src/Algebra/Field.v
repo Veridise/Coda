@@ -257,7 +257,7 @@ Ltac fsatz_solve_on fld :=
 
 Ltac fsatz_solve_on_safe fld :=
   goal_to_field_equality fld;
-  forward_nonzero fld ltac:(fsatz_solve_on fld);
+  forward_nonzero fld ltac:(fsatz_solve_on_safe fld);
   nsatz;
   ltac:(IntegralDomain.solve_constant_nonzero_safe).
 
@@ -296,7 +296,7 @@ Ltac fsatz :=
 
 Ltac fsatz_safe :=
   let fld := guess_field in
-  fsatz_prepare_hyps_on fld;
+  fsatz_prepare_hyps_on_safe fld;
   fsatz_solve_on_safe fld.
 
 Section FieldSquareRoot.

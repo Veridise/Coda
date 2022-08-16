@@ -115,11 +115,11 @@ Proof.
   simpl in *.
   split_eqns.
   (* FIXME: automate this *)
-  - assert (IsZero._in = 0) by fqsatz.
+  - assert (IsZero._in = 0) by fqsatz. 
     intuition idtac. fqsatz.
-  - assert (IsZero._in <> 0) by fqsatz. intuition idtac. fqsatz.
-(* FIXME: type error *)
-Admitted.
+  - assert (IsZero._in <> 0) by fqsatz.
+    intuition idtac. fqsatz. 
+Qed.
 
 End IsEqual.
 

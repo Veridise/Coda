@@ -8,6 +8,7 @@ Require Import Coq.ZArith.Znumtheory.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems.
+Require Import Coq.Bool.Bool.
 
 
 Require Import Circom.Tuple.
@@ -17,6 +18,7 @@ Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.seto
 Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
 
 Require Import Util.
+Require Import Circom.Circom Circom.Default.
 
 (* Circuit:
 * https://github.com/iden3/circomlib/blob/master/circuits/gates.circom
@@ -25,54 +27,45 @@ Require Import Util.
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 
-Section Gates.
+Module Gates (C: CIRCOM).
 
-Context {F eq zero one opp add sub mul inv div}
-        {fld:@Hierarchy.field F eq zero one opp add sub mul inv div}
-        {eq_dec:DecidableRel eq}.
-Local Infix "=" := eq. Local Notation "a <> b" := (not (a = b)).
-Local Infix "=" := eq : type_scope. Local Notation "a <> b" := (not (a = b)) : type_scope.
-Local Notation "0" := zero.  Local Notation "1" := one.
-Local Infix "+" := add. Local Infix "*" := mul.
-Local Infix "-" := sub. Local Infix "/" := div.
+Import C.
 
-Ltac split_eqns :=
-  repeat match goal with
-  | [ |- _ /\ _ ] => split
-  | [ H: exists _, _ |- _ ] => destruct H
-  | [ H: {s | _ } |- _ ] => destruct H
-  | [ H: _ /\ _ |- _ ] => destruct H
-  end.
-
+Module XOR.
 (* template XOR() {
     signal input a;
     signal input b;
     signal output out;
-
     out <== a + b - 2*a*b;
 } *)
 
-(* XOR template *)
-
-Definition XOR a b out:=
+Definition cons (a b out: F) :=
   out = a + b - (1 + 1) * a * b.
 
-(* XOR spec *)
-Definition XOR_spec a b out :=
-  (a = 0 /\ b = 0 -> out = 0) /\
-  (a = 0 /\ b = 1 -> out = 1) /\
-  (a = 1 /\ b = 0 -> out = 1) /\
-  (a = 1 /\ b = 1 -> out = 0).
+Record t := { a:F; b:F; out:F; _cons: cons a b out; }.
 
-(* XOR correctness theorem *)
-Theorem XOR_correct: forall a b out,
-  XOR a b out -> XOR_spec a b out.
-Proof using Type*.
-  intros.
-  unfold XOR, XOR_spec in *.
-  repeat (split_eqns; intro); inversion H0; fsatz.
+Theorem soundness: forall (c: t), 
+  (* pre-conditions *)
+  binary c.(a) ->
+  binary c.(b) ->
+  (* post-conditions *)
+  if (c.(a) = c.(b))? then c.(out) = 0 else c.(out) = 1 /\
+  binary c.(out).
+Proof.
+  unwrap_C.
+  intros c Ha Hb. destruct c as [a b c _cons].
+  unfold cons in *. simpl in *.
+  destruct Ha; destruct Hb;
+  destruct (dec (a=1)); destruct (dec (b=1)); destruct (dec (c=1));
+  destruct (dec (a=b));
+  try fqsatz; split; try auto;
+  try solve[left; fqsatz]; try solve[right; fqsatz].
 Qed.
+End XOR.
 
+
+
+Module AND.
 (* template AND() {
     signal input a;
     signal input b;
@@ -81,27 +74,37 @@ Qed.
     out <== a*b;
 } *)
 
-(* AND template *)
-
-Definition AND a b out:=
+Definition cons (a b out: F) :=
   out = a * b.
 
-(* AND spec *)
-Definition AND_spec a b out :=
-  (a = 0 /\ b = 0 -> out = 0) /\
-  (a = 0 /\ b = 1 -> out = 0) /\
-  (a = 1 /\ b = 0 -> out = 0) /\
-  (a = 1 /\ b = 1 -> out = 1).
+Record t := { a:F; b:F; out:F; _cons: cons a b out; }.
 
-(* AND correctness theorem *)
-Theorem AND_correct: forall a b out,
-  AND a b out -> AND_spec a b out.
-Proof using Type*.
-  intros.
-  unfold AND, AND_spec in *.
-  repeat (split_eqns; intro); inversion H0; fsatz.
+Theorem soundness: forall (c: t), 
+  (* pre-conditions *)
+  binary c.(a) ->
+  binary c.(b) ->
+  (* post-conditions *)
+  binary c.(out) /\
+  ((c.(a) = 1)?) && ((c.(b) = 1)?) = ((c.(out) = 1)?).
+Proof.
+  unwrap_C.
+  intros c Ha Hb. destruct c as [a b c _cons].
+  unfold cons in *. simpl in *.
+  destruct Ha; destruct Hb;
+  destruct (dec (a=1)); destruct (dec (b=1)); destruct (dec (c=1));
+  try fqsatz; split; try auto; 
+  try solve[left; fqsatz]; try solve[right; fqsatz].
 Qed.
 
+Definition wgen: t. Admitted.
+
+#[global] Instance Default: Default t. constructor. exact wgen. Defined.
+
+End AND.
+
+
+
+Module OR.
 (* template OR() {
     signal input a;
     signal input b;
@@ -109,28 +112,36 @@ Qed.
 
     out <== a + b - a*b;
 } *)
-
-(* OR template *)
-
-Definition OR a b out:=
+Definition cons (a b out: F) :=
   out = a + b - a*b.
 
-(* OR spec *)
-Definition OR_spec a b out :=
-  (a = 0 /\ b = 0 -> out = 0) /\
-  (a = 0 /\ b = 1 -> out = 1) /\
-  (a = 1 /\ b = 0 -> out = 1) /\
-  (a = 1 /\ b = 1 -> out = 1).
+Record t := { a:F; b:F; out:F; _cons: cons a b out; }.
 
-(* OR correctness theorem *)
-Theorem OR_correct: forall a b out,
-  OR a b out -> OR_spec a b out.
-Proof using Type*.
-  intros.
-  unfold OR, OR_spec in *.
-  repeat (split_eqns; intro); inversion H0; fsatz.
+Theorem soundness: forall (c: t), 
+  (* pre-conditions *)
+  binary c.(a) ->
+  binary c.(b) ->
+  (* post-conditions *)
+  binary c.(out) /\
+  ((c.(a) = 1)?) || ((c.(b) = 1)?) = ((c.(out) = 1)?).
+Proof.
+  unwrap_C.
+  intros c Ha Hb. destruct c as [a b c _cons].
+  unfold cons in *. simpl in *.
+  destruct Ha; destruct Hb;
+  destruct (dec (a=1)); destruct (dec (b=1)); destruct (dec (c=1));
+  try fqsatz; split; try auto; 
+  try solve[left; fqsatz]; try solve[right; fqsatz].
 Qed.
 
+Definition wgen: t. Admitted.
+
+#[global] Instance Default: Default t. constructor. exact wgen. Defined.
+End OR.
+
+
+Module TODO.
+(* 
 (* template NOT() {
     signal input in;
     signal output out;
@@ -213,7 +224,7 @@ Proof using Type*.
   intros.
   unfold NOR, NOR_spec in *.
   repeat (split_eqns; intro); inversion H0; fsatz.
-Qed.
+Qed. *)
 
 (* template MultiAND(n) {
     signal input in[n];
@@ -244,5 +255,7 @@ Qed.
 } *)
 
 (* MultiAND(n) TODO *)
+
+End TODO.
 
 End Gates.

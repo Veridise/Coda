@@ -12,6 +12,7 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field Circom.
 
 Require Import Circom.BabyJubjub Circom.Default.
 (* Require Import Circom.Tuple. *)
+Require Import Crypto.Util.Decidable.
 (* Require Import Crypto.Util.Decidable Crypto.Util.Notations. *)
 (* Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac. *)
 
@@ -62,6 +63,14 @@ Module Type CIRCOM.
   Global Notation "2" := (F.add 1 1 : F) : circom_scope.
   Definition binary (x: F) := x = F.zero \/ x = F.one.
   #[global] Instance F_default: Default F := { default := F.zero }.
+
+
+  Global Notation "P '?'" :=
+  (match (@dec P _) with
+   | left _ => true
+   | right _ => false
+   end)
+  (at level 100).
 End CIRCOM.
 
 (* Definition q := BabyJubjub.p.
@@ -92,12 +101,3 @@ Proof.
   apply Z.le_lt_trans with (m := (2 ^ k)%Z); try lia.
   eapply Zpow_facts.Zpower_le_monotone; try lia.
 Qed. *)
-
-(* Definition lt (x y: F q) := F.to_Z x < F.to_Z y.
-Definition leq (x y: F q) := F.to_Z x <= F.to_Z y.
-Definition lt_z (x: F q) y := F.to_Z x < y.
-Definition leq_z (x: F q) y := F.to_Z x <= y.
-Definition gt_z (x: F q) y := F.to_Z x > y.
-Definition geq_z (x: F q) y := F.to_Z x >= y.
-Definition binary (x: F q) := x = F.zero \/ x = F.one. *)
-

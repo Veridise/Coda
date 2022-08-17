@@ -14,7 +14,7 @@ Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Circom.circomlib.Bitify.
-Require Import Circom.Circom Circom.Util.
+Require Import Circom.Circom Circom.Util Circom.Default.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -34,12 +34,6 @@ Local Open Scope circom_scope.
 Local Open Scope F_scope.
 Local Open Scope tuple_scope.
 
-Notation "P '?'" :=
-  (match (@dec P _) with
-   | left _ => true
-   | right _ => false
-   end)
-  (at level 100).
 
 (***********************
  *       IsZero
@@ -47,19 +41,19 @@ Notation "P '?'" :=
 
 Module IsZero.
 
-Definition cons (_in _out _inv: F) :=
-  _out = 1 - _in * _inv /\
-  _in * _out = 0.
+Definition cons (_in out _inv: F) :=
+  out = 1 - _in * _inv /\
+  _in * out = 0.
 
 (* IsZero *)
-Record t : Type := { _in: F; _out: F; _cons: exists _inv, cons _in _out _inv }.
+Record t : Type := { _in: F; out: F; _cons: exists _inv, cons _in out _inv }.
 
 (* IsZero spec *)
 Definition spec (c: t) : Prop :=
   if (c.(_in) = 0)? then
-    c.(_out) = 1
+    c.(out) = 1
   else
-    c.(_out) = 0.
+    c.(out) = 0.
 
 (* IsZero is sound *)
 Theorem soundness:
@@ -75,7 +69,7 @@ Qed.
 (* Theorem IsZero_complete: forall (w: t),
   IsZero_spec w -> cons w.
 Proof.
-  unwrap_C. intros. destruct w as [_in _out];
+  unwrap_C. intros. destruct w as [_in out];
   unfold cons, IsZero_template, IsZero_spec, IsZero_cons in *;
   intros.
   - destruct (dec (_in = 0)).
@@ -101,29 +95,34 @@ Module IsEqual.
   | [ H: forall _ : ?a <> _?b, _ |- _] => assert (a<>b) by fqsatz; intuition idtac
   end. *)
 
-Definition cons x y _out := 
+Definition cons (_in: F^2) (out: F) := 
+  let x := _in[0] in
+  let y := _in[1] in
   exists (isz: IsZero.t),
     isz.(IsZero._in) = (x - y) /\
-    isz.(IsZero._out) = _out.
+    isz.(IsZero.out) = out.
 
-Record t : Type := { x: F; y: F; _out: F; _cons: cons x y _out }.
+Record t : Type := { _in: F^2; out: F; _cons: cons _in out }.
 
 Definition spec t :=
-  if (t.(x) = t.(y))? then
-    t.(_out) = 1
+  if ( t.(_in)[0] = t.(_in)[1] )? then
+    t.(out) = 1
   else
-    t.(_out) = 0.
+    t.(out) = 0.
 
 Theorem soundness: forall t, spec t.
 Proof.
   unwrap_C.
-  intros t. destruct t as [x y _out [isz H]].
+  intros t. destruct t as [_in out [isz [H1 H2]]].
   unfold spec. simpl.
   pose proof (IsZero.soundness isz) as H_isz. unfold IsZero.spec in H_isz.
   intuition.
-  rewrite H0, H1 in *.
-  destruct (dec (x=y)); destruct (dec (x-y = 0)); try fqsatz.
+  rewrite H1, H2 in *.
+  destruct (dec (_in[0] = _in[1])); destruct (dec (_in[0] - _in[1] = 0)); try fqsatz.
 Qed.
+
+Definition wgen : IsEqual.t. Admitted.
+#[global] Instance IsEqual_Default: Default IsEqual.t. constructor. exact wgen. Defined.
 
 End IsEqual.
 
@@ -132,23 +131,25 @@ End IsEqual.
  ***********************)
 
 Module LessThan.
+
+Section LessThan.
 Context {n: nat}.
 
-Definition cons (_in: tuple F 2) (_out: F) :=
+Definition cons (_in: tuple F 2) (out: F) :=
   exists (n2b: Num2Bits.t (S n)),
     n2b.(Num2Bits._in) = (_in [0] + 2^n - _in[1]) /\
-    _out = 1 - n2b.(Num2Bits._out)[n].
+    out = 1 - n2b.(Num2Bits.out)[n].
 
 Record t: Type := {
   _in: F^2;
-  _out: F;
-  _cons: cons _in _out;
+  out: F;
+  _cons: cons _in out;
 }.
 
 Definition spec (w: t) :=
-  binary w.(_out) /\
+  binary w.(out) /\
   let '(x, y) := (w.(_in)[0], w.(_in)[1]) in
-  if (w.(_out) = 1)? then
+  if (w.(out) = 1)? then
     x <q y
   else
     x >=q y.
@@ -200,12 +201,12 @@ Lemma soundness: forall (w : t),
 Proof.
   unwrap_C. intros w H_nk Hx Hy.
   remember (w.(_in)[0]) as x. remember (w.(_in)[1]) as y.
-  destruct w as [_in _out [n2b H]]. unfold spec. simpl in *.
+  destruct w as [_in out [n2b H]]. unfold spec. simpl in *.
   rewrite <- Heqx, <- Heqy in *.
   pose proof (Num2Bits.soundness _ n2b) as H_n2b.
   pose proof H_n2b as H_n2b'.
   unfold Num2Bits.spec in *. unfold repr_le2, repr_le in H_n2b.
-  destruct H as [H_n H_out ].
+  destruct H as [H_n Hout ].
   apply conj_use.
   intuition.
   - eapply one_minus_binary; eauto.
@@ -218,10 +219,10 @@ Proof.
     }
     assert (H_x_nonneg: 0 <= F.to_Z x). apply F.to_Z_range. lia.
     assert (H_y_nonneg: 0 <= F.to_Z y). apply F.to_Z_range. lia.
-    destruct (dec (_out = 1)).
-    + assert (Hn: Num2Bits._out [n] = 0) by fqsatz.
+    destruct (dec (out = 1)).
+    + assert (Hn: Num2Bits.out [n] = 0) by fqsatz.
       rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq in Hn.
-      remember (to_list (S n) Num2Bits._out) as n2b_out.
+      remember (to_list (S n) Num2Bits.out) as n2bout.
         unfold repr_le2 in *.
         eapply repr_le_last0' in Hn. 2: { rewrite H_n in H_n2b'. apply H_n2b'. }
         fold repr_le2 in Hn.
@@ -232,7 +233,7 @@ Proof.
         simpl in Hn. lia.
       }
       lia.
-    + destruct H0; try fqsatz. assert (Hn: Num2Bits._out [n] = 1) by fqsatz.
+    + destruct H0; try fqsatz. assert (Hn: Num2Bits.out [n] = 1) by fqsatz.
     rewrite H_n in *.
     rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq in Hn.
     eapply repr_le_lb with (i:=n) in Hn; eauto; try lia.
@@ -244,6 +245,12 @@ Proof.
     lia.
 Qed.
 
+
+Definition wgen: LessThan.t. Admitted.
+
+#[global] Instance LessThan_Default: Default LessThan.t. constructor. exact wgen. Defined.
+
+End LessThan.
 End LessThan.
 
 End Comparators.

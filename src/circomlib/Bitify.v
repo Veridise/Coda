@@ -510,11 +510,11 @@ End Base2.
 Module Num2Bits.
 
 Local Open Scope tuple_scope.
-Definition cons (n: nat) (_in: F) (_out: F^n) : Prop :=
+Definition cons (n: nat) (_in: F) (out: F^n) : Prop :=
   let lc1 := 0 in
   let e2 := 1 in
   let '(lc1, e2, _C) := (D.iter (fun (i: nat) '(lc1, e2, _C) =>
-    let out_i := (_out [i] ) in
+    let out_i := (out [i] ) in
       (lc1 + out_i * e2,
       e2 + e2,
       (out_i * (out_i - 1) = 0) /\ _C))
@@ -522,13 +522,13 @@ Definition cons (n: nat) (_in: F) (_out: F^n) : Prop :=
     (lc1, e2, True)) in
   (lc1 = _in) /\ _C.
 
-Theorem cons_imply_binary n _in _out:
-  cons n _in _out -> (forall i, (i < n)%nat -> binary (_out[i])).
+Theorem cons_imply_binary n _in out:
+  cons n _in out -> (forall i, (i < n)%nat -> binary (out[i])).
 Proof.
   unwrap_C. unfold cons.
   (* provide loop invariant *)
   pose (Inv := fun i '((lc1, e2, _C): (F * F * Prop)) =>
-    (_C -> (forall j, (j < i)%nat -> binary (_out[j])))).
+    (_C -> (forall j, (j < i)%nat -> binary (out[j])))).
   (* iter initialization *)
   remember (0, 1, True) as a0.
   intros prog i H_i_lt_n.
@@ -553,7 +553,7 @@ Proof.
     + auto.
     + unfold binary. intros.
       replace j0 with j by lia.
-      destruct (dec (_out[j] = 0)).
+      destruct (dec (out[j] = 0)).
       * auto.
       * right. fqsatz.
    }
@@ -567,12 +567,13 @@ Qed.
 
 Class t (n: nat): Type := mk {
   _in: F; 
-  _out: F^n; 
-  _cons: cons n _in _out
+  out: F^n; 
+  _cons: cons n _in out
 }.
 
 Definition spec (n: nat) (w: t n) := 
-  repr_le2 w.(_in) n (to_list n w.(_out)).
+  repr_le2 w.(_in) n (to_list n w.(out)).
+
 
 
 Theorem soundness: forall (n: nat) (w: t n), spec n w.
@@ -588,10 +589,10 @@ Proof.
   remember (fun (i : nat) '(y, _C) =>
   let
   '(lc1, e2) := y in
-   (lc1 + _out[i] * e2, 
-   e2 + e2,
-   _out[i] * (_out[i] - 1) = 0 /\
-   _C)) as f.
+    (lc1 + _out[i] * e2, 
+    e2 + e2,
+    _out[i] * (_out[i] - 1) = 0 /\
+    _C)) as f.
   assert (Hinv: Inv n (D.iter f n (0,1,True))). {
     apply D.iter_inv; unfold Inv.
     - intuition. simpl. rewrite F.pow_0_r. fqsatz.
@@ -621,14 +622,13 @@ Proof.
           cbn [as_le].
           rewrite firstn_length_le.
           rewrite N.mul_1_l.
-           fqsatz.
+            fqsatz.
           rewrite length_to_list. lia.
   }
   destruct (D.iter f n (0,1,True)) as [ [lc1 e2] _C].
   unfold Inv in Hinv. intuition.
   subst. rewrite <- firstn_to_list. auto.
 Qed.
-
 End Num2Bits.
 
 End Bitify.

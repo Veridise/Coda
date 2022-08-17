@@ -10,10 +10,10 @@ src/ListUtil.v
 src/LibTactics.v
 src/circomlib/Comparators.v
 src/circomlib/Bitify.v
-src/circomlib/gates.v
+src/circomlib/Gates.v
 src/circomlib/multiplexer.v
 src/BigInt/BigAdd.v
 src/BigInt/Polynom.v
 src/BigInt/Polynom_test.v
 src/BigInt/BigMult.v
-src/BigInt/PrimeReduce.v
+# src/BigInt/PrimeReduce.v

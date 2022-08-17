@@ -148,7 +148,7 @@ template ModSumThree(n) {
 Definition cons (a b c sum carry: F) :=
   exists (n2b: Num2Bits.t (S n)),
     n2b.(Num2Bits._in) = a + b + c /\
-    carry = n2b.(Num2Bits._out) [n] /\
+    carry = n2b.(Num2Bits.out) [n] /\
     sum = a + b + c - carry * 2^n.
 
 Record t : Type := {
@@ -187,7 +187,7 @@ Proof.
   - fqsatz.
   - subst.
   unfold in_range in *.
-  remember (Num2Bits._out [n] ) as out_n. pose proof (length_to_list Num2Bits._out).
+  remember (Num2Bits.out [n] ) as out_n. pose proof (length_to_list Num2Bits.out).
   pose proof (Num2Bits.soundness _ n2b) as H_n2b. unfold Num2Bits.spec, repr_le2 in *.
   rewrite <- H_in.
   pose proof H_n2b as H_n2b'. unfold repr_le in H_n2b. destruct H_n2b as [_ [_ H_as_le] ].
@@ -198,8 +198,8 @@ Proof.
   rewrite <- Heqout_n.
   autorewrite with simplify_F.
   
-  replace (as_le 1 ((to_list (S n) Num2Bits._out)[:n]) + (1 + 1) ^ n * out_n -
-    out_n * (1 + 1) ^ n) with (as_le 1 (firstn n (to_list (S n) Num2Bits._out))) by fqsatz.
+  replace (as_le 1 ((to_list (S n) Num2Bits.out)[:n]) + (1 + 1) ^ n * out_n -
+    out_n * (1 + 1) ^ n) with (as_le 1 (firstn n (to_list (S n) Num2Bits.out))) by fqsatz.
   eapply repr_le_ub; try lia.
   eapply repr_le_firstn; eauto.
   rewrite firstn_length_le; lia.

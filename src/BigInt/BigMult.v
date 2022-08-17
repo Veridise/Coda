@@ -135,8 +135,21 @@ Proof.
   unfold padd. simpl. rewrite IHc. auto.
 Qed.
 
+Lemma eval_all_0: forall l n x, Forall (fun k => k = 0) l -> eval' n l x = 0.
+Proof.
+  induction l; intros; simpl in *; auto.
+  rewrite IHl.
+  - rewrite Forall_forall in H.
+    assert (In a (a :: l)). { simpl;auto. } 
+    specialize (H a H0). subst. auto.
+  - rewrite Forall_forall in *. intros. apply H;simpl;auto.
+Qed. 
+
 Lemma eval_repeat_0: forall k n x, eval' n (List.repeat 0 k) x = 0.
-Admitted.
+Proof.
+  intros;apply eval_all_0. rewrite Forall_forall;intros.
+  eapply repeat_spec;eauto.
+Qed.
 
 Lemma eval'_ppmul_inner:
   forall d a n x,

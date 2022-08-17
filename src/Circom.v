@@ -24,6 +24,7 @@ Module Type CIRCOM.
   Axiom q_lb: 2^k < q.
   Axiom q_gtb_1: (1 <? q)%positive = true.
   Axiom q_gt_2: 2 < q.
+  Axiom pow_nonzero: forall (a: N), a <= k -> @F.pow q (F.add F.one F.one) a <> F.zero.
   Global Hint Rewrite q_gtb_1 : circom.
   Global Hint Rewrite two_lt_q : circom.
   Global Ltac fqsatz := fsatz_safe; autorewrite with circom; auto.
@@ -31,7 +32,8 @@ Module Type CIRCOM.
     pose proof prime_q as prime_q;
     pose proof two_lt_q as two_lt_q;
     pose proof k_positive as k_positive;
-    pose proof q_lb as q_lb.
+    pose proof q_lb as q_lb;
+    pose proof pow_nonzero as pow_nonzero.
   (* TODO: replace this Ltac with destruct;intuition *)
   Global Ltac split_eqns :=
   repeat match goal with

@@ -18,13 +18,13 @@ Require Import Ring.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Logic.PropExtensionality.
 
-
 Require Import Util DSL.
 Require Import Circom.Circom Circom.Default.
 Require Import Circom.LibTactics.
 Require Import Circom.Tuple.
 Require Import Circom.circomlib.Bitify Circom.circomlib.Comparators.
 Require Import Circom.ListUtil.
+Require Import Circom.Repr.
 
 (* Require Import VST.zlist.Zlist. *)
 
@@ -37,8 +37,9 @@ Module BigAdd (C: CIRCOM).
 Context {n: nat}.
 
 Module B := Bitify C.
+Module R := Repr C.
 Module Cmp := Comparators C.
-Import B C.
+Import B C R.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.

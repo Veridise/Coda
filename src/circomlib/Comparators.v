@@ -14,7 +14,7 @@ Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Circom.circomlib.Bitify.
-Require Import Circom.Circom Circom.Util Circom.Default.
+Require Import Circom.Circom Circom.Util Circom.Default Circom.Repr.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -25,7 +25,8 @@ Local Open Scope F_scope.
 Module Comparators (C: CIRCOM).
 Import C.
 Module B := Bitify C.
-Import B C.
+Module R := Repr C.
+Import B C R.
 
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.

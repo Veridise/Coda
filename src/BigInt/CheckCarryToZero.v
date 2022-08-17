@@ -25,7 +25,7 @@ Require Import Circom.LibTactics.
 Require Import Circom.Tuple.
 Require Import Circom.circomlib.Bitify Circom.circomlib.Comparators.
 Require Import Circom.ListUtil.
-
+Require Import Circom.Repr.
 (* Require Import VST.zlist.Zlist. *)
 
 
@@ -39,8 +39,9 @@ Context {n: nat}.
 
 Module B := Bitify C.
 Module Cmp := Comparators C.
+Module R := Repr C.
 Module D := DSL C.
-Import B C.
+Import B C R.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -84,13 +85,7 @@ Hint Rewrite (Nat.add_0_r): natsimplify.
 Hint Rewrite (Nat.add_0_l): natsimplify.
 Hint Rewrite (Nat.mul_succ_r): natsimplify.
 
-(* x is a valid digit in base-2^n representation *)
-Local Notation "x | ( n )" := (in_range n x) (at level 40).
-Local Notation "xs |: ( n )" := (tforall (in_range n) xs) (at level 40).
-
-(* interpret a tuple of weights as representing a little-endian base-2^n number *)
 Local Notation "[| xs |]" := (as_le n xs).
-Local Notation "' xs" := (to_list _ xs) (at level 20).
 
 Section _CheckCarryToZero.
 Context {m k: nat}.
@@ -198,3 +193,6 @@ Proof.
   lift_to_list; auto.
 Unshelve. exact F.zero. exact F.zero.
 Qed.
+
+End _CheckCarryToZero.
+End CheckCarryToZero.

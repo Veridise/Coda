@@ -1337,3 +1337,4 @@ Declare Scope tuple_scope.
 Delimit Scope tuple_scope with tuple.
 Global Notation "T ^ n" := (tuple T n) : type_scope.
 Global Notation "w [ i ]" := (Tuple.nth_Default i w) (at level 20) : tuple_scope.
+Global Notation "' xs" := (to_list _ xs) (at level 20) : tuple_scope.

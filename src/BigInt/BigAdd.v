@@ -217,8 +217,7 @@ Proof.
 Qed.
 
 (* for default values. never used *)
-Definition wgen : t.
-Admitted.
+Definition wgen : t. skip. Defined.
 
 #[global] Instance ModSumThree_default : Default (ModSumThree.t) := { default := wgen }.
 

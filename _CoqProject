@@ -1,6 +1,8 @@
 -R src Circom
 src/BabyJubjub.v
 src/Circom.v
+src/Repr.v
+src/ReprZ.v
 src/Util.v
 src/Default.v
 src/DSL.v
@@ -12,7 +14,6 @@ src/circomlib/Comparators.v
 src/circomlib/Bitify.v
 src/circomlib/Gates.v
 src/circomlib/multiplexer.v
-src/Repr.v
 src/BigInt/BigAdd.v
 src/BigInt/CheckCarryToZero.v
 src/BigInt/Polynom.v

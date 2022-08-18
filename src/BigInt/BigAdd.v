@@ -24,7 +24,7 @@ Require Import Circom.LibTactics.
 Require Import Circom.Tuple.
 Require Import Circom.circomlib.Bitify Circom.circomlib.Comparators.
 Require Import Circom.ListUtil.
-Require Import Circom.Repr.
+Require Import Circom.Repr Circom.ReprZ.
 
 (* Require Import VST.zlist.Zlist. *)
 
@@ -38,8 +38,9 @@ Context {n: nat}.
 
 Module B := Bitify C.
 Module R := Repr C.
+Module RZ := ReprZ C.
 Module Cmp := Comparators C.
-Import B C R.
+Import B C.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -48,14 +49,6 @@ Local Open Scope tuple_scope.
 
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
-
-(* x is a valid digit in base-2^n representation *)
-Local Notation "x | ( n )" := (in_range n x) (at level 40).
-Local Notation "xs |: ( n )" := (tforall (in_range n) xs) (at level 40).
-
-(* interpret a tuple of weights as representing a little-endian base-2^n number *)
-Local Notation "[| xs |]" := (as_le n xs).
-Local Notation "[|| xs ||]" := (as_le n (to_list _ xs)).
 
 Module Comparators := Comparators C.
 Create HintDb F_to_Z discriminated.
@@ -125,9 +118,17 @@ Proof.
 Qed.
 
 
+(* x is a valid digit in base-2^n representation *)
+Local Notation "x | ( n )" := (R.in_range n x) (at level 40).
+Local Notation "xs |: ( n )" := (tforall (R.in_range n) xs) (at level 40).
+
+
 Module ModSumThree.
 
 Section ModSumThree.
+
+Import R.
+
 
 (* Note: this is a simplified version from circom-pairing *)
 (* 
@@ -261,6 +262,10 @@ Module D := DSL C.
 
 Module M := ModSumThree.
 
+(* interpret a tuple of weights as representing a little-endian base-2^n number *)
+Local Notation "[| xs |]" := (RZ.as_le F.to_Z n xs).
+Local Notation "[|| xs ||]" := (RZ.as_le F.to_Z n (to_list _ xs)).
+
 Definition cons (a b: tuple F k) (out: tuple F (S k)) :=
   exists (unit: tuple M.t k),
   D.iter (fun i _cons =>
@@ -291,9 +296,8 @@ Definition spec (w: t) :=
   w.(a) |: (n) ->
   w.(b) |: (n) ->
   (* post-condition *)
-  [|| w.(out) ||] = [|| w.(a) ||] + [|| w.(b) ||] /\
+  ([|| w.(out) ||] = [|| w.(a) ||] + [|| w.(b) ||])%Z /\
   w.(out) |: (n).
-
 
 
 Create HintDb simplify_F discriminated.
@@ -319,7 +323,7 @@ Hint Rewrite (Nat.mul_succ_r): natsimplify.
 
 
 Ltac split_as_le xs i := 
-  erewrite as_le_split_last with (ws:=xs[:S i]) (i:=i);
+  erewrite RZ.as_le_split_last with (ws:=xs[:S i]) (i:=i);
   try rewrite firstn_firstn; autorewrite with natsimplify;
   try rewrite firstn_nth by lia.
 
@@ -335,7 +339,7 @@ Lemma binary_in_range: forall n x,
   (n > 0)%nat ->
   binary x -> x | (n).
 Proof.
-  unwrap_C. intros n x Hn Hbin. unfold in_range.
+  unwrap_C. intros n x Hn Hbin. unfold R.in_range.
   destruct (dec (n>1)).
   destruct Hbin; subst; autorewrite with F_to_Z. lia.
   assert (2^1 < 2^n)%Z. apply Zpow_facts.Zpower_lt_monotone. lia. lia.
@@ -344,6 +348,9 @@ Proof.
 Qed.
 
 Local Notation "' xs" := (to_list _ xs) (at level 20).
+
+Lemma nth_0 {T} `{Default T}: forall (x: T), (x :: nil) ! 0 = x.
+Admitted.
 
 Theorem soundness: forall (w: t), spec w.
 Proof.
@@ -370,16 +377,16 @@ Proof.
     (* carry bits are binary *)
     (forall (j: nat), j < i -> binary (('unit ! j).(M.carry))) /\
     (* out are in range *)
-    Forall (in_range n) ('out [:i]) /\
+    Forall (R.in_range n) ('out [:i]) /\
     (* addition is ok for prefix *)
-    [| 'out [:i] |] +  2^(n*i)%nat * (if dec (i = 0)%nat then 0 else ('unit ! (i-1)).(M.carry))
-      = [| 'a [:i] |] +  [| 'b [:i] |]).
+    (([| 'out [:i] |] +  2^(n*i)%nat * (if dec (i = 0)%nat then 0 else F.to_Z ('unit ! (i-1)).(M.carry))
+      = [| 'a [:i] |] +  [| 'b [:i] |]))%Z).
   assert (HInv: Inv k (D.iter f k True)).
   apply D.iter_inv.
   - unfold Inv. intuition.
     + lia.
     + simpl. constructor.
-    + destruct (dec (0=0)%nat). simpl. fqsatz. lia.
+    + destruct (dec (0=0)%nat). simpl. nia. lia.
   - intros i _cons IH H_bound.
     unfold Inv in *. intros Hf.
     rewrite Heqf in *. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
@@ -407,17 +414,33 @@ Proof.
         autorewrite with simplify_F natsimplify.
         repeat erewrite firstn_1; try lia.
         repeat fold_default.
-        fqsatz.
+        repeat rewrite nth_0.
+        rewrite Hai, Hbi, Hci, <- Houti in M_eq.
+        (* range proof *)
+        assert (F.to_Z ((' out) ! 0) + 2^n * F.to_Z (M.carry ((' unit) ! 0)) = F.to_Z ((' a) ! 0) + F.to_Z ((' b) ! 0))%Z by admit.
+        (* TODO: simplify this *)
+        cbn [RZ.as_le firstn].
+        rewrite <- Nat2Z.inj_mul.
+        rewrite Nat.mul_0_r.
+        replace (2 ^ 0%nat)%Z with 1%Z by (simpl; lia).
+        repeat rewrite Z.add_0_l, Z.mul_1_l.
+        nia.
       * (* i > 0 *) 
-        rewrite Nat2N.inj_add. autorewrite with natsimplify simplify_F.
+        rewrite Nat2Z.inj_add. autorewrite with natsimplify simplify_F.
         repeat (unfold_default; rewrite firstn_nth; try lia; fold_default).
         default_apply ltac:(repeat rewrite firstn_nth; try lia).
-        fqsatz.
-    + eapply repr_le_firstn; eauto. rewrite firstn_length_le; lia.
-      eauto using repr_trivial.
-    + eapply repr_le_firstn; eauto. rewrite firstn_length_le; lia.
-      eauto using repr_trivial.
-    + unfold repr_le. intuition. rewrite firstn_length_le; lia.
+        rewrite Zpower_exp by lia. 
+        rewrite Nat2Z.inj_mul in *.
+        rewrite Hai, Hbi, Hci, <- Houti in M_eq.
+        (* range proof *)
+        assert (F.to_Z ((' out) ! i) + 2 ^ n * F.to_Z (M.carry ((' unit) ! i)) =
+        F.to_Z ((' a) ! i) + F.to_Z ((' b) ! i) + F.to_Z (M.carry ((' unit) ! (i - 1))))%Z by admit.
+        nia.
+    + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
+      eauto using RZ.repr_trivial.
+    + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
+      eauto using RZ.repr_trivial.
+    + unfold RZ.repr_le. intuition. rewrite firstn_length_le; lia.
       eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le. reflexivity. lia.
       rewrite firstn_firstn. autorewrite with natsimplify. auto.
       rewrite firstn_nth by lia.
@@ -427,18 +450,19 @@ Proof.
     replace ('a) with ('a[:k]) by (applys_eq firstn_all; f_equal; lia).
     replace ('b) with ('b[:k]) by (applys_eq firstn_all; f_equal; lia).
     destruct (dec (k=0)%nat). lia.
-    assert (H_out_inrange: Forall (in_range n) (' out)). {
+    assert (H_out_inrange: Forall (R.in_range n) (' out)). {
       intuition.
       apply Forall_firstn_S with (i:=k) (d:=0); try eauto.
-    fold_default. apply binary_in_range; try lia. rewrite out_k. apply H5; lia.
+      fold_default. apply binary_in_range; try lia. rewrite out_k. apply H5; lia.
     }
     intuition; auto.
     * rewrite <- H7. rewrite <- out_k.
-    apply as_le_split_last with (x:=[|' out|]).
-    applys_eq repr_trivial; auto.
+    rewrite Nat2Z.inj_mul.
+    apply RZ.as_le_split_last with (x:=[|' out|]).
+    applys_eq RZ.repr_trivial; auto.
     * lift_to_list. auto.
   Unshelve. exact F.zero. exact F.zero. exact F.zero.
-Qed.
+Admitted.
 
 
 End _BigAdd.

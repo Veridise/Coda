@@ -329,10 +329,11 @@ Proof.
   assert (n=1)%nat by lia. subst. simpl. destruct Hbin; subst; autorewrite with F_to_Z; lia.
 Qed.
 
-Local Notation "' xs" := (to_list _ xs) (at level 20).
-
 Lemma nth_0 {T} `{Default T}: forall (x: T), (x :: nil) ! 0 = x.
-Admitted.
+Proof.
+  intro x.
+  erewrite <- fold_nth with (d:=x);eauto. 
+Qed.
 
 Theorem soundness: forall (w: t), spec w.
 Proof.
@@ -361,14 +362,13 @@ Proof.
     (* out are in range *)
     Forall (R.in_range n) ('out [:i]) /\
     (* addition is ok for prefix *)
-    (([| 'out [:i] |] -  2^(n*i)%nat * (if dec (i = 0)%nat then 0 else F.to_Z ('unit ! (i-1)).(M.out))
-      = [| 'a [:i] |] -  [| 'b [:i] |]))%Z).
+    ([| 'out [:i] |] = [| 'a [:i] |] -  [| 'b [:i] |])%Z).
   assert (HInv: Inv k (D.iter f k True)).
   apply D.iter_inv.
   - unfold Inv. intuition.
     (* + lia. *)
     + simpl. constructor.
-    + destruct (dec (0=0)%nat). simpl. nia. lia.
+    (* + destruct (dec (0=0)%nat). simpl. nia. lia. *)
   - intros i _cons IH H_bound.
     unfold Inv in *. intros Hf.
     rewrite Heqf in *. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
@@ -399,7 +399,7 @@ Proof.
         repeat rewrite nth_0.
         rewrite Hai, Hbi, Hci, <- Houti in M_eq.
         (* range proof *)
-        assert (F.to_Z ((' out) ! 0) - 2^n * F.to_Z (M.out ((' unit) ! 0)) = F.to_Z ((' a) ! 0) - F.to_Z ((' b) ! 0))%Z by admit.
+        assert (F.to_Z ((' out) ! 0) = F.to_Z ((' a) ! 0) - F.to_Z ((' b) ! 0))%Z by skip.
         (* TODO: simplify this *)
         cbn [RZ.as_le firstn].
         rewrite <- Nat2Z.inj_mul.
@@ -408,15 +408,11 @@ Proof.
         repeat rewrite Z.add_0_l, Z.mul_1_l.
         nia.
       * (* i > 0 *) 
-        rewrite Nat2Z.inj_add. autorewrite with natsimplify simplify_F.
         repeat (unfold_default; rewrite firstn_nth; try lia; fold_default).
         default_apply ltac:(repeat rewrite firstn_nth; try lia).
-        rewrite Zpower_exp by lia. 
-        rewrite Nat2Z.inj_mul in *.
         rewrite Hai, Hbi, Hci, <- Houti in M_eq.
         (* range proof *)
-        assert (F.to_Z ((' out) ! i) - 2 ^ n * F.to_Z (M.out ((' unit) ! i)) =
-        F.to_Z ((' a) ! i) - F.to_Z ((' b) ! i) - F.to_Z (M.out ((' unit) ! (i - 1))))%Z by admit.
+        assert (F.to_Z ((' out) ! i) = F.to_Z ((' a) ! i) - F.to_Z ((' b) ! i))%Z by skip.
         nia.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
       eauto using RZ.repr_trivial.
@@ -439,10 +435,11 @@ Proof.
       fold_default. apply binary_in_range; try lia. skip.
     }
     intuition; auto.
-    * rewrite <- H7. rewrite Nat2Z.inj_mul.
-    erewrite RZ.as_le_split_last with (x:=[|' out|])(i:=k).
-    applys_eq RZ.repr_trivial; auto.
-    * lift_to_list. auto.
+    * rewrite <- H7. 
+      assert (H_out: (' out) [:k] = (' out)).  
+      { rewrite <- firstn_all. rewrite Hlen_out;auto. }
+      rewrite H_out;auto.
+    * skip.
   Unshelve. exact F.zero. exact F.zero. exact F.zero.
 Admitted.
 

@@ -15,6 +15,7 @@ src/circomlib/Bitify.v
 src/circomlib/Gates.v
 src/circomlib/multiplexer.v
 src/BigInt/BigAdd.v
+src/BigInt/BigSub.v
 src/BigInt/CheckCarryToZero.v
 src/BigInt/Polynom.v
 src/BigInt/Polynom_test.v

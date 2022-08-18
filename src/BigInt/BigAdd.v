@@ -342,7 +342,10 @@ Proof.
 Qed.
 
 Lemma nth_0 {T} `{Default T}: forall (x: T), (x :: nil) ! 0 = x.
-Admitted.
+Proof.
+intro x.
+erewrite <- fold_nth with (d:=x);eauto. 
+Qed.
 
 Local Notation "|^ x |" := (F.to_Z x).
 

@@ -34,6 +34,7 @@ nia.cache
 nlia.cache
 nra.cache
 native_compute_profile_*.data
+*.out
 
 # generated timing files
 *.timing.diff

@@ -21,9 +21,19 @@ Require Import Circom.Repr.
 (* Require Import VST.zlist.Zlist. *)
 
 
-(* Circuits:
- * https://github.com/iden3/circomlib/blob/master/circuits/comparators.circom
- *)
+(* Module Type ToZ (C: CIRCOM).
+  Import C.
+  Variable to_Z: F -> Z.
+  Variable add_hyp: F -> F -> Prop.
+  Variable mul_hyp: F -> F -> Prop.
+  Axiom to_Z_0: to_Z 0%F = 0%Z.
+  Axiom to_Z_1: to_Z 1%F = 1%Z.
+  Axiom to_Z_2: to_Z (1+1)%F = 2%Z.
+  Axiom to_Z_add: forall x y, add_hyp x y -> to_Z (x + y) = to_Z x + to_Z y.
+  Axiom to_Z_mul: forall x y, add_hyp x y -> to_Z (x + y) = to_Z x + to_Z y. 
+  End ToZ.
+*)
+
 Module ReprZ (C: CIRCOM).
 
 Import C.

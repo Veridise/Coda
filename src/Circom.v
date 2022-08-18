@@ -26,6 +26,7 @@ Module Type CIRCOM.
   Axiom q_gtb_1: (1 <? q)%positive = true.
   Axiom q_gt_2: 2 < q.
   Axiom pow_nonzero: forall (a: N), a <= k -> @F.pow q (F.add F.one F.one) a <> F.zero.
+  Axiom to_Z_2pow: forall (a: N), a <= k -> F.to_Z (@F.pow q (F.add F.one F.one) a) = 2^a.
   Global Hint Rewrite q_gtb_1 : circom.
   Global Hint Rewrite two_lt_q : circom.
   Global Ltac fqsatz := fsatz_safe; autorewrite with circom; auto.
@@ -60,7 +61,7 @@ Module Type CIRCOM.
   Global Notation "x >=q y" := (F.to_Z x >= F.to_Z y) (at level 50) : circom_scope.
   
   Global Notation F := (F q).
-  Global Notation "2" := (F.add 1 1 : F) : circom_scope.
+  Global Notation "2" := (F.add F.one F.one : F) : circom_scope.
   Definition binary (x: F) := x = F.zero \/ x = F.one.
   #[global] Instance F_default: Default F := { default := F.zero }.
 

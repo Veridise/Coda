@@ -62,6 +62,7 @@ Hint Rewrite (@F.pow_1_r q) : F_to_Z.
 Hint Rewrite Cmp.LessThan.to_Z_sub : F_to_Z.
 Hint Rewrite Z.mod_small : F_to_Z.
 
+
 Lemma Fmul_0_r: forall (x: F), x * 0 = 0.
 Proof. unwrap_C. intros. fqsatz. Qed.
 Lemma Fmul_0_l: forall (x: F), 0 * x = 0.
@@ -76,14 +77,6 @@ Lemma Fadd_0_l: forall (x: F), 0 + x = x.
 Proof. unwrap_C. intros. fqsatz. Qed.
 
 
-Create HintDb F_pow.
-Hint Rewrite @F.pow_2_r : F_pow.
-Hint Rewrite @F.pow_add_r : F_pow.
-Hint Rewrite @F.pow_mul_l : F_pow.
-Hint Rewrite <- @F.pow_pow_l : F_pow.
-Hint Rewrite @F.pow_1_r : F_pow.
-Hint Rewrite @F.pow_3_r : F_pow.
-
 Create HintDb simplify_F discriminated.
 Hint Rewrite (Fmul_0_r) : simplify_F.
 Hint Rewrite (Fmul_0_l) : simplify_F.
@@ -95,9 +88,27 @@ Hint Rewrite (@F.pow_0_l) : simplify_F.
 Hint Rewrite (@F.pow_0_r) : simplify_F.
 Hint Rewrite (@F.pow_1_l) : simplify_F.
 Hint Rewrite (@F.pow_1_r) : simplify_F.
-Hint Rewrite (Nat.mul_1_l) : simplify_F.
-Hint Rewrite <- (Nat2N.inj_mul) : simplify_F.
-
+Hint Rewrite (@F.pow_add_r) : simplify_F.
+Create HintDb simplify_NZ discriminated.
+Hint Rewrite Nat2N.inj_mul : simplify_NZ.
+Hint Rewrite Nat2N.inj_add : simplify_NZ.
+Hint Rewrite Nat2Z.inj_mul : simplify_NZ.
+Hint Rewrite Nat2Z.inj_add : simplify_NZ.
+Hint Rewrite (Nat.mul_1_l) : simplify_NZ.
+Hint Rewrite (Nat.mul_1_r): simplify_NZ.
+Hint Rewrite (Nat.mul_0_l): simplify_NZ.
+Hint Rewrite (Nat.mul_0_r): simplify_NZ.
+Hint Rewrite (Nat.add_0_r): simplify_NZ.
+Hint Rewrite (Nat.add_0_l): simplify_NZ.
+Hint Rewrite (Nat.mul_succ_r): simplify_NZ.
+Hint Rewrite (Z.mul_1_l) : simplify_NZ.
+Hint Rewrite (Z.mul_1_r): simplify_NZ.
+Hint Rewrite (Z.mul_0_l): simplify_NZ.
+Hint Rewrite (Z.mul_0_r): simplify_NZ.
+Hint Rewrite (Z.add_0_r): simplify_NZ.
+Hint Rewrite (Z.add_0_l): simplify_NZ.
+Hint Rewrite (Z.mul_succ_r): simplify_NZ.
+Hint Rewrite (Zpower_exp): simplify_NZ.
 
 Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
   i < length l ->
@@ -198,7 +209,7 @@ Proof.
 
   rewrite nth_Default_List_tuple.
   rewrite <- Heqout_n.
-  autorewrite with simplify_F.
+  autorewrite with simplify_F simplify_NZ.
   
   replace (as_le 1 ((to_list (S n) Num2Bits.out)[:n]) + (1 + 1) ^ n * out_n -
     out_n * (1 + 1) ^ n) with (as_le 1 (firstn n (to_list (S n) Num2Bits.out))) by fqsatz.
@@ -290,41 +301,23 @@ Record t := {
 
 Definition spec (w: t) :=
   (* pre-condition *)
-  (n> 0)%Z ->
-  (k > 0)%Z ->
-  (S n <= C.k)%Z ->
+  n > 0 ->
+  k > 0 ->
+  (n + 1 <= C.k)%Z ->
+  (* a and b are proper big int *)
   w.(a) |: (n) ->
   w.(b) |: (n) ->
   (* post-condition *)
   ([|| w.(out) ||] = [|| w.(a) ||] + [|| w.(b) ||])%Z /\
   w.(out) |: (n).
 
-
-Create HintDb simplify_F discriminated.
-Hint Rewrite (Fmul_0_r) : simplify_F.
-Hint Rewrite (Fmul_0_l) : simplify_F.
-Hint Rewrite (Fmul_1_r) : simplify_F.
-Hint Rewrite (Fmul_1_l) : simplify_F.
-Hint Rewrite (Fadd_0_r) : simplify_F.
-Hint Rewrite (Fadd_0_l) : simplify_F.
-Hint Rewrite (@F.pow_0_l) : simplify_F.
-Hint Rewrite (@F.pow_0_r) : simplify_F.
-Hint Rewrite (@F.pow_1_l) : simplify_F.
-Hint Rewrite (@F.pow_1_r) : simplify_F.
-Hint Rewrite (@F.pow_add_r) : simplify_F.
-Hint Rewrite <- (Nat2N.inj_mul) : natsimplify.
-Hint Rewrite (Nat.mul_1_l) : natsimplify.
-Hint Rewrite (Nat.mul_1_r): natsimplify.
-Hint Rewrite (Nat.mul_0_l): natsimplify.
-Hint Rewrite (Nat.mul_0_r): natsimplify.
-Hint Rewrite (Nat.add_0_r): natsimplify.
-Hint Rewrite (Nat.add_0_l): natsimplify.
-Hint Rewrite (Nat.mul_succ_r): natsimplify.
+Ltac simplify := autorewrite with simplify_NZ simplify_F natsimplify; try lia.
+Ltac simplify' H := autorewrite with simplify_NZ simplify_F natsimplify in H; try lia.
 
 
 Ltac split_as_le xs i := 
   erewrite RZ.as_le_split_last with (ws:=xs[:S i]) (i:=i);
-  try rewrite firstn_firstn; autorewrite with natsimplify;
+  try rewrite firstn_firstn; simplify;
   try rewrite firstn_nth by lia.
 
 
@@ -335,22 +328,23 @@ Ltac lift_to_list := repeat match goal with
 | [ |- tforall _ _] => apply tforall_Forall
 end.
 
-Lemma binary_in_range: forall n x,
-  (n > 0)%nat ->
-  binary x -> x | (n).
+Lemma binary_in_range: forall (n:nat) x,
+  n > 0 ->
+  binary x -> 
+  x | (n).
 Proof.
   unwrap_C. intros n x Hn Hbin. unfold R.in_range.
   destruct (dec (n>1)).
-  destruct Hbin; subst; autorewrite with F_to_Z. lia.
-  assert (2^1 < 2^n)%Z. apply Zpow_facts.Zpower_lt_monotone. lia. lia.
-  transitivity (2^1)%Z. simpl. lia. lia. lia.
+  destruct Hbin; subst; autorewrite with F_to_Z; try lia.
+  assert (2^1 < 2^n)%Z. apply Zpow_facts.Zpower_lt_monotone; lia.
+  transitivity (2^1)%Z; simpl; lia.
   assert (n=1)%nat by lia. subst. simpl. destruct Hbin; subst; autorewrite with F_to_Z; lia.
 Qed.
 
-Local Notation "' xs" := (to_list _ xs) (at level 20).
-
 Lemma nth_0 {T} `{Default T}: forall (x: T), (x :: nil) ! 0 = x.
 Admitted.
+
+Local Notation "|^ x |" := (F.to_Z x).
 
 Theorem soundness: forall (w: t), spec w.
 Proof.
@@ -390,6 +384,7 @@ Proof.
   - intros i _cons IH H_bound.
     unfold Inv in *. intros Hf.
     rewrite Heqf in *. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
+    symmetry in Houti.
     lift_to_list.
     pose proof (ModSumThree.soundness ('unit ! i )) as M0. unfold ModSumThree.spec in M0.
     destruct IH as [IH_bin IH_eq]. auto.
@@ -400,7 +395,7 @@ Proof.
     rewrite Hci. apply IH_bin. lia.
     destruct (dec (S i = 0%nat)). discriminate.
     split_as_le ('out) i. split_as_le ('a) i. split_as_le ('b) i.
-    intuition idtac.
+    repeat (apply conj_use; split); intuition idtac.
     (* binary *)
     + destruct (dec (j < i)). auto.
       assert (Hij: j=i) by lia. rewrite Hij in *. intuition.
@@ -408,44 +403,71 @@ Proof.
     + eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le; eauto. lia.
       rewrite firstn_firstn. autorewrite with natsimplify. auto.
       rewrite firstn_nth by lia.
-      fold_default. rewrite Houti. auto.
+      fold_default. rewrite <- Houti. auto.
     + destruct (dec (i=0%nat)) as [].
       * (* i = 0 *) rewrite e in *.
-        autorewrite with simplify_F natsimplify.
+        simplify.
         repeat erewrite firstn_1; try lia.
-        repeat fold_default.
-        repeat rewrite nth_0.
-        rewrite Hai, Hbi, Hci, <- Houti in M_eq.
+        repeat (fold_default; rewrite nth_0).
         (* range proof *)
-        assert (F.to_Z ((' out) ! 0) + 2^n * F.to_Z (M.carry ((' unit) ! 0)) = F.to_Z ((' a) ! 0) + F.to_Z ((' b) ! 0))%Z by admit.
-        (* TODO: simplify this *)
-        cbn [RZ.as_le firstn].
-        rewrite <- Nat2Z.inj_mul.
-        rewrite Nat.mul_0_r.
-        replace (2 ^ 0%nat)%Z with 1%Z by (simpl; lia).
-        repeat rewrite Z.add_0_l, Z.mul_1_l.
+        assert (|^'out!0| + 2^n * |^M.carry ('unit!0)| = |^'a!0| + |^'b!0|)%Z. {
+          rewrite Hai, Hbi, Hci, Houti in *.
+          assert (0<=|^ 'a!0|)%Z. apply F.to_Z_range; lia.
+          assert (0<=|^ 'b!0|)%Z. apply F.to_Z_range; lia.
+          assert (0<=|^ 'out!0|)%Z. apply F.to_Z_range; lia.
+          assert (|^ 'a ! 0 | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
+          assert (|^ 'b ! 0 | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
+          assert (|^ 'out ! 0 | <= 2^n-1)%Z. auto.
+          assert (2*2^n <= 2^C.k)%Z. replace (2*2^n)%Z with (2^(n+1))%Z. apply Zpow_facts.Zpower_le_monotone; try lia. rewrite Zpower_exp; try lia.
+          assert (|^' a ! 0 + ' b ! 0| = |^'a!0| + |^'b!0|)%Z. autorewrite with F_to_Z. reflexivity. lia.
+          destruct M_bin as[M_bin | M_bin]; rewrite M_bin in *; simplify' M_eq; simplify; autorewrite with F_to_Z; try lia.
+          - rewrite M_eq. lia.
+          - rewrite <- H14. rewrite <- M_eq.
+            do 4 (autorewrite with F_to_Z; cbn -[to_list]; try lia).
+        }
         nia.
       * (* i > 0 *) 
-        rewrite Nat2Z.inj_add. autorewrite with natsimplify simplify_F.
+        simplify.
         repeat (unfold_default; rewrite firstn_nth; try lia; fold_default).
         default_apply ltac:(repeat rewrite firstn_nth; try lia).
-        rewrite Zpower_exp by lia. 
-        rewrite Nat2Z.inj_mul in *.
-        rewrite Hai, Hbi, Hci, <- Houti in M_eq.
         (* range proof *)
-        assert (F.to_Z ((' out) ! i) + 2 ^ n * F.to_Z (M.carry ((' unit) ! i)) =
-        F.to_Z ((' a) ! i) + F.to_Z ((' b) ! i) + F.to_Z (M.carry ((' unit) ! (i - 1))))%Z by admit.
-        nia.
+        remember (M.carry ('unit!i)) as ci.
+        remember (M.carry ('unit!(i-1))) as ci'.
+        assert (|^'out!i| + 2^n * |^ ci| =
+          |^'a!i| + |^'b!i| + |^ ci'| )%Z. {
+          rewrite Hai, Hbi, Hci, Houti in *.
+          assert (0<=|^ 'a!i|)%Z. apply F.to_Z_range; lia.
+          assert (0<=|^ 'b!i|)%Z. apply F.to_Z_range; lia.
+          assert (0<=|^ 'out!i|)%Z. apply F.to_Z_range; lia.
+          assert (|^ 'a ! i | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
+          assert (|^ 'b ! i | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
+          assert (|^ 'out ! i | <= 2^n-1)%Z. auto.
+          assert (2*2^n <= 2^C.k)%Z. replace (2*2^n)%Z with (2^(n+1))%Z. apply Zpow_facts.Zpower_le_monotone; try lia. rewrite Zpower_exp; try lia.
+          assert (Hab: (|^' a ! i + ' b ! i| = |^'a!i| + |^'b!i|)%Z). autorewrite with F_to_Z. reflexivity. lia.
+          assert (Hab1: (|^' a ! i + ' b ! i + 1| = |^'a!i| + |^'b!i| + 1)%Z). do 3 (autorewrite with F_to_Z; try lia).
+          assert (Hci_bin: binary ci). subst. apply H4. lia.
+          assert (Hci'_bin: binary ci'). subst. apply H4. lia.
+          destruct Hci_bin as [Hci_bin|Hci_bin]; 
+          destruct Hci'_bin as [Hci'_bin|Hci'_bin]; rewrite Hci_bin in *; rewrite Hci'_bin in *; 
+          cbn -[to_list]; simplify; simplify' M_eq.
+          rewrite M_eq. do 1 (autorewrite with F_to_Z; try lia).
+          rewrite M_eq. do 3 (autorewrite with F_to_Z; try lia).
+          rewrite <- Hab, <- M_eq. do 4 (autorewrite with F_to_Z; cbn -[to_list]; try lia).
+          replace (1 mod q)%Z with 1%Z.
+          rewrite <- Hab1, <- M_eq. do 4 (autorewrite with F_to_Z; cbn -[to_list]; try lia).
+          rewrite Zmod_small; lia.
+        }
+        lia.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
       eauto using RZ.repr_trivial.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
       eauto using RZ.repr_trivial.
     + unfold RZ.repr_le. intuition. rewrite firstn_length_le; lia.
       eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le. reflexivity. lia.
-      rewrite firstn_firstn. autorewrite with natsimplify. auto.
+      rewrite firstn_firstn. simplify. auto.
       rewrite firstn_nth by lia.
       fold_default.
-      rewrite Houti. auto.
+      rewrite <- Houti. auto.
   - unfold Inv in HInv.
     replace ('a) with ('a[:k]) by (applys_eq firstn_all; f_equal; lia).
     replace ('b) with ('b[:k]) by (applys_eq firstn_all; f_equal; lia).
@@ -457,12 +479,12 @@ Proof.
     }
     intuition; auto.
     * rewrite <- H7. rewrite <- out_k.
-    rewrite Nat2Z.inj_mul.
+    simplify.
     apply RZ.as_le_split_last with (x:=[|' out|]).
     applys_eq RZ.repr_trivial; auto.
     * lift_to_list. auto.
-  Unshelve. exact F.zero. exact F.zero. exact F.zero.
-Admitted.
+  Unshelve. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero.
+Qed.
 
 
 End _BigAdd.

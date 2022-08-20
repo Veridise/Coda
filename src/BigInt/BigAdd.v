@@ -407,58 +407,40 @@ Proof.
       rewrite firstn_firstn. autorewrite with natsimplify. auto.
       rewrite firstn_nth by lia.
       fold_default. rewrite <- Houti. auto.
-    + destruct (dec (i=0%nat)) as [].
-      * (* i = 0 *) rewrite e in *.
-        simplify.
+    + 
+      (* push if-then-else inside equality *)
+      assert (Hci': M.c ('unit!i) = if dec (i=0)%nat then 0 else M.carry ('unit!(i-1)))
+        by (destruct (dec (i=0)%nat); auto).
+      clear Hci.
+      rewrite Hai, Hbi, Hci', Houti in *.
+      (* range proof *)
+      assert (0 <= |^ 'a!i|)%Z. apply F.to_Z_range; lia.
+      assert (0 <= |^ 'b!i|)%Z. apply F.to_Z_range; lia.
+      assert (0 <= |^ 'out!i|)%Z. apply F.to_Z_range; lia.
+      assert (|^ 'a ! i | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
+      assert (|^ 'b ! i | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
+      assert (|^ 'out ! i | <= 2^n-1)%Z. auto.
+      assert (2*2^n <= 2^C.k)%Z. replace (2*2^n)%Z with (2^(n+1))%Z. apply Zpow_facts.Zpower_le_monotone; try lia. rewrite Zpower_exp; try lia.
+      remember (M.carry ('unit!i)) as ci.
+      remember (M.carry ('unit!(i-1))) as ci'.
+      assert (Hci_bin: (0 <= |^ci| <= 1)%Z). destruct M_bin as [M_bin|M_bin]; rewrite M_bin in *; autorewrite with F_to_Z; lia.
+          assert (Hci'_bin: (0 <= |^ci'| <= 1)%Z). specialize (H4 (i-1)%nat). destruct H4 as [M_bin'|M_bin']; try lia; rewrite Heqci', M_bin' in *; autorewrite with F_to_Z; lia.
+          assert (Habci': (|^' a ! i + ' b ! i + ci'| = |^'a!i| + |^'b!i| + |^ci'|)%Z) by (repeat autorewrite with F_to_Z; lia).
+      assert (Hab: (|^ 'a!i + 'b!i| = |^'a!i| + |^'b!i|)%Z). autorewrite with F_to_Z. reflexivity. lia.
+      destruct (dec (i=0%nat)) as [].
+      * rewrite e in *. simplify.
         repeat erewrite firstn_1; try lia.
         repeat (fold_default; rewrite nth_0).
-        (* range proof *)
-        assert (|^'out!0| + 2^n * |^M.carry ('unit!0)| = |^'a!0| + |^'b!0|)%Z. {
-          rewrite Hai, Hbi, Hci, Houti in *.
-          assert (0<=|^ 'a!0|)%Z. apply F.to_Z_range; lia.
-          assert (0<=|^ 'b!0|)%Z. apply F.to_Z_range; lia.
-          assert (0<=|^ 'out!0|)%Z. apply F.to_Z_range; lia.
-          assert (|^ 'a ! 0 | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
-          assert (|^ 'b ! 0 | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
-          assert (|^ 'out ! 0 | <= 2^n-1)%Z. auto.
-          assert (2*2^n <= 2^C.k)%Z. replace (2*2^n)%Z with (2^(n+1))%Z. apply Zpow_facts.Zpower_le_monotone; try lia. rewrite Zpower_exp; try lia.
-          assert (|^' a ! 0 + ' b ! 0| = |^'a!0| + |^'b!0|)%Z. autorewrite with F_to_Z. reflexivity. lia.
-          destruct M_bin as[M_bin | M_bin]; rewrite M_bin in *; simplify' M_eq; simplify; autorewrite with F_to_Z; try lia.
-          - rewrite M_eq. lia.
-          - rewrite <- H14. rewrite <- M_eq.
-            do 4 (autorewrite with F_to_Z; cbn -[to_list]; try lia).
-        }
-        nia.
-      * (* i > 0 *) 
-        simplify.
+        simplify' M_eq.
+        rewrite <- Hab, <- M_eq.
+        repeat autorewrite with F_to_Z; cbn -[to_list]; try (lia || nia).
+      * simplify.
         repeat (unfold_default; rewrite firstn_nth; try lia; fold_default).
         default_apply ltac:(repeat rewrite firstn_nth; try lia).
-        (* range proof *)
-        remember (M.carry ('unit!i)) as ci.
-        remember (M.carry ('unit!(i-1))) as ci'.
-        assert (|^'out!i| + 2^n * |^ ci| =
-          |^'a!i| + |^'b!i| + |^ ci'| )%Z. {
-          rewrite Hai, Hbi, Hci, Houti in *.
-          assert (0<=|^ 'a!i|)%Z. apply F.to_Z_range; lia.
-          assert (0<=|^ 'b!i|)%Z. apply F.to_Z_range; lia.
-          assert (0<=|^ 'out!i|)%Z. apply F.to_Z_range; lia.
-          assert (|^ 'a ! i | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
-          assert (|^ 'b ! i | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
-          assert (|^ 'out ! i | <= 2^n-1)%Z. auto.
-          assert (2*2^n <= 2^C.k)%Z. replace (2*2^n)%Z with (2^(n+1))%Z. apply Zpow_facts.Zpower_le_monotone; try lia. rewrite Zpower_exp; try lia.
-          assert (Hab: (|^' a ! i + ' b ! i| = |^'a!i| + |^'b!i|)%Z). autorewrite with F_to_Z. reflexivity. lia.
-          assert (Hab1: (|^' a ! i + ' b ! i + 1| = |^'a!i| + |^'b!i| + 1)%Z). do 3 (autorewrite with F_to_Z; try lia).
-          assert (Hci_bin: binary ci). subst. apply H4. lia.
-          assert (Hci'_bin: binary ci'). subst. apply H4. lia.
-          destruct Hci_bin as [Hci_bin|Hci_bin]; 
-          destruct Hci'_bin as [Hci'_bin|Hci'_bin]; rewrite Hci_bin in *; rewrite Hci'_bin in *; 
-          cbn -[to_list]; simplify; simplify' M_eq.
-          rewrite M_eq. do 1 (autorewrite with F_to_Z; try lia).
-          rewrite M_eq. do 3 (autorewrite with F_to_Z; try lia).
-          rewrite <- Hab, <- M_eq. do 4 (autorewrite with F_to_Z; cbn -[to_list]; try lia).
-          replace (1 mod q)%Z with 1%Z.
-          rewrite <- Hab1, <- M_eq. do 4 (autorewrite with F_to_Z; cbn -[to_list]; try lia).
-          rewrite Zmod_small; lia.
+        assert (|^'out!i| + 2^n * |^ ci| = |^'a!i| + |^'b!i| + |^ ci'| )%Z. {
+          rewrite <- Habci'.
+          rewrite <- M_eq.
+          repeat autorewrite with F_to_Z; cbn -[to_list]; (lia || nia).
         }
         lia.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.

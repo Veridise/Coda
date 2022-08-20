@@ -412,8 +412,10 @@ Proof.
       assert (Hci': M.c ('unit!i) = if dec (i=0)%nat then 0 else M.carry ('unit!(i-1)))
         by (destruct (dec (i=0)%nat); auto).
       clear Hci.
-      rewrite Hai, Hbi, Hci', Houti in *.
-      (* range proof *)
+      rewrite Hai, Hbi, Hci', Houti in *. clear Hai Hbi Hci' Houti.
+      remember (M.carry ('unit!i)) as ci.
+      remember (M.carry ('unit!(i-1))) as ci'.
+      (* prepare ranges *)
       assert (0 <= |^ 'a!i|)%Z. apply F.to_Z_range; lia.
       assert (0 <= |^ 'b!i|)%Z. apply F.to_Z_range; lia.
       assert (0 <= |^ 'out!i|)%Z. apply F.to_Z_range; lia.
@@ -421,28 +423,23 @@ Proof.
       assert (|^ 'b ! i | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
       assert (|^ 'out ! i | <= 2^n-1)%Z. auto.
       assert (2*2^n <= 2^C.k)%Z. replace (2*2^n)%Z with (2^(n+1))%Z. apply Zpow_facts.Zpower_le_monotone; try lia. rewrite Zpower_exp; try lia.
-      remember (M.carry ('unit!i)) as ci.
-      remember (M.carry ('unit!(i-1))) as ci'.
       assert (Hci_bin: (0 <= |^ci| <= 1)%Z). destruct M_bin as [M_bin|M_bin]; rewrite M_bin in *; autorewrite with F_to_Z; lia.
-          assert (Hci'_bin: (0 <= |^ci'| <= 1)%Z). specialize (H4 (i-1)%nat). destruct H4 as [M_bin'|M_bin']; try lia; rewrite Heqci', M_bin' in *; autorewrite with F_to_Z; lia.
-          assert (Habci': (|^' a ! i + ' b ! i + ci'| = |^'a!i| + |^'b!i| + |^ci'|)%Z) by (repeat autorewrite with F_to_Z; lia).
-      assert (Hab: (|^ 'a!i + 'b!i| = |^'a!i| + |^'b!i|)%Z). autorewrite with F_to_Z. reflexivity. lia.
-      destruct (dec (i=0%nat)) as [].
+      assert (Hci'_bin: (0 <= |^ci'| <= 1)%Z). specialize (H4 (i-1)%nat). destruct H4 as [M_bin'|M_bin']; try lia; rewrite Heqci', M_bin' in *; autorewrite with F_to_Z; lia.
+      (* push F.to_Z *)
+      assert (Hl: (|^' out ! i + (1 + 1) ^ n * ci| = |^'out!i| + 2^n*|^ci|)%Z). repeat (autorewrite with F_to_Z; cbn -[to_list F.pow]; try lia; try nia).
+      assert (Hr: (|^' a ! i + ' b ! i + (if dec (i = 0)%nat then 0 else ci')| 
+        = |^'a!i| + |^'b!i| + |^(if dec (i = 0)%nat then 0 else ci')|)%Z). 
+        { destruct (dec (i=0)%nat); simplify; repeat (autorewrite with F_to_Z; try lia; try nia). }
+      symmetry in Hl, Hr, M_eq.
+      apply f_equal with (f:=F.to_Z) in M_eq.
+      destruct (dec (i=0%nat)) as []; simplify' M_eq; simplify' Hl; simplify' Hr.
       * rewrite e in *. simplify.
         repeat erewrite firstn_1; try lia.
         repeat (fold_default; rewrite nth_0).
-        simplify' M_eq.
-        rewrite <- Hab, <- M_eq.
-        repeat autorewrite with F_to_Z; cbn -[to_list]; try (lia || nia).
+        lia.
       * simplify.
         repeat (unfold_default; rewrite firstn_nth; try lia; fold_default).
         default_apply ltac:(repeat rewrite firstn_nth; try lia).
-        assert (|^'out!i| + 2^n * |^ ci| = |^'a!i| + |^'b!i| + |^ ci'| )%Z. {
-          rewrite <- Habci'.
-          rewrite <- M_eq.
-          repeat autorewrite with F_to_Z; cbn -[to_list]; (lia || nia).
-        }
-        lia.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
       eauto using RZ.repr_trivial.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.

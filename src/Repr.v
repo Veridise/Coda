@@ -158,16 +158,14 @@ Notation "[| xs |]" := (as_le xs).
 
 Section Representation.
 
-Definition in_range (x: F) := (x <=z (2^n-1)%Z).
-
 Definition repr_le x m ws :=
   length ws = m /\
-  List.Forall in_range ws /\
+  ws |: (n) /\
   x = [| ws |].
 
 Definition repr_be x m ws :=
   length ws = m /\
-  List.Forall in_range ws /\
+  ws |: (n) /\
   x = as_be ws.
 
 Lemma repr_rev: forall x m ws, repr_le x m ws <-> repr_be x m (rev ws).
@@ -231,7 +229,7 @@ Qed.
 
 (* repr inv: trivial satisfaction *)
 Lemma repr_trivial: forall ws,
-  Forall in_range ws ->
+  ws |: (n) ->
   repr_le (as_le ws) (length ws) ws.
 Proof.
   induction ws; unfold repr_le; intuition idtac.
@@ -317,7 +315,7 @@ Proof.
   - lia.
 Qed.
 
-Lemma in_range_binary: forall x, in_range 1 x <-> binary x.
+Lemma in_range_binary: forall x,  x | (1) <-> binary x.
 Proof.
   unfold in_range;simpl.
   split;intros.
@@ -332,7 +330,7 @@ Proof.
   intros. auto.
 Qed.
 
-Lemma Forall_in_range: forall xs, Forall (in_range 1) xs <-> Forall binary xs.
+Lemma Forall_in_range: forall xs, xs |: (1) <-> Forall binary xs.
 Proof. intuition; eapply Forall_if; try apply in_range_binary; auto.
 Qed.
 
@@ -495,12 +493,4 @@ Proof with (lia || auto).
 Qed.
 
 End Base2.
-
-
-(* x is a valid digit in base-2^n representation *)
-Global Notation "x | ( n )" := (in_range n x) (at level 40).
-Global Notation "xs |: ( n )" := (tforall (in_range n) xs) (at level 40).
-
-(* interpret a tuple of weights as representing a little-endian base-2^n number *)
-Global Notation "[| xs | n ]" := (as_le n xs).
 End Repr.

@@ -39,7 +39,9 @@ Context {n: nat}.
 
 Module B := Bitify C.
 Module Cmp := Comparators C.
-Module RZ := ReprZ C.
+Module RZUnsigned := ReprZUnsigned C.
+Module RZ := RZUnsigned.RZ.
+Module R := Repr C.
 Module D := DSL C.
 Import B C.
 
@@ -87,7 +89,7 @@ Hint Rewrite (Nat.add_0_r): natsimplify.
 Hint Rewrite (Nat.add_0_l): natsimplify.
 Hint Rewrite (Nat.mul_succ_r): natsimplify.
 
-Local Notation "[| xs |]" := (RZ.as_le F.to_Z n xs).
+Local Notation "[| xs |]" := (R.as_le n xs).
 
 Section _CheckCarryToZero.
 Context {m k: nat}.
@@ -133,12 +135,14 @@ Ltac lift_to_list := repeat match goal with
 | [ |- tforall _ _] => apply tforall_Forall
 end.
 
+Local Open Scope F_scope.
+
 
 Theorem soundness: forall (c: t), 
   (1 <= n)%Z ->
   (n <= C.k)%Z ->
   k >= 2 ->
-  tforall (R.in_range n) c.(_in) ->
+  'c.(_in) |: (n) ->
   [| 'c.(_in) |] = 0.
 Proof.
   unwrap_C.
@@ -154,7 +158,7 @@ Proof.
 
   pose (Inv := fun (i: nat) _cons => _cons -> 
     forall (j: nat), j < i -> 
-    F.to_Z (2^(n*(j+1))%nat * ('carry ! j)) = [| ' _in [:j+1] |]).
+    (2^(n*(j+1))%nat * ('carry ! j)) = [| ' _in [:j+1] |]).
   assert (Hinv: Inv (k-1)%nat (D.iter f (k-1)%nat (True))). {
     apply D.iter_inv; unfold Inv.
     - intuition idtac. lia.
@@ -168,23 +172,22 @@ Proof.
           lift_to_list.
           erewrite fold_nth by lia.
           rewrite H2.
-          rewrite Z.mul_0_r, Z.add_0_r.
-          f_equal. fqsatz.
+          simpl. fqsatz.
         * specialize (H3 (i-1)%nat).
           lift_to_list.
           assert (2^n <> 0)%F. { unfold not. apply pow_nonzero. lia. }
           replace ((' carry) ! i) with (((' _in) ! i + (' carry) ! (i - 1)) / (2^n))%F.
           replace ((1 + 1) ^ (n * (i + 1))%nat) with (2^ (n * i)%nat * 2^n).
-          erewrite RZ.as_le_split_last with (i:=i).
+          erewrite R.as_le_split_last with (i:=i).
           rewrite firstn_firstn. replace (Init.Nat.min i (i + 1)) with i by lia.
           erewrite <- fold_nth with (l:=((' _in) [:i + 1])) by (rewrite firstn_length_le; lia).
           rewrite firstn_nth by lia.
           rewrite fold_nth by lia.
           replace (i-1+1)%nat with i in H3 by lia.
           rewrite <- H3 by lia.
-          f_equal. fqsatz.
-          eapply repr_le_firstn; eauto. rewrite firstn_length_le; lia.
-          apply repr_trivial.
+          fqsatz.
+          eapply R.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
+          apply R.repr_trivial.
           lift_to_list. auto.
           rewrite Nat.mul_add_distr_l. rewrite Nat2N.inj_add. rewrite F.pow_add_r. autorewrite with natsimplify simplify_F. fqsatz.
           fqsatz.
@@ -193,13 +196,13 @@ Proof.
   unfold Inv in Hinv.
   intuition.
   specialize (H1 (k-2)%nat).
-  erewrite as_le_split_last with (i:= (k-1)%nat).
+  erewrite R.as_le_split_last with (i:= (k-1)%nat).
   replace (k - 2 + 1)%nat with (k-1)%nat in H1.
   rewrite <- H1.
   lift_to_list.
   fqsatz.
   lia. lia.
-  applys_eq repr_trivial.
+  applys_eq R.repr_trivial.
   lia.
   lift_to_list; auto.
 Unshelve. exact F.zero. exact F.zero.

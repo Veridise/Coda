@@ -21,7 +21,6 @@ Proof. tauto. Qed.
 
 Module Util.
 
-
 Import Circom.
 
 Import ListNotations.

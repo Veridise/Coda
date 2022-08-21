@@ -72,6 +72,13 @@ Module Type CIRCOM.
    | right _ => false
    end)
   (at level 100).
+
+  Local Coercion Z.of_nat : nat >-> Z.
+  Local Coercion N.of_nat : nat >-> N.
+  Definition in_range (n: nat) (x: F) := (x <=z (2^n-1)%Z)%circom.
+  Global Notation "x | ( n )" := (in_range n x) (at level 40) : circom_scope.
+  Global Notation "xs |: ( n )" := (List.Forall (in_range n) xs) (at level 40) : circom_scope.
+  Global Notation "|^ x |" := (@F.to_Z q x) : circom_scope.
 End CIRCOM.
 
 (* Definition q := BabyJubjub.p.

@@ -37,10 +37,12 @@ Module BigAdd (C: CIRCOM).
 Context {n: nat}.
 
 Module B := Bitify C.
+Module RZUnsigned := ReprZUnsigned C.
+Module RZ := RZUnsigned.RZ.
 Module R := Repr C.
-Module RZ := ReprZ C.
 Module Cmp := Comparators C.
 Import B C.
+
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -129,17 +131,12 @@ Proof.
 Qed.
 
 
-(* x is a valid digit in base-2^n representation *)
-Local Notation "x | ( n )" := (R.in_range n x) (at level 40).
-Local Notation "xs |: ( n )" := (tforall (R.in_range n) xs) (at level 40).
-
 
 Module ModSumThree.
 
 Section ModSumThree.
 
 Import R.
-
 
 (* Note: this is a simplified version from circom-pairing *)
 (* 
@@ -195,7 +192,7 @@ Proof.
   destruct w as [a b c sum carry _cons].
   unfold spec, cons in *. destruct _cons as [n2b [H_in [H_carry H_sum] ] ].
   simpl. intros Hnk Ha Hb Hc.
-  apply in_range_binary in Hc.
+  apply R.in_range_binary in Hc.
   intuition.
   - fqsatz.
   - subst.
@@ -274,8 +271,8 @@ Module D := DSL C.
 Module M := ModSumThree.
 
 (* interpret a tuple of weights as representing a little-endian base-2^n number *)
-Local Notation "[| xs |]" := (RZ.as_le F.to_Z n xs).
-Local Notation "[|| xs ||]" := (RZ.as_le F.to_Z n (to_list _ xs)).
+Local Notation "[| xs |]" := (RZ.as_le n xs).
+Local Notation "[|| xs ||]" := (RZ.as_le n ('xs)).
 
 Definition cons (a b: tuple F k) (out: tuple F (S k)) :=
   exists (unit: tuple M.t k),
@@ -305,11 +302,11 @@ Definition spec (w: t) :=
   k > 0 ->
   (n + 1 <= C.k)%Z ->
   (* a and b are proper big int *)
-  w.(a) |: (n) ->
-  w.(b) |: (n) ->
+  'w.(a) |: (n) ->
+  'w.(b) |: (n) ->
   (* post-condition *)
   ([|| w.(out) ||] = [|| w.(a) ||] + [|| w.(b) ||])%Z /\
-  w.(out) |: (n).
+  'w.(out) |: (n).
 
 Ltac simplify := autorewrite with simplify_NZ simplify_F natsimplify; try lia.
 Ltac simplify' H := autorewrite with simplify_NZ simplify_F natsimplify in H; try lia.
@@ -333,7 +330,7 @@ Lemma binary_in_range: forall (n:nat) x,
   binary x -> 
   x | (n).
 Proof.
-  unwrap_C. intros n x Hn Hbin. unfold R.in_range.
+  unwrap_C. intros n x Hn Hbin. unfold in_range.
   destruct (dec (n>1)).
   destruct Hbin; subst; autorewrite with F_to_Z; try lia.
   assert (2^1 < 2^n)%Z. apply Zpow_facts.Zpower_lt_monotone; lia.
@@ -346,8 +343,6 @@ Proof.
 intro x.
 erewrite <- fold_nth with (d:=x);eauto. 
 Qed.
-
-Local Notation "|^ x |" := (F.to_Z x).
 
 Theorem soundness: forall (w: t), spec w.
 Proof.
@@ -374,7 +369,7 @@ Proof.
     (* carry bits are binary *)
     (forall (j: nat), j < i -> binary (('unit ! j).(M.carry))) /\
     (* out are in range *)
-    Forall (R.in_range n) ('out [:i]) /\
+    Forall (in_range n) ('out [:i]) /\
     (* addition is ok for prefix *)
     (([| 'out [:i] |] +  2^(n*i)%nat * (if dec (i = 0)%nat then 0 else F.to_Z ('unit ! (i-1)).(M.carry))
       = [| 'a [:i] |] +  [| 'b [:i] |]))%Z).
@@ -433,12 +428,13 @@ Proof.
       symmetry in Hl, Hr, M_eq.
       apply f_equal with (f:=F.to_Z) in M_eq.
       destruct (dec (i=0%nat)) as []; simplify' M_eq; simplify' Hl; simplify' Hr.
-      * rewrite e in *. simplify.
+      * rewrite e in *. simplify. unfold RZ.ToZ.to_Z.
         repeat erewrite firstn_1; try lia.
         repeat (fold_default; rewrite nth_0).
         lia.
       * simplify.
         repeat (unfold_default; rewrite firstn_nth; try lia; fold_default).
+        unfold RZ.ToZ.to_Z.
         default_apply ltac:(repeat rewrite firstn_nth; try lia).
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
       eauto using RZ.repr_trivial.
@@ -454,17 +450,16 @@ Proof.
     replace ('a) with ('a[:k]) by (applys_eq firstn_all; f_equal; lia).
     replace ('b) with ('b[:k]) by (applys_eq firstn_all; f_equal; lia).
     destruct (dec (k=0)%nat). lia.
-    assert (H_out_inrange: Forall (R.in_range n) (' out)). {
+    assert (H_out_inrange: 'out |: (n)). {
       intuition.
       apply Forall_firstn_S with (i:=k) (d:=0); try eauto.
       fold_default. apply binary_in_range; try lia. rewrite out_k. apply H5; lia.
     }
     intuition; auto.
-    * rewrite <- H7. rewrite <- out_k.
+    rewrite <- H7. rewrite <- out_k.
     simplify.
     apply RZ.as_le_split_last with (x:=[|' out|]).
     applys_eq RZ.repr_trivial; auto.
-    * lift_to_list. auto.
   Unshelve. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero. 
 Qed.
 

@@ -37,8 +37,9 @@ Module BigSub (C: CIRCOM).
 Context {n: nat}.
 
 Module B := Bitify C.
+Module RZUnsigned := ReprZUnsigned C.
+Module RZ := RZUnsigned.RZ.
 Module R := Repr C.
-Module RZ := ReprZ C.
 Module Cmp := Comparators C.
 Import B C.
 Import Cmp C.
@@ -121,19 +122,11 @@ Ltac fold_default := rewrite fold_nth; try lia.
 Ltac simpl_default := repeat unfold_default; simpl; repeat fold_default; try lia.
 Ltac default_apply L := repeat unfold_default; L; repeat fold_default; try lia.
 
-
-
 Lemma nth_Default_List_tuple {T n} `{Default T} (xs: tuple T n) i:
   (to_list n xs) ! i = xs [i].
 Proof.
   unfold List_nth_Default. unfold nth_Default, nth. rewrite nth_default_to_list. reflexivity.
 Qed.
-
-
-(* x is a valid digit in base-2^n representation *)
-Local Notation "x | ( n )" := (R.in_range n x) (at level 40).
-Local Notation "xs |: ( n )" := (tforall (R.in_range n) xs) (at level 40).
-
 
 Module ModSubThree.
 
@@ -219,13 +212,14 @@ Proof.
     + rewrite e. skip.
     + assert(LessThan.out lt = 0).
       {
-      apply RZ.R.binary_Z in H_lt_b. destruct H_lt_b;try easy. 
+      apply R.binary_Z in H_lt_b. destruct H_lt_b;try easy. 
       2:{ exfalso. apply n0. replace 1%Z with (@F.to_Z q 1) in H. rewrite <- F.eq_to_Z_iff in H;auto. eapply F.to_Z_1. }
       replace 0%Z with (@F.to_Z q 0) in H. rewrite <- F.eq_to_Z_iff in H;auto. eapply F.to_Z_0.
       }
       rewrite H. autorewrite with simplify_F simplify_NZ. skip.
   - rewrite H_borrow;auto.
-Admitted.
+Unshelve. lia.
+Qed.
 
 (* for default values. never used *)
 Definition wgen : t. skip. Defined.
@@ -234,7 +228,6 @@ Definition wgen : t. skip. Defined.
 
 End ModSubThree.
 End ModSubThree.
-
 
 
 Module _BigSub.
@@ -281,8 +274,8 @@ Module D := DSL C.
 Module M := ModSubThree.
 
 (* interpret a tuple of weights as representing a little-endian base-2^n number *)
-Local Notation "[| xs |]" := (RZ.as_le F.to_Z n xs).
-Local Notation "[|| xs ||]" := (RZ.as_le F.to_Z n (to_list _ xs)).
+Local Notation "[| xs |]" := (RZ.as_le n xs).
+Local Notation "[|| xs ||]" := (RZ.as_le n (to_list _ xs)).
 
 Definition cons (a b: tuple F k) (out: tuple F k) (underflow: F) :=
   exists (unit: tuple M.t k),
@@ -312,13 +305,13 @@ Definition spec (w: t) :=
   (n > 0)%Z ->
   (k > 0)%Z ->
   (S n <= C.k)%Z ->
-  w.(a) |: (n) ->
-  w.(b) |: (n) ->
+  'w.(a) |: (n) ->
+  'w.(b) |: (n) ->
   ([|| w.(a) ||] >= [|| w.(b) ||])%Z ->
   (* post-condition *)
   ([|| w.(out) ||] = [|| w.(a) ||] - [|| w.(b) ||])%Z /\
   ( w.(underflow) = 0) /\
-  w.(out) |: (n).
+  'w.(out) |: (n).
 
 
 Ltac simplify := autorewrite with simplify_NZ simplify_F natsimplify; try lia.
@@ -342,7 +335,7 @@ Lemma binary_in_range: forall n x,
   (n > 0)%nat ->
   binary x -> x | (n).
 Proof.
-  unwrap_C. intros n x Hn Hbin. unfold R.in_range.
+  unwrap_C. intros n x Hn Hbin. unfold in_range.
   destruct (dec (n>1)).
   destruct Hbin; subst; autorewrite with F_to_Z. lia.
   assert (2^1 < 2^n)%Z. apply Zpow_facts.Zpower_lt_monotone. lia. lia.
@@ -381,7 +374,7 @@ Proof.
     (* carry bits are binary *)
     (* (forall (j: nat), j < i -> binary (('unit ! j).(M.out))) /\ *)
     (* out are in range *)
-    Forall (R.in_range n) ('out [:i]) /\
+    'out [:i] |: (n) /\
     (* addition is ok for prefix *)
     ([| 'out [:i] |] = [| 'a [:i] |] -  [| 'b [:i] |])%Z).
   assert (HInv: Inv k (D.iter f k True)).
@@ -418,15 +411,17 @@ Proof.
         repeat erewrite firstn_1; try lia.
         repeat (fold_default; rewrite nth_0).
         (* range proof *)
-        assert (F.to_Z ((' out) ! 0) = F.to_Z ((' a) ! 0) - F.to_Z ((' b) ! 0))%Z by skip.
+        assert (|^'out!0| = |^'a!0| - |^'b!0|)%Z by admit.
+        unfold RZ.ToZ.to_Z.
         (* TODO: simplify this *)
         nia.
       * (* i > 0 *) 
         simplify.
         repeat (unfold_default; rewrite firstn_nth; try lia; fold_default).
+        unfold RZ.ToZ.to_Z.
         default_apply ltac:(repeat rewrite firstn_nth; try lia).
         (* range proof *)
-        assert (F.to_Z ((' out) ! i) = F.to_Z ((' a) ! i) - F.to_Z ((' b) ! i))%Z by skip.
+        assert (|^'out!i| = |^'a!i| - |^'b!i|)%Z by admit.
         nia.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
       eauto using RZ.repr_trivial.
@@ -442,7 +437,7 @@ Proof.
     replace ('a) with ('a[:k]) by (applys_eq firstn_all; f_equal; lia).
     replace ('b) with ('b[:k]) by (applys_eq firstn_all; f_equal; lia).
     destruct (dec (k=0)%nat). lia.
-    assert (H_out_inrange: Forall (R.in_range n) (' out)). {
+    assert (H_out_inrange: ' out |: (n)). {
       intuition.
       apply Forall_firstn_S with (i:=(k-1)%nat) (d:=0); try eauto. lia. skip.
       fold_default. apply binary_in_range; try lia. skip.

@@ -17,46 +17,37 @@ Require Import Crypto.Util.Decidable.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Circom.Circom Circom.DSL Circom.Util Circom.ListUtil.
 Require Import Circom.Default.
-Require Import Circom.Repr.
-(* Require Import VST.zlist.Zlist. *)
 
-
-(* Module Type ToZ (C: CIRCOM).
+Module Type TO_Z (C: CIRCOM).
   Import C.
   Variable to_Z: F -> Z.
-  Variable add_hyp: F -> F -> Prop.
-  Variable mul_hyp: F -> F -> Prop.
   Axiom to_Z_0: to_Z 0%F = 0%Z.
   Axiom to_Z_1: to_Z 1%F = 1%Z.
   Axiom to_Z_2: to_Z (1+1)%F = 2%Z.
-  Axiom to_Z_add: forall x y, add_hyp x y -> to_Z (x + y) = to_Z x + to_Z y.
-  Axiom to_Z_mul: forall x y, add_hyp x y -> to_Z (x + y) = to_Z x + to_Z y. 
-  End ToZ.
-*)
+  Axiom to_Z_nonneg: forall x, 0 <= to_Z x.
+  (* Variable add_hyp: F -> F -> Prop. *)
+  (* Variable mul_hyp: F -> F -> Prop. *)
+  (* Axiom to_Z_add: forall x y, add_hyp x y -> to_Z (x + y) = to_Z x + to_Z y. *)
+  (* Axiom to_Z_mul: forall x y, add_hyp x y -> to_Z (x + y) = to_Z x + to_Z y.  *)
+End TO_Z.
 
-Module ReprZ (C: CIRCOM).
 
-Import C.
-Module R := Repr C.
+Local Coercion Z.of_nat : nat >-> Z.
+Local Coercion N.of_nat : nat >-> N.
+
+Module ReprZ (C: CIRCOM) (TO_Z: TO_Z C).
+
+Module ToZ := TO_Z.
+Import C ToZ.
 
 Local Open Scope list_scope.
 Local Open Scope Z_scope.
 Local Open Scope circom_scope.
 
-Local Coercion Z.of_nat : nat >-> Z.
-Local Coercion N.of_nat : nat >-> N.
 
 
 (* Base 2^n representations *)
 Section Base2n.
-
-Context (to_Z: F -> Z)
-  (to_Z_0: to_Z 0%F = 0)
-  (to_Z_1: to_Z 1%F = 1)
-  (to_Z_nonneg: forall x, 0 <= to_Z x).
-
-Lemma to_Z_2: @F.to_Z q 2 = 2%Z.
-Proof. unwrap_C. simpl. repeat rewrite Z.mod_small; lia. Qed.
 
 (* Little- and big-endian *)
 Section Endianness.
@@ -66,7 +57,7 @@ Context (n: nat).
 Fixpoint as_le_acc (i: nat) (ws: list F) : Z :=
   match ws with
   | nil => 0
-  | w::ws' => to_Z w * 2^(n * i) + as_le_acc (S i) ws'
+  | w::ws' => ToZ.to_Z w * 2^(n * i) + as_le_acc (S i) ws'
   end.
 
 Lemma as_le_acc_S: forall ws i,
@@ -85,7 +76,7 @@ Definition as_le' := as_le_acc 0%nat.
 Fixpoint as_le (ws: list F) : Z :=
   match ws with
   | nil => 0
-  | w::ws' => to_Z w + 2^n * (as_le ws')
+  | w::ws' => ToZ.to_Z w + 2^n * (as_le ws')
   end.
 
 Notation "[| xs |]" := (as_le xs).
@@ -125,22 +116,26 @@ Proof.
     rewrite Zpower_exp by nia. lia.
 Qed.
 
-Fixpoint as_be_acc (i: nat) ws :=
+(* Fixpoint as_be_acc (i: nat) ws :=
   match ws with
   | nil => 0
-  | w::ws' => 2^(n*i) * to_Z w + as_be_acc (i-1)%nat ws'
-  end.
+  | w::ws' => 2^(n*i) * ToZ.to_Z w + as_be_acc (i-1)%nat ws'
+  end. *)
 
-Definition as_be ws := as_be_acc (length ws - 1) ws.
+Fixpoint as_be ws :=
+  match ws with
+  | nil => 0
+  | w::ws' => 2^(n*length ws') * ToZ.to_Z w + as_be ws'
+  end.
 
 Lemma be__rev_le: forall l,
   as_be l = as_le (rev l).
 Proof.
-  unwrap_C. unfold as_be.
+  unwrap_C.
   induction l.
   - reflexivity.
   - simpl. rewrite as_le_app. simpl.
-    replace (length l - 0)%nat with (length l) by lia.
+    rewrite Z.mul_0_r, Z.add_0_r.
     rewrite IHl.
     rewrite rev_length.
     lia.
@@ -159,7 +154,7 @@ End Endianness.
 
 Section BigEndian.
 
-Lemma as_be_acc_S: forall (l: list F) (n a: nat),
+(* Lemma as_be_acc_S: forall (l: list F) (n a: nat),
   a >= length l ->
   as_be_acc n (S a) l = 2^n * as_be_acc n a l.
 Proof.
@@ -173,7 +168,7 @@ Proof.
     remember (S a) as a'.
     replace (n * S a') with (n + n * a') by lia.
     rewrite Zpower_exp by lia. lia.
-Qed.
+Qed. *)
 
 End BigEndian.
 
@@ -182,16 +177,14 @@ Context (n: nat).
 Notation "[| xs |]" := (as_le n xs).
 Notation "[\ xs \]" := (as_be n xs).
 
-Definition in_range := (R.in_range n).
-
 Definition repr_le x m ws :=
   length ws = m /\
-  List.Forall in_range ws /\
+  ws |: (n) /\
   x = [| ws |].
 
 Definition repr_be x m ws :=
   length ws = m /\
-  List.Forall in_range ws /\
+  ws |: (n) /\
   x = [\ ws \].
 
 Lemma repr_rev: forall x m ws, repr_le x m ws <-> repr_be x m (rev ws).
@@ -256,7 +249,7 @@ Qed.
 
 (* repr inv: trivial satisfaction *)
 Lemma repr_trivial: forall ws,
-  Forall in_range ws ->
+  ws |: (n) ->
   repr_le [| ws |] (length ws) ws.
 Proof.
   induction ws; unfold repr_le; intuition idtac.
@@ -294,7 +287,7 @@ Qed.
 
 Lemma as_le_split_last : forall i x ws,
   repr_le x (S i) ws ->
-  [| ws |] = [| ws[:i] |] + 2^(n*i) * to_Z (ws ! i).
+  [| ws |] = [| ws[:i] |] + 2^(n*i) * ToZ.to_Z (ws ! i).
 Proof.
   unwrap_C.
   intros. pose proof H as H'.
@@ -305,7 +298,7 @@ Proof.
   erewrite <- firstn_split_last with (l:=ws) (n:=i)(d:=0%F) in Hws; auto.
   pose proof (as_le_app n (ws[:i]) (ws!i::nil)).
   rewrite firstn_length_le in H1 by lia.
-  replace ([| ws ! i :: nil |]) with (to_Z (ws ! i)) in H1 by (simpl; nia).
+  replace ([| ws ! i :: nil |]) with (ToZ.to_Z (ws ! i)) in H1 by (simpl; nia).
   rewrite <- H1.
   subst.
   f_equal.
@@ -326,20 +319,45 @@ End Representation.
 
 End Base2n.
 
-Section Bounds.
+End ReprZ.
 
-Context (n:nat).
+Module ToZUnsigned (C: CIRCOM) <: TO_Z C.
+Import C.
+Local Open Scope circom_scope.
 
-Lemma F_to_Z_nonneg:
-  forall x, 0 <= @F.to_Z q x.
-Proof.
-  unwrap_C. intros. apply F.to_Z_range. lia.
-Qed.
+Definition to_Z : F -> Z := @F.to_Z q.
 
-Lemma q_gt_2: q > 2. unwrap_C. lia. Qed.
-(* [|ws|] <= 2^nl - 1 *)
-Theorem repr_le_ub: forall ws x l,
-  repr_be F.to_Z n x l ws ->
+Lemma to_Z_0: to_Z 0 = 0.
+Proof. exact F.to_Z_0. Qed.
+
+Lemma to_Z_1: to_Z 1 = 1.
+Proof. unwrap_C. unfold to_Z. rewrite @F.to_Z_1; lia. Qed.
+
+Lemma to_Z_2: to_Z 2 = 2%Z.
+Proof. unwrap_C. unfold to_Z. rewrite F.to_Z_add, @F.to_Z_1, Zmod_small; lia. Qed.
+
+Lemma to_Z_nonneg: forall x, 0 <= to_Z x.
+Proof. unwrap_C. intros. unfold to_Z. apply F.to_Z_range. lia. Qed.
+
+End ToZUnsigned.
+
+
+Module ReprZUnsigned (C: CIRCOM).
+
+Module ToZ := ToZUnsigned C.
+Module RZ := (ReprZ C ToZ).
+
+Import C RZ.
+
+Context (n: nat).
+
+Notation "[| xs |]" := (as_le n xs).
+Notation "[\ xs \]" := (as_be n xs).
+
+Local Open Scope circom_scope.
+
+Theorem repr_be_ub: forall ws x l,
+  repr_be n x l ws ->
   (* n <= k -> *)
   x <= (2^(n*l) - 1)%Z.
 Proof with (lia || nia || eauto).
@@ -347,21 +365,56 @@ Proof with (lia || nia || eauto).
   induction ws as [ | w ws]; intros x l H_repr.
   - unfold repr_be, as_be in *. intuition. subst. simpl. lia.
   - destruct H_repr as [H_l [H_range H]]. subst.
-    unfold as_be. cbn [length as_be_acc]. autorewrite with natsimplify.
+    cbn [length as_be]. autorewrite with natsimplify.
     remember (length ws) as l.
-    assert (H_ws: as_be F.to_Z n ws <= (2^(n * l) - 1)%Z). {
+    assert (H_ws: as_be n ws <= (2^(n * l) - 1)%Z). {
       apply IHws. invert H_range. unfold repr_be; intuition.
     }
-    replace (as_be_acc F.to_Z n (l - 1) ws) with (as_be F.to_Z  n ws) by (unfold as_be; subst; reflexivity).
-    
-    pose proof ((as_be_nonneg F.to_Z F_to_Z_nonneg) 0) ws.
-    assert (0 <= F.to_Z w <= 2^n-1). split. apply F.to_Z_range; try lia. invert H_range. auto.
+    pose proof (as_be_nonneg 0) ws.
+    assert (0 <= |^ w| <= 2^n-1). split. apply F.to_Z_range; try lia. invert H_range. auto.
     replace (n * S l) with (n * l + n) by lia. rewrite Zpower_exp by lia.
+    unfold RZ.ToZ.to_Z.
     nia.
 Qed.
 
-End Bounds.
+Fixpoint big_lt (xs ys: list F) :=
+  match xs, ys with
+  | nil, nil => false
+  | x::xs', y::ys' =>
+    if (x <q y)? then true
+    else if (x = y)? then big_lt xs' ys'
+    else false
+  | _, _ => false
+  end.
 
-(* interpret a tuple of weights as representing a little-endian base-2^n number *)
-Global Notation "[| xs . n |]" := (as_le n xs).
-End ReprZ.
+Lemma big_lt_sound: forall xs ys,
+  length xs = length ys ->
+  xs |: (n) ->
+  ys |: (n) ->
+  big_lt xs ys = true ->
+  [\xs\] < [\ys\].
+Proof.
+  induction xs as [ | x xs]; intros ys Hlen Hxs Hys Hlt; 
+  destruct ys as [ |y ys]; simpl in Hlen; try discriminate.
+  simpl in *.
+  pose proof (as_be_nonneg n xs) as Hxs_lb.
+  pose proof (as_be_nonneg n ys) as Hys_lb.
+  invert Hxs.
+  invert Hys.
+  assert (Hxs_ub: [\xs \] <= 2 ^ (n * length xs) - 1). eapply repr_be_ub; subst; unfold repr_be; intuition.
+  assert (Hys_ub: [\ys \] <= 2 ^ (n * length ys) - 1). eapply repr_be_ub; subst; unfold repr_be; intuition.
+  unfold RZ.ToZ.to_Z, in_range in *.
+  invert Hlen.
+  destruct (dec (x <q y)).
+  (* x <q y *) nia.
+
+  destruct (dec (x = y)).
+  (* x=y *)
+  assert (IH: [\xs \] < [\ys \]). apply IHxs; eauto. 
+  apply f_equal with (f:=F.to_Z) in e. nia.
+
+  (* x>y *)
+  nia.
+Qed.
+
+End ReprZUnsigned.

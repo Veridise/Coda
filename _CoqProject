@@ -13,11 +13,11 @@ src/LibTactics.v
 src/circomlib/Comparators.v
 src/circomlib/Bitify.v
 src/circomlib/Gates.v
-src/circomlib/multiplexer.v
+src/circomlib/Multiplexer.v
 src/BigInt/BigAdd.v
 src/BigInt/BigSub.v
 src/BigInt/CheckCarryToZero.v
-src/BigInt/Polynom.v
-src/BigInt/Polynom_test.v
+src/BigInt/Theory/Polynom.v
+src/BigInt/Theory/Polynom_test.v
 src/BigInt/BigMult.v
 # src/BigInt/PrimeReduce.v

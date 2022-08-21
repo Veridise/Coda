@@ -465,7 +465,7 @@ Proof.
     apply RZ.as_le_split_last with (x:=[|' out|]).
     applys_eq RZ.repr_trivial; auto.
     * lift_to_list. auto.
-  Unshelve. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero.
+  Unshelve. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero. 
 Qed.
 
 

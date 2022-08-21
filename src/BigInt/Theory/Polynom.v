@@ -22,7 +22,7 @@ Require Import Crypto.Util.Decidable.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems.
 
 Require Import Util DSL.
-
+(* TODO: use other polynomial lib *)
 
 Module Polynomial.
 

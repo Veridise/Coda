@@ -360,6 +360,8 @@ Proof with (lia || nia || eauto).
     nia.
 Qed.
 
+End Bounds.
+
 (* interpret a tuple of weights as representing a little-endian base-2^n number *)
 Global Notation "[| xs . n |]" := (as_le n xs).
 End ReprZ.

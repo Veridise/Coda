@@ -56,7 +56,7 @@ Definition geq (x: F p) (y: F p) := F.to_Z x >= F.to_Z y.
 
 End BabyJubjub.
 
-Delimit Scope BabyJubjub_scope with Bj.
+Declare Scope BabyJubjub_scope.
 Infix "<" :=  BabyJubjub.lt  : BabyJubjub_scope.
 Infix "<=" := BabyJubjub.leq : BabyJubjub_scope.
 Infix ">" := BabyJubjub.gt   : BabyJubjub_scope.

@@ -52,15 +52,15 @@ Local Coercion N.of_nat: nat >-> N.
 
 Module Comparators := Comparators C.
 Create HintDb F_to_Z discriminated.
-Hint Rewrite (to_Z_2) : F_to_Z.
-Hint Rewrite (@F.to_Z_add q) : F_to_Z.
-Hint Rewrite (@F.to_Z_mul q) : F_to_Z.
-Hint Rewrite (@F.to_Z_pow q) : F_to_Z.
-Hint Rewrite (@F.to_Z_0 q) : F_to_Z.
-Hint Rewrite (@F.to_Z_1 q) : F_to_Z.
-Hint Rewrite (@F.pow_1_r q) : F_to_Z.
-Hint Rewrite Cmp.LessThan.to_Z_sub : F_to_Z.
-Hint Rewrite Z.mod_small : F_to_Z.
+#[local] Hint Rewrite (to_Z_2) : F_to_Z.
+#[local] Hint Rewrite (@F.to_Z_add q) : F_to_Z.
+#[local] Hint Rewrite (@F.to_Z_mul q) : F_to_Z.
+#[local] Hint Rewrite (@F.to_Z_pow q) : F_to_Z.
+#[local] Hint Rewrite (@F.to_Z_0 q) : F_to_Z.
+#[local] Hint Rewrite (@F.to_Z_1 q) : F_to_Z.
+#[local] Hint Rewrite (@F.pow_1_r q) : F_to_Z.
+#[local] Hint Rewrite Cmp.LessThan.to_Z_sub : F_to_Z.
+#[local] Hint Rewrite Z.mod_small : F_to_Z.
 
 
 Lemma Fmul_0_r: forall (x: F), x * 0 = 0.
@@ -78,37 +78,37 @@ Proof. unwrap_C. intros. fqsatz. Qed.
 
 
 Create HintDb simplify_F discriminated.
-Hint Rewrite (Fmul_0_r) : simplify_F.
-Hint Rewrite (Fmul_0_l) : simplify_F.
-Hint Rewrite (Fmul_1_r) : simplify_F.
-Hint Rewrite (Fmul_1_l) : simplify_F.
-Hint Rewrite (Fadd_0_r) : simplify_F.
-Hint Rewrite (Fadd_0_l) : simplify_F.
-Hint Rewrite (@F.pow_0_l) : simplify_F.
-Hint Rewrite (@F.pow_0_r) : simplify_F.
-Hint Rewrite (@F.pow_1_l) : simplify_F.
-Hint Rewrite (@F.pow_1_r) : simplify_F.
-Hint Rewrite (@F.pow_add_r) : simplify_F.
+#[local] Hint Rewrite (Fmul_0_r) : simplify_F.
+#[local] Hint Rewrite (Fmul_0_l) : simplify_F.
+#[local] Hint Rewrite (Fmul_1_r) : simplify_F.
+#[local] Hint Rewrite (Fmul_1_l) : simplify_F.
+#[local] Hint Rewrite (Fadd_0_r) : simplify_F.
+#[local] Hint Rewrite (Fadd_0_l) : simplify_F.
+#[local] Hint Rewrite (@F.pow_0_l) : simplify_F.
+#[local] Hint Rewrite (@F.pow_0_r) : simplify_F.
+#[local] Hint Rewrite (@F.pow_1_l) : simplify_F.
+#[local] Hint Rewrite (@F.pow_1_r) : simplify_F.
+#[local] Hint Rewrite (@F.pow_add_r) : simplify_F.
 Create HintDb simplify_NZ discriminated.
-Hint Rewrite Nat2N.inj_mul : simplify_NZ.
-Hint Rewrite Nat2N.inj_add : simplify_NZ.
-Hint Rewrite Nat2Z.inj_mul : simplify_NZ.
-Hint Rewrite Nat2Z.inj_add : simplify_NZ.
-Hint Rewrite (Nat.mul_1_l) : simplify_NZ.
-Hint Rewrite (Nat.mul_1_r): simplify_NZ.
-Hint Rewrite (Nat.mul_0_l): simplify_NZ.
-Hint Rewrite (Nat.mul_0_r): simplify_NZ.
-Hint Rewrite (Nat.add_0_r): simplify_NZ.
-Hint Rewrite (Nat.add_0_l): simplify_NZ.
-Hint Rewrite (Nat.mul_succ_r): simplify_NZ.
-Hint Rewrite (Z.mul_1_l) : simplify_NZ.
-Hint Rewrite (Z.mul_1_r): simplify_NZ.
-Hint Rewrite (Z.mul_0_l): simplify_NZ.
-Hint Rewrite (Z.mul_0_r): simplify_NZ.
-Hint Rewrite (Z.add_0_r): simplify_NZ.
-Hint Rewrite (Z.add_0_l): simplify_NZ.
-Hint Rewrite (Z.mul_succ_r): simplify_NZ.
-Hint Rewrite (Zpower_exp): simplify_NZ.
+#[local] Hint Rewrite Nat2N.inj_mul : simplify_NZ.
+#[local] Hint Rewrite Nat2N.inj_add : simplify_NZ.
+#[local] Hint Rewrite Nat2Z.inj_mul : simplify_NZ.
+#[local] Hint Rewrite Nat2Z.inj_add : simplify_NZ.
+#[local] Hint Rewrite (Nat.mul_1_l) : simplify_NZ.
+#[local] Hint Rewrite (Nat.mul_1_r): simplify_NZ.
+#[local] Hint Rewrite (Nat.mul_0_l): simplify_NZ.
+#[local] Hint Rewrite (Nat.mul_0_r): simplify_NZ.
+#[local] Hint Rewrite (Nat.add_0_r): simplify_NZ.
+#[local] Hint Rewrite (Nat.add_0_l): simplify_NZ.
+#[local] Hint Rewrite (Nat.mul_succ_r): simplify_NZ.
+#[local] Hint Rewrite (Z.mul_1_l) : simplify_NZ.
+#[local] Hint Rewrite (Z.mul_1_r): simplify_NZ.
+#[local] Hint Rewrite (Z.mul_0_l): simplify_NZ.
+#[local] Hint Rewrite (Z.mul_0_r): simplify_NZ.
+#[local] Hint Rewrite (Z.add_0_r): simplify_NZ.
+#[local] Hint Rewrite (Z.add_0_l): simplify_NZ.
+#[local] Hint Rewrite (Z.mul_succ_r): simplify_NZ.
+#[local] Hint Rewrite (Zpower_exp): simplify_NZ.
 
 Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
   i < length l ->

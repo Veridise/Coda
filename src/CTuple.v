@@ -141,8 +141,6 @@ Proof. induction xs; simpl; auto. Defined.
 Definition from_list_length {T} (xs:list T) : tuple T (length xs).
 Proof. eapply from_list. reflexivity. Defined.
 
-Compute (from_list_length (1::2::3::nil)).
-
 Lemma to_list_from_list : forall {T} (n:nat) (xs:list T) pf, to_list n (from_list n xs pf) = xs.
 Proof using Type.
   destruct xs as [|t xs]; simpl; intros; subst; auto.
@@ -152,13 +150,13 @@ Qed.
 
 Lemma length_to_list' T n t : length (@to_list' T n t) = S n.
 Proof using Type. induction n; simpl in *; trivial; destruct t; simpl; congruence. Qed.
-Hint Rewrite length_to_list' : distr_length.
+#[export] Hint Rewrite length_to_list' : distr_length.
 
 Lemma length_to_list : forall {T} {n} (xs:tuple T n), length (to_list n xs) = n.
 Proof using Type.
   destruct n; [ reflexivity | apply length_to_list' ].
 Qed.
-Hint Rewrite @length_to_list : distr_length.
+#[export] Hint Rewrite @length_to_list : distr_length.
 
 Lemma from_list'_to_list' : forall T n (xs:tuple' T n),
     forall x xs' pf, to_list' n xs = cons x xs' ->
@@ -751,8 +749,6 @@ Definition apply {R T} (n:nat) : function R T n -> tuple T n -> R :=
   | O => fun r _ => r
   | S n' => fun f x =>  apply' n' f x
   end.
-
-  Locate Forall2.
 
 Lemma fieldwise_to_list_iff : forall {T T' n} R (s : tuple T n) (t : tuple T' n),
     (fieldwise R s t <-> Forall2 R (to_list _ s) (to_list _ t)).

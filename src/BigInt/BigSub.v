@@ -53,15 +53,16 @@ Local Coercion N.of_nat: nat >-> N.
 
 Module Comparators := Comparators C.
 Create HintDb F_to_Z discriminated.
-Hint Rewrite (to_Z_2) : F_to_Z.
-Hint Rewrite (@F.to_Z_add q) : F_to_Z.
-Hint Rewrite (@F.to_Z_mul q) : F_to_Z.
-Hint Rewrite (@F.to_Z_pow q) : F_to_Z.
-Hint Rewrite (@F.to_Z_0 q) : F_to_Z.
-Hint Rewrite (@F.to_Z_1 q) : F_to_Z.
-Hint Rewrite (@F.pow_1_r q) : F_to_Z.
-Hint Rewrite Cmp.LessThan.to_Z_sub : F_to_Z.
-Hint Rewrite Z.mod_small : F_to_Z.
+#[local] Hint Rewrite (to_Z_2) : F_to_Z.
+#[local] Hint Rewrite (@F.to_Z_add q) : F_to_Z.
+#[local] Hint Rewrite (@F.to_Z_mul q) : F_to_Z.
+#[local] Hint Rewrite (@F.to_Z_pow q) : F_to_Z.
+#[local] Hint Rewrite (@F.to_Z_0 q) : F_to_Z.
+#[local] Hint Rewrite (@F.to_Z_1 q) : F_to_Z.
+#[local] Hint Rewrite (@F.pow_1_r q) : F_to_Z.
+#[local] Hint Rewrite Cmp.LessThan.to_Z_sub : F_to_Z.
+#[local] Hint Rewrite Z.mod_small : F_to_Z.
+
 
 Lemma Fmul_0_r: forall (x: F), x * 0 = 0.
 Proof. unwrap_C. intros. fqsatz. Qed.
@@ -76,38 +77,39 @@ Proof. unwrap_C. intros. fqsatz. Qed.
 Lemma Fadd_0_l: forall (x: F), 0 + x = x.
 Proof. unwrap_C. intros. fqsatz. Qed.
 
+
 Create HintDb simplify_F discriminated.
-Hint Rewrite (Fmul_0_r) : simplify_F.
-Hint Rewrite (Fmul_0_l) : simplify_F.
-Hint Rewrite (Fmul_1_r) : simplify_F.
-Hint Rewrite (Fmul_1_l) : simplify_F.
-Hint Rewrite (Fadd_0_r) : simplify_F.
-Hint Rewrite (Fadd_0_l) : simplify_F.
-Hint Rewrite (@F.pow_0_l) : simplify_F.
-Hint Rewrite (@F.pow_0_r) : simplify_F.
-Hint Rewrite (@F.pow_1_l) : simplify_F.
-Hint Rewrite (@F.pow_1_r) : simplify_F.
-Hint Rewrite (@F.pow_add_r) : simplify_F.
+#[local] Hint Rewrite (Fmul_0_r) : simplify_F.
+#[local] Hint Rewrite (Fmul_0_l) : simplify_F.
+#[local] Hint Rewrite (Fmul_1_r) : simplify_F.
+#[local] Hint Rewrite (Fmul_1_l) : simplify_F.
+#[local] Hint Rewrite (Fadd_0_r) : simplify_F.
+#[local] Hint Rewrite (Fadd_0_l) : simplify_F.
+#[local] Hint Rewrite (@F.pow_0_l) : simplify_F.
+#[local] Hint Rewrite (@F.pow_0_r) : simplify_F.
+#[local] Hint Rewrite (@F.pow_1_l) : simplify_F.
+#[local] Hint Rewrite (@F.pow_1_r) : simplify_F.
+#[local] Hint Rewrite (@F.pow_add_r) : simplify_F.
 Create HintDb simplify_NZ discriminated.
-Hint Rewrite Nat2N.inj_mul : simplify_NZ.
-Hint Rewrite Nat2N.inj_add : simplify_NZ.
-Hint Rewrite Nat2Z.inj_mul : simplify_NZ.
-Hint Rewrite Nat2Z.inj_add : simplify_NZ.
-Hint Rewrite (Nat.mul_1_l) : simplify_NZ.
-Hint Rewrite (Nat.mul_1_r): simplify_NZ.
-Hint Rewrite (Nat.mul_0_l): simplify_NZ.
-Hint Rewrite (Nat.mul_0_r): simplify_NZ.
-Hint Rewrite (Nat.add_0_r): simplify_NZ.
-Hint Rewrite (Nat.add_0_l): simplify_NZ.
-Hint Rewrite (Nat.mul_succ_r): simplify_NZ.
-Hint Rewrite (Z.mul_1_l) : simplify_NZ.
-Hint Rewrite (Z.mul_1_r): simplify_NZ.
-Hint Rewrite (Z.mul_0_l): simplify_NZ.
-Hint Rewrite (Z.mul_0_r): simplify_NZ.
-Hint Rewrite (Z.add_0_r): simplify_NZ.
-Hint Rewrite (Z.add_0_l): simplify_NZ.
-Hint Rewrite (Z.mul_succ_r): simplify_NZ.
-Hint Rewrite (Zpower_exp): simplify_NZ.
+#[local] Hint Rewrite Nat2N.inj_mul : simplify_NZ.
+#[local] Hint Rewrite Nat2N.inj_add : simplify_NZ.
+#[local] Hint Rewrite Nat2Z.inj_mul : simplify_NZ.
+#[local] Hint Rewrite Nat2Z.inj_add : simplify_NZ.
+#[local] Hint Rewrite (Nat.mul_1_l) : simplify_NZ.
+#[local] Hint Rewrite (Nat.mul_1_r): simplify_NZ.
+#[local] Hint Rewrite (Nat.mul_0_l): simplify_NZ.
+#[local] Hint Rewrite (Nat.mul_0_r): simplify_NZ.
+#[local] Hint Rewrite (Nat.add_0_r): simplify_NZ.
+#[local] Hint Rewrite (Nat.add_0_l): simplify_NZ.
+#[local] Hint Rewrite (Nat.mul_succ_r): simplify_NZ.
+#[local] Hint Rewrite (Z.mul_1_l) : simplify_NZ.
+#[local] Hint Rewrite (Z.mul_1_r): simplify_NZ.
+#[local] Hint Rewrite (Z.mul_0_l): simplify_NZ.
+#[local] Hint Rewrite (Z.mul_0_r): simplify_NZ.
+#[local] Hint Rewrite (Z.add_0_r): simplify_NZ.
+#[local] Hint Rewrite (Z.add_0_l): simplify_NZ.
+#[local] Hint Rewrite (Z.mul_succ_r): simplify_NZ.
+#[local] Hint Rewrite (Zpower_exp): simplify_NZ.
 
 Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
   i < length l ->
@@ -178,10 +180,16 @@ Record t : Type := {
 
 Definition spec (w: t) :=
   (* pre-conditions *)
-  ( S n <= C.k )%Z ->
+  ( S n <= C.k - 1 )%Z ->
+    (* a and b are n-bits, i.e., <= 2^n-1 *)
+    w.(a) | (n) -> 
+    w.(b) | (n) -> 
+    binary w.(c) ->
   ( w.(a) - w.(b) - w.(c) + 2^n >=z 0 ) /\
   (* post-conditions *)
-  w.(out) - w.(borrow) * 2^n = w.(a) - w.(b) - w.(c).
+  w.(out) - w.(borrow) * 2^n = w.(a) - w.(b) - w.(c) /\
+  w.(out) | (n) /\
+  binary w.(borrow).
 
 Lemma add_0_r: forall (x z: F), z = 0 -> x + z = x.
 Proof. unwrap_C. intros. fqsatz. Qed.
@@ -194,8 +202,30 @@ Proof.
   unwrap_C. intros.
   destruct w as [a b c out borrow _cons].
   unfold spec, cons in *. destruct _cons as [lt [H_in0 [H_in1 [H_borrow [H_out H_assert]]] ] ].
-  simpl. intros Hnk. split; try fqsatz. auto.
-Qed.
+  simpl. intros Hnk Ha Hb Hc. 
+  unfold in_range in *. 
+  apply in_range_binary in Hc.
+  assert (lt_range_1: LessThan._in lt [0] <=z 2 ^ S n).
+  { rewrite H_in0. rewrite Ha. replace (2 ^ (S n))%Z with (2 ^ (n + 1))%Z. 
+    rewrite Zpower_exp;lia. lia. }
+  assert (lt_range_2: LessThan._in lt [1] <=z 2 ^ S n).
+  { rewrite H_in1. skip. }
+  pose proof (LessThan.soundness lt Hnk lt_range_1 lt_range_2) as [H_lt_b H_lt].
+  intuition;auto; try fqsatz.
+  - subst.
+    unfold in_range in *. 
+    rewrite H_in1 in *.
+    destruct (dec (LessThan.out lt = 1)).
+    + rewrite e. skip.
+    + assert(LessThan.out lt = 0).
+      {
+      apply RZ.R.binary_Z in H_lt_b. destruct H_lt_b;try easy. 
+      2:{ exfalso. apply n0. replace 1%Z with (@F.to_Z q 1) in H. rewrite <- F.eq_to_Z_iff in H;auto. eapply F.to_Z_1. }
+      replace 0%Z with (@F.to_Z q 0) in H. rewrite <- F.eq_to_Z_iff in H;auto. eapply F.to_Z_0.
+      }
+      rewrite H. autorewrite with simplify_F simplify_NZ. skip.
+  - rewrite H_borrow;auto.
+Admitted.
 
 (* for default values. never used *)
 Definition wgen : t. skip. Defined.
@@ -366,7 +396,7 @@ Proof.
     lift_to_list.
     pose proof (ModSubThree.soundness ('unit ! i )) as M0. unfold ModSubThree.spec in M0.
     destruct IH as [IH_bin IH_eq]. auto.
-    destruct M0 as [M_rng M_eq]. lia.
+    destruct M0 as [M_rng M_eq]. skip. skip. skip. skip.
     (* rewrite Hai. unfold_default. apply Forall_nth. auto. lia.
     rewrite Hbi. unfold_default. apply Forall_nth. auto. lia. *)
     (* destruct (dec (i=0%nat)). rewrite Hci. left. fqsatz.
@@ -381,7 +411,7 @@ Proof.
     + eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le; eauto. lia.
       rewrite firstn_firstn. autorewrite with natsimplify. auto.
       rewrite firstn_nth by lia.
-      fold_default. rewrite Houti. auto. skip.
+      fold_default. rewrite Houti. auto. 
     + destruct (dec (i=0%nat)) as [].
       * (* i = 0 *) rewrite e in *.
         simplify.
@@ -407,7 +437,7 @@ Proof.
       rewrite firstn_firstn. simplify. auto.
       rewrite firstn_nth by lia.
       fold_default.
-      rewrite Houti. auto. skip.
+      rewrite Houti. auto.
   - unfold Inv in HInv.
     replace ('a) with ('a[:k]) by (applys_eq firstn_all; f_equal; lia).
     replace ('b) with ('b[:k]) by (applys_eq firstn_all; f_equal; lia).

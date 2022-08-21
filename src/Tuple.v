@@ -89,7 +89,6 @@ Program Fixpoint from_list {T} (n:nat) (xs:list T) : length xs = n -> tuple T n 
 
 Definition from_list' {T} (xs: list T) : tuple T (length xs).
 Proof. induction xs; simpl. exact tt. auto. Defined.
-Compute (from_list' (1::2::3::nil)).
 
 Lemma to_list_from_list : forall {T} (n:nat) (xs:list T) pf, to_list n (from_list n xs pf) = xs.
 Proof.

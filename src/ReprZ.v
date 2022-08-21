@@ -52,15 +52,15 @@ Section Base2n.
 
 Context (to_Z: F -> Z)
   (to_Z_0: to_Z 0%F = 0)
-  (to_Z_1: to_Z 1%F = 1).
-
-Variable n: nat.
+  (to_Z_1: to_Z 1%F = 1)
+  (to_Z_nonneg: forall x, 0 <= to_Z x).
 
 Lemma to_Z_2: @F.to_Z q 2 = 2%Z.
 Proof. unwrap_C. simpl. repeat rewrite Z.mod_small; lia. Qed.
 
 (* Little- and big-endian *)
 Section Endianness.
+Context (n: nat).
 
 (* interpret a list of weights as representing a little-endian base-2 number *)
 Fixpoint as_le_acc (i: nat) (ws: list F) : Z :=
@@ -156,11 +156,31 @@ Proof.
 Qed.
 
 End Endianness.
-    
 
-Notation "[| xs |]" := (as_le xs).
+Section BigEndian.
+
+Lemma as_be_acc_S: forall (l: list F) (n a: nat),
+  a >= length l ->
+  as_be_acc n (S a) l = 2^n * as_be_acc n a l.
+Proof.
+  induction l as [| x l]; intros.
+  - simpl. autorewrite with zsimplify. reflexivity.
+  - cbn [as_be_acc length] in *.
+    destruct a. lia.
+    replace (S a - 1)%nat with a by lia.
+    replace (S (S a) - 1)%nat with (S a) by lia.
+    rewrite IHl by lia.
+    remember (S a) as a'.
+    replace (n * S a') with (n + n * a') by lia.
+    rewrite Zpower_exp by lia. lia.
+Qed.
+
+End BigEndian.
 
 Section Representation.
+Context (n: nat).
+Notation "[| xs |]" := (as_le n xs).
+Notation "[\ xs \]" := (as_be n xs).
 
 Definition in_range := (R.in_range n).
 
@@ -172,7 +192,7 @@ Definition repr_le x m ws :=
 Definition repr_be x m ws :=
   length ws = m /\
   List.Forall in_range ws /\
-  x = as_be ws.
+  x = [\ ws \].
 
 Lemma repr_rev: forall x m ws, repr_le x m ws <-> repr_be x m (rev ws).
 Proof.
@@ -193,15 +213,15 @@ Proof. unfold repr_le. intuition. Qed.
 
 (* repr inv: invert weight list *)
 Lemma repr_le_invert: forall w ws,
-  repr_le (as_le (w::ws)) (S (length ws)) (w::ws) ->
-  repr_le (as_le ws) (length ws) ws.
+  repr_le [| w::ws |] (S (length ws)) (w::ws) ->
+  repr_le [| ws |] (length ws) ws.
 Proof.
   unfold repr_le.
   intros. intuition.
   invert H. auto.
 Qed.
 
-Lemma as_be_0: forall ws, as_be (0%F::ws) = as_be ws.
+Lemma as_be_0: forall ws, [\ 0%F :: ws \] = [\ ws \].
 Proof. 
   intros. unfold as_be. simpl. 
   rewrite to_Z_0. 
@@ -237,7 +257,7 @@ Qed.
 (* repr inv: trivial satisfaction *)
 Lemma repr_trivial: forall ws,
   Forall in_range ws ->
-  repr_le (as_le ws) (length ws) ws.
+  repr_le [| ws |] (length ws) ws.
 Proof.
   induction ws; unfold repr_le; intuition idtac.
 Qed.
@@ -245,8 +265,8 @@ Qed.
 (* repr inv: any prefix of weights also satisfies the inv *)
 Lemma repr_le_prefix: forall ws1 ws2 x x1 l l1 ws,
   ws = ws1 ++ ws2 ->
-  x = as_le ws ->
-  x1 = as_le ws1 ->
+  x = [| ws |] ->
+  x1 = [| ws1 |] ->
   l = length ws ->
   l1 = length ws1 ->
   repr_le x l ws ->
@@ -260,8 +280,8 @@ Proof.
 Qed.
 
 Lemma repr_le_firstn: forall x x' l l' ws ws' i,
-  x = as_le ws ->
-  x' = as_le ws' ->
+  x = [| ws |] ->
+  x' = [| ws' |] ->
   l' = length ws' ->
   l = length ws ->
   ws' = firstn i ws ->
@@ -283,7 +303,7 @@ Proof.
   assert (exists ws', ws = ws'). exists ws. reflexivity.
   destruct H1 as [ws' Hws]. pose proof Hws as Hws'.
   erewrite <- firstn_split_last with (l:=ws) (n:=i)(d:=0%F) in Hws; auto.
-  pose proof (as_le_app (ws[:i]) (ws!i::nil)).
+  pose proof (as_le_app n (ws[:i]) (ws!i::nil)).
   rewrite firstn_length_le in H1 by lia.
   replace ([| ws ! i :: nil |]) with (to_Z (ws ! i)) in H1 by (simpl; nia).
   rewrite <- H1.
@@ -292,10 +312,53 @@ Proof.
   unfold List_nth_Default. rewrite nth_default_eq. auto.
 Qed.
 
+Lemma as_be_nonneg: forall l,
+  0 <= as_be n l.
+Proof.
+  induction l; intros; unfold as_be; cbn.
+  - lia.
+  - autorewrite with natsimplify. unfold as_be in *.
+    specialize (to_Z_nonneg a).
+    nia.
+Qed.
+
 End Representation.
 
 End Base2n.
 
+Section Bounds.
+
+Context (n:nat).
+
+Lemma F_to_Z_nonneg:
+  forall x, 0 <= @F.to_Z q x.
+Proof.
+  unwrap_C. intros. apply F.to_Z_range. lia.
+Qed.
+
+Lemma q_gt_2: q > 2. unwrap_C. lia. Qed.
+(* [|ws|] <= 2^nl - 1 *)
+Theorem repr_le_ub: forall ws x l,
+  repr_be F.to_Z n x l ws ->
+  (* n <= k -> *)
+  x <= (2^(n*l) - 1)%Z.
+Proof with (lia || nia || eauto).
+  unwrap_C.
+  induction ws as [ | w ws]; intros x l H_repr.
+  - unfold repr_be, as_be in *. intuition. subst. simpl. lia.
+  - destruct H_repr as [H_l [H_range H]]. subst.
+    unfold as_be. cbn [length as_be_acc]. autorewrite with natsimplify.
+    remember (length ws) as l.
+    assert (H_ws: as_be F.to_Z n ws <= (2^(n * l) - 1)%Z). {
+      apply IHws. invert H_range. unfold repr_be; intuition.
+    }
+    replace (as_be_acc F.to_Z n (l - 1) ws) with (as_be F.to_Z  n ws) by (unfold as_be; subst; reflexivity).
+    
+    pose proof ((as_be_nonneg F.to_Z F_to_Z_nonneg) 0) ws.
+    assert (0 <= F.to_Z w <= 2^n-1). split. apply F.to_Z_range; try lia. invert H_range. auto.
+    replace (n * S l) with (n * l + n) by lia. rewrite Zpower_exp by lia.
+    nia.
+Qed.
 
 (* interpret a tuple of weights as representing a little-endian base-2^n number *)
 Global Notation "[| xs . n |]" := (as_le n xs).

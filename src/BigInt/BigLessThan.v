@@ -26,6 +26,7 @@ Require Import Circom.Tuple.
 Require Import Circom.circomlib.Bitify Circom.circomlib.Comparators.
 Require Import Circom.circomlib.Gates.
 Require Import Circom.ListUtil.
+Require Import Circom.ReprZ.
 
 (* Require Import VST.zlist.Zlist. *)
 
@@ -39,6 +40,8 @@ Module BigLessThan (C: CIRCOM).
 
 Module B := Bitify C.
 Module Cmp := Comparators C.
+Module RZUnsigned := ReprZUnsigned C.
+Module RZ := RZUnsigned.RZ.
 Module D := DSL C.
 Module G := Gates C.
 Import B C Cmp G.
@@ -46,17 +49,13 @@ Import B C Cmp G.
 
 Context {n k: nat}.
 
-(* x is a valid digit in base-2^n representation *)
-Local Notation "x | ( n )" := (in_range n x) (at level 40).
-Local Notation "xs |: ( n )" := (tforall (in_range n) xs) (at level 40).
-
 (* interpret a tuple of weights as representing a little-endian base-2^n number *)
-Local Notation "[| xs |]" := (as_le n xs).
-Local Notation "' xs" := (to_list _ xs) (at level 20).
+Local Notation "[| xs |]" := (RZ.as_le n xs).
 
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
+Local Open Scope Z_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
 
@@ -90,6 +89,35 @@ Definition cons (a b: F^k) (out: F) : Prop :=
   out = ors[0].(OR.out).
 
 Record t := {a: F^k; b: F^k; out: F; _cons: cons a b out}.
+Ltac rem_iter :=   
+  repeat match goal with
+  | [ _: context[D.iter ?f _ _] |- _] =>
+    match f with
+    | fun _ => _ => let fn := fresh "f" in remember f as fn
+    | _ => fail
+    end
+  end.
 
 Theorem soundness: forall (c: t),
-  [|' c.(a) |] <q [|' c.(b) |].
+  'c.(a) |: (n) ->
+  'c.(b) |: (n) ->
+  [|' c.(a) |] < [|' c.(b) |].
+Proof.
+  intros c Ha Hb.
+  destruct c as [a b out [lt [eq [lt_eq [ands [eq_ands [ors main]]]]]]]. unfold cons in *. simpl in *.
+  pose (ra := rev ('a)).
+  pose (rb := rev ('b)).
+  pose (Inv0 := fun (i:nat) _cons => _cons ->
+    forall (j:nat), j < i -> 
+      binary (lt[j].(LessThan.out)) /\ 
+      lt[j].(LessThan.out) = 1%F <-> 'a!j <q 'b!j /\
+      binary (eq[j].(IsEqual.out)) /\ 
+      eq[j].(IsEqual.out) = 1%F <-> 'a!j = 'b!j).
+  destruct main as [main final].
+  rem_iter.
+  assert (H_inv0: Inv0 (k-1)%nat (D.iter f0 (k-1) True)). {
+    apply D.iter_inv; unfold Inv0.
+    admit.
+    admit.
+  }
+Admitted.

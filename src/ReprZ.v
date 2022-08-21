@@ -51,6 +51,7 @@ Section Base2n.
 
 (* Little- and big-endian *)
 Section Endianness.
+
 Context (n: nat).
 
 (* interpret a list of weights as representing a little-endian base-2 number *)
@@ -349,7 +350,7 @@ Module RZ := (ReprZ C ToZ).
 
 Import C RZ.
 
-Context (n: nat).
+Context (n: nat) (n_leq_k: n <= k).
 
 Notation "[| xs |]" := (as_le n xs).
 Notation "[\ xs \]" := (as_be n xs).
@@ -415,6 +416,55 @@ Proof.
 
   (* x>y *)
   nia.
+Qed.
+
+Lemma F_to_Z_inj: forall x y,
+  |^x| = |^y| -> x = y.
+Proof.
+  intros. apply f_equal with (f:=@F.of_Z q) in H.
+  repeat rewrite F.of_Z_to_Z in H.
+  auto.
+Qed.
+
+Lemma big_lt_complete: forall xs ys,
+  length xs = length ys ->
+  xs |: (n) ->
+  ys |: (n) ->
+  [\xs\] < [\ys\] ->
+  big_lt xs ys = true.
+Proof.
+  unwrap_C.
+  induction xs as [ | x xs]; intros ys Hlen Hxs Hys Hlt; 
+  destruct ys as [ |y ys]; simpl in Hlen; try discriminate.
+  simpl in *.
+  pose proof (as_be_nonneg n xs) as Hxs_lb.
+  pose proof (as_be_nonneg n ys) as Hys_lb.
+  invert Hxs.
+  invert Hys.
+  assert (Hxs_ub: [\xs \] <= 2 ^ (n * length xs) - 1). eapply repr_be_ub; subst; unfold repr_be; intuition.
+  assert (Hys_ub: [\ys \] <= 2 ^ (n * length ys) - 1). eapply repr_be_ub; subst; unfold repr_be; intuition.
+  unfold RZ.ToZ.to_Z, in_range in *.
+  invert Hlen.
+  destruct (dec (x <q y)). reflexivity.
+  destruct (dec (x=y)). apply IHxs; eauto. apply f_equal with (f:=F.to_Z) in e.
+  rewrite H0 in *. nia.
+  assert (Hgt: |^x| > |^y|). {
+    pose proof n_leq_k. assert (2^n <= 2^k). apply Zpow_facts.Zpower_le_monotone; lia.
+    assert (|^x| <> |^y|). { intros ?. apply n1. apply F_to_Z_inj; auto; lia. }
+    lia.
+  }
+  rewrite H0 in *. nia.
+Qed.
+
+Lemma big_lt_dec: forall xs ys,
+  length xs = length ys ->
+  xs |: (n) ->
+  ys |: (n) ->
+  big_lt xs ys = true <-> [\xs\] < [\ys\].
+Proof.
+  intros. split.
+  apply big_lt_sound; auto.
+  apply big_lt_complete; auto.
 Qed.
 
 End ReprZUnsigned.

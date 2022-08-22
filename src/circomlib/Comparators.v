@@ -14,6 +14,7 @@ Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Circom.circomlib.Bitify.
+Require Import Circom.LibTactics.
 Require Import Circom.Circom Circom.Util Circom.Default Circom.Repr.
 
 Local Open Scope list_scope.
@@ -122,7 +123,7 @@ Proof.
   destruct (dec (_in[0] = _in[1])); destruct (dec (_in[0] - _in[1] = 0)); try fqsatz.
 Qed.
 
-Definition wgen : IsEqual.t. Admitted.
+Definition wgen : IsEqual.t. skip. Defined.
 #[global] Instance IsEqual_Default: Default IsEqual.t. constructor. exact wgen. Defined.
 
 End IsEqual.
@@ -165,8 +166,8 @@ Proof.
   destruct H0; ((right; fqsatz) || (left; fqsatz)).
 Qed.
 
-Lemma to_Z_sub: forall x y, F.to_Z y < q ->
-@F.to_Z q (x - y) = (F.to_Z x - F.to_Z y mod q) mod q.
+Lemma to_Z_sub: forall x y, (F.to_Z y < q)%Z ->
+@F.to_Z q (x - y) = ((F.to_Z x - F.to_Z y mod q) mod q)%Z.
 Proof.
   unwrap_C.
   intros ? ? Hy. unfold F.sub. rewrite F.to_Z_add. rewrite F.to_Z_opp.
@@ -181,14 +182,14 @@ Proof.
     apply F.to_Z_range. lia.
 Qed.
 
-Lemma to_Z_add: forall x y, F.to_Z y < q ->
-@F.to_Z q (x + y) = (F.to_Z x + F.to_Z y mod q) mod q.
+Lemma to_Z_add: forall x y, (F.to_Z y < q)%Z ->
+@F.to_Z q (x + y) = ((F.to_Z x + F.to_Z y mod q) mod q)%Z.
 Proof.
   unwrap_C.
   intros ? ? Hy. rewrite F.to_Z_add. 
   destruct (dec (F.to_Z y = 0)%Z).
   - rewrite e.  rewrite Zmod_0_l. auto.
-  - replace (|^ y | mod q) with (|^ y |).
+  - replace (|^ y | mod q)%Z with (|^ y |).
     2: { rewrite Z.mod_small; try lia; try split;try lia. apply F.to_Z_range;lia. }
     auto.
 Qed.
@@ -205,7 +206,7 @@ Hint Rewrite Z.mod_small : F_to_Z.
 
 Lemma soundness: forall (w : t),
   (* pre-conditions: both inputs are at most (k-1) bits *)
-  n <= C.k - 1 ->
+  (n <= C.k - 1)%Z ->
   (w.(_in)[0]) <=z 2^n ->
   (w.(_in)[1]) <=z 2^n ->
   (* post-condition *)
@@ -225,12 +226,12 @@ Proof.
     rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq. 
     apply Forall_nth. apply Forall_in_range. auto.
     lia.
-  - assert (H_pow_nk: 2 * 2^n <= 2^k). {
+  - assert (H_pow_nk: (2 * 2^n <= 2^k)%Z). {
       replace (2 * 2^n)%Z with (2 ^ (n + 1))%Z by (rewrite Zpower_exp; lia).
       apply Zpow_facts.Zpower_le_monotone; lia.
     }
-    assert (H_x_nonneg: 0 <= F.to_Z x). apply F.to_Z_range. lia.
-    assert (H_y_nonneg: 0 <= F.to_Z y). apply F.to_Z_range. lia.
+    assert (H_x_nonneg: (0 <= F.to_Z x)%Z). apply F.to_Z_range. lia.
+    assert (H_y_nonneg: (0 <= F.to_Z y)%Z). apply F.to_Z_range. lia.
     destruct (dec (out = 1)).
     + assert (Hn: Num2Bits.out [n] = 0) by fqsatz.
       rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq in Hn.
@@ -239,7 +240,7 @@ Proof.
         eapply repr_le_last0' in Hn. 2: { rewrite H_n in H_n2b'. apply H_n2b'. }
         fold repr_le2 in Hn.
         apply repr_le_ub in Hn; try lia.
-      assert (F.to_Z x + 2^n - F.to_Z y <= 2^n - 1 ). {
+      assert (F.to_Z x + 2^n - F.to_Z y <= 2^n - 1 )%Z. {
         autorewrite with F_to_Z in Hn; try lia;
         repeat autorewrite with F_to_Z; simpl; try lia.
         simpl in Hn. lia.
@@ -249,7 +250,7 @@ Proof.
     rewrite H_n in *.
     rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq in Hn.
     eapply repr_le_lb with (i:=n) in Hn; eauto; try lia.
-    assert (F.to_Z x + 2^n - F.to_Z y >= 2^n). {
+    assert (F.to_Z x + 2^n - F.to_Z y >= 2^n)%Z. {
       autorewrite with F_to_Z in Hn; try lia;
       repeat autorewrite with F_to_Z; simpl; try lia.
       simpl in Hn. lia.
@@ -258,7 +259,7 @@ Proof.
 Qed.
 
 
-Definition wgen: LessThan.t. Admitted.
+Definition wgen: LessThan.t. skip. Defined.
 
 #[global] Instance LessThan_Default: Default LessThan.t. constructor. exact wgen. Defined.
 

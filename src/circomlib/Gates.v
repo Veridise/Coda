@@ -18,6 +18,7 @@ Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.seto
 Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
 
 Require Import Util.
+Require Import Circom.LibTactics.
 Require Import Circom.Circom Circom.Default.
 
 (* Circuit:
@@ -96,7 +97,7 @@ Proof.
   try solve[left; fqsatz]; try solve[right; fqsatz].
 Qed.
 
-Definition wgen: t. Admitted.
+Definition wgen: t. skip. Defined.
 
 #[global] Instance Default: Default t. constructor. exact wgen. Defined.
 
@@ -134,40 +135,49 @@ Proof.
   try solve[left; fqsatz]; try solve[right; fqsatz].
 Qed.
 
-Definition wgen: t. Admitted.
+Definition wgen: t. skip. Defined.
 
 #[global] Instance Default: Default t. constructor. exact wgen. Defined.
 End OR.
 
 
-Module TODO.
-(* 
+
+Module NOT.
 (* template NOT() {
     signal input in;
     signal output out;
 
     out <== 1 + in - 2*in;
 } *)
+Definition cons (_in out: F) :=
+  out = 1 + _in - (1 + 1) * _in.
 
-(* NOT template *)
+Record t := { _in:F; out:F; _cons: cons _in out; }.
 
-Definition NOT _in out:=
-  out = 1 + _in - (1+1)*_in.
-
-(* NOT spec *)
-Definition NOT_spec _in out :=
-  (_in = 0 -> out = 1) /\
-  (_in = 1 -> out = 0).
-
-(* NOT correctness theorem *)
-Theorem NOT_correct: forall _in out,
-  NOT _in out -> NOT_spec _in out.
-Proof using Type*.
-  intros.
-  unfold NOT, NOT_spec in *.
-  repeat (split_eqns; intro); fsatz.
+Theorem soundness: forall (c: t), 
+  (* pre-conditions *)
+  binary c.(_in) ->
+  (* post-conditions *)
+  binary c.(out) /\
+  ((c.(_in) = 1)?) = ((c.(out) = 0)?).
+Proof.
+  unwrap_C.
+  intros c Ha. destruct c as [_in out _cons].
+  unfold cons in *. simpl in *.
+  destruct Ha;
+  destruct (dec (_in=1)); destruct (dec (out=0));
+  try fqsatz; split; try auto; 
+  try solve[left; fqsatz]; try solve[right; fqsatz].
 Qed.
 
+Definition wgen: t. skip. Defined.
+
+#[global] Instance Default: Default t. constructor. exact wgen. Defined.
+End NOT.
+
+
+
+Module NAND.
 (* template NAND() {
     signal input a;
     signal input b;
@@ -176,27 +186,37 @@ Qed.
     out <== 1 - a*b;
 } *)
 
-(* NAND template *)
+Definition cons (a b out: F) :=
+  out = 1 - a * b.
 
-Definition NAND a b out:=
-  out = 1 - a*b.
+Record t := { a:F; b:F; out:F; _cons: cons a b out; }.
 
-(* NAND spec *)
-Definition NAND_spec a b out :=
-  (a = 0 /\ b = 0 -> out = 1) /\
-  (a = 0 /\ b = 1 -> out = 1) /\
-  (a = 1 /\ b = 0 -> out = 1) /\
-  (a = 1 /\ b = 1 -> out = 0).
-
-(* NAND correctness theorem *)
-Theorem NAND_correct: forall a b out,
-  NAND a b out -> NAND_spec a b out.
-Proof using Type*.
-  intros.
-  unfold NAND, NAND_spec in *.
-  repeat (split_eqns; intro); inversion H0; fsatz.
+Theorem soundness: forall (c: t), 
+  (* pre-conditions *)
+  binary c.(a) ->
+  binary c.(b) ->
+  (* post-conditions *)
+  binary c.(out) /\
+  ((c.(a) = 1)?) && ((c.(b) = 1)?) = ((c.(out) = 0)?).
+Proof.
+  unwrap_C.
+  intros c Ha Hb. destruct c as [a b c _cons].
+  unfold cons in *. simpl in *.
+  destruct Ha; destruct Hb;
+  destruct (dec (a=1)); destruct (dec (b=1)); destruct (dec (c=0));
+  try fqsatz; split; try auto; 
+  try solve[left; fqsatz]; try solve[right; fqsatz].
 Qed.
 
+Definition wgen: t. skip. Defined.
+
+#[global] Instance Default: Default t. constructor. exact wgen. Defined.
+
+End NAND.
+
+
+
+Module NOR.
 (* template NOR() {
     signal input a;
     signal input b;
@@ -204,27 +224,35 @@ Qed.
 
     out <== a*b + 1 - a - b;
 } *)
-
-(* NOR template *)
-
-Definition NOR a b out:=
+Definition cons (a b out: F) :=
   out = a*b + 1 - a - b.
 
-(* NOR spec *)
-Definition NOR_spec a b out :=
-  (a = 0 /\ b = 0 -> out = 1) /\
-  (a = 0 /\ b = 1 -> out = 0) /\
-  (a = 1 /\ b = 0 -> out = 0) /\
-  (a = 1 /\ b = 1 -> out = 0).
+Record t := { a:F; b:F; out:F; _cons: cons a b out; }.
 
-(* NOR correctness theorem *)
-Theorem NOR_correct: forall a b out,
-  NOR a b out -> NOR_spec a b out.
-Proof using Type*.
-  intros.
-  unfold NOR, NOR_spec in *.
-  repeat (split_eqns; intro); inversion H0; fsatz.
-Qed. *)
+Theorem soundness: forall (c: t), 
+  (* pre-conditions *)
+  binary c.(a) ->
+  binary c.(b) ->
+  (* post-conditions *)
+  binary c.(out) /\
+  ((c.(a) = 1)?) || ((c.(b) = 1)?) = ((c.(out) = 0)?).
+Proof.
+  unwrap_C.
+  intros c Ha Hb. destruct c as [a b c _cons].
+  unfold cons in *. simpl in *.
+  destruct Ha; destruct Hb;
+  destruct (dec (a=1)); destruct (dec (b=1)); destruct (dec (c=0));
+  try fqsatz; split; try auto; 
+  try solve[left; fqsatz]; try solve[right; fqsatz].
+Qed.
+
+Definition wgen: t. skip. Defined.
+
+#[global] Instance Default: Default t. constructor. exact wgen. Defined.
+End NOR.
+
+
+Module TODO.
 
 (* template MultiAND(n) {
     signal input in[n];
@@ -253,8 +281,6 @@ Qed. *)
         out <== and2.out;
     }
 } *)
-
-(* MultiAND(n) TODO *)
 
 End TODO.
 

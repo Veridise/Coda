@@ -392,6 +392,8 @@ Proof.
   pose (Inv := fun (i: nat) (_cons: Prop) => _cons -> 
     (* borrow bits are binary *)
     (forall (j: nat), j < i -> binary (('unit ! j).(M.borrow))) /\
+    (* borrow bits are 0 *)
+    (forall (j: nat), j < i -> (('unit ! j).(M.borrow)) = 0) /\
     (* out are in range *)
     'out [:i] |: (n) /\
     (* addition is ok for prefix *)
@@ -400,8 +402,8 @@ Proof.
   apply D.iter_inv.
   - unfold Inv. intuition.
     + lia.
+    + lia.
     + simpl. constructor.
-    (* + destruct (dec (0=0)%nat). simpl. nia. lia. *)
   - intros i _cons IH H_bound.
     unfold Inv in *. intros Hf.
     rewrite Heqf in *. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
@@ -419,6 +421,15 @@ Proof.
     (* binary *)
     + destruct (dec (j < i)). auto.
       assert (Hij: j=i) by lia. rewrite Hij in *. intuition.
+    + destruct (dec (j < i)). auto.
+      assert (Hij: j=i) by lia. rewrite Hij in *. 
+      assert (M.c (' unit ! i) = 0).
+      { destruct (dec (i = 0)%nat);auto. rewrite Hci. apply H5. lia. }
+      rewrite H12 in *. destruct H11;subst;auto. rewrite H11 in *.
+      assert ((ModSubThree.out (' unit ! i) - 1 * (1 + 1) ^ N.of_nat n) <q
+              (ModSubThree.a (' unit ! i) - ModSubThree.b (' unit ! i) - 0) )%F.
+      { skip. (* TODO *) } 
+      rewrite H7 in H13. lia.
     (* out[:i] |: (n) *)
     + eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le; eauto. lia.
       rewrite firstn_firstn. autorewrite with natsimplify. auto.
@@ -432,7 +443,6 @@ Proof.
         (* range proof *)
         assert (|^'out!0| = |^'a!0| - |^'b!0|)%Z by admit.
         unfold RZ.ToZ.to_Z.
-        (* TODO: simplify this *)
         nia.
       * (* i > 0 *) 
         simplify.
@@ -459,17 +469,17 @@ Proof.
     assert (H_out_inrange: ' out |: (n)). {
       intuition.
       apply Forall_firstn_S with (i:=(k-1)%nat) (d:=0); try eauto. lia. 
-      apply Forall_firstn. rewrite firstn_to_list in H5;auto. 
-      fold_default. rewrite firstn_to_list in H5;auto. 
-      rewrite Forall_nth in H5.
-      unfold "!". rewrite nth_default_eq. apply H5;lia. 
+      apply Forall_firstn. rewrite firstn_to_list in H7;auto. 
+      fold_default. rewrite firstn_to_list in H7;auto. 
+      rewrite Forall_nth in H7.
+      unfold "!". rewrite nth_default_eq. apply H7;lia. 
     }
     intuition; auto.
-    * rewrite <- H8. 
+    * rewrite <- H9. 
       assert (H_out: (' out) [:k] = (' out)).  
       { rewrite <- firstn_all. rewrite Hlen_out;auto. }
       rewrite H_out;auto.
-    * skip. (* TODO *)
+    * rewrite out_borrow. apply H5;lia.
 Unshelve. exact F.zero. exact F.zero. exact F.zero.
 Admitted.
 

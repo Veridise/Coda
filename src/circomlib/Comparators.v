@@ -181,6 +181,17 @@ Proof.
     apply F.to_Z_range. lia.
 Qed.
 
+Lemma to_Z_add: forall x y, F.to_Z y < q ->
+@F.to_Z q (x + y) = (F.to_Z x + F.to_Z y mod q) mod q.
+Proof.
+  unwrap_C.
+  intros ? ? Hy. rewrite F.to_Z_add. 
+  destruct (dec (F.to_Z y = 0)%Z).
+  - rewrite e.  rewrite Zmod_0_l. auto.
+  - replace (|^ y | mod q) with (|^ y |).
+    2: { rewrite Z.mod_small; try lia; try split;try lia. apply F.to_Z_range;lia. }
+    auto.
+Qed.
 
 Create HintDb F_to_Z discriminated.
 Hint Rewrite (@F.to_Z_add q) : F_to_Z.

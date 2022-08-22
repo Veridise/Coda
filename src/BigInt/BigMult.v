@@ -76,7 +76,7 @@ Fixpoint pairwise {A: Type} (op: A -> A -> A) (p q: list A) : list A :=
   match p, q with
   | nil, q => q
   | p, nil => p
-  | (c :: p), (d :: q) => (op c d) :: pairwise op p q
+  | c :: p, d :: q => (op c d) :: pairwise op p q
   end.
 
 Definition padd : polynomial -> polynomial -> polynomial := pairwise F.add.
@@ -85,7 +85,7 @@ Definition padd : polynomial -> polynomial -> polynomial := pairwise F.add.
 Fixpoint pmul (xs ys: polynomial) : polynomial :=
   match xs with
   | nil => nil
-  | (x :: xs') => padd (List.map (fun y => x * y) ys) (0 :: (pmul xs' ys))
+  | x :: xs' => padd (List.map (fun y => x * y) ys) (0 :: (pmul xs' ys))
   end.
 
 (* polynomial evaluation *)
@@ -381,7 +381,7 @@ Local Open Scope DSL_scope.
 
 Local Coercion N.of_nat: nat >-> N.
 Local Coercion Z.of_nat: nat >-> Z.
-Print init0.
+
 Definition BigMultNoCarry_cons'
   ka kb
   (a: list F)

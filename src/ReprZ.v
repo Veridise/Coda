@@ -342,7 +342,6 @@ Proof. unwrap_C. intros. unfold to_Z. apply F.to_Z_range. lia. Qed.
 
 End ToZUnsigned.
 
-
 Module ReprZUnsigned (C: CIRCOM).
 
 Module ToZ := ToZUnsigned C.
@@ -350,10 +349,11 @@ Module RZ := (ReprZ C ToZ).
 
 Import C RZ.
 
-Context (n: nat) (n_leq_k: n <= k).
+Section _ReprZUnsigned.
+Context (n: nat) (n_leq_k: n <= C.k).
 
-Notation "[| xs |]" := (as_le n xs).
-Notation "[\ xs \]" := (as_be n xs).
+Notation "[| xs |]" := (RZ.as_le n xs).
+Notation "[\ xs \]" := (RZ.as_be n xs).
 
 Local Open Scope circom_scope.
 
@@ -466,5 +466,7 @@ Proof.
   apply big_lt_sound; auto.
   apply big_lt_complete; auto.
 Qed.
+
+End _ReprZUnsigned.
 
 End ReprZUnsigned.

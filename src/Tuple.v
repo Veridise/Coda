@@ -235,6 +235,9 @@ Fixpoint fold_right {A B: Type} (n:nat) (f: A -> B -> B) (b0: B) : tuple A n -> 
   | S n' => fun '(aa,a) => fold_right n' f (f a b0) aa
   end.
 
+
+
+
 (* 
 
 Lemma to_list_S {A n} (x : tuple A (S n)) (a:A)

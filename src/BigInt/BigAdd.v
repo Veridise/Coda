@@ -112,24 +112,6 @@ Create HintDb simplify_NZ discriminated.
 #[local] Hint Rewrite (Z.mul_succ_r): simplify_NZ.
 #[local] Hint Rewrite (Zpower_exp): simplify_NZ.
 
-Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
-  i < length l ->
-  List.nth i l d = List_nth_Default i l.
-Proof. intros. unfold List_nth_Default. rewrite nth_default_eq. erewrite nth_oblivious; eauto.  Qed.
-
-Ltac unfold_default := unfold List_nth_Default; rewrite nth_default_eq.
-Ltac fold_default := rewrite fold_nth; try lia.
-Ltac simpl_default := repeat unfold_default; simpl; repeat fold_default; try lia.
-Ltac default_apply L := repeat unfold_default; L; repeat fold_default; try lia.
-
-
-
-Lemma nth_Default_List_tuple {T n} `{Default T} (xs: tuple T n) i:
-  (to_list n xs) ! i = xs [i].
-Proof.
-  unfold List_nth_Default. unfold nth_Default, nth. rewrite nth_default_to_list. reflexivity.
-Qed.
-
 
 
 Module ModSumThree.
@@ -318,12 +300,6 @@ Ltac split_as_le xs i :=
   try rewrite firstn_nth by lia.
 
 
-Ltac lift_to_list := repeat match goal with
-| [H: context[nth_Default _ _] |- _] => rewrite <-nth_Default_List_tuple in H; try lia
-| [ |- context[nth_Default _ _] ] => rewrite <-nth_Default_List_tuple; try lia
-| [H: tforall _ _ |- _] => apply tforall_Forall in H
-| [ |- tforall _ _] => apply tforall_Forall
-end.
 
 Lemma binary_in_range: forall (n:nat) x,
   n > 0 ->

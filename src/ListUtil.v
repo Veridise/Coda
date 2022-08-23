@@ -3,6 +3,7 @@ Require Import Crypto.Util.NatUtil.
 Require Import Lia.
 Require Import Circom.Util.
 Require Import Circom.Default.
+Require Import Circom.LibTactics.
 
 
 Lemma nth_oblivious: forall {A: Type} l (i: nat) (d1 d2: A),
@@ -144,5 +145,55 @@ Qed.
 
 
 Definition List_nth_Default {T} `{Default T} i xs := List.nth_default default xs i.
+
+
+
 Global Notation "xs ! i " := (List_nth_Default i xs) (at level 20) : list_scope.
 Global Notation "xs [: i ]" := (List.firstn i xs) (at level 20) : list_scope.
+
+Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
+  i < length l ->
+  List.nth i l d = List_nth_Default i l.
+Proof. intros. unfold List_nth_Default. rewrite nth_default_eq. erewrite nth_oblivious; eauto.  Qed.
+
+Ltac unfold_default := unfold List_nth_Default; repeat rewrite nth_default_eq.
+Ltac unfold_default' H := unfold List_nth_Default in H; repeat rewrite nth_default_eq in H.
+Ltac fold_default := repeat rewrite fold_nth; try lia.
+Ltac fold_default' H := repeat rewrite fold_nth in H; try lia.
+Ltac simpl_default := unfold_default; simpl; fold_default; try lia.
+Ltac default_apply L := unfold_default; L; fold_default; try lia.
+Ltac default_apply' H L := unfold_default' H; L; fold_default' H; try lia.
+
+Require Import Circom.Tuple.
+
+Local Open Scope tuple_scope.
+Lemma nth_Default_List_tuple {T n} `{Default T} (xs: tuple T n) i:
+  (to_list n xs) ! i = xs [i].
+Proof.
+  unfold List_nth_Default. unfold nth_Default, nth. rewrite nth_default_to_list. reflexivity.
+Qed.
+
+Ltac lift_to_list := repeat match goal with
+| [H: context[nth_Default _ _] |- _] => rewrite <-nth_Default_List_tuple in H; try lia
+| [ |- context[nth_Default _ _] ] => rewrite <-nth_Default_List_tuple; try lia
+| [H: tforall _ _ |- _] => apply tforall_Forall in H
+| [ |- tforall _ _] => apply tforall_Forall
+end.
+
+
+
+Lemma Forall_rev_iff {A: Type}: forall P (l: list A),
+  Forall P l <-> Forall P (rev l).
+Admitted.
+
+Lemma rev_nth' {A: Type}: forall i (l: list A) d,
+  i < length l ->
+  List.nth i l d = List.nth (length l - S i)%nat (rev l) d.
+Proof.
+  intros. remember (rev l) as l'. 
+  applys_eq rev_nth.
+  f_equal. rewrite <- rev_involutive with (l:=l). rewrite <- Heql'. reflexivity.
+  rewrite Heql'. rewrite rev_length. reflexivity.
+  rewrite Heql'. rewrite rev_length. lia.
+Qed.
+

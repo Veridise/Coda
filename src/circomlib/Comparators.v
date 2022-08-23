@@ -90,12 +90,6 @@ Module IsEqual.
 (* Hint Extern 10 (_ = _) => fqsatz : core. *)
 (* Hint Extern 10 (_ <> _) => fqsatz : core. *)
 
-(* Ltac extract :=
-  match goal with
-  | [ H: forall _ : ?a = _?b, _ |- _] => assert (a=b) by fqsatz; intuition idtac
-  | [ H: forall _ : ?a <> _?b, _ |- _] => assert (a<>b) by fqsatz; intuition idtac
-  end. *)
-
 Definition cons (_in: F^2) (out: F) := 
   let x := _in[0] in
   let y := _in[1] in
@@ -105,21 +99,33 @@ Definition cons (_in: F^2) (out: F) :=
 
 Record t : Type := { _in: F^2; out: F; _cons: cons _in out }.
 
-Definition spec t :=
+Theorem soundness: forall t,
   if ( t.(_in)[0] = t.(_in)[1] )? then
     t.(out) = 1
   else
     t.(out) = 0.
-
-Theorem soundness: forall t, spec t.
 Proof.
   unwrap_C.
   intros t. destruct t as [_in out [isz [H1 H2]]].
-  unfold spec. simpl.
+  simpl.
   pose proof (IsZero.soundness isz) as H_isz. unfold IsZero.spec in H_isz.
   intuition.
   rewrite H1, H2 in *.
   destruct (dec (_in[0] = _in[1])); destruct (dec (_in[0] - _in[1] = 0)); try fqsatz.
+Qed.
+
+Lemma is_binary: forall c, binary c.(out).
+Proof.
+  intro. specialize (soundness c). intuition.
+  destruct (dec (_in c [0] = _in c [1])). right. auto. left. auto.
+Qed.
+
+Lemma is_complete: forall t,
+  t.(out) = 1 <-> t.(_in)[0] = t.(_in)[1].
+Proof.
+  unwrap_C. 
+  intro c. specialize (soundness c).
+   intuition; destruct (dec (_in c [0] = _in c [1])); (auto || fqsatz).
 Qed.
 
 Definition wgen : IsEqual.t. Admitted.
@@ -146,14 +152,6 @@ Record t: Type := {
   out: F;
   _cons: cons _in out;
 }.
-
-Definition spec (w: t) :=
-  binary w.(out) /\
-  let '(x, y) := (w.(_in)[0], w.(_in)[1]) in
-  if (w.(out) = 1)? then
-    x <q y
-  else
-    x >=q y.
 
 Lemma one_minus_binary: forall (x y: F),
   x = 1 - y ->
@@ -195,14 +193,19 @@ Hint Rewrite Z.mod_small : F_to_Z.
 Lemma soundness: forall (w : t),
   (* pre-conditions: both inputs are at most (k-1) bits *)
   n <= C.k - 1 ->
-  (w.(_in)[0]) <=z 2^n ->
-  (w.(_in)[1]) <=z 2^n ->
+  w.(_in)[0] | (n) ->
+  w.(_in)[1] | (n) ->
   (* post-condition *)
-  spec w.
+  binary w.(out) /\
+  let '(x, y) := (w.(_in)[0], w.(_in)[1]) in
+  if (w.(out) = 1)? then
+    x <q y
+  else
+    x >=q y.
 Proof.
-  unwrap_C. intros w H_nk Hx Hy.
+  unwrap_C. intros w H_nk Hx Hy. unfold in_range in Hx, Hy.
   remember (w.(_in)[0]) as x. remember (w.(_in)[1]) as y.
-  destruct w as [_in out [n2b H]]. unfold spec. simpl in *.
+  destruct w as [_in out [n2b H]]. simpl in *.
   rewrite <- Heqx, <- Heqy in *.
   pose proof (Num2Bits.soundness _ n2b) as H_n2b.
   pose proof H_n2b as H_n2b'.
@@ -246,6 +249,38 @@ Proof.
     lia.
 Qed.
 
+Lemma is_binary: forall (w:t), 
+  n <= C.k - 1 ->
+  w.(_in)[0] | (n) ->
+  w.(_in)[1] | (n) ->
+  binary w.(out).
+Proof.
+  intros. specialize (soundness w). intuition.
+Qed.
+
+Lemma is_sound: forall (w:t),
+  n <= C.k - 1 ->
+  w.(_in)[0] | (n) ->
+  w.(_in)[1] | (n) ->
+  let '(x, y) := (w.(_in)[0], w.(_in)[1]) in
+  if (w.(out) = 1)? then
+    x <q y
+  else
+    x >=q y.
+Proof.
+  intros. specialize (soundness w). intuition.
+Qed.
+
+Lemma is_complete: forall (w:t),
+  n <= C.k - 1 ->
+  w.(_in)[0] | (n) ->
+  w.(_in)[1] | (n) ->
+  w.(out) = 1 <-> w.(_in)[0] <q w.(_in)[1].
+Proof.
+  unwrap_C.
+  intros. specialize (soundness w).
+  intuition; destruct (dec (out w = 1)); (auto || fqsatz || lia).
+Qed.
 
 Definition wgen: LessThan.t. Admitted.
 

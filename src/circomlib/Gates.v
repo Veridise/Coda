@@ -96,6 +96,30 @@ Proof.
   try solve[left; fqsatz]; try solve[right; fqsatz].
 Qed.
 
+Lemma is_sound (c: t):
+  binary c.(a) ->
+  binary c.(b) ->
+  (c.(out) = 1 <-> (c.(a) = 1 /\ c.(b) = 1)).
+Proof.
+  unwrap_C.
+  intros Hbin_a Hbin_b.
+  specialize (soundness c).
+  destruct Hbin_a; destruct Hbin_b;
+  destruct (dec (a c = 1)); 
+  destruct (dec (b c = 1)); 
+  destruct (dec (out c = 1)); intuition;
+  try (rewrite H in *; fqsatz);
+  unfold binary in *; simpl in *;
+  try (exfalso; destruct H1; auto; discriminate).
+Qed.
+
+
+Lemma is_binary (c: t):
+  binary c.(a) ->
+  binary c.(b) ->
+  binary c.(out).
+Proof. specialize (soundness c). intuition. Qed.
+
 Definition wgen: t. Admitted.
 
 #[global] Instance Default: Default t. constructor. exact wgen. Defined.
@@ -133,6 +157,30 @@ Proof.
   try fqsatz; split; try auto; 
   try solve[left; fqsatz]; try solve[right; fqsatz].
 Qed.
+
+Lemma is_sound (c: t):
+  binary c.(a) ->
+  binary c.(b) ->
+  (c.(out) = 1 <-> (c.(a) = 1 \/ c.(b) = 1)).
+Proof.
+  unwrap_C.
+  intros Hbin_a Hbin_b.
+  specialize (soundness c).
+  destruct Hbin_a; destruct Hbin_b;
+  destruct (dec (a c = 1)); 
+  destruct (dec (b c = 1)); 
+  destruct (dec (out c = 1)); intuition;
+  try (rewrite H in *; fqsatz);
+  unfold binary in *; simpl in *;
+  try (exfalso; destruct H1; auto; discriminate).
+Qed.
+
+
+Lemma is_binary (c: t):
+  binary c.(a) ->
+  binary c.(b) ->
+  binary c.(out).
+Proof. specialize (soundness c). intuition. Qed.
 
 Definition wgen: t. Admitted.
 

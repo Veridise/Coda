@@ -6,6 +6,7 @@ Require Import Coq.Arith.Compare_dec.
 Require Import Coq.PArith.BinPosDef.
 Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Znumtheory Coq.NArith.NArith. (* import Zdiv before Znumtheory *)
 Require Import Coq.NArith.Nnat.
+Require Import Coq.Bool.Bool.
 
 Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
 Require Import Crypto.Spec.ModularArithmetic.
@@ -41,7 +42,6 @@ Module BigLessThan (C: CIRCOM).
 Module B := Bitify C.
 Module Cmp := Comparators C.
 Module RZUnsigned := ReprZUnsigned C.
-Print RZUnsigned.
 Module RZ := RZUnsigned.RZ.
 Module D := DSL C.
 Module G := Gates C.
@@ -123,10 +123,6 @@ Proof.
   unfold_default. simpl. rewrite <- IHl. auto.
 Qed.
 
-Lemma firstn_list_to_nths {A: Type} `{Default A} (l: list A) (i: nat):
-  list_to_nths (firstn i l) = firstn i (list_to_nths l).
-Admitted.
-
 Lemma forall_split {A} (x:A) (P Q R: A -> Prop):
   (forall x, P x -> Q x /\ R x) ->
   (forall x, P x -> Q x) /\
@@ -134,7 +130,6 @@ Lemma forall_split {A} (x:A) (P Q R: A -> Prop):
 Proof.
   intros. intuition; specialize (H x0); tauto.
 Qed.
-Require Import Coq.Bool.Bool.
 
 Ltac split_and := match goal with
   | [ |- _ /\ _] => split

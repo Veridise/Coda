@@ -389,16 +389,6 @@ Proof with (lia || nia || eauto).
     repeat rewrite Z.mod_small...
 Qed.
 
-Lemma app_congruence: forall {A: Type} (l1 l2 l1' l2': list A),
-  l1 = l1' ->
-  l2 = l2' ->
-  l1 ++ l2 = l1' ++ l2'.
-Proof.
-  intros. rewrite H, H0. easy.
-Qed.
-
-
-
 Lemma Z_le_mul_pos: forall a b c,
   c > 0 ->
   a <= b ->

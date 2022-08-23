@@ -106,6 +106,9 @@ Ltac rem_iter :=
 #[local]Hint Extern 10 (_ <= _) => lia : core.
 #[local]Hint Extern 10 (_ > _) => lia : core.
 #[local]Hint Extern 10 (_ >= _) => lia : core.
+#[local]Hint Extern 10 => match goal with
+  | [ H: _ :: _ = _ :: _ |- _] => invert H
+  end : core.
 
 Fixpoint list_to_nths {A} `{Default A} (l: list A) :=
   match l with
@@ -132,6 +135,10 @@ Proof.
   intros. intuition; specialize (H x0); tauto.
 Qed.
 Require Import Coq.Bool.Bool.
+
+Ltac split_and := match goal with
+  | [ |- _ /\ _] => split
+  end.
 
 Theorem soundness: forall (c: t),
   n <= C.k - 1 ->
@@ -193,7 +200,10 @@ Proof with (lia || eauto).
   pose (Inv := fun (j:nat) _cons => _cons ->
     forall (i j0: nat), j0 < j ->
     i = (k-2-j0)%nat ->
-    (ors[i].(OR.out) = 1%F <-> RZUnsigned.big_lt (ra[:j0+2]) (rb[:j0+2]) = true)).
+    (ors[i].(OR.out) = 1%F <-> RZUnsigned.big_lt (ra[:j0+2]) (rb[:j0+2]) = true) /\
+    (eq_ands[i].(AND.out) = 1%F <-> ra[:j0+2] = rb[:j0+2]) /\
+    binary (eq_ands[i].(AND.out)) /\
+    binary (ors[i].(OR.out))).
   assert (H_inv: Inv (k-1)%nat (D.iter f (k-1)%nat True)). {
     unfold Inv.
     apply D.iter_inv.
@@ -205,6 +215,8 @@ Proof with (lia || eauto).
       destruct (dec (i = (k-2)%nat));
       destruct Hstep as [Hacc [Hands_a [Hands_b [Heqands_a [Heqands_b [Hors_a Hors_b]]]]]].
       + 
+      assert (ej: j=0%nat) by lia. rewrite ej in *. clear ej.
+      autorewrite with natsimplify in *.
       repeat progress first [
         rewrite OR.is_sound
       | apply OR.is_binary
@@ -221,8 +233,10 @@ Proof with (lia || eauto).
       | apply LT_bin;try lia
       | apply EQ_bin;try lia
       ].
-      assert (ej: j=0%nat) by lia. rewrite ej in *. clear ej.
-      autorewrite with natsimplify in *.
+      
+
+      (* try apply AND.is_binary;
+      try apply OR.is_binary. *)
 
       repeat default_apply ltac:(rewrite rev_nth' with (l:='a)); try (subst; lia).
       repeat default_apply ltac:(rewrite rev_nth' with (l:='b)); try (subst; lia).
@@ -239,49 +253,78 @@ Proof with (lia || eauto).
       destruct (dec (a0 = b0));
       destruct (dec (a1 <q b1));
       destruct (dec (a1 = b1)); 
-      (lia || intuition).
+      intuition;
+      (lia || solve [subst; auto] || auto);
+      repeat progress first [
+        rewrite OR.is_sound
+      | apply OR.is_binary
+      | rewrite AND.is_sound
+      | apply AND.is_binary
+      | rewrite Hors_a
+      | rewrite Hors_b
+      | rewrite Hands_a
+      | rewrite Hands_b
+      | rewrite Heqands_a
+      | rewrite Heqands_b
+      | rewrite LT_sound by lia
+      | rewrite EQ_sound by lia
+      | apply LT_bin;try lia
+      | apply EQ_bin;try lia
+      ].
     + 
-    rewrite ?OR.is_sound;
-    rewrite ?Hors_a, ?Hors_b;
-    rewrite ?AND.is_sound;
-    rewrite ?Hands_a, ?Hands_b;
-    try (apply LT_bin; try lia);
-    try (rewrite LT_sound by lia);
-    try (apply AND.is_binary with (c:=ands [i]));
-    rewrite ?Hands_a, ?Hands_b;
-    try (apply LT_bin; try lia).
-    
     assert (j > 0) by lia.
+    assert (Hai: 'a!i = ra!(j+1)%nat). {
+      rewrite Heqra.
+      unfold_default. rewrite rev_nth'; try lia. 
+      rewrite Hlen_a. f_equal. lia.
+    }
+    assert (Hbi: 'b!i = rb!(j+1)%nat). {
+      rewrite Heqrb.
+      unfold_default. rewrite rev_nth'; try lia. 
+      rewrite Hlen_b. f_equal. lia.
+    }
     specialize (IH Hacc (i+1)%nat (j-1)%nat). clear Hacc.
-    rewrite IH by lia.
-    replace (j-1+2)%nat with (j+1)%nat by lia.
-    default_apply ltac:(rewrite rev_nth' with (l:='a); rewrite <- ?Heqra, Hlen_a).
-    default_apply ltac:(rewrite rev_nth' with (l:='b); rewrite <- ?Heqrb, Hlen_b).
-    replace (k- S i)%nat with (j+1)%nat by lia.
-    intuition.
-    (* if prefix < prefix, then whole < whole *)
-    eapply RZUnsigned.big_lt_firstn with (i:=(j+1)%nat). repeat (rewrite firstn_length_le; try lia).
-    apply Forall_firstn. rewrite Heqra. apply Forall_rev. eauto.
-    apply Forall_firstn. rewrite Heqrb. apply Forall_rev. eauto.
-    repeat (rewrite firstn_firstn; try lia). replace (Init.Nat.min (j + 1) (j + 2))%nat with (j+1)%nat by lia.
-    apply H1.
-    (* if prefix = prefix, and after than <, then whole < whole *)
-    admit.
-    (* inverse *)
-    admit.
-
-    (* previous output always binary *)
-    admit.
-    admit.
-    admit.
+    destruct IH as [IHors [IHeq_ands [IHeq_ands_bin IHors_bin]]]; try lia.
+    repeat split_and;
+    repeat progress first [
+      rewrite OR.is_sound with (c:=ors [i])
+      | apply OR.is_binary with (c:=ors [i])
+      | rewrite Hors_a | rewrite Hors_b
+      | rewrite AND.is_sound with (c:=eq_ands [i])
+      | rewrite AND.is_sound with (c:=ands [i])
+      | apply AND.is_binary with (c:=eq_ands [i])
+      | apply AND.is_binary with (c:=ands [i])
+      | rewrite Hands_a | rewrite Hands_b
+      | rewrite Heqands_a | rewrite Heqands_b
+      | rewrite IHeq_ands
+      | rewrite IHors
+      | rewrite EQ_sound
+      | rewrite LT_sound
+      | rewrite Hai, Hbi
+      (* | replace ('a!i) with (ra!(j+1)) *)
+      | auto
+    ];
+    replace (j-1+2)%nat with (j+1)%nat by lia;
+    erewrite <- firstn_split_last with (l:=ra[:j+2]) (n:=(j+1)%nat) by (rewrite firstn_length_le; try lia); rewrite firstn_firstn by lia; rewrite firstn_nth by lia; rewrite min_l by lia;
+    erewrite <- firstn_split_last with (l:=rb[:j+2]) (n:=(j+1)%nat) by (rewrite firstn_length_le; try lia); rewrite firstn_firstn by lia; rewrite firstn_nth by lia; rewrite min_l by lia;
+    assert (length (ra[:j+1]) = (j+1)%nat) by (rewrite firstn_length_le; try lia);
+    assert (length (rb[:j+1]) = (j+1)%nat) by (rewrite firstn_length_le; try lia);
+    fold_default.
+    
+    * 
+    rewrite <- RZUnsigned.big_lt_app'; try (simpl; lia).
+    rewrite RZUnsigned.big_lt_single. intuition.
+    shelve.
+    * rewrite <- app_congruence_iff; try (simpl; lia).
+    intuition. f_equal. auto.
   }
   unfold Inv in H_inv.
   repeat rewrite <- RZ.rev_be__le.
   rewrite <- Heqra, <- Heqrb.
-  intuition.
-  (* binary out *)
-  admit.
-
+  rewrite final.
+  intuition;
+  destruct (H 0%nat (k-2)%nat) as [Hors [Hands [Hors_bin Heqands_bin]]]; try lia; auto.
+  
   assert (Href: RZUnsigned.big_lt (ra) (rb) = true). {
     rewrite <- firstn_all with (l:=ra).
     rewrite <- firstn_all with (l:=rb).
@@ -289,23 +332,27 @@ Proof with (lia || eauto).
     replace k with (k-2+2)%nat by lia.
     applys_eq H; try lia.
     replace (k-2-(k-2))%nat with 0%nat by lia.
-    rewrite <- final. auto.
+    auto.
   }
   
   apply RZUnsigned.big_lt_dec; try (
     lia || auto ||
     rewrite ?Heqra, ?Heqrb; apply Forall_rev; auto).
   
-  rewrite final.
-  rewrite H with (j0:=(k-2)%nat); try lia.
+  rewrite Hors.
+  
   replace (k-2+2)%nat with k by lia.
   replace (ra[:k]) with ra by (symmetry; applys_eq firstn_all; f_equal; lia).
   replace (rb[:k]) with rb by (symmetry; applys_eq firstn_all; f_equal; lia).
   applys_eq (RZUnsigned.big_lt_dec n); try (
     lia || auto ||
     rewrite ?Heqra, ?Heqrb; apply Forall_rev; auto).
+  Unshelve.
   exact 0%nat. exact 0%nat. exact 0%nat.
-Admitted.
+  exact F.zero. exact F.zero. exact F.zero. exact F.zero.
+  exact 0%nat.
+  lia.
+Qed.
 
 End _BigLessThan.
 End BigLessThan.

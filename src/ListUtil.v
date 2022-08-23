@@ -197,3 +197,17 @@ Proof.
   rewrite Heql'. rewrite rev_length. lia.
 Qed.
 
+Lemma app_congruence: forall {A: Type} (l1 l2 l1' l2': list A),
+  l1 = l1' ->
+  l2 = l2' ->
+  l1 ++ l2 = l1' ++ l2'.
+Proof.
+  intros. rewrite H, H0. easy.
+Qed.
+
+Lemma app_congruence_iff: forall {A: Type} (l1 l2 l1' l2': list A),
+  length l1 = length l1' ->
+  length l2 = length l2' ->
+  (l1 = l1' /\ l2 = l2') <-> 
+  l1 ++ l2 = l1' ++ l2'.
+Admitted.

@@ -499,12 +499,9 @@ Lemma big_lt_postfix: forall xs ys ys',
   big_lt (xs ++ ys) (xs ++ ys') = big_lt ys ys'.
 Admitted.
 
-
-
 Lemma big_lt_nonreflexive: forall xs,
   big_lt xs xs = false.
 Admitted.
-
 
 Lemma big_lt_app: forall xs xs' ys ys',
   length xs = length xs' ->
@@ -523,6 +520,32 @@ Proof.
     invert e0. rewrite big_lt_postfix, big_lt_nonreflexive. auto.
     invert e0. exfalso. apply n1. auto.
     invert e. exfalso. apply n1. auto.
+Qed.
+
+Lemma big_lt_single: forall x y,
+  big_lt (x::nil) (y::nil) = true <-> x <q y.
+Proof.
+  intros. simpl.
+  destruct (dec (x<q y)); destruct (dec (x=y)); intuition; discriminate.
+Qed.
+
+Lemma big_lt_app': forall xs xs' ys ys',
+length xs = length xs' ->
+length ys = length ys' ->
+(big_lt xs xs' = true \/ xs = xs' /\ big_lt ys ys' = true) <->
+big_lt (xs ++ ys) (xs' ++ ys') = true.
+Proof.
+  intros.
+  rewrite <- big_lt_app; auto.
+  intuition; destruct (dec (xs=xs')); subst; repeat first [
+    rewrite big_lt_nonreflexive in *
+    | discriminate
+    | rewrite H3; auto
+    | rewrite H2; auto
+    | rewrite orb_false_r in *
+    | auto
+    | simpl
+  ].
 Qed.
 
 End _ReprZUnsigned.

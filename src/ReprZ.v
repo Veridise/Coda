@@ -497,11 +497,19 @@ Admitted.
 
 Lemma big_lt_postfix: forall xs ys ys',
   big_lt (xs ++ ys) (xs ++ ys') = big_lt ys ys'.
-Admitted.
+Proof.
+  induction xs as [ | x xs]; intros; simpl; auto.
+  destruct (dec (x <q x)). lia.
+  destruct (dec (x=x)); easy.
+Qed.
 
 Lemma big_lt_nonreflexive: forall xs,
   big_lt xs xs = false.
-Admitted.
+Proof.
+  induction xs as [ | x xs]; simpl; auto.
+  destruct (dec (x <q x)). lia.
+  destruct (dec (x = x)); easy.
+Qed.
 
 Lemma big_lt_app: forall xs xs' ys ys',
   length xs = length xs' ->

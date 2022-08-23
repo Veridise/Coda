@@ -138,7 +138,7 @@ template ModSumThree(n) {
 *)
 
 Definition cons (a b c sum carry: F) :=
-  exists (n2b: Num2Bits.t (S n)),
+  exists (n2b: @Num2Bits.t (S n)),
     n2b.(Num2Bits._in) = a + b + c /\
     carry = n2b.(Num2Bits.out) [n] /\
     sum = a + b + c - carry * 2^n.
@@ -180,7 +180,7 @@ Proof.
   - subst.
   unfold in_range in *.
   remember (Num2Bits.out [n] ) as out_n. pose proof (length_to_list Num2Bits.out).
-  pose proof (Num2Bits.soundness _ n2b) as H_n2b. unfold Num2Bits.spec, repr_le2 in *.
+  pose proof (Num2Bits.soundness n2b) as H_n2b. unfold repr_le2 in *.
   rewrite <- H_in.
   pose proof H_n2b as H_n2b'. unfold repr_le in H_n2b. destruct H_n2b as [_ [_ H_as_le] ].
   rewrite H_as_le.
@@ -198,8 +198,8 @@ Proof.
   rewrite H. auto.
 
   - rewrite H_carry.
-  pose proof (Num2Bits.soundness _ n2b) as H_n2b. 
-  unfold Num2Bits.spec, repr_le2, repr_le in *.
+  pose proof (Num2Bits.soundness n2b) as H_n2b. 
+  unfold repr_le2, repr_le in *.
   intuition.
   rewrite <- nth_Default_List_tuple. unfold_default.
   apply Forall_nth.

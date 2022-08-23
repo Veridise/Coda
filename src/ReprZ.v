@@ -6,6 +6,7 @@ Require Import Coq.Arith.Compare_dec.
 Require Import Coq.PArith.BinPosDef.
 Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Znumtheory Coq.NArith.NArith. (* import Zdiv before Znumtheory *)
 Require Import Coq.NArith.Nnat.
+Require Import Coq.Bool.Bool.
 
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
@@ -491,9 +492,10 @@ Proof.
   auto.
 Qed.
 
-Require Import Coq.Bool.Bool.
-Instance dec_F_list : forall (xs ys: list F), Decidable (xs = ys).
-Admitted.
+Lemma F_eq_dec: forall (x y: F), {x=y} + {x<>y}.
+Proof. intros. destruct (dec (x=y)); firstorder. Qed.
+
+Global Instance dec_F_list : DecidableRel (@eq (list F)) := list_eq_dec F_eq_dec.
 
 Lemma big_lt_postfix: forall xs ys ys',
   big_lt (xs ++ ys) (xs ++ ys') = big_lt ys ys'.

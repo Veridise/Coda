@@ -93,6 +93,7 @@ Definition cons (a b: F^k) (out: F) : Prop :=
   out = ors[0].(OR.out).
 
 Record t := {a: F^k; b: F^k; out: F; _cons: cons a b out}.
+
 Ltac rem_iter :=   
   repeat match goal with
   | [ _: context[D.iter ?f _ _] |- _] =>
@@ -308,8 +309,7 @@ Proof with (lia || eauto).
     
     * 
     rewrite <- RZUnsigned.big_lt_app'; try (simpl; lia).
-    rewrite RZUnsigned.big_lt_single. intuition.
-    shelve.
+    rewrite RZUnsigned.big_lt_single. intuition. shelve.
     * rewrite <- app_congruence_iff; try (simpl; lia).
     intuition. f_equal. auto.
   }
@@ -346,7 +346,6 @@ Proof with (lia || eauto).
   exact 0%nat. exact 0%nat. exact 0%nat.
   exact F.zero. exact F.zero. exact F.zero. exact F.zero.
   exact 0%nat.
-  lia.
 Qed.
 
 End _BigLessThan.

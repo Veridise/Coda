@@ -58,20 +58,25 @@ Proof.
   - simpl. f_equal.
 Qed.
 
-(* peel off 1 from x^(i+1) in int exp *)
-Lemma pow_S_Z: forall (x: Z) (i: nat),
-  (x ^ (S i) = x * x ^ i)%Z.
-Proof.
-  unwrap_C. intros.
-  replace (Z.of_nat (S i)) with (Z.of_nat i + 1)%Z by lia.
-  rewrite Zpower_exp; lia.
-Qed.
+
+Ltac rem_iter :=   
+  repeat match goal with
+  | [ _: context[D.iter ?f _ _] |- _] =>
+    match f with
+    | fun _ => _ => let fn := fresh "f" in remember f as fn
+    | _ => fail
+    end
+  end.
 
 
 Module Num2Bits.
+Section _Num2Bits.
 
 Local Open Scope tuple_scope.
-Definition cons (n: nat) (_in: F) (out: F^n) : Prop :=
+
+Context {n: nat}.
+
+Definition cons (_in: F) (out: F^n) : Prop :=
   let lc1 := 0 in
   let e2 := 1 in
   let '(lc1, e2, _C) := (D.iter (fun (i: nat) '(lc1, e2, _C) =>
@@ -83,8 +88,8 @@ Definition cons (n: nat) (_in: F) (out: F^n) : Prop :=
     (lc1, e2, True)) in
   (lc1 = _in) /\ _C.
 
-Theorem cons_imply_binary n _in out:
-  cons n _in out -> (forall i, (i < n)%nat -> binary (out[i])).
+Lemma cons_imply_binary _in out:
+  cons _in out -> (forall i, (i < n)%nat -> binary (out[i])).
 Proof.
   unwrap_C. unfold cons.
   (* provide loop invariant *)
@@ -125,32 +130,23 @@ Proof.
   intuition.
 Qed.
 
-Class t (n: nat): Type := mk {
+Class t : Type := mk {
   _in: F; 
   out: F^n; 
-  _cons: cons n _in out
+  _cons: cons _in out
 }.
 
-Definition spec (n: nat) (w: t n) := 
-  repr_le2 w.(_in) n (to_list n w.(out)).
-
-Theorem soundness: forall (n: nat) (w: t n), spec n w.
+Theorem soundness: forall (w: t), 
+  repr_le2 w.(_in) n  ('w.(out)).
 Proof.
   unwrap_C. intros.
-  destruct w as [_in _out _cons]. unfold spec, cons in *. simpl.
+  destruct w as [_in _out _cons]. unfold cons in *. simpl.
   remember (to_list _ _out) as out.
   pose (Inv := fun (i: nat) '((lc1, e2, _C)) => 
     (_C: Prop) ->
       (e2 = (2^i) /\
-      let firsti := firstn i (to_list n _out) in
-      repr_le2 lc1 i firsti)).
-  remember (fun (i : nat) '(y, _C) =>
-  let
-  '(lc1, e2) := y in
-    (lc1 + _out[i] * e2, 
-    e2 + e2,
-    _out[i] * (_out[i] - 1) = 0 /\
-    _C)) as f.
+      repr_le2 lc1 i ('_out[:i]))).
+  rem_iter.
   assert (Hinv: Inv n (D.iter f n (0,1,True))). {
     apply D.iter_inv; unfold Inv.
     - intuition. simpl. rewrite F.pow_0_r. fqsatz.
@@ -187,6 +183,75 @@ Proof.
   unfold Inv in Hinv. intuition.
   subst. rewrite <- firstn_to_list. auto.
 Qed.
+End _Num2Bits.
 End Num2Bits.
+
+
+Module Bits2Num.
+Section _Bits2Num.
+Context {n: nat}.
+
+Local Open Scope tuple_scope.
+
+Definition cons (_in: F^n) (out: F) : Prop :=
+  let lc1 := 0 in
+  let e2 := 1 in
+  let '(lc1, _) := D.iter (fun (i: nat) '(lc1, e2) =>
+      (lc1 + _in[i] * e2,
+      e2 + e2)) n (lc1, e2) in
+  lc1 = out.
+
+Record t := { _in: F^n; out: F; _cons: cons _in out}.
+
+#[local]Hint Extern 10 => 
+  match goal with
+  | [ |- context[length (firstn _ (to_list _ _))] ] => 
+    rewrite firstn_length_le; lia
+  end : core.
+
+Theorem soundness: forall (c: t) x,
+  repr_le2 x n ('c.(_in)) ->
+  x = c.(out).
+Proof with (fqsatz || lia || eauto).
+  unwrap_C.
+  intros. destruct c as [_in out _cons]. unfold cons in *.
+  simpl in *.
+  pose proof (length_to_list _in) as Hlen_in.
+  remember (fun (i : nat) '(lc1, e2) => (lc1 + _in [i] * e2, e2 + e2)) as f.
+  pose (Inv := fun (i: nat) '(lc1, e2) => 
+    e2 = 2^i /\ repr_be2 lc1 i (rev ('_in[:i]))).
+  assert (HInv: Inv n (D.iter f n (0,1))). {
+    apply D.iter_inv; unfold Inv.
+    - simpl. split. 
+      + rewrite F.pow_0_r. fqsatz. 
+      + apply repr_trivial. auto.
+    - intros i [lc1 e2] [IHe2 IHlc1] Hi.
+      rewrite Heqf. 
+      split.
+      + rewrite pow_S_N. fqsatz.
+      + rewrite IHe2.
+        pose proof IHlc1 as IHrepr.
+        erewrite <- firstn_split_last with (l:='_in[:S i]) (n:=i)...
+        rewrite firstn_firstn. autorewrite with natsimplify.
+        rewrite rev_unit. rewrite firstn_nth...
+        unfold repr_be2, repr_be in IHlc1 |- *. intuition.
+        simpl. rewrite rev_length. auto.
+        destruct H as [_ [H _]].
+        constructor; auto. apply Forall_nth...
+        rewrite H3. lift_to_list. fold_default.
+        unfold as_be. cbn [as_be_acc length]. autorewrite with natsimplify.
+        rewrite <- Nat2N.inj_mul, Nat.mul_1_l.
+        rewrite rev_length. rewrite firstn_length_le...
+  }
+  unfold Inv in HInv.
+  destruct (D.iter f n (0, 1)).
+  destruct HInv as [Hout [_ [_ Heq]]].
+  subst.
+  rewrite rev_be__le. rewrite firstn_all2... destruct H. intuition.
+  Unshelve. exact F.zero.
+Qed.
+
+End _Bits2Num.
+End Bits2Num.
 
 End Bitify.

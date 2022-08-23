@@ -145,7 +145,7 @@ Section LessThan.
 Context {n: nat}.
 
 Definition cons (_in: tuple F 2) (out: F) :=
-  exists (n2b: Num2Bits.t (S n)),
+  exists (n2b: @Num2Bits.t (S n)),
     n2b.(Num2Bits._in) = (_in [0] + 2^n - _in[1]) /\
     out = 1 - n2b.(Num2Bits.out)[n].
 
@@ -220,9 +220,9 @@ Proof.
   remember (w.(_in)[0]) as x. remember (w.(_in)[1]) as y.
   destruct w as [_in out [n2b H]]. simpl in *.
   rewrite <- Heqx, <- Heqy in *.
-  pose proof (Num2Bits.soundness _ n2b) as H_n2b.
+  pose proof (Num2Bits.soundness n2b) as H_n2b.
   pose proof H_n2b as H_n2b'.
-  unfold Num2Bits.spec in *. unfold repr_le2, repr_le in H_n2b.
+  unfold repr_le2, repr_le in H_n2b.
   destruct H as [H_n Hout ].
   apply conj_use.
   intuition.

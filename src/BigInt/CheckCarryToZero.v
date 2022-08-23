@@ -96,7 +96,7 @@ Context {m k: nat}.
 
 Definition cons (_in: F^k) :=
   let EPSILON := 1%nat in
-  exists (carry: F^k) (carryRangeChecks: (Num2Bits.t (m + EPSILON - n)) ^ k),
+  exists (carry: F^k) (carryRangeChecks: (@Num2Bits.t (m + EPSILON - n)) ^ k),
     D.iter (fun (i: nat) _cons => _cons /\
       if (dec (i=0))%nat then
         _in[i] = carry[i] * 2^n

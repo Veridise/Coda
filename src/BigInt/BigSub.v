@@ -197,12 +197,12 @@ Proof.
   destruct w as [a b c out borrow _cons].
   unfold spec, cons in *. destruct _cons as [lt [H_in0 [H_in1 [H_borrow [H_out H_assert]]] ] ].
   simpl. intros Hnk Ha Hb Hc. 
-  unfold in_range in *. 
   apply in_range_binary in Hc.
-  assert (lt_range_1: LessThan._in lt [0] <=z 2 ^ S n).
+  unfold in_range in *.
+  assert (lt_range_1: LessThan._in lt [0] <=z (2 ^ S n -1)%Z).
   { rewrite H_in0. rewrite Ha. replace (2 ^ (S n))%Z with (2 ^ (n + 1))%Z. 
     rewrite Zpower_exp;lia. lia. }
-  assert (lt_range_2: LessThan._in lt [1] <=z 2 ^ S n).
+  assert (lt_range_2: LessThan._in lt [1] <=z (2 ^ S n -1)%Z).
   { rewrite H_in1. apply in_range_binary in Hc. destruct Hc;subst;
     autorewrite with simplify_F simplify_NZ. 
     + rewrite Hb. replace (2 ^ (S n))%Z with (2 ^ (n + 1))%Z. rewrite Zpower_exp;lia. lia.
@@ -220,7 +220,7 @@ Proof.
         }
         apply F.to_Z_range;lia. }
       rewrite H;lia. }
-  pose proof (LessThan.soundness lt Hnk lt_range_1 lt_range_2) as [H_lt_b H_lt].
+  destruct (LessThan.soundness lt) as [H_lt_b H_lt]; unfold in_range; try lia.
   intuition;auto; try fqsatz.
   - subst.
     unfold in_range in *. 

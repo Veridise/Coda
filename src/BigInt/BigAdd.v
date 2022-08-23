@@ -407,9 +407,8 @@ Proof.
       * rewrite e in *. simplify. unfold RZ.ToZ.to_Z.
         repeat erewrite firstn_1; try lia.
         repeat (fold_default; rewrite nth_0).
-        lia.
       * simplify.
-        repeat (unfold_default; rewrite firstn_nth; try lia; fold_default).
+        default_apply ltac:(repeat (rewrite firstn_nth; try lia)).
         unfold RZ.ToZ.to_Z.
         default_apply ltac:(repeat rewrite firstn_nth; try lia).
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.

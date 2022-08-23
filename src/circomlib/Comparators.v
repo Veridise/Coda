@@ -29,6 +29,7 @@ Module B := Bitify C.
 Module R := Repr C.
 Import B C R.
 
+
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.
 
@@ -204,7 +205,7 @@ Hint Rewrite Z.mod_small : F_to_Z.
 
 Lemma soundness: forall (w : t),
   (* pre-conditions: both inputs are at most (k-1) bits *)
-  n <= C.k - 1 ->
+  (n <= C.k - 1)%Z ->
   w.(_in)[0] | (n) ->
   w.(_in)[1] | (n) ->
   (* post-condition *)
@@ -262,7 +263,7 @@ Proof.
 Qed.
 
 Lemma is_binary: forall (w:t), 
-  n <= C.k - 1 ->
+  (n <= C.k - 1)%Z ->
   w.(_in)[0] | (n) ->
   w.(_in)[1] | (n) ->
   binary w.(out).
@@ -271,7 +272,7 @@ Proof.
 Qed.
 
 Lemma is_sound: forall (w:t),
-  n <= C.k - 1 ->
+  (n <= C.k - 1)%Z ->
   w.(_in)[0] | (n) ->
   w.(_in)[1] | (n) ->
   let '(x, y) := (w.(_in)[0], w.(_in)[1]) in
@@ -284,7 +285,7 @@ Proof.
 Qed.
 
 Lemma is_complete: forall (w:t),
-  n <= C.k - 1 ->
+  (n <= C.k - 1)%Z ->
   w.(_in)[0] | (n) ->
   w.(_in)[1] | (n) ->
   w.(out) = 1 <-> w.(_in)[0] <q w.(_in)[1].

@@ -131,6 +131,7 @@ Lemma forall_split {A} (x:A) (P Q R: A -> Prop):
 Proof.
   intros. intuition; specialize (H x0); tauto.
 Qed.
+Require Import Coq.Bool.Bool.
 
 Theorem soundness: forall (c: t),
   n <= C.k - 1 ->
@@ -259,7 +260,11 @@ Proof with (lia || eauto).
     replace (k- S i)%nat with (j+1)%nat by lia.
     intuition.
     (* if prefix < prefix, then whole < whole *)
-    admit.
+    eapply RZUnsigned.big_lt_firstn with (i:=(j+1)%nat). repeat (rewrite firstn_length_le; try lia).
+    apply Forall_firstn. rewrite Heqra. apply Forall_rev. eauto.
+    apply Forall_firstn. rewrite Heqrb. apply Forall_rev. eauto.
+    repeat (rewrite firstn_firstn; try lia). replace (Init.Nat.min (j + 1) (j + 2))%nat with (j+1)%nat by lia.
+    apply H1.
     (* if prefix = prefix, and after than <, then whole < whole *)
     admit.
     (* inverse *)

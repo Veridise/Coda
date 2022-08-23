@@ -18,6 +18,7 @@ Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.seto
 Require Import Circom.Circom Circom.DSL Circom.Util Circom.ListUtil.
 Require Import Circom.Default.
 
+
 Module Type TO_Z (C: CIRCOM).
   Import C.
   Variable to_Z: F -> Z.
@@ -465,6 +466,63 @@ Proof.
   intros. split.
   apply big_lt_sound; auto.
   apply big_lt_complete; auto.
+Qed.
+
+
+Lemma big_lt_firstn: forall i xs ys,
+  length xs = length ys ->
+  xs |: (n) ->
+  ys |: (n) ->
+  big_lt (xs[:i]) (ys[:i]) = true -> big_lt xs ys = true.
+Proof.
+  intros i xs.
+  destruct (dec (i <= length xs)).
+  generalize dependent xs.
+  induction i; simpl; intuition.
+  discriminate.
+  destruct xs as [ | x xs]; destruct ys as [ | y ys]; simpl in *; try lia.
+  invert H0. invert H1.
+  destruct (dec (x <q y)); 
+  destruct (dec (x=y)); auto;
+  apply IHi; auto; lia.
+  (* i > length xs *)
+  intros.
+  do 2 rewrite firstn_all2 in H2 by lia.
+  auto.
+Qed.
+
+Require Import Coq.Bool.Bool.
+Instance dec_F_list : forall (xs ys: list F), Decidable (xs = ys).
+Admitted.
+
+Lemma big_lt_postfix: forall xs ys ys',
+  big_lt (xs ++ ys) (xs ++ ys') = big_lt ys ys'.
+Admitted.
+
+
+
+Lemma big_lt_nonreflexive: forall xs,
+  big_lt xs xs = false.
+Admitted.
+
+
+Lemma big_lt_app: forall xs xs' ys ys',
+  length xs = length xs' ->
+  length ys = length ys' ->
+  (big_lt xs xs' || if dec (xs = xs') then big_lt ys ys' else false) =
+  big_lt (xs ++ ys) (xs' ++ ys').
+Proof.
+  induction xs as [ | x xs]; destruct xs' as [ | x' xs']; intros; simpl in H; try lia.
+  - simpl. destruct (dec (nil = nil)). auto. exfalso. apply n0. auto.
+  - simpl. destruct (dec (x <q x')); auto.
+    specialize (IHxs xs' ys ys').
+    destruct (dec (x = x'));
+    destruct (dec (xs = xs'));
+    destruct (dec (x::xs = x'::xs')); subst; auto.
+    exfalso. apply n1; auto.
+    invert e0. rewrite big_lt_postfix, big_lt_nonreflexive. auto.
+    invert e0. exfalso. apply n1. auto.
+    invert e. exfalso. apply n1. auto.
 Qed.
 
 End _ReprZUnsigned.

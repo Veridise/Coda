@@ -339,7 +339,6 @@ Definition spec_weak (w: t) :=
   (S n <= C.k - 1)%Z ->
   'w.(a) |: (n) ->
   'w.(b) |: (n) ->
-  ([|| w.(a) ||] >= [|| w.(b) ||])%Z ->
   (* post-condition *)
   ([|| w.(out) ||] - |^ w.(underflow) | * 2^(n*k) = [|| w.(a) ||] - [|| w.(b) ||])%Z /\
   binary w.(underflow) /\
@@ -590,17 +589,17 @@ Proof.
     assert (H_out_inrange: ' out |: (n)). {
       intuition.
       apply Forall_firstn_S with (i:=(k-1)%nat) (d:=0); try eauto. lia. 
-      apply Forall_firstn. rewrite firstn_to_list in H5;auto. 
-      fold_default. rewrite firstn_to_list in H5;auto. 
-      rewrite Forall_nth in H5.
-      unfold "!". rewrite nth_default_eq. apply H5;lia. 
+      apply Forall_firstn. rewrite firstn_to_list in H4;auto. 
+      fold_default. rewrite firstn_to_list in H4;auto. 
+      rewrite Forall_nth in H4.
+      unfold "!". rewrite nth_default_eq. apply H4;lia. 
     }
     intuition; auto.
-    * rewrite <- H8. 
+    * rewrite <- H7. 
       assert (H_out: (' out) [:k] = (' out)).  
       { rewrite <- firstn_all. rewrite Hlen_out;auto. }
       rewrite H_out,out_borrow;auto. nia.
-    * rewrite out_borrow. apply H6;lia.
+    * rewrite out_borrow. apply H5;lia.
 Unshelve. exact F.zero. exact F.zero. exact F.zero.
 Admitted.
 

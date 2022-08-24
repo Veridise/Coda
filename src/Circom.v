@@ -76,16 +76,6 @@ Global Ltac unwrap_C :=
   pose proof q_lb as q_lb;
   pose proof pow_nonzero as pow_nonzero.
 
-(* Global Ltac split_eqns :=
-repeat match goal with
-| [ |- _ /\ _ ] => split
-| [ H: exists _, _ |- _ ] => destruct H
-| [ H: {s | _ } |- _ ] => destruct H
-| [ H: _ /\ _ |- _ ] => destruct H
-| [ _: _ |- _ -> _ ] => intros
-end. *)
-
-
 Declare Scope circom_scope.
 Delimit Scope circom_scope with circom.
   

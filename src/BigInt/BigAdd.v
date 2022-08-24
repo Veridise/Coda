@@ -246,14 +246,7 @@ Proof.
   intros. cbn [_BigAdd.out _BigAdd.a _BigAdd.b] in *.
   unfold cons in _cons. destruct _cons as [unit prog].
   lift_to_list.
-  remember (fun (i : nat) (_cons : Prop) =>
-      _cons /\
-      M.a (unit [i] ) = a [i] /\
-      M.b (unit [i] ) = b [i] /\
-      (if dec (i = 0%nat)
-      then M.c (unit [i] ) = 0
-      else M.c (unit [i] ) = M.carry (unit [i - 1] )) /\
-      out [i] = M.sum (unit [i] )) as f.
+  rem_iter.
   pose proof (length_to_list a) as Hlen_a.
   pose proof (length_to_list b) as Hlen_b.
   pose proof (length_to_list out) as Hlen_out.

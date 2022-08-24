@@ -90,15 +90,6 @@ Definition cons (a b: F^k) (out: F) : Prop :=
 
 Record t := {a: F^k; b: F^k; out: F; _cons: cons a b out}.
 
-Ltac rem_iter :=   
-  repeat match goal with
-  | [ _: context[D.iter ?f _ _] |- _] =>
-    match f with
-    | fun _ => _ => let fn := fresh "f" in remember f as fn
-    | _ => fail
-    end
-  end.
-
 #[local]Hint Extern 10 (_ < _) => lia : core.
 #[local]Hint Extern 10 (_ <= _) => lia : core.
 #[local]Hint Extern 10 (_ > _) => lia : core.

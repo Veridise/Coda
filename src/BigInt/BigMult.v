@@ -15,7 +15,7 @@ Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.Pri
 
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
-From Circom Require Import Repr ReprZ.
+From Circom Require Import Repr ReprZ PigeonHole.
 From Circom.circomlib Require Import Bitify Comparators.
 
 (* Circuit:
@@ -582,7 +582,7 @@ Proof.
   { eapply degree_leq_trans. 3: apply H_deg_r_leq. all:auto. }
   specialize (deg_d_has_most_d_roots _ _ H_deg_r H_x).
   intro HX. destruct HX as [X' [H_len_X H_X] ].
-  eapply Util.In_pigeon_hole with (X := X ) (X' := X');auto.
+  eapply PigeonHole.In_pigeon_hole with (X := X ) (X' := X');auto.
   lia.
   intros. apply H_X. unfold root. rewrite eval_psub.
   apply H3 in H4. fqsatz.

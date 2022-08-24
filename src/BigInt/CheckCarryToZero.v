@@ -40,6 +40,7 @@ Import B.
 
 Local Open Scope list_scope.
 Local Open Scope Z_scope.
+Local Open Scope F_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
 
@@ -50,8 +51,6 @@ Lemma Nat_of_nat_add_1: forall (n: nat),
   (N.of_nat n + 1%N)%N = N.of_nat (n+1)%nat.
 Proof. lia. Qed.
 
-
-Local Open Scope F_scope.
 
 Local Notation "[| xs |]" := (R.as_le n xs).
 
@@ -88,11 +87,7 @@ Proof.
   unwrap_C.
   intros c H_n H_k H_in. destruct c as [_in _cons]. destruct _cons as [carry [check [iter last] ] ]. simpl.
   simpl in *.
-  remember (fun (i : nat) (_cons : Prop) =>
-  _cons /\
-  (if dec (i = 0)%nat
-   then _in [i] = carry [i] * (1 + 1) ^ n
-   else _in [i] + carry [i - 1] = carry [i] * (1 + 1) ^ n))%F as f.
+  rem_iter.
   pose proof (length_to_list _in).
   pose proof (length_to_list carry).
 

@@ -49,17 +49,6 @@ Proof.
   - simpl. f_equal.
 Qed.
 
-
-Ltac rem_iter :=   
-  repeat match goal with
-  | [ _: context[D.iter ?f _ _] |- _] =>
-    match f with
-    | fun _ => _ => let fn := fresh "f" in remember f as fn
-    | _ => fail
-    end
-  end.
-
-
 Module Num2Bits.
 Section _Num2Bits.
 
@@ -90,10 +79,7 @@ Proof.
   remember (0, 1, True) as a0.
   intros prog i H_i_lt_n.
   (* iter function *)
-  match goal with
-  | [ H: context[match ?it ?f ?n ?init with _ => _ end] |- _ ] =>
-    let x := fresh "f" in remember f as x
-  end.
+  rem_iter.
   (* invariant holds *)
   assert (Hinv: forall i, Inv i (D.iter f i a0)). {
   intros. apply D.iter_inv; unfold Inv.
@@ -208,7 +194,7 @@ Proof with (fqsatz || lia || eauto).
   intros. destruct c as [_in out _cons]. unfold cons in *.
   simpl in *.
   pose proof (length_to_list _in) as Hlen_in.
-  remember (fun (i : nat) '(lc1, e2) => (lc1 + _in [i] * e2, e2 + e2)) as f.
+  rem_iter.
   pose (Inv := fun (i: nat) '(lc1, e2) => 
     e2 = 2^i /\ repr_be2 lc1 i (rev ('_in[:i]))).
   assert (HInv: Inv n (D.iter f n (0,1))). {

@@ -16,7 +16,7 @@ Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
 
-Require Import Circom.Circom Circom.DSL.
+Require Import Circom.Circom Circom.DSL Circom.Tuple.
 
 (* Circuit:
 * https://github.com/iden3/circomlib/blob/master/circuits/multiplexer.circom
@@ -25,15 +25,13 @@ Require Import Circom.Circom Circom.DSL.
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 
-Module Multiplexer (C: CIRCOM).
+Module Multiplexer.
 
-Import C.
-Module D := DSL C.
+Module D := DSL.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
-
-Local Notation "a [ b ]" := (Tuple.nth_default 0 b a).
+Local Open Scope tuple_scope.
 
 (* template EscalarProduct(w) {
     signal input in1[w];

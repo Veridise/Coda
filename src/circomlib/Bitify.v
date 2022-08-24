@@ -24,14 +24,10 @@ Require Import Circom.Repr.
 (* Circuits:
  * https://github.com/iden3/circomlib/blob/master/circuits/comparators.circom
  *)
-Module Bitify (C: CIRCOM).
+Module Bitify.
 
-Import C.
-
-Module D := DSL C.
-
-Module R := Repr C.
-
+Module D := DSL.
+Module R := Repr.
 Import R.
 
 Local Open Scope list_scope.
@@ -40,11 +36,6 @@ Local Open Scope circom_scope.
 
 Local Coercion Z.of_nat : nat >-> Z.
 Local Coercion N.of_nat : nat >-> N.
-
-
-(* Base 2^n representations *)
-Lemma to_Z_2: @F.to_Z q 2 = 2%Z.
-Proof. unwrap_C. simpl. repeat rewrite Z.mod_small; lia. Qed.
 
 (* peel off 1 from x^(i+1) in field exp *)
 Lemma pow_S_N: forall (x: F) (i: nat),

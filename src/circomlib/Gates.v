@@ -17,9 +17,9 @@ Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
 
-Require Import Util.
 Require Import Circom.LibTactics.
 Require Import Circom.Circom Circom.Default.
+(* Require Import Circom.Util. *)
 
 (* Circuit:
 * https://github.com/iden3/circomlib/blob/master/circuits/gates.circom
@@ -28,9 +28,7 @@ Require Import Circom.Circom Circom.Default.
 Local Open Scope list_scope.
 Local Open Scope F_scope.
 
-Module Gates (C: CIRCOM).
-
-Import C.
+Module Gates.
 
 Module XOR.
 (* template XOR() {
@@ -65,13 +63,11 @@ Qed.
 End XOR.
 
 
-
 Module AND.
 (* template AND() {
     signal input a;
     signal input b;
     signal output out;
-
     out <== a*b;
 } *)
 
@@ -300,7 +296,7 @@ Definition wgen: t. skip. Defined.
 End NOR.
 
 
-Module TODO.
+Module MultiAND.
 
 (* template MultiAND(n) {
     signal input in[n];
@@ -330,6 +326,6 @@ Module TODO.
     }
 } *)
 
-End TODO.
+End MultiAND.
 
 End Gates.

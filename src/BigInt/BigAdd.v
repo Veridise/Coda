@@ -15,34 +15,23 @@ Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Ring.
 
-Require Import Coq.Logic.FunctionalExtensionality.
-Require Import Coq.Logic.PropExtensionality.
-
-Require Import Util DSL.
-Require Import Circom.Circom Circom.Default.
-Require Import Circom.LibTactics.
-Require Import Circom.Tuple.
-Require Import Circom.circomlib.Bitify Circom.circomlib.Comparators.
-Require Import Circom.ListUtil.
-Require Import Circom.Repr Circom.ReprZ.
-
-(* Require Import VST.zlist.Zlist. *)
-
+From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
+From Circom Require Import Repr ReprZ.
+From Circom.circomlib Require Import Bitify Comparators.
 
 (* Circuit:
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
 *)
 
-Module BigAdd (C: CIRCOM).
+Module BigAdd.
 Context {n: nat}.
 
-Module B := Bitify C.
-Module RZUnsigned := ReprZUnsigned C.
-Module RZ := RZUnsigned.RZ.
-Module R := Repr C.
-Module Cmp := Comparators C.
-Import B C.
-
+Module B := Bitify.
+Module D := DSL.
+Module Cmp := Comparators.
+Module RZU := ReprZUnsigned.
+Module RZ := RZU.RZ.
+Module R := Repr.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -52,73 +41,10 @@ Local Open Scope tuple_scope.
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
-Module Comparators := Comparators C.
-Create HintDb F_to_Z discriminated.
-#[local] Hint Rewrite (to_Z_2) : F_to_Z.
-#[local] Hint Rewrite (@F.to_Z_add q) : F_to_Z.
-#[local] Hint Rewrite (@F.to_Z_mul q) : F_to_Z.
-#[local] Hint Rewrite (@F.to_Z_pow q) : F_to_Z.
-#[local] Hint Rewrite (@F.to_Z_0 q) : F_to_Z.
-#[local] Hint Rewrite (@F.to_Z_1 q) : F_to_Z.
-#[local] Hint Rewrite (@F.pow_1_r q) : F_to_Z.
-#[local] Hint Rewrite Cmp.LessThan.to_Z_sub : F_to_Z.
-#[local] Hint Rewrite Z.mod_small : F_to_Z.
-
-
-Lemma Fmul_0_r: forall (x: F), x * 0 = 0.
-Proof. unwrap_C. intros. fqsatz. Qed.
-Lemma Fmul_0_l: forall (x: F), 0 * x = 0.
-Proof. unwrap_C. intros. fqsatz. Qed.
-Lemma Fmul_1_r: forall (x: F), x * 1 = x.
-Proof. unwrap_C. intros. fqsatz. Qed.
-Lemma Fmul_1_l: forall (x: F), 1 * x = x.
-Proof. unwrap_C. intros. fqsatz. Qed.
-Lemma Fadd_0_r: forall (x: F), x + 0 = x.
-Proof. unwrap_C. intros. fqsatz. Qed.
-Lemma Fadd_0_l: forall (x: F), 0 + x = x.
-Proof. unwrap_C. intros. fqsatz. Qed.
-
-
-Create HintDb simplify_F discriminated.
-#[local] Hint Rewrite (Fmul_0_r) : simplify_F.
-#[local] Hint Rewrite (Fmul_0_l) : simplify_F.
-#[local] Hint Rewrite (Fmul_1_r) : simplify_F.
-#[local] Hint Rewrite (Fmul_1_l) : simplify_F.
-#[local] Hint Rewrite (Fadd_0_r) : simplify_F.
-#[local] Hint Rewrite (Fadd_0_l) : simplify_F.
-#[local] Hint Rewrite (@F.pow_0_l) : simplify_F.
-#[local] Hint Rewrite (@F.pow_0_r) : simplify_F.
-#[local] Hint Rewrite (@F.pow_1_l) : simplify_F.
-#[local] Hint Rewrite (@F.pow_1_r) : simplify_F.
-#[local] Hint Rewrite (@F.pow_add_r) : simplify_F.
-Create HintDb simplify_NZ discriminated.
-#[local] Hint Rewrite Nat2N.inj_mul : simplify_NZ.
-#[local] Hint Rewrite Nat2N.inj_add : simplify_NZ.
-#[local] Hint Rewrite Nat2Z.inj_mul : simplify_NZ.
-#[local] Hint Rewrite Nat2Z.inj_add : simplify_NZ.
-#[local] Hint Rewrite (Nat.mul_1_l) : simplify_NZ.
-#[local] Hint Rewrite (Nat.mul_1_r): simplify_NZ.
-#[local] Hint Rewrite (Nat.mul_0_l): simplify_NZ.
-#[local] Hint Rewrite (Nat.mul_0_r): simplify_NZ.
-#[local] Hint Rewrite (Nat.add_0_r): simplify_NZ.
-#[local] Hint Rewrite (Nat.add_0_l): simplify_NZ.
-#[local] Hint Rewrite (Nat.mul_succ_r): simplify_NZ.
-#[local] Hint Rewrite (Z.mul_1_l) : simplify_NZ.
-#[local] Hint Rewrite (Z.mul_1_r): simplify_NZ.
-#[local] Hint Rewrite (Z.mul_0_l): simplify_NZ.
-#[local] Hint Rewrite (Z.mul_0_r): simplify_NZ.
-#[local] Hint Rewrite (Z.add_0_r): simplify_NZ.
-#[local] Hint Rewrite (Z.add_0_l): simplify_NZ.
-#[local] Hint Rewrite (Z.mul_succ_r): simplify_NZ.
-#[local] Hint Rewrite (Zpower_exp): simplify_NZ.
-
-
 
 Module ModSumThree.
-
 Section ModSumThree.
-
-Import R.
+Import B R.
 
 (* Note: this is a simplified version from circom-pairing *)
 (* 
@@ -178,7 +104,6 @@ Proof.
   intuition.
   - fqsatz.
   - subst.
-  unfold in_range in *.
   remember (Num2Bits.out [n] ) as out_n. pose proof (length_to_list Num2Bits.out).
   pose proof (Num2Bits.soundness n2b) as H_n2b. unfold repr_le2 in *.
   rewrite <- H_in.
@@ -248,8 +173,6 @@ Context {k: nat}.
     out[k] <== unit[k - 2].carry;
 } *)
 
-Module D := DSL C.
-
 Module M := ModSumThree.
 
 (* interpret a tuple of weights as representing a little-endian base-2^n number *)
@@ -290,10 +213,6 @@ Definition spec (w: t) :=
   ([|| w.(out) ||] = [|| w.(a) ||] + [|| w.(b) ||])%Z /\
   'w.(out) |: (n).
 
-Ltac simplify := autorewrite with simplify_NZ simplify_F natsimplify; try lia.
-Ltac simplify' H := autorewrite with simplify_NZ simplify_F natsimplify in H; try lia.
-
-
 Ltac split_as_le xs i := 
   erewrite RZ.as_le_split_last with (ws:=xs[:S i]) (i:=i);
   try rewrite firstn_firstn; simplify;
@@ -306,7 +225,7 @@ Lemma binary_in_range: forall (n:nat) x,
   binary x -> 
   x | (n).
 Proof.
-  unwrap_C. intros n x Hn Hbin. unfold in_range.
+  unwrap_C. intros n x Hn Hbin.
   destruct (dec (n>1)).
   destruct Hbin; subst; autorewrite with F_to_Z; try lia.
   assert (2^1 < 2^n)%Z. apply Zpow_facts.Zpower_lt_monotone; lia.
@@ -345,7 +264,7 @@ Proof.
     (* carry bits are binary *)
     (forall (j: nat), j < i -> binary (('unit ! j).(M.carry))) /\
     (* out are in range *)
-    Forall (in_range n) ('out [:i]) /\
+    ('out [:i]) |: (n) /\
     (* addition is ok for prefix *)
     (([| 'out [:i] |] +  2^(n*i)%nat * (if dec (i = 0)%nat then 0 else F.to_Z ('unit ! (i-1)).(M.carry))
       = [| 'a [:i] |] +  [| 'b [:i] |]))%Z).

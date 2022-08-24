@@ -18,32 +18,25 @@ Require Import Ring.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Logic.PropExtensionality.
 
-
-Require Import Util DSL.
-Require Import Circom.Circom Circom.Default.
-Require Import Circom.LibTactics.
-Require Import Circom.Tuple.
-Require Import Circom.circomlib.Bitify Circom.circomlib.Comparators.
-Require Import Circom.ListUtil.
-Require Import Circom.Repr Circom.ReprZ.
-(* Require Import VST.zlist.Zlist. *)
-
+From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
+From Circom Require Import Repr ReprZ.
+From Circom.circomlib Require Import Bitify Comparators Gates.
 
 (* Circuit:
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
 *)
 
-
-Module CheckCarryToZero (C: CIRCOM).
+Module CheckCarryToZero.
 Context {n: nat}.
 
-Module B := Bitify C.
-Module Cmp := Comparators C.
-Module RZUnsigned := ReprZUnsigned C.
-Module RZ := RZUnsigned.RZ.
-Module R := Repr C.
-Module D := DSL C.
-Import B C.
+Module B := Bitify.
+Module D := DSL.
+Module Cmp := Comparators.
+Module RZU := ReprZUnsigned.
+Module RZ := RZU.RZ.
+Module R := Repr.
+
+Import B.
 
 Local Open Scope list_scope.
 Local Open Scope Z_scope.
@@ -53,41 +46,12 @@ Local Open Scope tuple_scope.
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
+Lemma Nat_of_nat_add_1: forall (n: nat),
+  (N.of_nat n + 1%N)%N = N.of_nat (n+1)%nat.
+Proof. lia. Qed.
+
 
 Local Open Scope F_scope.
-Lemma Fmul_0_r: forall (x: F), x * 0 = 0.
-Proof. unwrap_C. intros. fqsatz. Qed.
-Lemma Fmul_0_l: forall (x: F), 0 * x = 0.
-Proof. unwrap_C. intros. fqsatz. Qed.
-Lemma Fmul_1_r: forall (x: F), x * 1 = x.
-Proof. unwrap_C. intros. fqsatz. Qed.
-Lemma Fmul_1_l: forall (x: F), 1 * x = x.
-Proof. unwrap_C. intros. fqsatz. Qed.
-Lemma Fadd_0_r: forall (x: F), x + 0 = x.
-Proof. unwrap_C. intros. fqsatz. Qed.
-Lemma Fadd_0_l: forall (x: F), 0 + x = x.
-Proof. unwrap_C. intros. fqsatz. Qed.
-
-Create HintDb simplify_F discriminated.
-Hint Rewrite (Fmul_0_r) : simplify_F.
-Hint Rewrite (Fmul_0_l) : simplify_F.
-Hint Rewrite (Fmul_1_r) : simplify_F.
-Hint Rewrite (Fmul_1_l) : simplify_F.
-Hint Rewrite (Fadd_0_r) : simplify_F.
-Hint Rewrite (Fadd_0_l) : simplify_F.
-Hint Rewrite (@F.pow_0_l) : simplify_F.
-Hint Rewrite (@F.pow_0_r) : simplify_F.
-Hint Rewrite (@F.pow_1_l) : simplify_F.
-Hint Rewrite (@F.pow_1_r) : simplify_F.
-Hint Rewrite (@F.pow_add_r) : simplify_F.
-Hint Rewrite <- (Nat2N.inj_mul) : natsimplify.
-Hint Rewrite (Nat.mul_1_l) : natsimplify.
-Hint Rewrite (Nat.mul_1_r): natsimplify.
-Hint Rewrite (Nat.mul_0_l): natsimplify.
-Hint Rewrite (Nat.mul_0_r): natsimplify.
-Hint Rewrite (Nat.add_0_r): natsimplify.
-Hint Rewrite (Nat.add_0_l): natsimplify.
-Hint Rewrite (Nat.mul_succ_r): natsimplify.
 
 Local Notation "[| xs |]" := (R.as_le n xs).
 
@@ -112,41 +76,17 @@ Record t := {
   _cons: cons _in
 }.
 
-Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
-  i < length l ->
-  List.nth i l d = List_nth_Default i l.
-Proof. 
-  intros. unfold List_nth_Default. 
-  rewrite nth_default_eq. 
-  erewrite nth_oblivious; eauto. lia.
-Qed.
-
-
-Lemma nth_Default_List_tuple {T l} `{Default T} (xs: tuple T l) i:
-  (to_list _ xs) ! i = xs [i].
-Proof.
-  unfold List_nth_Default. unfold nth_Default, nth. rewrite nth_default_to_list. reflexivity.
-Qed.
-
-Ltac lift_to_list := repeat match goal with
-| [H: context[nth_Default _ _] |- _] => rewrite <-nth_Default_List_tuple in H; try lia
-| [ |- context[nth_Default _ _] ] => rewrite <-nth_Default_List_tuple; try lia
-| [H: tforall _ _ |- _] => apply tforall_Forall in H
-| [ |- tforall _ _] => apply tforall_Forall
-end.
-
 Local Open Scope F_scope.
 
 
 Theorem soundness: forall (c: t), 
-  (1 <= n)%Z ->
-  (n <= C.k)%Z ->
-  k >= 2 ->
+  1 <= n <= C.k ->
+  2 <= k ->
   'c.(_in) |: (n) ->
   [| 'c.(_in) |] = 0.
 Proof.
   unwrap_C.
-  intros c H_n Hn_ub H_k H_in. destruct c as [_in _cons]. destruct _cons as [carry [check [iter last] ] ]. simpl.
+  intros c H_n H_k H_in. destruct c as [_in _cons]. destruct _cons as [carry [check [iter last] ] ]. simpl.
   simpl in *.
   remember (fun (i : nat) (_cons : Prop) =>
   _cons /\
@@ -158,7 +98,7 @@ Proof.
 
   pose (Inv := fun (i: nat) _cons => _cons -> 
     forall (j: nat), j < i -> 
-    (2^(n*(j+1))%nat * ('carry ! j)) = [| ' _in [:j+1] |]).
+    (2^(n*(j+1)) * ('carry ! j)) = [| ' _in [:j+1] |]).
   assert (Hinv: Inv (k-1)%nat (D.iter f (k-1)%nat (True))). {
     apply D.iter_inv; unfold Inv.
     - intuition idtac. lia.
@@ -166,42 +106,42 @@ Proof.
       destruct (dec (j = i)%nat). subst. intuition.
       (* interesting case: j = i *)
       + destruct (dec (i=0)%nat).
-        * subst.
-          autorewrite with natsimplify simplify_F.
+        * subst. simplify.
           erewrite firstn_1 by lia. cbn [RZ.as_le].
           lift_to_list.
-          erewrite fold_nth by lia.
-          rewrite H2.
-          simpl. fqsatz.
-        * specialize (H3 (i-1)%nat).
+          fold_default.
+          rewrite H4.
+          simpl. simplify. fqsatz.
+        * specialize (H5 (i-1)%nat).
           lift_to_list.
           assert (2^n <> 0)%F. { unfold not. apply pow_nonzero. lia. }
-          replace ((' carry) ! i) with (((' _in) ! i + (' carry) ! (i - 1)) / (2^n))%F.
-          replace ((1 + 1) ^ (n * (i + 1))%nat) with (2^ (n * i)%nat * 2^n).
+          replace ((' carry) ! i) with (((' _in) ! i + (' carry) ! (i - 1)) / (2^n))%F by fqsatz.
+          simplify.
           erewrite R.as_le_split_last with (i:=i).
-          rewrite firstn_firstn. replace (Init.Nat.min i (i + 1)) with i by lia.
+          rewrite firstn_firstn. rewrite Nat.min_l by lia. simplify.
           erewrite <- fold_nth with (l:=((' _in) [:i + 1])) by (rewrite firstn_length_le; lia).
           rewrite firstn_nth by lia.
-          rewrite fold_nth by lia.
-          replace (i-1+1)%nat with i in H3 by lia.
-          rewrite <- H3 by lia.
+          fold_default.
+          replace (i-1+1)%nat with i in H5 by lia.
+          rewrite <- H5 by lia.
+          replace ((i - 1)%nat + 1)%N with (N.of_nat i) by lia.
+          simplify.
           fqsatz.
           eapply R.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
           apply R.repr_trivial.
           lift_to_list. auto.
-          rewrite Nat.mul_add_distr_l. rewrite Nat2N.inj_add. rewrite F.pow_add_r. autorewrite with natsimplify simplify_F. fqsatz.
-          fqsatz.
       + assert (j < i)%nat by lia. apply IH. subst. intuition. lia.
   }
   unfold Inv in Hinv.
   intuition.
-  specialize (H1 (k-2)%nat).
+  specialize (H3 (k-2)%nat).
   erewrite R.as_le_split_last with (i:= (k-1)%nat).
-  replace (k - 2 + 1)%nat with (k-1)%nat in H1.
-  rewrite <- H1.
   lift_to_list.
+  rewrite Nat_of_nat_add_1 in H3.
+  replace (k-2+1)%nat with (k-1)%nat in H3 by lia.
+  rewrite <- H3 by lia.
+  simplify.
   fqsatz.
-  lia. lia.
   applys_eq R.repr_trivial.
   lia.
   lift_to_list; auto.

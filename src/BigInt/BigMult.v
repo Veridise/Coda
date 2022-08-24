@@ -6,68 +6,43 @@ Require Import Coq.Arith.Compare_dec.
 Require Import Coq.PArith.BinPosDef.
 Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Znumtheory Coq.NArith.NArith. (* import Zdiv before Znumtheory *)
 Require Import Coq.NArith.Nnat.
+Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
+Require Import Ring.
 
 Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
 
-Require Import Circom.Tuple.
-Require Import Crypto.Util.Decidable.
-Require Import BabyJubjub.
-Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
-Require Import Ring.
 
-Require Import Util DSL.
-Require Import Circom.circomlib.Bitify.
-
-(* Require Import VST.zlist.Zlist. *)
-
-Require Import Circom.Circom.
-Require Import Circom.BigInt.Theory.Polynom.
+From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
+From Circom Require Import Repr ReprZ.
+From Circom.circomlib Require Import Bitify Comparators.
 
 (* Circuit:
-* https://github.com/0xPARC/circom-ecdsa/blob/08c2c905b918b563c81a71086e493cb9d39c5a08/circuits/bigint.circom
+* https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
 *)
 
+Module BigMult.
+Context {n: nat}.
 
-Module BigInt (C: CIRCOM).
-
-Import C.
+Module B := Bitify.
+Module D := DSL.
+Module Cmp := Comparators.
+Module RZU := ReprZUnsigned.
+Module RZ := RZU.RZ.
+Module R := Repr.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
-Local Open Scope P_scope.
 Local Open Scope circom_scope.
+Local Open Scope tuple_scope.
+
+Local Coercion Z.of_nat: nat >-> Z.
+Local Coercion N.of_nat: nat >-> N.
 
 (**************************
- * Overflow Representation
+ *      Polynomials
  **************************)
-
-
-(* peel off 1 from x^(i+1) in field exp *)
-Lemma pow_S_N: forall (x: F) i,
-  x ^ (N.of_nat (S i)) = x * x ^ (N.of_nat i).
-Proof.
-  unwrap_C.
-  intros.
-  replace (N.of_nat (S i)) with (N.succ (N.of_nat i)).
-  apply F.pow_succ_r.
-  induction i.
-  - reflexivity.
-  - simpl. f_equal.
-Qed.
-
-(* peel off 1 from x^(i+1) in int exp *)
-Lemma pow_S_Z: forall (x: Z) i,
-  (x ^ (Z.of_nat (S i)) = x * x ^ (Z.of_nat i))%Z.
-Proof.
-  intros.
-  replace (Z.of_nat (S i)) with (Z.of_nat i + 1)%Z by lia.
-  rewrite Zpower_exp; lia.
-Qed.
-
-
-
 
 Definition polynomial := list F.
 
@@ -162,7 +137,7 @@ Qed.
 
 Lemma eval'_n_plus_1: forall c n x, eval' (n + 1) c x = x * eval' n c x.
 Proof.
-  unwrap_C. induction c; simpl;intros; try fqsatz. 
+  unwrap_C. induction c; simpl;intros n x; try fqsatz. 
   rewrite IHc.
   assert(x * (a * x ^ n + eval' (n + 1) c x) = x * a * x ^ n + x * eval' (n + 1) c x) by
   fqsatz.
@@ -204,7 +179,7 @@ Qed.
 Lemma eval_app': forall cs0 cs1 n x,
   eval' n (cs0 ++ cs1) x = eval' n cs0 x + eval' (n + N.of_nat (length cs0)) cs1 x.
 Proof.
-  unwrap_C. induction cs0;simpl;intros.
+  unwrap_C. induction cs0;simpl;intros cs1 n x.
   - assert(n + 0 =n)%N by lia. rewrite H. fqsatz.
   - rewrite IHcs0.
     assert (N.pos (Pos.of_succ_nat (length cs0)) = (1 + N.of_nat (length cs0))%N).
@@ -225,8 +200,6 @@ Local Notation "x [ i ]" := (Tuple.nth_default 0 i x).
 
 Definition nth2 {m n} (i: nat) (x: tuple (tuple F n) m) := Tuple.nth_default (repeat 0 n) i x.
 (* Local Notation "x [ i ][ j ]" := (Tuple.nth_default 0 j (nth2 i x)). *)
-
-Module D := DSL C.
 
 Definition init_poly ka kb (poly: tuple F (ka+ kb -1)) {m: nat} (x: tuple F m) _C := 
   D.iter (fun i _C => _C /\
@@ -369,7 +342,7 @@ Definition BigMultNoCarry_cons
 Declare Scope DSL_scope.
 Delimit Scope DSL_scope with DSL.
 
-Module DL := DSLL C.
+Module DL := DSLL.
 Import DL.
 
 Notation "a +d b" := (addL a b) (at level 50) : DSL_scope.
@@ -378,9 +351,6 @@ Notation "a $d b" := (scaleL a b) (at level 30) : DSL_scope.
 Notation "a ==d b" := (eqL a b) (at level 60) : DSL_scope.
 
 Local Open Scope DSL_scope.
-
-Local Coercion N.of_nat: nat >-> N.
-Local Coercion Z.of_nat: nat >-> Z.
 
 Definition BigMultNoCarry_cons'
   ka kb
@@ -420,20 +390,20 @@ Fixpoint range (n: nat) : list nat :=
   | O => nil
   | S n' => n' :: range n'
   end.
-Lemma range_range: forall n i, In i (range n) -> (i < n)%nat.
+Lemma range_range: forall m i, In i (range m) -> (i < m)%nat.
 Proof.
-  induction n; simpl; intros; destruct H.
+  induction m; simpl; intros; destruct H.
   - subst. lia.
-  - assert (i < n)%nat by auto. lia.
+  - assert (i < m)%nat by auto. lia.
 Qed.
 Lemma range_nodup: forall n, NoDup (range n).
 Proof.
-  induction n; simpl; constructor; auto.
+  intro n. induction n; simpl; constructor; auto.
   unfold not. intros. apply range_range in H. lia.
 Qed.
 Lemma range_elem: forall n i, (i < n)%nat -> In i (range n).
 Proof.
-  induction n; simpl; intros.
+  intro n. induction n as [| n]; simpl; intros.
   - lia.
   - destruct (dec (i < n)%nat).
     + right. apply IHn. lia.
@@ -446,26 +416,33 @@ Proof.
   intros. apply X. apply range_range. auto.
 Qed.
 Lemma range_length: forall n, length (range n) = n.
-Proof. induction n; simpl; auto. Qed.
+Proof. intro n. induction n; simpl; auto. Qed.
 Lemma range_map_preimage {A: Type}: forall n (f: nat -> A) x,
   In x (List.map f (range n)) ->
   exists i, (i < n)%nat /\ f i = x.
 Proof.
-  induction n; simpl; intros; destruct H.
+  intro n. induction n as [| n]; simpl; intros; destruct H.
   - subst. exists n. split; (auto || lia).
   - apply IHn in H. inversion H. intuition idtac. exists x0. split; (auto || lia).
 Qed.
 
 Require Import FinFun.
 
-Lemma Fof_Z_inj: forall x y, 0 <= x < q -> 0 <= y < q -> F.of_Z q x = F.of_Z q y -> x = y.
+Local Open Scope Z_scope.
+Lemma Fof_Z_inj: forall x y, 
+  0 <= x < q -> 
+  0 <= y < q -> 
+  F.of_Z q x = F.of_Z q y -> x = y.
 Proof.
   intros.
   apply F.eq_of_Z_iff in H1.
   rewrite Zmod_small in H1; rewrite Zmod_small in H1; lia.
 Qed.
 
-Lemma Fof_nat_injective: forall x y, Z.of_nat x < q -> Z.of_nat y < q -> F.of_nat q x = F.of_nat q y -> x = y.
+Lemma Fof_nat_injective: forall (x y: nat),
+  x < q -> 
+  y < q -> 
+  F.of_nat q x = F.of_nat q y -> x = y.
 Proof.
   intros. apply Nat2Z.inj. unfold F.of_nat in *. apply Fof_Z_inj; (lia || auto).
 Qed.
@@ -485,6 +462,8 @@ Proof.
     apply X. left. auto.
   - eapply IHl; eauto. inversion H0. auto.
 Qed.
+
+Local Close Scope Z_scope.
 
 Definition degree := option nat.
 Definition mk_degree (n: nat) := Some n.
@@ -590,7 +569,7 @@ Theorem interpolant_unique: forall (a b: polynomial) n (X: list F),
 Proof.
   (* Proof: https://inst.eecs.berkeley.edu/~cs70/fa14/notes/n7.pdf *)
   unwrap_C.
-  intros.
+  intros a b n. intros.
   destruct (eq_poly_decidable a b).
   trivial.
   exfalso.
@@ -678,7 +657,7 @@ Proof.
     2: { intros. apply range_range. apply H9. }
     unfold Injective_restrict. intros. apply Fof_nat_injective; (lia || auto).
     (* FIXME: range check *)
-    assert (Z.of_nat (ka+kb-1)%nat < q) by lia.
+    assert (Z.of_nat (ka+kb-1)%nat < q)%Z by lia.
     apply range_nodup.
     intros.
     rewrite eval_ppmul.
@@ -692,4 +671,4 @@ Proof.
   }
   apply H_poly.
 Qed.
-End BigInt.
+End BigMult.

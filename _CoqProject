@@ -10,6 +10,7 @@ src/CTuple.v
 src/Tuple.v
 src/ListUtil.v
 src/LibTactics.v
+src/Simplify.v
 src/circomlib/Comparators.v
 src/circomlib/Bitify.v
 src/circomlib/Gates.v

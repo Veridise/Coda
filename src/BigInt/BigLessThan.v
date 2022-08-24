@@ -20,14 +20,9 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Logic.PropExtensionality.
 
 
-Require Import Util DSL.
-Require Import Circom.Circom Circom.Default.
-Require Import Circom.LibTactics.
-Require Import Circom.Tuple.
-Require Import Circom.circomlib.Bitify Circom.circomlib.Comparators.
-Require Import Circom.circomlib.Gates.
-Require Import Circom.ListUtil.
-Require Import Circom.ReprZ.
+From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
+From Circom Require Import Repr ReprZ.
+From Circom.circomlib Require Import Bitify Comparators Gates.
 
 (* Require Import VST.zlist.Zlist. *)
 
@@ -36,20 +31,21 @@ Require Import Circom.ReprZ.
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
 *)
 
-Module BigLessThan (C: CIRCOM).
+Module BigLessThan.
+Context {n: nat}.
 
-
-Module B := Bitify C.
-Module Cmp := Comparators C.
-Module RZUnsigned := ReprZUnsigned C.
-Module RZ := RZUnsigned.RZ.
-Module D := DSL C.
-Module G := Gates C.
-Import B C Cmp G.
+Module B := Bitify.
+Module D := DSL.
+Module Cmp := Comparators.
+Module RZU := ReprZUnsigned.
+Module RZ := RZU.RZ.
+Module R := Repr.
 
 
 Section _BigLessThan.
 Context (n k: nat).
+
+Import Cmp Gates.
 
 
 (* interpret a tuple of weights as representing a little-endian base-2^n number *)
@@ -196,7 +192,7 @@ Proof with (lia || eauto).
   pose (Inv := fun (j:nat) _cons => _cons ->
     forall (i j0: nat), j0 < j ->
     i = (k-2-j0)%nat ->
-    (ors[i].(OR.out) = 1%F <-> RZUnsigned.big_lt (ra[:j0+2]) (rb[:j0+2]) = true) /\
+    (ors[i].(OR.out) = 1%F <-> RZU.big_lt (ra[:j0+2]) (rb[:j0+2]) = true) /\
     (eq_ands[i].(AND.out) = 1%F <-> ra[:j0+2] = rb[:j0+2]) /\
     binary (eq_ands[i].(AND.out)) /\
     binary (ors[i].(OR.out))).
@@ -308,8 +304,8 @@ Proof with (lia || eauto).
     fold_default.
     
     * 
-    rewrite <- RZUnsigned.big_lt_app'; try (simpl; lia).
-    rewrite RZUnsigned.big_lt_single. intuition. shelve.
+    rewrite <- RZU.big_lt_app'; try (simpl; lia).
+    rewrite RZU.big_lt_single. intuition. shelve.
     * rewrite <- app_congruence_iff; try (simpl; lia).
     intuition. f_equal. auto.
   }
@@ -320,7 +316,7 @@ Proof with (lia || eauto).
   intuition;
   destruct (H 0%nat (k-2)%nat) as [Hors [Hands [Hors_bin Heqands_bin]]]; try lia; auto.
   
-  assert (Href: RZUnsigned.big_lt (ra) (rb) = true). {
+  assert (Href: RZU.big_lt (ra) (rb) = true). {
     rewrite <- firstn_all with (l:=ra).
     rewrite <- firstn_all with (l:=rb).
     rewrite Hlen_ra, Hlen_rb.
@@ -330,7 +326,7 @@ Proof with (lia || eauto).
     auto.
   }
   
-  apply RZUnsigned.big_lt_dec; try (
+  apply RZU.big_lt_dec; try (
     lia || auto ||
     rewrite ?Heqra, ?Heqrb; apply Forall_rev; auto).
   
@@ -339,7 +335,7 @@ Proof with (lia || eauto).
   replace (k-2+2)%nat with k by lia.
   replace (ra[:k]) with ra by (symmetry; applys_eq firstn_all; f_equal; lia).
   replace (rb[:k]) with rb by (symmetry; applys_eq firstn_all; f_equal; lia).
-  applys_eq (RZUnsigned.big_lt_dec n); try (
+  applys_eq (RZU.big_lt_dec n); try (
     lia || auto ||
     rewrite ?Heqra, ?Heqrb; apply Forall_rev; auto).
   Unshelve.

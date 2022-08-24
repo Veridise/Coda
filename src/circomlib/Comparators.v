@@ -9,13 +9,15 @@ Require Import Coq.NArith.Nnat.
 
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
-
-Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
+
+Require Import Circom.Circom.
+Require Import Circom.Tuple.
 Require Import Circom.circomlib.Bitify.
 Require Import Circom.LibTactics.
-Require Import Circom.Circom Circom.Util Circom.Default Circom.Repr.
+Require Import Circom.Simplify.
+Require Import Circom.Util Circom.Default Circom.Repr.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -23,11 +25,10 @@ Local Open Scope F_scope.
 (* Circuits:
  * https://github.com/iden3/circomlib/blob/master/circuits/comparators.circom
  *)
-Module Comparators (C: CIRCOM).
-Import C.
-Module B := Bitify C.
-Module R := Repr C.
-Import B C R.
+Module Comparators.
+Module B := Bitify.
+Module R := Repr.
+Import B R.
 
 
 Local Coercion N.of_nat : nat >-> N.
@@ -165,43 +166,6 @@ Proof.
   destruct H0; ((right; fqsatz) || (left; fqsatz)).
 Qed.
 
-Lemma to_Z_sub: forall x y, (F.to_Z y < q)%Z ->
-@F.to_Z q (x - y) = ((F.to_Z x - F.to_Z y mod q) mod q)%Z.
-Proof.
-  unwrap_C.
-  intros ? ? Hy. unfold F.sub. rewrite F.to_Z_add. rewrite F.to_Z_opp.
-  destruct (dec (F.to_Z y = 0)%Z).
-  - rewrite e. rewrite Z_mod_zero_opp_full. replace (F.to_Z x + 0)%Z with (F.to_Z x - 0)%Z by lia. reflexivity.
-    apply Zmod_0_l.
-  - rewrite Z_mod_nz_opp_full.
-    replace (F.to_Z x + (q - F.to_Z y mod q))%Z with ((F.to_Z x - F.to_Z y mod q) + 1 * q)%Z by lia.
-    rewrite Z_mod_plus by lia.
-    reflexivity.
-    rewrite Z.mod_small. auto.
-    apply F.to_Z_range. lia.
-Qed.
-
-Lemma to_Z_add: forall x y, (F.to_Z y < q)%Z ->
-@F.to_Z q (x + y) = ((F.to_Z x + F.to_Z y mod q) mod q)%Z.
-Proof.
-  unwrap_C.
-  intros ? ? Hy. rewrite F.to_Z_add. 
-  destruct (dec (F.to_Z y = 0)%Z).
-  - rewrite e.  rewrite Zmod_0_l. auto.
-  - replace (|^ y | mod q)%Z with (|^ y |).
-    2: { rewrite Z.mod_small; try lia; try split;try lia. apply F.to_Z_range;lia. }
-    auto.
-Qed.
-
-Create HintDb F_to_Z discriminated.
-Hint Rewrite (@F.to_Z_add q) : F_to_Z.
-Hint Rewrite (@F.to_Z_mul q) : F_to_Z.
-Hint Rewrite (@F.to_Z_pow q) : F_to_Z.
-Hint Rewrite (@F.to_Z_1 q) : F_to_Z.
-Hint Rewrite (to_Z_2) : F_to_Z.
-Hint Rewrite (@F.pow_1_r q) : F_to_Z.
-Hint Rewrite to_Z_sub : F_to_Z.
-Hint Rewrite Z.mod_small : F_to_Z.
 
 Lemma soundness: forall (w : t),
   (* pre-conditions: both inputs are at most (k-1) bits *)
@@ -216,7 +180,7 @@ Lemma soundness: forall (w : t),
   else
     x >=q y.
 Proof.
-  unwrap_C. intros w H_nk Hx Hy. unfold in_range in Hx, Hy.
+  unwrap_C. intros w H_nk Hx Hy.
   remember (w.(_in)[0]) as x. remember (w.(_in)[1]) as y.
   destruct w as [_in out [n2b H]]. simpl in *.
   rewrite <- Heqx, <- Heqy in *.

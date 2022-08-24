@@ -23,11 +23,9 @@ Require Import Circom.Default.
 (* Circuits:
  * https://github.com/iden3/circomlib/blob/master/circuits/comparators.circom
  *)
-Module Repr (C: CIRCOM).
+Module Repr.
 
 Import C.
-
-Module D := DSL C.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -299,31 +297,28 @@ Definition as_be2 := (as_be 1).
 
 
 
-Lemma binary_Z: forall x, binary x <-> (F.to_Z x = 0 \/ F.to_Z x = 1)%Z.
+Lemma binary_Z: forall x, binary x <-> |^x| = 0%Z \/ |^x| = 1%Z.
 Proof.
-  unfold binary;split;intros;pose proof q_gt_2.
+  unfold binary;split;intros;unwrap_C.
   - destruct H;subst;simpl;auto. right. apply Zmod_1_l. lia. 
   - destruct H;subst;simpl;auto. 
-    + left. pose proof (@F.to_Z_0 q). rewrite <- H1 in H. apply F.eq_to_Z_iff in H;auto.
-    + right. pose proof (@F.to_Z_1 q). rewrite <- H1 in H;auto. apply F.eq_to_Z_iff in H;auto.
+    + left. pose proof (@F.to_Z_0 q). rewrite <- H0 in H. apply F.eq_to_Z_iff in H;auto.
+    + right. pose proof (@F.to_Z_1 q). rewrite <- H0 in H;auto. apply F.eq_to_Z_iff in H;auto.
 Qed.
 
 Lemma leq_F_z_iff: forall x, (x <= 1 /\ x >= 0 <-> x = 0 \/ x = 1)%Z.
 Proof.
-  split;intros.
-  - lia.
-  - lia.
+  split; intros; lia.
 Qed.
 
 Lemma in_range_binary: forall x,  x | (1) <-> binary x.
 Proof.
-  unfold in_range;simpl.
-  split;intros.
+  split; intros.
   - apply binary_Z. apply leq_F_z_iff. pose proof (F.to_Z_range x). lia.
-  - apply binary_Z in H. apply leq_F_z_iff;auto.
+  - apply binary_Z in H. apply leq_F_z_iff; auto.
 Qed.
 
-Lemma Forall_if: forall {A: Type} (P Q: A -> Prop) (l: list A),
+Lemma Forall_weaken: forall {A: Type} (P Q: A -> Prop) (l: list A),
   (forall x, P x -> Q x) -> Forall P l -> Forall Q l.
 Proof.
   intros. apply Forall_forall. rewrite Forall_forall in H0.
@@ -331,7 +326,7 @@ Proof.
 Qed.
 
 Lemma Forall_in_range: forall xs, xs |: (1) <-> Forall binary xs.
-Proof. intuition; eapply Forall_if; try apply in_range_binary; auto.
+Proof. intuition; eapply Forall_weaken; try apply in_range_binary; auto.
 Qed.
 
 Create HintDb F_to_Z discriminated.

@@ -8,11 +8,11 @@ Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Zn
 Require Import Coq.NArith.Nnat.
 
 Require Import Crypto.Spec.ModularArithmetic.
-Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field Circom.Tuple.
-
-Require Import Circom.BabyJubjub Circom.Default.
-(* Require Import Circom.Tuple. *)
+Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Decidable.
+
+Require Import Circom.BabyJubjub.
+(* Require Import Circom.Tuple. *)
 (* Require Import Crypto.Util.Decidable Crypto.Util.Notations. *)
 (* Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac. *)
 
@@ -24,64 +24,13 @@ Module Type CIRCOM.
   Axiom k_positive: 1 < k.
   Axiom q_lb: 2^k < q.
   Axiom q_gtb_1: (1 <? q)%positive = true.
-  Axiom q_gt_2: 2 < q.
   Axiom pow_nonzero: forall (a: N), a <= k -> @F.pow q (F.add F.one F.one) a <> F.zero.
   Axiom to_Z_2pow: forall (a: N), a <= k -> F.to_Z (@F.pow q (F.add F.one F.one) a) = 2^a.
-  Global Hint Rewrite q_gtb_1 : circom.
-  Global Hint Rewrite two_lt_q : circom.
-  Global Ltac fqsatz := fsatz_safe; autorewrite with circom; auto.
-  Global Ltac unwrap_C :=
-    pose proof prime_q as prime_q;
-    pose proof two_lt_q as two_lt_q;
-    pose proof k_positive as k_positive;
-    pose proof q_lb as q_lb;
-    pose proof pow_nonzero as pow_nonzero.
-  (* TODO: replace this Ltac with destruct;intuition *)
-  Global Ltac split_eqns :=
-  repeat match goal with
-  | [ |- _ /\ _ ] => split
-  | [ H: exists _, _ |- _ ] => destruct H
-  | [ H: {s | _ } |- _ ] => destruct H
-  | [ H: _ /\ _ |- _ ] => destruct H
-  | [ _: _ |- _ -> _ ] => intros
-  end.
-
-
-  Declare Scope circom_scope.
-  Delimit Scope circom_scope with circom.
-  
-  Global Notation "x <z y" := (F.to_Z x < y) (at level 50) : circom_scope.
-  Global Notation "x <=z y" := (F.to_Z x <= y) (at level 50) : circom_scope.
-  Global Notation "x >z y" := (F.to_Z x > y) (at level 50) : circom_scope.
-  Global Notation "x >=z y" := (F.to_Z x >= y) (at level 50) : circom_scope.
-  
-  Global Notation "x <q y" := (F.to_Z x < F.to_Z y) (at level 50) : circom_scope.
-  Global Notation "x <=q y" := (F.to_Z x <= F.to_Z y) (at level 50) : circom_scope.
-  Global Notation "x >q y" := (F.to_Z x > F.to_Z y) (at level 50) : circom_scope.
-  Global Notation "x >=q y" := (F.to_Z x >= F.to_Z y) (at level 50) : circom_scope.
-  
-  Global Notation F := (F q).
-  Global Notation "2" := (F.add F.one F.one : F) : circom_scope.
-  Definition binary (x: F) := x = F.zero \/ x = F.one.
-  #[global] Instance F_default: Default F := { default := F.zero }.
-
-
-  Global Notation "P '?'" :=
-  (match (@dec P _) with
-   | left _ => true
-   | right _ => false
-   end)
-  (at level 100).
-
-  Local Coercion Z.of_nat : nat >-> Z.
-  Local Coercion N.of_nat : nat >-> N.
-  Definition in_range (n: nat) (x: F) := (x <=z (2^n-1)%Z)%circom.
-  Global Notation "x | ( n )" := (in_range n x) (at level 40) : circom_scope.
-  Global Notation "xs |: ( n )" := (List.Forall (in_range n) xs) (at level 40) : circom_scope.
-  Global Notation "|^ x |" := (@F.to_Z q x) : circom_scope.
 End CIRCOM.
 
-(* Definition q := BabyJubjub.p.
+
+Module C : CIRCOM.
+Definition q := BabyJubjub.p.
 Definition k := 253.
 
 Fact prime_q: prime q.
@@ -98,14 +47,77 @@ Proof. unfold k, q, BabyJubjub.p. lia. Qed.
 
 Lemma q_gtb_1: (1 <? q)%positive = true.
 Proof.
-  unwrap_C.
+  pose proof two_lt_q.
   apply Pos.ltb_lt. lia.
 Qed.
 
-Lemma q_gt_2: 2 < q.
-Proof.
-  unwrap_C.
-  replace 2%Z with (2^1)%Z by lia.
-  apply Z.le_lt_trans with (m := (2 ^ k)%Z); try lia.
-  eapply Zpow_facts.Zpower_le_monotone; try lia.
-Qed. *)
+Lemma pow_nonzero: forall (a: N), 
+  a <= k -> 
+  @F.pow q (F.add F.one F.one) a <> F.zero.
+Admitted.
+
+Lemma to_Z_2pow: forall (a: N), 
+  a <= k -> 
+  F.to_Z (@F.pow q (F.add F.one F.one) a) = 2^a.
+Admitted.
+
+End C.
+
+
+Export C.
+
+Global Hint Rewrite q_gtb_1 : circom.
+Global Hint Rewrite two_lt_q : circom.
+Global Ltac fqsatz := fsatz_safe; autorewrite with circom; auto.
+Global Ltac unwrap_C :=
+  pose proof prime_q as prime_q;
+  pose proof two_lt_q as two_lt_q;
+  pose proof k_positive as k_positive;
+  pose proof q_lb as q_lb;
+  pose proof pow_nonzero as pow_nonzero.
+
+(* Global Ltac split_eqns :=
+repeat match goal with
+| [ |- _ /\ _ ] => split
+| [ H: exists _, _ |- _ ] => destruct H
+| [ H: {s | _ } |- _ ] => destruct H
+| [ H: _ /\ _ |- _ ] => destruct H
+| [ _: _ |- _ -> _ ] => intros
+end. *)
+
+
+Declare Scope circom_scope.
+Delimit Scope circom_scope with circom.
+  
+Global Notation "x <z y" := (F.to_Z x < y) (at level 50) : circom_scope.
+Global Notation "x <=z y" := (F.to_Z x <= y) (at level 50) : circom_scope.
+Global Notation "x >z y" := (F.to_Z x > y) (at level 50) : circom_scope.
+Global Notation "x >=z y" := (F.to_Z x >= y) (at level 50) : circom_scope.
+
+Global Notation "x <q y" := (F.to_Z x < F.to_Z y) (at level 50) : circom_scope.
+Global Notation "x <=q y" := (F.to_Z x <= F.to_Z y) (at level 50) : circom_scope.
+Global Notation "x >q y" := (F.to_Z x > F.to_Z y) (at level 50) : circom_scope.
+Global Notation "x >=q y" := (F.to_Z x >= F.to_Z y) (at level 50) : circom_scope.
+
+Global Notation F := (ModularArithmetic.F q).
+
+Global Notation "2" := (F.add F.one F.one : F) : circom_scope.
+
+Definition binary (x: F) := x = F.zero \/ x = F.one.
+
+Global Notation "P '?'" :=
+(match (@dec P _) with
+  | left _ => true
+  | right _ => false
+  end)
+(at level 100).
+
+Local Coercion Z.of_nat : nat >-> Z.
+Local Coercion N.of_nat : nat >-> N.
+Local Open Scope circom_scope.
+
+Global Notation "x | ( n )" := (x <=z (2^n-1)%Z) (at level 40) : circom_scope.
+Global Notation "xs |: ( n )" := (List.Forall (fun x => x | (n)) xs) (at level 40) : circom_scope.
+Global Notation "|^ x |" := (@F.to_Z q x) : circom_scope.
+
+Local Close Scope circom_scope.

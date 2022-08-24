@@ -20,9 +20,8 @@ Require Import Circom.Circom Circom.DSL Circom.Util Circom.ListUtil.
 Require Import Circom.Default.
 
 
-Module Type TO_Z (C: CIRCOM).
-  Import C.
-  Variable to_Z: F -> Z.
+Module Type TO_Z.
+  Axiom to_Z: F -> Z.
   Axiom to_Z_0: to_Z 0%F = 0%Z.
   Axiom to_Z_1: to_Z 1%F = 1%Z.
   Axiom to_Z_2: to_Z (1+1)%F = 2%Z.
@@ -37,7 +36,7 @@ End TO_Z.
 Local Coercion Z.of_nat : nat >-> Z.
 Local Coercion N.of_nat : nat >-> N.
 
-Module ReprZ (C: CIRCOM) (TO_Z: TO_Z C).
+Module ReprZ (TO_Z: TO_Z).
 
 Module ToZ := TO_Z.
 Import C ToZ.
@@ -45,7 +44,6 @@ Import C ToZ.
 Local Open Scope list_scope.
 Local Open Scope Z_scope.
 Local Open Scope circom_scope.
-
 
 
 (* Base 2^n representations *)
@@ -324,8 +322,7 @@ End Base2n.
 
 End ReprZ.
 
-Module ToZUnsigned (C: CIRCOM) <: TO_Z C.
-Import C.
+Module ToZUnsigned <: TO_Z.
 Local Open Scope circom_scope.
 
 Definition to_Z : F -> Z := @F.to_Z q.
@@ -344,12 +341,13 @@ Proof. unwrap_C. intros. unfold to_Z. apply F.to_Z_range. lia. Qed.
 
 End ToZUnsigned.
 
-Module ReprZUnsigned (C: CIRCOM).
 
-Module ToZ := ToZUnsigned C.
-Module RZ := (ReprZ C ToZ).
 
-Import C RZ.
+Module ReprZUnsigned.
+
+Module RZ := (ReprZ ToZUnsigned).
+
+Import RZ.
 
 Section _ReprZUnsigned.
 Context (n: nat) (n_leq_k: n <= C.k).
@@ -406,7 +404,7 @@ Proof.
   invert Hys.
   assert (Hxs_ub: [\xs \] <= 2 ^ (n * length xs) - 1). eapply repr_be_ub; subst; unfold repr_be; intuition.
   assert (Hys_ub: [\ys \] <= 2 ^ (n * length ys) - 1). eapply repr_be_ub; subst; unfold repr_be; intuition.
-  unfold RZ.ToZ.to_Z, in_range in *.
+  unfold RZ.ToZ.to_Z in *.
   invert Hlen.
   destruct (dec (x <q y)).
   (* x <q y *) nia.
@@ -445,7 +443,7 @@ Proof.
   invert Hys.
   assert (Hxs_ub: [\xs \] <= 2 ^ (n * length xs) - 1). eapply repr_be_ub; subst; unfold repr_be; intuition.
   assert (Hys_ub: [\ys \] <= 2 ^ (n * length ys) - 1). eapply repr_be_ub; subst; unfold repr_be; intuition.
-  unfold RZ.ToZ.to_Z, in_range in *.
+  unfold RZ.ToZ.to_Z in *.
   invert Hlen.
   destruct (dec (x <q y)). reflexivity.
   destruct (dec (x=y)). apply IHxs; eauto. apply f_equal with (f:=F.to_Z) in e.
@@ -468,7 +466,6 @@ Proof.
   apply big_lt_sound; auto.
   apply big_lt_complete; auto.
 Qed.
-
 
 Lemma big_lt_firstn: forall i xs ys,
   length xs = length ys ->

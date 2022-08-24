@@ -93,13 +93,19 @@ Create HintDb simplify_NZ discriminated.
 #[export] Hint Rewrite (Nat.mul_succ_r): simplify_NZ.
 #[export] Hint Rewrite (Nat.mul_add_distr_l): simplify_NZ.
 #[export] Hint Rewrite (Nat.mul_add_distr_r): simplify_NZ.
+#[export] Hint Rewrite (Z.add_0_r): simplify_NZ.
+#[export] Hint Rewrite (Z.add_0_l): simplify_NZ.
 #[export] Hint Rewrite (Z.mul_1_l) : simplify_NZ.
 #[export] Hint Rewrite (Z.mul_1_r): simplify_NZ.
 #[export] Hint Rewrite (Z.mul_0_l): simplify_NZ.
 #[export] Hint Rewrite (Z.mul_0_r): simplify_NZ.
-#[export] Hint Rewrite (Z.add_0_r): simplify_NZ.
-#[export] Hint Rewrite (Z.add_0_l): simplify_NZ.
 #[export] Hint Rewrite (Z.mul_succ_r): simplify_NZ.
+#[export] Hint Rewrite (Zpow_facts.Zpower_1_r): simplify_NZ.
+#[export] Hint Rewrite (Zpow_facts.Zpower_1_l): simplify_NZ.
+#[export] Hint Rewrite (Zpow_facts.Zpower_0_l): simplify_NZ.
+#[export] Hint Rewrite (Zpow_facts.Zpower_0_r): simplify_NZ.
+#[export] Hint Rewrite (Zpower_exp): simplify_NZ.
+
 #[export] Hint Rewrite (N.mul_1_l) : simplify_NZ.
 #[export] Hint Rewrite (N.mul_1_r): simplify_NZ.
 #[export] Hint Rewrite (N.mul_0_l): simplify_NZ.
@@ -109,7 +115,7 @@ Create HintDb simplify_NZ discriminated.
 #[export] Hint Rewrite (N.mul_succ_r): simplify_NZ.
 #[export] Hint Rewrite (N.mul_add_distr_l): simplify_NZ.
 #[export] Hint Rewrite (N.mul_add_distr_r): simplify_NZ.
-#[export] Hint Rewrite (Zpower_exp): simplify_NZ.
+
 
 Ltac simplify := autorewrite with simplify_NZ simplify_F natsimplify; try lia.
 Ltac simplify' H := autorewrite with simplify_NZ simplify_F natsimplify in H; try lia.

@@ -74,7 +74,8 @@ Global Ltac unwrap_C :=
   pose proof two_lt_q as two_lt_q;
   pose proof k_positive as k_positive;
   pose proof q_lb as q_lb;
-  pose proof pow_nonzero as pow_nonzero.
+  pose proof pow_nonzero as pow_nonzero;
+  pose proof to_Z_2pow as to_Z_2pow.
 
 Declare Scope circom_scope.
 Delimit Scope circom_scope with circom.

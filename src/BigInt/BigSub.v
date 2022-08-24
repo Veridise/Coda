@@ -16,7 +16,7 @@ Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
 From Circom Require Import Repr ReprZ.
-From Circom.circomlib Require Import Bitify Comparators.
+From Circom.CircomLib Require Import Bitify Comparators.
 
 (* Circuit:
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
@@ -40,29 +40,11 @@ Local Open Scope tuple_scope.
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
-
-Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
-  i < length l ->
-  List.nth i l d = List_nth_Default i l.
-Proof. intros. unfold List_nth_Default. rewrite nth_default_eq. erewrite nth_oblivious; eauto.  Qed.
-
-Ltac unfold_default := unfold List_nth_Default; rewrite nth_default_eq.
-Ltac fold_default := rewrite fold_nth; try lia.
-Ltac simpl_default := repeat unfold_default; simpl; repeat fold_default; try lia.
-Ltac default_apply L := repeat unfold_default; L; repeat fold_default; try lia.
-
-Lemma nth_Default_List_tuple {T n} `{Default T} (xs: tuple T n) i:
-  (to_list n xs) ! i = xs [i].
-Proof.
-  unfold List_nth_Default. unfold nth_Default, nth. rewrite nth_default_to_list. reflexivity.
-Qed.
-
 Module ModSubThree.
 
 Section ModSubThree.
 
 Import Cmp R.
-
 
 (* 
 // a - b - c
@@ -85,6 +67,9 @@ template ModSubThree(n) {
 }
 *)
 
+
+Local Notation "2" := (1 + 1: F).
+
 Definition cons (a b c out borrow: F) :=
   exists (lt: @LessThan.t (S n)),
     let b_plus_c := b + c in
@@ -100,71 +85,59 @@ Record t : Type := {
   _cons: cons a b c out borrow;
 }.
 
-Definition spec (w: t) :=
+Lemma F_to_Z_nonneg: forall (x: F), (0 <= |^x|)%Z.
+Proof. intros. apply F.to_Z_range. lia. Qed.
+
+Theorem soundness: forall w,
   (* pre-conditions *)
-  ( S n <= C.k - 1 )%Z ->
-    (* a and b are n-bits, i.e., <= 2^n-1 *)
-    w.(a) | (n) -> 
-    w.(b) | (n) -> 
-    binary w.(c) ->
+  ( n + 2 <= C.k )%Z ->
+  (* a and b are n-bits, i.e., <= 2^n-1 *)
+  w.(a) | (n) -> 
+  w.(b) | (n) -> 
+  binary w.(c) ->
+  (* a - b - c + 2^n >= 0 *)
+  (0 <= |^w.(a)| - |^w.(b)| - |^w.(c)| + 2^n)%Z ->
   ( w.(a) - w.(b) - w.(c) + 2^n >=z 0 ) /\
   (* post-conditions *)
   w.(out) - w.(borrow) * 2^n = w.(a) - w.(b) - w.(c) /\
   w.(out) | (n) /\
   binary w.(borrow).
-
-Lemma add_0_r: forall (x z: F), z = 0 -> x + z = x.
-Proof. unwrap_C. intros. fqsatz. Qed.
-
-Ltac unwrap_Default H _default := rewrite nth_Default_nth_default in H; unfold default in H; cbn [_default] in H.
-Ltac unwrap_Default_goal _default := rewrite nth_Default_nth_default; unfold default; cbn [_default].
-
-Theorem soundness: forall w, spec w.
 Proof.
-  unwrap_C. intros.
+  unwrap_C. intros w Hnk Ha Hb Hc Habc.
+  assert (Hnk_pow: (0 <= 2^(n+2) <= 2^C.k)%Z). split. lia. (apply Zpow_facts.Zpower_le_monotone; lia).
+  simplify' Hnk_pow. replace (2^2)%Z with 4%Z in Hnk_pow by lia.
   destruct w as [a b c out borrow _cons].
-  unfold spec, cons in *. destruct _cons as [lt [H_in0 [H_in1 [H_borrow [H_out H_assert]]] ] ].
-  simpl. intros Hnk Ha Hb Hc. 
+  unfold cons in *. destruct _cons as [lt [H_in0 [H_in1 [H_borrow [H_out H_assert]]] ] ].
+  cbn [ModSubThree.a ModSubThree.b ModSubThree.c ModSubThree.borrow ModSubThree.out] in *.
+
   apply in_range_binary in Hc.
   assert (lt_range_1: LessThan._in lt [0] <=z (2 ^ S n -1)%Z).
   { rewrite H_in0. rewrite Ha. replace (2 ^ (S n))%Z with (2 ^ (n + 1))%Z. 
-    rewrite Zpower_exp;lia. lia. }
+  rewrite Zpower_exp;lia. lia. }
   assert (lt_range_2: LessThan._in lt [1] <=z (2 ^ S n -1)%Z).
-  { rewrite H_in1. apply in_range_binary in Hc. destruct Hc;subst;
-    autorewrite with simplify_F simplify_NZ. 
-    + rewrite Hb. replace (2 ^ (S n))%Z with (2 ^ (n + 1))%Z. rewrite Zpower_exp;lia. lia.
-    + replace (2 ^ (S n))%Z with (2 ^ (n + 1))%Z;try lia. rewrite Zpower_exp;try lia.
-      assert ((b + 1) <=z (2 ^ n)). 
-      { repeat (autorewrite with F_to_Z; try lia; try nia).
-        replace (|^ b | + 1)%Z with (|^ b + 1|).
-        2:{
-          simpl;repeat rewrite Z.mod_small;try lia. 
-          pose proof (@F.to_Z_range q b). destruct H;try lia. split;try lia.
-          assert((2 ^ n - 1) < 2 ^ k)%Z;try lia.
-          assert (n+2 <= k)%Z. lia.
-          assert(2^(n+2) <= 2^k)%Z. apply Zpow_facts.Zpower_le_monotone; lia.
-          autorewrite with simplify_NZ in *;lia.
-        }
-        apply F.to_Z_range;lia. }
-      rewrite H;lia. }
+  { rewrite H_in1.
+    assert (0 <= |^b|)%Z. apply F.to_Z_range. lia.
+    assert (0 <= |^c|)%Z. apply F.to_Z_range. lia.
+    replace (S n) with (n+1)%nat by lia.
+    rewrite Nat2Z.inj_add. simpl.
+    rewrite Z.mod_small. simplify. nia. }
+  
   destruct (LessThan.soundness lt) as [H_lt_b H_lt]; try lia.
-  intuition;auto; try fqsatz.
-  - subst.
-    rewrite H_in1 in *.
-    destruct (dec (LessThan.out lt = 1)).
-    + rewrite e. 
-      assert ((|^ LessThan._in lt [0] |) - (|^b| + |^c|) <= -1)%Z. skip. (* TODO *)
-      assert (1 * (1 + 1) ^ n = (2 ^ n)). fqsatz. 
-      rewrite H0. skip. (* TODO *)
-    + assert(LessThan.out lt = 0).
-      {
-      apply R.binary_Z in H_lt_b. destruct H_lt_b;try easy. 
-      2:{ exfalso. apply n0. replace 1%Z with (@F.to_Z q 1) in H. rewrite <- F.eq_to_Z_iff in H;auto. eapply F.to_Z_1. }
-          replace 0%Z with (@F.to_Z q 0) in H. rewrite <- F.eq_to_Z_iff in H;auto. eapply F.to_Z_0. }
-      rewrite H. autorewrite with simplify_F simplify_NZ. skip. (* TODO *)
-  - rewrite H_borrow;auto.
-Unshelve. lia.
-Qed.
+  rewrite H_in0, H_in1, H_out, <- H_borrow in *.
+  intuition; auto; try fqsatz.
+  assert (0 <= |^ b | + |^ c | <= 2^n)%Z.
+  { pose proof (F_to_Z_nonneg b). pose proof (F_to_Z_nonneg c). lia. }
+  destruct (dec (borrow = 1)).
+  + rewrite e in *.
+    repeat (autorewrite with F_to_Z; simplify; try (simpl; lia)).
+    simpl. admit.
+  + assert(borrow = 0). destruct H_lt_b. fqsatz. exfalso; fqsatz.
+    eapply binary_in_range with (n:=1%nat) in H_lt_b; try lia.
+    pose proof (F_to_Z_nonneg borrow).
+    repeat (autorewrite with F_to_Z; simplify; try (simpl; lia || nia));
+    admit.
+Unshelve.
+Admitted.
 
 (* for default values. never used *)
 Definition wgen : t. skip. Defined.
@@ -218,7 +191,6 @@ Module M := ModSubThree.
 
 (* interpret a tuple of weights as representing a little-endian base-2^n number *)
 Local Notation "[| xs |]" := (RZ.as_le n xs).
-Local Notation "[|| xs ||]" := (RZ.as_le n (to_list _ xs)).
 
 Definition cons (a b: tuple F k) (out: tuple F k) (underflow: F) :=
   exists (unit: tuple M.t k),
@@ -247,12 +219,12 @@ Definition spec (w: t) :=
   (* pre-condition *)
   (n > 0)%Z ->
   (k > 0)%Z ->
-  (S n <= C.k - 1)%Z ->
+  (n + 2 <= C.k)%Z ->
   'w.(a) |: (n) ->
   'w.(b) |: (n) ->
-  ([|| w.(a) ||] >= [|| w.(b) ||])%Z ->
+  ([|' w.(a) |] >= [|' w.(b) |])%Z ->
   (* post-condition *)
-  ([|| w.(out) ||] = [|| w.(a) ||] - [|| w.(b) ||])%Z /\
+  ([|' w.(out) |] = [|' w.(a) |] - [| 'w.(b) |])%Z /\
   ( w.(underflow) = 0) /\
   'w.(out) |: (n).
 
@@ -264,12 +236,9 @@ Definition spec_weak (w: t) :=
   'w.(a) |: (n) ->
   'w.(b) |: (n) ->
   (* post-condition *)
-  ([|| w.(out) ||] - |^ w.(underflow) | * 2^(n*k) = [|| w.(a) ||] - [|| w.(b) ||])%Z /\
+  ([|' w.(out) |] - |^ w.(underflow) | * 2^(n*k) = [|' w.(a) |] - [|' w.(b) |])%Z /\
   binary w.(underflow) /\
   'w.(out) |: (n).
-
-Ltac simplify := autorewrite with simplify_NZ simplify_F natsimplify; try lia.
-Ltac simplify' H := autorewrite with simplify_NZ simplify_F natsimplify in H; try lia.
 
 
 Ltac split_as_le xs i := 
@@ -277,25 +246,6 @@ Ltac split_as_le xs i :=
   try rewrite firstn_firstn; simplify;
   try rewrite firstn_nth by lia.
 
-
-Ltac lift_to_list := repeat match goal with
-| [H: context[nth_Default _ _] |- _] => rewrite <-nth_Default_List_tuple in H; try lia
-| [ |- context[nth_Default _ _] ] => rewrite <-nth_Default_List_tuple; try lia
-| [H: tforall _ _ |- _] => apply tforall_Forall in H
-| [ |- tforall _ _] => apply tforall_Forall
-end.
-
-Lemma binary_in_range: forall n x,
-  (n > 0)%nat ->
-  binary x -> x | (n).
-Proof.
-  unwrap_C. intros n x Hn Hbin.
-  destruct (dec (n>1)).
-  destruct Hbin; subst; autorewrite with F_to_Z. lia.
-  assert (2^1 < 2^n)%Z. apply Zpow_facts.Zpower_lt_monotone. lia. lia.
-  transitivity (2^1)%Z. simpl. lia. lia. lia.
-  assert (n=1)%nat by lia. subst. simpl. destruct Hbin; subst; autorewrite with F_to_Z; lia.
-Qed.
 
 Lemma nth_0 {T} `{Default T}: forall (x: T), (x :: nil) ! 0 = x.
 Proof.
@@ -336,14 +286,15 @@ Proof.
     unfold Inv in *. intros Hf.
     rewrite Heqf in *. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
     lift_to_list.
-    pose proof (ModSubThree.soundness ('unit ! i )) as M0. unfold ModSubThree.spec in M0.
+    pose proof (ModSubThree.soundness ('unit ! i )) as M0. 
     destruct IH as [IH_bin IH_eq]. auto.
     destruct M0 as [M_rng M_eq]; try lia.
     { rewrite Hai. unfold_default. apply Forall_nth. auto. lia. }
     { rewrite Hbi. unfold_default. apply Forall_nth. auto. lia. }
     { destruct (dec (i=0%nat)). rewrite Hci. left. fqsatz.
       rewrite Hci. apply IH_bin. lia. }
-    destruct (dec (S i = 0%nat)). discriminate.
+    destruct (dec (S i = 0%nat)). discriminate. 
+    admit. (* TODO: modsubthree has an additional pre-condition *)
     split_as_le ('out) i. split_as_le ('a) i. split_as_le ('b) i.
     intuition idtac.
     (* binary *)
@@ -374,12 +325,12 @@ Proof.
         nia.
       * (* i > 0 *) 
         simplify.
-        repeat (unfold_default; rewrite firstn_nth; try lia; fold_default).
+        default_apply ltac:(rewrite firstn_nth; try lia); try (rewrite firstn_length_le; try lia).
         unfold RZ.ToZ.to_Z.
         default_apply ltac:(repeat rewrite firstn_nth; try lia).
         (* range proof *)
         assert (|^'out!i| = |^'a!i| - |^'b!i|)%Z by admit.
-        nia.
+        nia. 
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
       eauto using RZ.repr_trivial.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
@@ -443,7 +394,7 @@ Proof.
     unfold Inv in *. intros Hf.
     rewrite Heqf in *. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
     lift_to_list.
-    pose proof (ModSubThree.soundness ('unit ! i )) as M0. unfold ModSubThree.spec in M0.
+    pose proof (ModSubThree.soundness ('unit ! i )) as M0.
     destruct IH as [IH_bin IH_eq]. auto.
     destruct M0 as [M_rng M_eq]; try lia.
     { rewrite Hai. unfold_default. apply Forall_nth. auto. lia. }
@@ -451,6 +402,7 @@ Proof.
     { destruct (dec (i=0%nat)). rewrite Hci. left. fqsatz.
       rewrite Hci. apply IH_bin. lia. }
     destruct (dec (S i = 0%nat)). discriminate.
+    admit. (* TODO: modsubthree has an additional pre-condition *)
     split_as_le ('out) i. split_as_le ('a) i. split_as_le ('b) i.
     intuition idtac.
     (* binary *)
@@ -471,17 +423,19 @@ Proof.
         (* range proof *)
         assert (|^'out!0| - 2 ^ n * |^ M.borrow (' unit ! 0) | = |^'a!0| - |^'b!0|)%Z by admit.
         unfold RZ.ToZ.to_Z.
+        destruct (dec (1=0)%nat). discriminate.
         nia.
       * (* i > 0 *) 
         simplify.
-        repeat (unfold_default; rewrite firstn_nth; try lia; fold_default).
         default_apply ltac:(repeat rewrite firstn_nth; try lia).
         (* range proof *)
         remember (M.borrow ('unit!i)) as ci.
         remember (M.borrow ('unit!(i-1))) as ci'.
         (* range proof *)
         assert (|^'out!i| - 2^n * |^ ci| = |^'a!i| - |^'b!i| - |^ ci'|)%Z by admit. 
-        unfold RZ.ToZ.to_Z. nia.
+        unfold RZ.ToZ.to_Z. 
+        destruct (dec (S i = 0)%nat). discriminate.
+        nia.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
       eauto using RZ.repr_trivial.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.

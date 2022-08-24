@@ -20,7 +20,7 @@ Require Import Coq.Logic.PropExtensionality.
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
 From Circom Require Import Repr ReprZ.
-From Circom.circomlib Require Import Bitify Comparators Gates.
+From Circom.CircomLib Require Import Bitify Comparators Gates.
 
 (* Circuit:
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom

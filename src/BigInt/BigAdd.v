@@ -17,7 +17,7 @@ Require Import Ring.
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
 From Circom Require Import Repr ReprZ.
-From Circom.circomlib Require Import Bitify Comparators.
+From Circom.CircomLib Require Import Bitify Comparators.
 
 (* Circuit:
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
@@ -75,9 +75,12 @@ Record t : Type := {
   _cons: cons a b c sum carry;
 }.
 
-Definition spec (w: t) :=
+Lemma add_sub: forall (x y: F), x + y - y = x.
+Proof. unwrap_C. intros. fqsatz. Qed.
+
+Theorem soundness: forall w,
   (* pre-conditions *)
-  ( S n <= C.k )%Z ->
+  ( n <= C.k - 1 )%Z ->
   (* a and b are n-bits, i.e., <= 2^n-1 *)
   w.(a) | (n) -> 
   w.(b) | (n) -> 
@@ -87,19 +90,12 @@ Definition spec (w: t) :=
   (* sum is n-bits, i.e., <= 2^n-1 *)
   w.(sum) | (n) /\
   binary w.(carry).
-
-Lemma add_0_r: forall (x z: F), z = 0 -> x + z= x.
-Proof. unwrap_C. intros. fqsatz. Qed.
-
-Ltac unwrap_Default H _default := rewrite nth_Default_nth_default in H; unfold default in H; cbn [_default] in H.
-Ltac unwrap_Default_goal _default := rewrite nth_Default_nth_default; unfold default; cbn [_default].
-
-Theorem soundness: forall w, spec w.
 Proof.
-  unwrap_C. intros.
-  destruct w as [a b c sum carry _cons].
-  unfold spec, cons in *. destruct _cons as [n2b [H_in [H_carry H_sum] ] ].
-  simpl. intros Hnk Ha Hb Hc.
+  unwrap_C.
+  intros c Hnk Ha Hb Hc.
+  destruct c as [a b c sum carry _cons].
+  simpl in *. unfold cons in *.
+  destruct _cons as [n2b [H_in [H_carry H_sum] ] ].
   apply R.in_range_binary in Hc.
   intuition.
   - fqsatz.
@@ -111,32 +107,30 @@ Proof.
   rewrite H_as_le.
   erewrite as_le_split_last; eauto.
 
-  rewrite nth_Default_List_tuple.
+  lift_to_list.
   rewrite <- Heqout_n.
-  autorewrite with simplify_F simplify_NZ.
-  
-  replace (as_le 1 ((to_list (S n) Num2Bits.out)[:n]) + (1 + 1) ^ n * out_n -
-    out_n * (1 + 1) ^ n) with (as_le 1 (firstn n (to_list (S n) Num2Bits.out))) by fqsatz.
+  simplify.
+  match goal with
+  | [ |- context[?x + ?y - ?z] ] => replace (x+y-z) with x by fqsatz
+  end.
   eapply repr_le_ub; try lia.
   eapply repr_le_firstn; eauto.
   rewrite firstn_length_le; lia.
   rewrite H. auto.
-
   - rewrite H_carry.
   pose proof (Num2Bits.soundness n2b) as H_n2b. 
   unfold repr_le2, repr_le in *.
   intuition.
-  rewrite <- nth_Default_List_tuple. unfold_default.
-  apply Forall_nth.
+  lift_to_list. unfold_default.
+  apply Forall_nth; try lia.
   apply Forall_in_range.
-  auto. 
-  lia.
+  auto.
 Qed.
 
 (* for default values. never used *)
 Definition wgen : t. skip. Defined.
 
-#[global] Instance ModSumThree_default : Default (ModSumThree.t) := { default := wgen }.
+#[global] Instance Default : Default (ModSumThree.t) := { default := wgen }.
 
 End ModSumThree.
 End ModSumThree.
@@ -185,14 +179,13 @@ Definition cons (a b: tuple F k) (out: tuple F (S k)) :=
     _cons /\
     unit [i].(M.a) = a [i] /\
     unit [i].(M.b) = b [i] /\
-    (if (dec (i = 0%nat)) then
+    (if (dec (i = 0)%nat) then
     unit [i].(M.c) = 0
     else
     unit [i].(M.c) = unit [i-1].(M.carry)) /\
     out [i] = unit [i].(M.sum)
     ) k True /\ 
   out [k] = unit [k-1].(M.carry).
-
 
 Record t := {
   a: tuple F k;
@@ -218,26 +211,8 @@ Ltac split_as_le xs i :=
   try rewrite firstn_firstn; simplify;
   try rewrite firstn_nth by lia.
 
-
-
-Lemma binary_in_range: forall (n:nat) x,
-  n > 0 ->
-  binary x -> 
-  x | (n).
-Proof.
-  unwrap_C. intros n x Hn Hbin.
-  destruct (dec (n>1)).
-  destruct Hbin; subst; autorewrite with F_to_Z; try lia.
-  assert (2^1 < 2^n)%Z. apply Zpow_facts.Zpower_lt_monotone; lia.
-  transitivity (2^1)%Z; simpl; lia.
-  assert (n=1)%nat by lia. subst. simpl. destruct Hbin; subst; autorewrite with F_to_Z; lia.
-Qed.
-
 Lemma nth_0 {T} `{Default T}: forall (x: T), (x :: nil) ! 0 = x.
-Proof.
-intro x.
-erewrite <- fold_nth with (d:=x);eauto. 
-Qed.
+Proof. intro x. erewrite <- fold_nth with (d:=x); auto. Qed.
 
 Theorem soundness: forall (w: t), spec w.
 Proof.
@@ -272,7 +247,7 @@ Proof.
     rewrite Heqf in *. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
     symmetry in Houti.
     lift_to_list.
-    pose proof (ModSumThree.soundness ('unit ! i )) as M0. unfold ModSumThree.spec in M0.
+    pose proof (ModSumThree.soundness ('unit ! i )) as M0.
     destruct IH as [IH_bin IH_eq]. auto.
     destruct M0 as [M_eq [M_sum M_bin] ]. lia.
     rewrite Hai. unfold_default. apply Forall_nth. auto. lia.

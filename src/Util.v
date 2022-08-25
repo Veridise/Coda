@@ -12,7 +12,8 @@ Require Import Crypto.Util.Decidable Crypto.Util.ZUtil Crypto.Algebra.Ring.
 Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
-From Circom Require Import Circom DSL.
+
+From Circom Require Import Circom DSL Simplify.
 
 Ltac invert H := inversion H; subst; clear H.
 
@@ -29,3 +30,19 @@ Ltac rem_iter :=
     | _ => fail
     end
   end.
+
+Local Open Scope circom_scope.
+Local Coercion Z.of_nat: nat >-> Z.
+
+Lemma binary_in_range: forall (n:nat) x,
+  n > 0 ->
+  binary x -> 
+  x | (n).
+Proof.
+  unwrap_C. intros n x Hn Hbin.
+  destruct (dec (n>1)).
+  destruct Hbin; subst; autorewrite with F_to_Z; try lia.
+  assert (2^1 < 2^n)%Z. apply Zpow_facts.Zpower_lt_monotone; lia.
+  transitivity (2^1)%Z; simpl; lia.
+  assert (n=1)%nat by lia. subst. simpl. destruct Hbin; subst; autorewrite with F_to_Z; lia.
+Qed.

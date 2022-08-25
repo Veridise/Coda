@@ -19,7 +19,7 @@ Require Import Ring.
 
 Require Import Circom.Circom.
 Require Import Circom.DSL.
-Require Import Circom.circomlib.Bitify.
+Require Import Circom.CircomLib.Bitify.
 
 
 Require Import Crypto.Spec.ModularArithmetic.

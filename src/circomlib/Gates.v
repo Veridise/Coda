@@ -17,9 +17,8 @@ Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
 
-Require Import Circom.LibTactics.
+From Circom Require Import Circom Default LibTactics.
 Require Import Circom.Circom Circom.Default.
-(* Require Import Circom.Util. *)
 
 (* Circuit:
 * https://github.com/iden3/circomlib/blob/master/circuits/gates.circom
@@ -29,6 +28,17 @@ Local Open Scope list_scope.
 Local Open Scope F_scope.
 
 Module Gates.
+
+#[local] Hint Extern 10 (_ = _) => fqsatz : core.
+#[local] Hint Extern 10 (binary _) => (left; fqsatz) || (right; fqsatz): core.
+
+Ltac split_dec := 
+  repeat match goal with
+  | [ |- context[dec ?P] ] => destruct (dec P)
+  | [ H: context[dec ?P] |- _ ] => destruct (dec P)
+  end.
+Ltac intuit := intuition idtac.
+
 
 Module XOR.
 (* template XOR() {
@@ -54,11 +64,8 @@ Proof.
   unwrap_C.
   intros c Ha Hb. destruct c as [a b c _cons].
   unfold cons in *. simpl in *.
-  destruct Ha; destruct Hb;
-  destruct (dec (a=1)); destruct (dec (b=1)); destruct (dec (c=1));
-  destruct (dec (a=b));
-  try fqsatz; split; try auto;
-  try solve[left; fqsatz]; try solve[right; fqsatz].
+  destruct Ha; destruct Hb; subst; split_dec; intuit;
+  auto.
 Qed.
 End XOR.
 
@@ -87,10 +94,8 @@ Proof.
   unwrap_C.
   intros c Ha Hb. destruct c as [a b c _cons].
   unfold cons in *. simpl in *.
-  destruct Ha; destruct Hb;
-  destruct (dec (a=1)); destruct (dec (b=1)); destruct (dec (c=1));
-  try fqsatz; split; try auto; 
-  try solve[left; fqsatz]; try solve[right; fqsatz].
+  destruct Ha; destruct Hb; subst; split_dec; intuit;
+  auto || (exfalso; auto).
 Qed.
 
 Lemma is_sound (c: t):
@@ -98,16 +103,9 @@ Lemma is_sound (c: t):
   binary c.(b) ->
   (c.(out) = 1 <-> (c.(a) = 1 /\ c.(b) = 1)).
 Proof.
-  unwrap_C.
   intros Hbin_a Hbin_b.
-  specialize (soundness c).
-  destruct Hbin_a; destruct Hbin_b;
-  destruct (dec (a c = 1)); 
-  destruct (dec (b c = 1)); 
-  destruct (dec (out c = 1)); intuition;
-  try (rewrite H in *; fqsatz);
-  unfold binary in *; simpl in *;
-  try (exfalso; destruct H1; auto; discriminate).
+  specialize (soundness c Hbin_a Hbin_b). intro.
+  split_dec; simpl in *; intuit; auto || discriminate.
 Qed.
 
 
@@ -115,7 +113,7 @@ Lemma is_binary (c: t):
   binary c.(a) ->
   binary c.(b) ->
   binary c.(out).
-Proof. specialize (soundness c). intuition. Qed.
+Proof. specialize (soundness c). intuit. Qed.
 
 Definition wgen: t. skip. Defined.
 
@@ -149,10 +147,8 @@ Proof.
   unwrap_C.
   intros c Ha Hb. destruct c as [a b c _cons].
   unfold cons in *. simpl in *.
-  destruct Ha; destruct Hb;
-  destruct (dec (a=1)); destruct (dec (b=1)); destruct (dec (c=1));
-  try fqsatz; split; try auto; 
-  try solve[left; fqsatz]; try solve[right; fqsatz].
+  destruct Ha; destruct Hb; subst; split_dec; intuit;
+  auto || (exfalso; auto).
 Qed.
 
 Lemma is_sound (c: t):
@@ -160,16 +156,9 @@ Lemma is_sound (c: t):
   binary c.(b) ->
   (c.(out) = 1 <-> (c.(a) = 1 \/ c.(b) = 1)).
 Proof.
-  unwrap_C.
   intros Hbin_a Hbin_b.
-  specialize (soundness c).
-  destruct Hbin_a; destruct Hbin_b;
-  destruct (dec (a c = 1)); 
-  destruct (dec (b c = 1)); 
-  destruct (dec (out c = 1)); intuition;
-  try (rewrite H in *; fqsatz);
-  unfold binary in *; simpl in *;
-  try (exfalso; destruct H1; auto; discriminate).
+  specialize (soundness c Hbin_a Hbin_b). intro.
+  split_dec; simpl in *; intuit; auto || discriminate.
 Qed.
 
 
@@ -177,7 +166,7 @@ Lemma is_binary (c: t):
   binary c.(a) ->
   binary c.(b) ->
   binary c.(out).
-Proof. specialize (soundness c). intuition. Qed.
+Proof. specialize (soundness c). intuition idtac. Qed.
 
 Definition wgen: t. skip. Defined.
 
@@ -198,6 +187,10 @@ Definition cons (_in out: F) :=
 
 Record t := { _in:F; out:F; _cons: cons _in out; }.
 
+Lemma not_0_eq_1: (0:F) <> (1:F).
+Proof. unwrap_C. fqsatz.
+Qed.
+
 Theorem soundness: forall (c: t), 
   (* pre-conditions *)
   binary c.(_in) ->
@@ -208,10 +201,7 @@ Proof.
   unwrap_C.
   intros c Ha. destruct c as [_in out _cons].
   unfold cons in *. simpl in *.
-  destruct Ha;
-  destruct (dec (_in=1)); destruct (dec (out=0));
-  try fqsatz; split; try auto; 
-  try solve[left; fqsatz]; try solve[right; fqsatz].
+  destruct Ha; subst; split_dec; intuit; auto || (exfalso; auto).
 Qed.
 
 Definition wgen: t. skip. Defined.
@@ -246,10 +236,8 @@ Proof.
   unwrap_C.
   intros c Ha Hb. destruct c as [a b c _cons].
   unfold cons in *. simpl in *.
-  destruct Ha; destruct Hb;
-  destruct (dec (a=1)); destruct (dec (b=1)); destruct (dec (c=0));
-  try fqsatz; split; try auto; 
-  try solve[left; fqsatz]; try solve[right; fqsatz].
+  destruct Ha; destruct Hb; subst; split_dec; intuit;
+  auto || (exfalso; auto).
 Qed.
 
 Definition wgen: t. skip. Defined.
@@ -284,10 +272,8 @@ Proof.
   unwrap_C.
   intros c Ha Hb. destruct c as [a b c _cons].
   unfold cons in *. simpl in *.
-  destruct Ha; destruct Hb;
-  destruct (dec (a=1)); destruct (dec (b=1)); destruct (dec (c=0));
-  try fqsatz; split; try auto; 
-  try solve[left; fqsatz]; try solve[right; fqsatz].
+  destruct Ha; destruct Hb; subst; split_dec; intuit;
+  auto || (exfalso; auto).
 Qed.
 
 Definition wgen: t. skip. Defined.

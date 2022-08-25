@@ -10,11 +10,12 @@ src/CTuple.v
 src/Tuple.v
 src/ListUtil.v
 src/LibTactics.v
+src/PigeonHole.v
 src/Simplify.v
-src/circomlib/Comparators.v
-src/circomlib/Bitify.v
-src/circomlib/Gates.v
-src/circomlib/Multiplexer.v
+src/CircomLib/Comparators.v
+src/CircomLib/Bitify.v
+src/CircomLib/Gates.v
+src/CircomLib/Multiplexer.v
 src/BigInt/BigAdd.v
 src/BigInt/BigSub.v
 src/BigInt/BigLessThan.v

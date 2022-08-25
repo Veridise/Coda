@@ -117,7 +117,7 @@ Lemma is_binary (c: t):
   binary c.(out).
 Proof. specialize (soundness c). intuition. Qed.
 
-Definition wgen: t. Admitted.
+Definition wgen: t. skip. Defined.
 
 #[global] Instance Default: Default t. constructor. exact wgen. Defined.
 
@@ -179,7 +179,7 @@ Lemma is_binary (c: t):
   binary c.(out).
 Proof. specialize (soundness c). intuition. Qed.
 
-Definition wgen: t. Admitted.
+Definition wgen: t. skip. Defined.
 
 #[global] Instance Default: Default t. constructor. exact wgen. Defined.
 End OR.

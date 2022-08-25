@@ -23,7 +23,6 @@ From Circom.CircomLib Require Import Bitify Comparators.
 *)
 
 Module BigSub.
-Context {n: nat}.
 
 Module B := Bitify.
 Module D := DSL.
@@ -33,6 +32,7 @@ Module RZ := RZU.RZ.
 Module R := Repr.
 
 Local Open Scope list_scope.
+Local Open Scope Z_scope.
 Local Open Scope F_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
@@ -41,8 +41,8 @@ Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
 Module ModSubThree.
-
 Section ModSubThree.
+Context {n: nat}.
 
 Import Cmp R.
 
@@ -85,18 +85,18 @@ Record t : Type := {
   _cons: cons a b c out borrow;
 }.
 
-Lemma F_to_Z_nonneg: forall (x: F), (0 <= |^x|)%Z.
+Lemma F_to_Z_nonneg: forall (x: F), (0 <= |^x|).
 Proof. intros. apply F.to_Z_range. lia. Qed.
 
 Theorem soundness: forall w,
   (* pre-conditions *)
-  ( n + 2 <= C.k )%Z ->
+  n + 2 <= C.k ->
   (* a and b are n-bits, i.e., <= 2^n-1 *)
   w.(a) | (n) -> 
   w.(b) | (n) -> 
   binary w.(c) ->
   (* a - b - c + 2^n >= 0 *)
-  (0 <= |^w.(a)| - |^w.(b)| - |^w.(c)| + 2^n)%Z ->
+  (0 <= |^w.(a)| - |^w.(b)| - |^w.(c)| + 2^n) ->
   ( w.(a) - w.(b) - w.(c) + 2^n >=z 0 ) /\
   (* post-conditions *)
   w.(out) - w.(borrow) * 2^n = w.(a) - w.(b) - w.(c) /\
@@ -104,20 +104,20 @@ Theorem soundness: forall w,
   binary w.(borrow).
 Proof.
   unwrap_C. intros w Hnk Ha Hb Hc Habc.
-  assert (Hnk_pow: (0 <= 2^(n+2) <= 2^C.k)%Z). split. lia. (apply Zpow_facts.Zpower_le_monotone; lia).
-  simplify' Hnk_pow. replace (2^2)%Z with 4%Z in Hnk_pow by lia.
+  assert (Hnk_pow: (0 <= 2^(n+2) <= 2^C.k)). split. lia. (apply Zpow_facts.Zpower_le_monotone; lia).
+  simplify' Hnk_pow. replace (2^2)%Z with 4 in Hnk_pow by lia.
   destruct w as [a b c out borrow _cons].
   unfold cons in *. destruct _cons as [lt [H_in0 [H_in1 [H_borrow [H_out H_assert]]] ] ].
   cbn [ModSubThree.a ModSubThree.b ModSubThree.c ModSubThree.borrow ModSubThree.out] in *.
 
   apply in_range_binary in Hc.
-  assert (lt_range_1: LessThan._in lt [0] <=z (2 ^ S n -1)%Z).
+  assert (lt_range_1: LessThan._in lt [0] <=z (2 ^ S n -1)).
   { rewrite H_in0. rewrite Ha. replace (2 ^ (S n))%Z with (2 ^ (n + 1))%Z. 
   rewrite Zpower_exp;lia. lia. }
-  assert (lt_range_2: LessThan._in lt [1] <=z (2 ^ S n -1)%Z).
+  assert (lt_range_2: LessThan._in lt [1] <=z (2 ^ S n -1)).
   { rewrite H_in1.
-    assert (0 <= |^b|)%Z. apply F.to_Z_range. lia.
-    assert (0 <= |^c|)%Z. apply F.to_Z_range. lia.
+    assert (0 <= |^b|). apply F.to_Z_range. lia.
+    assert (0 <= |^c|). apply F.to_Z_range. lia.
     replace (S n) with (n+1)%nat by lia.
     rewrite Nat2Z.inj_add. simpl.
     rewrite Z.mod_small. simplify. nia. }
@@ -125,7 +125,7 @@ Proof.
   destruct (LessThan.soundness lt) as [H_lt_b H_lt]; try lia.
   rewrite H_in0, H_in1, H_out, <- H_borrow in *.
   intuition; auto; try fqsatz.
-  assert (0 <= |^ b | + |^ c | <= 2^n)%Z.
+  assert (0 <= |^ b | + |^ c | <= 2^n).
   { pose proof (F_to_Z_nonneg b). pose proof (F_to_Z_nonneg c). lia. }
   destruct (dec (borrow = 1)).
   + rewrite e in *.
@@ -147,10 +147,10 @@ Definition wgen : t. skip. Defined.
 End ModSubThree.
 End ModSubThree.
 
+Module M := ModSubThree.
 
-Module _BigSub.
-
-Context {k: nat}.
+Section _BigSub.
+Context {n k: nat}.
 
 (* /*
 Inputs:
@@ -187,13 +187,11 @@ template BigSub(n, k) {
     underflow <== unit[k - 2].borrow;
 } *)
 
-Module M := ModSubThree.
-
 (* interpret a tuple of weights as representing a little-endian base-2^n number *)
 Local Notation "[| xs |]" := (RZ.as_le n xs).
 
 Definition cons (a b: tuple F k) (out: tuple F k) (underflow: F) :=
-  exists (unit: tuple M.t k),
+  exists (unit: tuple (@M.t n) k),
   D.iter (fun i _cons =>
     _cons /\
     unit [i].(M.a) = a [i] /\
@@ -217,22 +215,22 @@ Record t := {
 
 Definition spec (w: t) :=
   (* pre-condition *)
-  (n > 0)%Z ->
-  (k > 0)%Z ->
-  (n + 2 <= C.k)%Z ->
+  0 < n ->
+  0 < k ->
+  n + 2 <= C.k ->
   'w.(a) |: (n) ->
   'w.(b) |: (n) ->
-  ([|' w.(a) |] >= [|' w.(b) |])%Z ->
+  [|' w.(a) |] >= [|' w.(b) |] ->
   (* post-condition *)
   ([|' w.(out) |] = [|' w.(a) |] - [| 'w.(b) |])%Z /\
-  ( w.(underflow) = 0) /\
+  w.(underflow) = 0 /\
   'w.(out) |: (n).
 
 Definition spec_weak (w: t) :=
   (* pre-condition *)
-  (n > 0)%Z ->
-  (k > 0)%Z ->
-  (S n <= C.k - 1)%Z ->
+  0 < n ->
+  0 < k ->
+  n + 2 <= C.k ->
   'w.(a) |: (n) ->
   'w.(b) |: (n) ->
   (* post-condition *)
@@ -240,6 +238,26 @@ Definition spec_weak (w: t) :=
   binary w.(underflow) /\
   'w.(out) |: (n).
 
+Definition spec_ite (w: t) :=
+  (* pre-conditions *)
+  0 < n ->
+  0 < k ->
+  n + 2 <= C.k ->
+  'w.(a) |: (n) ->
+  'w.(b) |: (n) ->
+  (* post-conditions *)
+  binary w.(underflow) /\
+  'w.(out) |: (n) /\
+  if dec ([|'w.(a)|] >= [|'w.(b)|]) then
+    w.(underflow) = 0 /\
+    ([|' w.(out) |] = [|' w.(a) |] - [|' w.(b) |])%Z
+  else
+    w.(underflow) = 1 /\
+    ([|' w.(out) |] = 2^(n*k) * |^w.(underflow) | + [|' w.(a) |] - [|' w.(b) |])%Z
+  .
+
+Lemma soundness_ite: forall (w: t), spec_ite w.
+Admitted.
 
 Ltac split_as_le xs i := 
   erewrite RZ.as_le_split_last with (ws:=xs[:S i]) (i:=i);
@@ -330,7 +348,7 @@ Proof.
         default_apply ltac:(repeat rewrite firstn_nth; try lia).
         (* range proof *)
         assert (|^'out!i| = |^'a!i| - |^'b!i|)%Z by admit.
-        nia. 
+        nia.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
       eauto using RZ.repr_trivial.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.

@@ -32,7 +32,6 @@ From Circom.CircomLib Require Import Bitify Comparators Gates.
 *)
 
 Module BigLessThan.
-Context {n: nat}.
 
 Module B := Bitify.
 Module D := DSL.
@@ -43,7 +42,7 @@ Module R := Repr.
 
 
 Section _BigLessThan.
-Context (n k: nat).
+Context {n k: nat}.
 
 Import Cmp Gates.
 

@@ -24,7 +24,6 @@ From Circom.CircomLib Require Import Bitify Comparators.
 *)
 
 Module BigAdd.
-Context {n: nat}.
 
 Module B := Bitify.
 Module D := DSL.
@@ -34,6 +33,7 @@ Module RZ := RZU.RZ.
 Module R := Repr.
 
 Local Open Scope list_scope.
+Local Open Scope Z_scope.
 Local Open Scope F_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
@@ -44,6 +44,7 @@ Local Coercion N.of_nat: nat >-> N.
 
 Module ModSumThree.
 Section ModSumThree.
+Context {n: nat}.
 Import B R.
 
 (* Note: this is a simplified version from circom-pairing *)
@@ -135,11 +136,10 @@ Definition wgen : t. skip. Defined.
 End ModSumThree.
 End ModSumThree.
 
+Module M := ModSumThree.
 
-
-Module _BigAdd.
-
-Context {k: nat}.
+Section _BigAdd.
+Context {n k: nat}.
 
 (* template BigAdd(n, k) {
     assert(n <= 252);
@@ -167,14 +167,12 @@ Context {k: nat}.
     out[k] <== unit[k - 2].carry;
 } *)
 
-Module M := ModSumThree.
-
 (* interpret a tuple of weights as representing a little-endian base-2^n number *)
 Local Notation "[| xs |]" := (RZ.as_le n xs).
 Local Notation "[|| xs ||]" := (RZ.as_le n ('xs)).
 
 Definition cons (a b: tuple F k) (out: tuple F (S k)) :=
-  exists (unit: tuple M.t k),
+  exists (unit: tuple (@M.t n) k),
   D.iter (fun i _cons =>
     _cons /\
     unit [i].(M.a) = a [i] /\
@@ -325,7 +323,5 @@ Proof.
   Unshelve. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero. 
 Qed.
 
-
 End _BigAdd.
-
 End BigAdd.

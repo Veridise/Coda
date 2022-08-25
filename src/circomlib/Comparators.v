@@ -127,7 +127,7 @@ Proof.
    intuition; destruct (dec (_in c [0] = _in c [1])); (auto || fqsatz).
 Qed.
 
-Definition wgen : IsEqual.t. Admitted.
+Definition wgen : IsEqual.t. skip. Defined.
 #[global] Instance IsEqual_Default: Default IsEqual.t. constructor. exact wgen. Defined.
 
 End IsEqual.

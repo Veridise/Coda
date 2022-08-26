@@ -184,7 +184,16 @@ end.
 
 Lemma Forall_rev_iff {A: Type}: forall P (l: list A),
   Forall P l <-> Forall P (rev l).
-Admitted.
+Proof.
+  induction l;split;simpl;intros;auto;rewrite Forall_forall in *;intros.
+  - apply H.
+    apply in_app_or in H0. destruct H0.
+    + right. apply in_rev;auto.
+    + simpl in *. left. destruct H0; easy.
+  - apply H. apply in_or_app. inversion H0;subst. 
+    + simpl;right;auto.
+    + left. rewrite <- in_rev;auto.
+Qed.
 
 Lemma rev_nth' {A: Type}: forall i (l: list A) d,
   i < length l ->
@@ -205,9 +214,22 @@ Proof.
   intros. rewrite H, H0. easy.
 Qed.
 
-Lemma app_congruence_iff: forall {A: Type} (l1 l2 l1' l2': list A),
+Lemma app_congruence_iff_strong: forall {A: Set} (l1 l2 l1' l2': list A),
+  length l1 = length l1' ->
+  (l1 = l1' /\ l2 = l2') <-> 
+  l1 ++ l2 = l1' ++ l2'.
+Proof.
+  split;intros.
+  - apply app_congruence;easy.
+  - pose proof (ListAux.map_length_decompose A A (fun x=>x) l1 l1' l2 l2' H).
+    rewrite map_id in *. apply H1 in H0. destruct H0. rewrite map_id in *;auto.
+Qed.
+
+Lemma app_congruence_iff: forall {A: Set} (l1 l2 l1' l2': list A),
   length l1 = length l1' ->
   length l2 = length l2' ->
   (l1 = l1' /\ l2 = l2') <-> 
   l1 ++ l2 = l1' ++ l2'.
-Admitted.
+Proof.
+  intros;apply app_congruence_iff_strong;auto.
+Qed.

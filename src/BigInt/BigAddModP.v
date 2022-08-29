@@ -151,10 +151,21 @@ Ltac connection Inv :=
     eapply firstn_congruence; fold_default; (lia || eauto)).
 
 Lemma Forall_firstn_and_last {A}: forall l (d: A) (P: A -> Prop),
+  length l > 0 ->
   Forall P (l[:length l-1]) ->
   P (List.nth (length l - 1)%nat l d) ->
   Forall P l.
-Admitted.
+Proof.
+  intros.
+  apply Forall_rev_iff.
+  pose proof (rev_length l).
+  erewrite <- firstn_split_last with (l:=l) (n:=(length l - 1)%nat).
+  rewrite rev_unit.
+  constructor. eauto.
+  apply Forall_rev.
+  auto.
+  lia.
+Qed.
 
 Ltac rewrite_length :=
   repeat match goal with
@@ -174,42 +185,87 @@ Ltac rrewrite :=
 Ltac rewrite_clear H := rewrite H in *; clear H.
 
 Lemma scale_0: forall l, List.map (fun pi => 0 * pi) l = List.repeat (0:F) (length l).
-Admitted.
+Proof.
+  induction l as [ | x l]; simpl; auto.
+  simplify. f_equal. auto.
+Qed.
 
 Lemma as_le_0: forall i, [| List.repeat (0:F) i|] = 0%Z.
-Admitted.
+Proof.
+  induction i; simpl; auto.
+  rewrite IHi. simplify.
+Qed.
+
 Lemma forall_repeat {A}: forall (i:nat) P (x: A),
   i > 0 ->
   Forall P (List.repeat x i) <-> P x.
-Admitted.
-Lemma Forall_map {A B}: forall (f: A -> B) P (l: list A),
-  Forall (fun x => P (f x)) l ->
-  Forall P (List.map f l).
-Admitted.
+Proof.
+  induction i; simpl; intros.
+  lia.
+  intuit.
+  - inversion H0. auto.
+  - constructor; auto. destruct i. simpl. auto.
+    apply IHi. lia. auto.
+Qed.
+
 
 Lemma as_le_msb_0: forall xs l,
   length xs = S l ->
+  xs |: (n) ->
   [| xs |] <= 2^(n*l)-1 ->
   [| xs |] = [| xs[:l] |].
-Admitted.
+Proof.
+  intros.
+  unwrap_C.
+  pose proof (RZ.repr_trivial n xs H0).
+  pose proof (RZ.as_le_split_last n l [|xs|] xs).
+  rewrite H in H2.
+  apply H3 in H2.
+  rewrite H2.
+  destruct (dec (xs ! l = 0)).
+  rewrite e. simplify.
+  remember (RZ.ToZ.to_Z (xs ! l)) as y.
+  assert (y <> 0)%Z. subst. apply F.to_Z_nonzero. auto.
+  assert (0 <= y). subst. apply F.to_Z_range. lia.
+  assert (0 <= [|xs [:l]|]). pose_as_le_nonneg. lia.
+  assert ([|xs [:l]|] <= 2 ^ (n * l) - 1).
+    eapply RZU.repr_le_ub.
+    applys_eq RZ.repr_trivial. rewrite firstn_length_le; lia.
+    apply Forall_firstn. auto.
+  exfalso. nia.
+Qed.
 
 Lemma scale_binary_range: forall s xs,
   xs |: (n) ->
   binary s ->
   List.map (fun x => s * x) xs |: (n).
-Admitted.
+Proof.
+  induction xs; simpl; intros; constructor;
+  inversion H; subst; clear H.
+  destruct H0; subst; simplify.
+  rewrite F.to_Z_0. lia.
+  apply IHxs; auto.
+Qed.
 
 Lemma scale_binary0: forall (s: F) xs l,
   s = 0 ->
   l = length xs ->
   List.map (fun x => s * x) xs = List.repeat 0 l.
-Admitted.
+Proof.
+  induction xs; intros; subst; simpl in *; simplify.
+  reflexivity.
+  f_equal. auto.
+Qed.
 
 Lemma scale_binary1: forall (s: F) xs l,
   s = 1 ->
   l = length xs ->
   List.map (fun x => s * x) xs = xs.
-Admitted.
+Proof.
+  induction xs; intros; subst; simpl in *; simplify.
+  reflexivity.
+  f_equal. erewrite IHxs; eauto.
+Qed.
 
 Lemma Zmod_once: forall a b c,
   0 <= a < c ->

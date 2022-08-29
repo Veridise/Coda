@@ -300,7 +300,7 @@ Proof with (lia || eauto).
     intuition. f_equal. auto.
   }
   unfold Inv in H_inv.
-  repeat rewrite <- RZ.rev_be__le.
+  repeat rewrite RZ.le__rev_be.
   rewrite <- Heqra, <- Heqrb.
   rewrite final.
   intuition;

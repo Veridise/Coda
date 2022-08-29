@@ -192,7 +192,15 @@ Record t := {
   _cons: cons a b out
 }.
 
-Definition spec (w: t) :=
+Ltac split_as_le xs i := 
+  erewrite RZ.as_le_split_last with (ws:=xs[:S i]) (i:=i);
+  try rewrite firstn_firstn; simplify;
+  try rewrite firstn_nth by lia.
+
+Lemma nth_0 {T} `{Default T}: forall (x: T), (x :: nil) ! 0 = x.
+Proof. intro x. erewrite <- fold_nth with (d:=x); auto. Qed.
+
+Theorem soundness: forall (w: t),
   (* pre-condition *)
   n > 0 ->
   k > 0 ->
@@ -203,19 +211,9 @@ Definition spec (w: t) :=
   (* post-condition *)
   ([|| w.(out) ||] = [|| w.(a) ||] + [|| w.(b) ||])%Z /\
   'w.(out) |: (n).
-
-Ltac split_as_le xs i := 
-  erewrite RZ.as_le_split_last with (ws:=xs[:S i]) (i:=i);
-  try rewrite firstn_firstn; simplify;
-  try rewrite firstn_nth by lia.
-
-Lemma nth_0 {T} `{Default T}: forall (x: T), (x :: nil) ! 0 = x.
-Proof. intro x. erewrite <- fold_nth with (d:=x); auto. Qed.
-
-Theorem soundness: forall (w: t), spec w.
 Proof.
   unwrap_C.
-  intros. destruct w as [a b out _cons]. unfold spec.
+  intros. destruct w as [a b out _cons].
   intros. cbn [_BigAdd.out _BigAdd.a _BigAdd.b] in *.
   unfold cons in _cons. destruct _cons as [unit prog].
   lift_to_list.

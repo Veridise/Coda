@@ -31,6 +31,13 @@ Ltac rem_iter :=
     end
   end.
 
+Ltac split_dec := 
+  repeat match goal with
+  | [ |- context[dec ?P] ] => destruct (dec P)
+  | [ H: context[dec ?P] |- _ ] => destruct (dec P)
+  end.
+Ltac intuit := intuition idtac.
+
 Local Open Scope circom_scope.
 Local Coercion Z.of_nat: nat >-> Z.
 
@@ -45,4 +52,15 @@ Proof.
   assert (2^1 < 2^n)%Z. apply Zpow_facts.Zpower_lt_monotone; lia.
   transitivity (2^1)%Z; simpl; lia.
   assert (n=1)%nat by lia. subst. simpl. destruct Hbin; subst; autorewrite with F_to_Z; lia.
+Qed.
+
+
+Lemma one_minus_binary: forall (x y: F),
+  (x = 1 - y)%F ->
+  binary y ->
+  binary x.
+Proof.
+  unwrap_C.
+  intros.
+  destruct H0; ((right; fqsatz) || (left; fqsatz)).
 Qed.

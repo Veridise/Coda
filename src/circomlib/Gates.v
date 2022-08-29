@@ -17,7 +17,7 @@ Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Crypto.Algebra.Ring Crypto.Algebra.Field.
 
-From Circom Require Import Circom Default LibTactics.
+From Circom Require Import Circom Default LibTactics Util.
 Require Import Circom.Circom Circom.Default.
 
 (* Circuit:
@@ -31,13 +31,6 @@ Module Gates.
 
 #[local] Hint Extern 10 (_ = _) => fqsatz : core.
 #[local] Hint Extern 10 (binary _) => (left; fqsatz) || (right; fqsatz): core.
-
-Ltac split_dec := 
-  repeat match goal with
-  | [ |- context[dec ?P] ] => destruct (dec P)
-  | [ H: context[dec ?P] |- _ ] => destruct (dec P)
-  end.
-Ltac intuit := intuition idtac.
 
 
 Module XOR.

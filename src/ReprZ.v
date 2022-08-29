@@ -142,8 +142,8 @@ Proof.
     lia.
 Qed.
 
-Lemma rev_be__le: forall l,
-  as_be (rev l) = as_le l.
+Lemma le__rev_be: forall l,
+  as_le l = as_be (rev l).
 Proof.
   unwrap_C. intros.
   remember (rev l) as l'.
@@ -194,11 +194,11 @@ Proof.
   - intuition.
     + rewrite rev_length. auto.
     + apply Forall_rev. auto.
-    + rewrite rev_be__le. auto.
+    + rewrite <- le__rev_be. auto.
   - intuition.
     + rewrite <- rev_length. auto. 
     + rewrite <- rev_involutive. apply Forall_rev. auto.
-    + rewrite <- rev_be__le. auto.
+    + rewrite le__rev_be. auto.
 Qed.
 
 (* repr inv: base case *)
@@ -316,6 +316,13 @@ Proof.
     nia.
 Qed.
 
+Lemma as_le_nonneg: forall l,
+  0 <= as_le n l.
+Proof.
+  intros.
+  rewrite le__rev_be. apply as_be_nonneg.
+Qed.
+
 End Representation.
 
 End Base2n.
@@ -377,6 +384,19 @@ Proof with (lia || nia || eauto).
     unfold RZ.ToZ.to_Z.
     nia.
 Qed.
+
+
+
+Theorem repr_le_ub: forall xs x m,
+  repr_le n x m xs ->
+  x <= (2^(n*m) - 1)%Z.
+Proof.
+  intros.
+  eapply repr_be_ub with (ws:=(rev xs)).
+  apply repr_rev.
+  auto.
+Qed.
+
 
 Fixpoint big_lt (xs ys: list F) :=
   match xs, ys with

@@ -152,16 +152,6 @@ Record t: Type := {
   _cons: cons _in out;
 }.
 
-Lemma one_minus_binary: forall (x y: F),
-  x = 1 - y ->
-  binary y ->
-  binary x.
-Proof.
-  unwrap_C.
-  intros.
-  destruct H0; ((right; fqsatz) || (left; fqsatz)).
-Qed.
-
 
 Lemma soundness: forall (w : t),
   (* pre-conditions: both inputs are at most (k-1) bits *)

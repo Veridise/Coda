@@ -238,7 +238,8 @@ Definition spec_weak (w: t) :=
   binary w.(underflow) /\
   'w.(out) |: (n).
 
-Definition spec_ite (w: t) :=
+
+Lemma soundness_ite: forall (w: t),
   (* pre-conditions *)
   0 < n ->
   0 < k ->
@@ -255,8 +256,6 @@ Definition spec_ite (w: t) :=
     w.(underflow) = 1 /\
     ([|' w.(out) |] = 2^(n*k) * |^w.(underflow) | + [|' w.(a) |] - [|' w.(b) |])%Z
   .
-
-Lemma soundness_ite: forall (w: t), spec_ite w.
 Admitted.
 
 Ltac split_as_le xs i := 

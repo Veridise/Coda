@@ -16,6 +16,8 @@ src/CircomLib/Comparators.v
 src/CircomLib/Bitify.v
 src/CircomLib/Gates.v
 src/CircomLib/Multiplexer.v
+src/BigInt/BigIsZero.v
+src/BigInt/BigIsEqual.v
 src/BigInt/BigAdd.v
 src/BigInt/BigSub.v
 src/BigInt/BigLessThan.v

@@ -20,7 +20,7 @@ Require Import Coq.Logic.PropExtensionality.
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
 From Circom Require Import Repr ReprZ.
-From Circom.circomlib Require Import Bitify Comparators Gates.
+From Circom.CircomLib Require Import Bitify Comparators Gates.
 
 (* Circuit:
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
@@ -99,3 +99,87 @@ Qed.
 
 End _Split.
 End Split.
+
+
+
+Module SplitThree.
+Context {n: nat}.
+
+Module B := Bitify.
+Module D := DSL.
+Module R := Repr.
+Import R.
+
+Import B.
+
+Local Open Scope list_scope.
+Local Open Scope Z_scope.
+Local Open Scope F_scope.
+Local Open Scope circom_scope.
+Local Open Scope tuple_scope.
+
+Local Coercion Z.of_nat: nat >-> Z.
+Local Coercion N.of_nat: nat >-> N.
+
+Section _SplitThree.
+Context {n m k: nat}.
+
+(* // split a n + m + k bit input into three outputs
+template SplitThree(n, m, k) {
+    assert(n <= 126);
+    signal input in;
+    signal output small;
+    signal output medium;
+    signal output big;
+
+    small <-- in % (1 << n);
+    medium <-- (in \ (1 << n)) % (1 << m);
+    big <-- in \ (1 << n + m);
+
+    component n2b_small = Num2Bits(n);
+    n2b_small.in <== small;
+    component n2b_medium = Num2Bits(m);
+    n2b_medium.in <== medium;
+    component n2b_big = Num2Bits(k);
+    n2b_big.in <== big;
+
+    in === small + medium * (1 << n) + big * (1 << n + m);
+} *)
+
+Definition cons (_in: F) (small: F) (medium: F) (big: F) :=
+  exists (n2b_small: @Num2Bits.t n) (n2b_medium: @Num2Bits.t m) (n2b_big: @Num2Bits.t k),
+  n2b_small.(Num2Bits._in) = small /\
+  n2b_medium.(Num2Bits._in) = medium /\
+  n2b_big.(Num2Bits._in) = big /\
+  _in = small + medium * 2^n + big * 2^(n+m).
+
+Local Close Scope F_scope.
+
+Record t := {
+  _in: F;
+  small: F;
+  medium: F;
+  big: F;
+  _cons: cons _in small medium big
+}.
+
+Local Open Scope F_scope. 
+
+Theorem soundness: forall (c: t), 
+  exists (small_b: F^n) (medium_b: F^m) (big_b: F^k),
+  repr_le2 c.(small) n ('small_b) /\
+  repr_le2 c.(medium) m ('medium_b) /\
+  repr_le2 c.(big) k ('big_b) /\
+  c.(_in) = c.(small) + c.(medium) * 2^n + c.(big) * 2^(n+m).
+Proof.
+  unwrap_C. intros c. 
+  destruct c as [_in small medium big _cons]. 
+  destruct _cons as [n2b_small [n2b_medium [n2b_big [? [? [? ?]]]]]]. subst. simpl in *.
+  pose proof (Num2Bits.soundness n2b_small).
+  pose proof (Num2Bits.soundness n2b_medium).
+  pose proof (Num2Bits.soundness n2b_big).
+  do 3 eexists;eauto.
+Qed.
+
+End _SplitThree.
+End SplitThree.

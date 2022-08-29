@@ -66,6 +66,10 @@ Proof.
   destruct (dec (x = 0)); fqsatz.
 Qed.
 
+Definition wgen: t. skip. Defined.
+
+#[global] Instance IsZero_Default: Default t. constructor. exact wgen. Defined.
+
 (* Theorem IsZero_complete: forall (w: t),
   IsZero_spec w -> cons w.
 Proof.

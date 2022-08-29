@@ -86,6 +86,29 @@ Record t := {
 
 Local Open Scope F_scope. 
 
+Lemma fold_left_firstn_S:
+  forall (i: nat)(l: list F)(b: F)(f: (F -> F -> F)),
+  fold_left f (l [:S i]) b = f (fold_left f (l [:i]) b) (l ! i).
+Proof.
+  induction i;simpl;intros.
+Admitted.
+
+Lemma soundness_helper_lemma1:
+  forall l,
+  fold_left (fun x y : F => if if dec (y = 0) then true else false then x - 1 else x) 
+  l (F.of_nat q k) = 0 ->
+  forallb (fun x : F => if dec (x = 0) then true else false) l = true.
+Proof.
+Admitted.
+
+Lemma soundness_helper_lemma2:
+  forall l,
+  fold_left (fun x y : F => if if dec (y = 0) then true else false then x - 1 else x) 
+  l (F.of_nat q k) <> 0 ->
+  forallb (fun x : F => if dec (x = 0) then true else false) l = false.
+Proof.
+Admitted.
+
 Theorem soundness: forall (c: t), 
   if (forallb (fun x => (x = 0)? ) (' c.(_in))) then
   c.(out) = 1
@@ -95,7 +118,39 @@ Proof.
   unwrap_C. intros c. 
   destruct c as [_in out _cons]. 
   destruct _cons as [isZeros [checkZero]]. subst. simpl in *.
-Admitted.
+  rem_iter.
+  pose proof (length_to_list _in) as Hlen_k. 
+  pose (Inv := fun (i:nat) '((total, _cons): (F * Prop)) => _cons ->
+      total = (fold_left 
+                  (fun x y => if (y = 0)? then x - 1 else x) 
+                  (' _in[:i])
+                  (F.of_nat q k))).
+  assert (H_inv: Inv k (D.iter f k ((F.of_nat q k), True))). {
+    apply D.iter_inv; unfold Inv.
+    - intros;simpl;auto.
+    - intros i b H H0. destruct b as [? ?];subst. intros.
+      destruct D.iter eqn: ditr;subst.
+      destruct y as [? [?]]. destruct H1. subst.
+      specialize (H H1). lift_to_list. subst.
+      pose proof (IsZero.soundness (' isZeros ! i)). unfold IsZero.spec in H.
+      rewrite H5 in *.
+      destruct dec.
+      + rewrite H; symmetry. 
+        rewrite fold_left_firstn_S at 1. destruct dec; fqsatz.
+      + rewrite H; symmetry. 
+        rewrite fold_left_firstn_S at 1. destruct dec; fqsatz.
+  } 
+  destruct (D.iter f k (F.of_nat q k, True)) as [total _cons] eqn:iter.
+  destruct y as [? [?]]. apply H_inv in H1. subst.
+  pose proof (IsZero.soundness checkZero). unfold IsZero.spec in H.
+  destruct dec.
+  - rewrite H1 in e. apply soundness_helper_lemma1 in e.
+    replace (' _in) with (' _in [:k]). 2:{ rewrite <- firstn_all. rewrite Hlen_k;auto. }
+    destruct forallb;easy.
+  - rewrite H1 in n. apply soundness_helper_lemma2 in n.
+    replace (' _in) with (' _in [:k]). 2:{ rewrite <- firstn_all. rewrite Hlen_k;auto. }
+    destruct forallb;easy.
+Qed.
 
 End _BigIsZero.
 End BigIsZero.

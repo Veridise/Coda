@@ -159,18 +159,53 @@ Proof.
   lia. 
 Qed.
 
-Lemma soundness_helper_lemma1:
-  forall l1 l2,
-  fold_left (fun x y => if (fst y = snd y)? then x - 1 else x)  (ListUtil.map2 pair l1 l2) (F.of_nat q k) = 0 ->
-  forallb (fun x : F * F => if dec (fst x = snd x) then true else false) (ListUtil.map2 pair l1 l2) = true.
+Lemma soundness_helper:
+  forall (l:list (F * F)) (k:F),
+  (k >q F.of_Z q (length l))%F ->
+  (fold_left
+    (fun x y => if (fst y = snd y)? then x - 1 else x) l
+      k <> 0)%F.
 Proof.
+  induction l;simpl;intros.
+Admitted.
+
+Lemma soundness_helper_lemma1:
+  forall l k,
+  k = (length l) ->
+  fold_left (fun x y => if (fst y = snd y)? then x - 1 else x)  l (F.of_nat q k) = 0 ->
+  forallb (fun x : F * F => if dec (fst x = snd x) then true else false) l = true.
+Proof.
+  unwrap_C.
+  induction l;intros;simpl in *;trivial.
+  destruct dec;simpl.
+  - subst. eapply IHl;eauto.
+    replace (F.of_nat q (length l)) with ((F.of_nat q (S (length l)) - 1));auto.
+    replace (S (length l)) with (length l + 1)%nat by lia.
+    rewrite F.of_nat_add.
+    replace (F.of_nat q 1) with (@F.one q);auto.
+    assert(1 - 1 = @F.zero q)%F.
+    { unfold F.sub. unfold F.opp. simpl. rewrite Zmod_1_l;simpl;try lia. admit. }
+    fqsatz. 
+  - eapply soundness_helper in H0;try easy. admit.
 Admitted.
 
 Lemma soundness_helper_lemma2:
-  forall l1 l2,
-  fold_left (fun x y => if (fst y = snd y)? then x - 1 else x)  (ListUtil.map2 pair l1 l2) (F.of_nat q k) <> 0 ->
-  forallb (fun x : F * F => if dec (fst x = snd x) then true else false) (ListUtil.map2 pair l1 l2) = false.
+forall l k,
+k = (length l) ->
+fold_left (fun x y => if (fst y = snd y)? then x - 1 else x)  l (F.of_nat q k) <> 0 ->
+forallb (fun x : F * F => if dec (fst x = snd x) then true else false) l = false.
 Proof.
+  unwrap_C.
+  induction l;intros;simpl in *;subst;try easy.
+  destruct dec;simpl;auto.
+  subst. eapply IHl;eauto.
+  replace (F.of_nat q (length l)) with ((F.of_nat q (S (length l)) - 1));auto.
+  replace (S (length l)) with (length l + 1)%nat by lia.
+  rewrite F.of_nat_add.
+  replace (F.of_nat q 1) with (@F.one q);auto.
+  assert(1 - 1 = @F.zero q)%F.
+  { unfold F.sub. unfold F.opp. simpl. rewrite Zmod_1_l;simpl;try lia. admit. }
+  fqsatz.
 Admitted.
 
 Lemma list_map_pair_nth_fst:
@@ -237,12 +272,14 @@ Proof.
   destruct (D.iter f k (F.of_nat q k, True)) as [total _cons] eqn:iter.
   destruct y as [? [?]]. apply H_inv in H1. subst.
   pose proof (IsZero.soundness checkZero). unfold IsZero.spec in H.
+  assert (length (ListUtil.map2 pair (' a [:k]) (' b [:k])) = k).
+  { rewrite ListUtil.map2_length. do 2 rewrite firstn_length. lia. }
   destruct dec.
-  - rewrite H1 in e. apply soundness_helper_lemma1 in e.
+  - rewrite H1 in e. apply soundness_helper_lemma1 in e;auto.
     replace (' a) with (' a [:k]). 2:{ rewrite <- firstn_all. rewrite Hlen_ka;auto. }
     replace (' b) with (' b [:k]). 2:{ rewrite <- firstn_all. rewrite Hlen_kb;auto. }
     destruct forallb;easy.
-  - rewrite H1 in n0. apply soundness_helper_lemma2 in n0.
+  - rewrite H1 in n0. apply soundness_helper_lemma2 in n0;auto.
     replace (' a) with (' a [:k]). 2:{ rewrite <- firstn_all. rewrite Hlen_ka;auto. }
     replace (' b) with (' b [:k]). 2:{ rewrite <- firstn_all. rewrite Hlen_kb;auto. }
     destruct forallb;easy.

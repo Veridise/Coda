@@ -233,3 +233,62 @@ Lemma app_congruence_iff: forall {A: Set} (l1 l2 l1' l2': list A),
 Proof.
   intros;apply app_congruence_iff_strong;auto.
 Qed.
+
+Lemma firstn_congruence {A}: forall i l l' (d: A),
+  l[:i] = l'[:i] ->
+  List.nth i l d = List.nth i l' d ->
+  l[:S i] = l'[:S i].
+Admitted.
+
+Lemma list_tail_congruence {A}: forall i l l' (d: A),
+  length l = S i ->
+  length l' = S i ->
+  l[:i] = l'[:i] ->
+  List.nth i l d = List.nth i l' d ->
+  l = l'.
+Proof.
+  intros.
+  rewrite <- firstn_all with (l:=l).
+  rewrite <- firstn_all with (l:=l').
+  rewrite H, H0.
+  eapply firstn_congruence; auto.
+  rewrite H2. auto.
+Qed.
+
+Ltac firstn_all := 
+  repeat match goal with
+  | [ H: context[?l [:?k]],
+      Hlen: length ?l = ?k |- _ ] =>
+    rewrite firstn_all2 in H by lia
+  | [ Hlen: length ?l = ?k |- context[?l [:?k]] ] =>
+    rewrite firstn_all2  by lia
+  end.
+
+Lemma Forall_firstn_and_last {A}: forall l (d: A) (P: A -> Prop),
+  length l > 0 ->
+  Forall P (l[:length l-1]) ->
+  P (List.nth (length l - 1)%nat l d) ->
+  Forall P l.
+Proof.
+  intros.
+  apply Forall_rev_iff.
+  pose proof (rev_length l).
+  erewrite <- firstn_split_last with (l:=l) (n:=(length l - 1)%nat).
+  rewrite rev_unit.
+  constructor. eauto.
+  apply Forall_rev.
+  auto.
+  lia.
+Qed.
+
+Lemma forall_repeat {A}: forall (i:nat) P (x: A),
+  i > 0 ->
+  Forall P (List.repeat x i) <-> P x.
+Proof.
+  induction i; simpl; intros.
+  lia.
+  intuit.
+  - inversion H0. auto.
+  - constructor; auto. destruct i. simpl. auto.
+    apply IHi. lia. auto.
+Qed.

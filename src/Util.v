@@ -13,23 +13,13 @@ Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
 
-From Circom Require Import Circom DSL Simplify.
+From Circom Require Import Circom Simplify.
 
 Ltac invert H := inversion H; subst; clear H.
 
 (* When proving Q in P /\ Q, we're allowed to assume P *)
 Lemma conj_use: forall (P Q: Prop), P /\ (P -> Q) -> P /\ Q.
 Proof. tauto. Qed.
-
-(* Remember the iterating function *)
-Ltac rem_iter :=   
-  repeat match goal with
-  | [ _: context[DSL.iter ?f _ _] |- _] =>
-    match f with
-    | fun _ => _ => let fn := fresh "f" in remember f as fn
-    | _ => fail
-    end
-  end.
 
 Ltac split_dec := 
   repeat match goal with

@@ -12,7 +12,7 @@ Require Import Crypto.Util.Decidable Crypto.Util.ZUtil Crypto.Algebra.Ring.
 Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
-Require Import Circom.Circom.
+From Circom Require Import Circom ListUtil.
 
 Module DSL.
 
@@ -121,6 +121,24 @@ Definition sum_nat {n} := fold_right n (fun x y => x + y)%nat (0)%nat.
 End opsT.
 
 End DSL.
+
+(* Remember the iterating function *)
+Ltac rem_iter :=   
+  repeat match goal with
+  | [ _: context[DSL.iter ?f _ _] |- _] =>
+    match f with
+    | fun _ => _ => let fn := fresh "f" in remember f as fn
+    | _ => fail
+    end
+  end.
+
+(* prove invariant Inv about simple connection circuits *)
+Ltac connection Inv :=
+  apply DSL.iter_inv; unfold Inv; easy ||
+  ( intros i _cons IH Hi Hstep;
+    subst; lift_to_list; intuition;
+    eapply firstn_congruence; fold_default; (lia || eauto)).
+
 
 
 
@@ -234,3 +252,4 @@ End opsL.
 
 
 End DSLL.
+

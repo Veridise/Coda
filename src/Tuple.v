@@ -1340,3 +1340,22 @@ Delimit Scope tuple_scope with tuple.
 Global Notation "T ^ n" := (tuple T n) : type_scope.
 Global Notation "w [ i ]" := (Tuple.nth_Default i w) (at level 20) : tuple_scope.
 Global Notation "' xs" := (to_list _ xs) (at level 19) : tuple_scope.
+
+Require Import Circom.Circom.
+Ltac pose_lengths :=
+  repeat match goal with
+    | [ _: context[?xs] |- _ ] =>
+    lazymatch type of xs with
+    | tuple Circom.F ?k =>
+      let t := type of (length_to_list xs) in
+      lazymatch goal with
+      (* already posed *)
+      | [ _: t |- _] => fail
+      | _ => 
+        let Hlen := fresh "_Hlen" in
+        pose proof (length_to_list xs) as Hlen;
+        move Hlen at top
+      end
+    | _ => fail
+    end
+  end.

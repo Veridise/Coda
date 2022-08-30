@@ -36,12 +36,6 @@ Module Add := BigAdd.
 Module Sub := BigSub.
 Module Lt := BigLessThan.
 
-(* Import BigAdd.  *)
-(* Import BigLessThan. *)
-(* Import BigSub. *)
-
-Check BigSub.t.
-
 Local Open Scope list_scope.
 Local Open Scope Z_scope.
 Local Open Scope F_scope.
@@ -77,56 +71,7 @@ Definition cons (a b p out: F^k) :=
 Record t := { a: F^k; b: F^k; p: F^k; out: F^k; _cons: cons a b p out }.
 Local Notation "[| xs |]" := (RZ.as_le n xs).
 
-(* Lemma firstn_congruence: forall i *)
 Local Notation "xs !! i" := (List.nth i xs _) (at level 10).
-
-Lemma firstn_congruence {A}: forall i l l' (d: A),
-  l[:i] = l'[:i] ->
-  List.nth i l d = List.nth i l' d ->
-  l[:S i] = l'[:S i].
-Admitted.
-
-Lemma list_tail_congruence {A}: forall i l l' (d: A),
-  length l = S i ->
-  length l' = S i ->
-  l[:i] = l'[:i] ->
-  List.nth i l d = List.nth i l' d ->
-  l = l'.
-Proof.
-  intros.
-  rewrite <- firstn_all with (l:=l).
-  rewrite <- firstn_all with (l:=l').
-  rewrite H, H0.
-  eapply firstn_congruence; auto.
-  rewrite H2. auto.
-Qed.
-
-Ltac firstn_all := 
-  repeat match goal with
-  | [ H: context[?l [:?k]],
-      Hlen: length ?l = ?k |- _ ] =>
-    rewrite firstn_all2 in H by lia
-  | [ Hlen: length ?l = ?k |- context[?l [:?k]] ] =>
-    rewrite firstn_all2  by lia
-  end.
-
-Ltac pose_lengths :=
-  repeat match goal with
-    | [ _: context[?xs] |- _ ] =>
-    lazymatch type of xs with
-    | tuple F ?k =>
-      let t := type of (length_to_list xs) in
-      lazymatch goal with
-      (* already posed *)
-      | [ _: t |- _] => fail
-      | _ => 
-        let Hlen := fresh "_Hlen" in
-        pose proof (length_to_list xs) as Hlen;
-        move Hlen at top
-      end
-    | _ => fail
-    end
-  end.
 
 Ltac pose_as_le_nonneg := repeat match goal with
 | [ |- context[RZ.as_le ?n ?xs ] ] =>
@@ -141,31 +86,6 @@ Ltac pose_as_le_nonneg := repeat match goal with
   end
 | _ => fail
 end.
-  
-
-(* prove invariant Inv about simple connection circuits *)
-Ltac connection Inv :=
-  apply D.iter_inv; unfold Inv; easy ||
-  ( intros i _cons IH Hi Hstep;
-    subst; lift_to_list; intuition;
-    eapply firstn_congruence; fold_default; (lia || eauto)).
-
-Lemma Forall_firstn_and_last {A}: forall l (d: A) (P: A -> Prop),
-  length l > 0 ->
-  Forall P (l[:length l-1]) ->
-  P (List.nth (length l - 1)%nat l d) ->
-  Forall P l.
-Proof.
-  intros.
-  apply Forall_rev_iff.
-  pose proof (rev_length l).
-  erewrite <- firstn_split_last with (l:=l) (n:=(length l - 1)%nat).
-  rewrite rev_unit.
-  constructor. eauto.
-  apply Forall_rev.
-  auto.
-  lia.
-Qed.
 
 Ltac rewrite_length :=
   repeat match goal with
@@ -194,18 +114,6 @@ Lemma as_le_0: forall i, [| List.repeat (0:F) i|] = 0%Z.
 Proof.
   induction i; simpl; auto.
   rewrite IHi. simplify.
-Qed.
-
-Lemma forall_repeat {A}: forall (i:nat) P (x: A),
-  i > 0 ->
-  Forall P (List.repeat x i) <-> P x.
-Proof.
-  induction i; simpl; intros.
-  lia.
-  intuit.
-  - inversion H0. auto.
-  - constructor; auto. destruct i. simpl. auto.
-    apply IHi. lia. auto.
 Qed.
 
 

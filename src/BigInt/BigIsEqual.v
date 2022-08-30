@@ -94,13 +94,70 @@ Local Open Scope F_scope.
 
 Instance Default : Default (F * F) := { default := (0, 0) }.
 
-Lemma fold_left_firstn_S:
-  forall (i: nat)(l1 l2: list F)(b: F)(f: (F -> F * F -> F)),
-  fold_left f (ListUtil.map2 pair (l1 [:S i]) (l2 [:S i])) b = 
-  f (fold_left f (ListUtil.map2 pair (l1 [:i]) (l2 [:i])) b) ((ListUtil.map2 pair (l1 [:i]) (l2 [:i])) ! i).
+Lemma list_map_pair_nth:
+  forall i a b,
+  (i < length a)%nat ->
+  i < length b ->
+  (ListUtil.map2 pair (a [:S i]) (b [:S i]) ! i) = ((a [:S i]) ! i, (b [:S i]) ! i).
 Proof.
-  induction i;simpl;intros.
-Admitted.
+  intros. unfold "!". erewrite ListUtil.nth_default_map2.
+  destruct lt_dec.
+  2:{ exfalso. apply n0. do 2 rewrite firstn_length. lia. }
+  auto.
+Qed.
+
+Lemma list_map_pair_append:
+  forall l1 l2 a b (f: (F -> F -> F * F)),
+  length l1 = length l2 ->
+  (ListUtil.map2 f (l1 ++ (a :: nil)) (l2 ++ (b :: nil))) =
+  ListUtil.map2 f l1 l2 ++ (f a b) :: nil.
+Proof.
+  intros.
+  rewrite ListUtil.map2_app;auto.
+Qed.
+
+Lemma fold_left_firstn_S_default:
+  forall (l: list (F*F))(i: nat)(b: F)f,
+  i < length l ->
+  fold_left f  (l [:S i]) b = 
+  f (fold_left f (l [:i]) b) (l ! i).
+Proof.
+  intros. 
+  assert(l [:S i] = l [:i] ++ ((l ! i)::nil)).
+  { erewrite firstn_S;try lia. unfold_default. auto. }
+  rewrite H0.
+  apply fold_left_app.
+Qed.
+
+Lemma firstn_map2 {A B:Type}: forall n (f: A -> A -> B) (l1 l2: list A),
+    firstn n (ListUtil.map2 f l1 l2) = ListUtil.map2 f (firstn n l1) (firstn n l2).
+Proof using Type.
+  intro n; induction n; intros.
+  - simpl; f_equal; trivial.
+  - destruct l1, l2;try easy. simpl.
+    rewrite IHn;auto.
+Qed.
+
+Lemma fold_left_firstn_S:
+  forall (i: nat)(l1 l2: list F)(b: F) f,
+  i < length l1 ->
+  i < length l2 ->
+  fold_left f (ListUtil.map2 pair (l1 [:S i]) (l2 [:S i])) b = 
+  f (fold_left f (ListUtil.map2 pair (l1 [:i]) (l2 [:i])) b) ((ListUtil.map2 pair (l1 [:S i]) (l2 [:S i])) ! i).
+Proof.
+  intros.
+  assert(exists l, forall i, l [:i] = (ListUtil.map2 pair (l1 [:i]) (l2 [:i])) /\ length l = length (ListUtil.map2 pair (l1) (l2))).
+  { exists (ListUtil.map2 pair l1 l2);intros;split.
+    + apply firstn_map2.
+    + auto. 
+  }
+  destruct H1 as [?]. pose proof (H1 i) as []. pose proof  (H1 (S i)) as [].
+  rewrite <- H4. rewrite <- H2.
+  replace ((x [:S i]) ! i) with (x ! i). 2:{ unfold_default. erewrite firstn_nth;try lia;auto. }
+  apply fold_left_firstn_S_default. rewrite H5. 
+  rewrite ListUtil.map2_length.
+  lia. 
+Qed.
 
 Lemma soundness_helper_lemma1:
   forall l1 l2,
@@ -118,13 +175,23 @@ Admitted.
 
 Lemma list_map_pair_nth_fst:
   forall i a b,
-  fst (ListUtil.map2 pair (a [:i]) (b [:i]) ! i) = (a [:i]) ! i.
-Admitted.
+  (i < length a) %nat ->
+  i < length b ->
+  fst (ListUtil.map2 pair (a [:S i]) (b [:S i]) ! i) = (a [:S i]) ! i.
+Proof.
+  intros.
+  eapply list_map_pair_nth in H0;eauto. rewrite H0;auto.
+Qed.
 
 Lemma list_map_pair_nth_snd:
   forall i a b,
-  snd (ListUtil.map2 pair (a [:i]) (b [:i]) ! i) = (b [:i]) ! i.
-Admitted.
+  (i < length a) %nat ->
+  i < length b ->
+  snd (ListUtil.map2 pair (a [:S i]) (b [:S i]) ! i) = (b [:S i]) ! i.
+Proof.
+  intros.
+  eapply list_map_pair_nth in H0;eauto. rewrite H0;auto.
+Qed.
 
 Theorem soundness: forall (c: t), 
   if (forallb (fun x => (fst x = snd x)? ) (ListUtil.map2 pair (' c.(a)) (' c.(b)))) then
@@ -153,15 +220,19 @@ Proof.
       pose proof (IsEqual.soundness (' isEquals ! i)). lift_to_list. rewrite H5, H6 in *.
       destruct dec.
       + rewrite H; symmetry. 
-        rewrite fold_left_firstn_S at 1.
-        destruct dec; try easy. rewrite list_map_pair_nth_fst, list_map_pair_nth_snd in n0.
-        replace ((' a [:i]) ! i) with  (' a ! i) in n0 by admit.
-        replace ((' b [:i]) ! i) with  (' b ! i) in n0 by admit. easy.
+        rewrite fold_left_firstn_S at 1;try lia.
+        destruct dec; try easy. rewrite list_map_pair_nth_fst, list_map_pair_nth_snd in n0; try lia.
+        replace ((' a [:S i]) ! i) with  (' a ! i) in n0.
+        2:{ unfold_default. erewrite firstn_nth;try lia;auto. }
+        replace ((' b [:S i]) ! i) with  (' b ! i) in n0.
+        2:{ unfold_default. erewrite firstn_nth;try lia;auto. } easy.
       + rewrite H; symmetry. 
-        rewrite fold_left_firstn_S at 1.
-        destruct dec; try fqsatz. rewrite list_map_pair_nth_fst, list_map_pair_nth_snd in e.
-        replace ((' a [:i]) ! i) with  (' a ! i) in e by admit.
-        replace ((' b [:i]) ! i) with  (' b ! i) in e by admit. easy.
+        rewrite fold_left_firstn_S at 1;try lia.
+        destruct dec; try fqsatz. rewrite list_map_pair_nth_fst, list_map_pair_nth_snd in e; try lia.
+        replace ((' a [:S i]) ! i) with  (' a ! i) in e.
+        2:{ unfold_default. erewrite firstn_nth;try lia;auto. }
+        replace ((' b [:S i]) ! i) with  (' b ! i) in e.
+        2:{ unfold_default. erewrite firstn_nth;try lia;auto. } easy.
   } 
   destruct (D.iter f k (F.of_nat q k, True)) as [total _cons] eqn:iter.
   destruct y as [? [?]]. apply H_inv in H1. subst.
@@ -175,7 +246,7 @@ Proof.
     replace (' a) with (' a [:k]). 2:{ rewrite <- firstn_all. rewrite Hlen_ka;auto. }
     replace (' b) with (' b [:k]). 2:{ rewrite <- firstn_all. rewrite Hlen_kb;auto. }
     destruct forallb;easy.
-Admitted.
+Qed.
 
 End _BigIsEqual.
 End BigIsEqual.

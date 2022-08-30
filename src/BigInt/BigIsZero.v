@@ -86,12 +86,24 @@ Record t := {
 
 Local Open Scope F_scope. 
 
-Lemma fold_left_firstn_S:
-  forall (i: nat)(l: list F)(b: F)(f: (F -> F -> F)),
-  fold_left f (l [:S i]) b = f (fold_left f (l [:i]) b) (l ! i).
+Lemma F_0_1_ff: 1%F <> @F.zero q.
 Proof.
-  induction i;simpl;intros.
-Admitted.
+unwrap_C.
+intro. pose proof @F.to_Z_0 q. rewrite <- H in H0. simpl in *. rewrite Zmod_1_l in H0;try lia.
+Qed.
+
+Lemma fold_left_firstn_S:
+  forall (l: list F)(i: nat)(b: F)f,
+  i < length l ->
+  fold_left f  (l [:S i]) b = 
+  f (fold_left f (l [:i]) b) (l ! i).
+Proof.
+  intros. 
+  assert(l [:S i] = l [:i] ++ ((l ! i)::nil)).
+  { erewrite firstn_S;try lia. unfold_default. auto. }
+  rewrite H0.
+  apply fold_left_app.
+Qed.
 
 Lemma soundness_helper_lemma1:
   forall l,
@@ -136,9 +148,9 @@ Proof.
       rewrite H5 in *.
       destruct dec.
       + rewrite H; symmetry. 
-        rewrite fold_left_firstn_S at 1. destruct dec; fqsatz.
+        rewrite fold_left_firstn_S at 1;try lia. destruct dec; fqsatz.
       + rewrite H; symmetry. 
-        rewrite fold_left_firstn_S at 1. destruct dec; fqsatz.
+        rewrite fold_left_firstn_S at 1;try lia. destruct dec; fqsatz.
   } 
   destruct (D.iter f k (F.of_nat q k, True)) as [total _cons] eqn:iter.
   destruct y as [? [?]]. apply H_inv in H1. subst.

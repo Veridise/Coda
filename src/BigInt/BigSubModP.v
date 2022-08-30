@@ -72,7 +72,14 @@ Definition add (xs: list F) (ys: list F) := List.map (fun '(x,y) => x+y) (List.c
 Definition ite (m: F) (xs: list F) (ys: list F) :=
   add (scale m xs) (scale (1-m) ys).
 
+
 Create HintDb DSL discriminated.
+
+#[local]Hint Extern 10 (_ < _) => lia : core.
+#[local]Hint Extern 10 (_ <= _) => lia : core.
+#[local]Hint Extern 10 (_ > _) => lia : core.
+#[local]Hint Extern 10 (_ >= _) => lia : core.
+#[local]Hint Extern 10 (_ = _) => lia : core.
 
 Lemma add_nil_l ys: add nil ys = nil.
 Proof. destruct ys; unfold add; reflexivity. Qed.
@@ -112,42 +119,86 @@ Proof. induction xs; intros; simpl in *. lia.
   simpl. rewrite IHxs. auto. lia.
 Qed.
 
-
 Lemma scale_length: forall m xs,
   length (scale m xs) = length xs.
 Proof.
   intros. unfold scale. rewrite map_length. auto.
 Qed.
 
+#[local]Hint Extern 10 (_ :: _ = _ :: _) => f_equal : core.
 
 Lemma scale_0: forall xs, scale 0 xs = List.repeat (0:F) (length xs).
-Admitted.
+Proof. induction xs; simpl; auto. Qed.
 
 Lemma scale_1: forall xs, scale 1 xs = xs.
-Admitted.
+Proof. induction xs; simpl; simplify; auto. Qed.
 
-Lemma add_0_r: forall xs n, add xs (List.repeat 0 n) = xs.
-Admitted.
+Lemma add_0_r: forall (i: nat) xs, i >= length xs ->
+  add xs (List.repeat 0 i) = xs.
+Proof. 
+  induction i; destruct xs; simpl in *; intros; auto.
+  unfold add in *. simpl. simplify. rewrite IHi; auto.
+Qed.
 
-Lemma add_0_l: forall ys n, add (List.repeat 0 n) ys = ys.
-Admitted.
+Lemma add_0_r': forall (i: nat) xs,
+  add xs (List.repeat 0 i) = xs[:min (length xs) i].
+Proof.
+  induction i; destruct xs; simpl in *; intros; auto.
+  unfold add in *. simpl. simplify. f_equal. rewrite IHi; auto.
+Qed.
+
+Lemma add_0_l: forall (i: nat) xs, i >= length xs ->
+  add (List.repeat 0 i) xs = xs.
+Proof. 
+  induction i; destruct xs; simpl in *; intros; auto.
+  unfold add in *. simpl. simplify. rewrite IHi; auto.
+Qed.
+
+Lemma add_0_l': forall (i: nat) xs,
+  add (List.repeat 0 i) xs = xs[:min (length xs) i].
+Proof. 
+  induction i; destruct xs; simpl in *; intros; auto.
+  unfold add in *. simpl. simplify. rewrite IHi; auto.
+Qed.
+
+
 
 Lemma ite_true: forall m xs ys,
   m = 1 ->
+  length xs = length ys ->
   ite m xs ys = xs.
 Proof.
   unwrap_C. intros; subst.
   unfold ite. simpl. simplify. replace (1-1)%F with (0:F) by fqsatz.
-  rewrite scale_0, scale_1, add_0_r. reflexivity.
+  rewrite scale_0, scale_1, add_0_r; auto.
+Qed.
+
+Lemma ite_true': forall m xs ys,
+  m = 1 ->
+  ite m xs ys = xs[:min (length xs) (length ys)].
+Proof.
+  unwrap_C. intros; subst.
+  unfold ite. simpl. simplify. replace (1-1)%F with (0:F) by fqsatz.
+  rewrite scale_0, scale_1, add_0_r'; auto.
 Qed.
 
 Lemma ite_false: forall m xs ys,
   m = 0 ->
+  length xs = length ys ->
   ite m xs ys = ys.
 Proof.
   unwrap_C. intros; subst.
   unfold ite. simpl. simplify. replace (1-0)%F with (1:F) by fqsatz.
-  rewrite scale_0, scale_1, add_0_l. reflexivity.
+  rewrite scale_0, scale_1, add_0_l; auto.
+Qed.
+
+Lemma ite_false': forall m xs ys,
+  m = 0 ->
+  ite m xs ys = ys[:min (length xs) (length ys)].
+Proof.
+  unwrap_C. intros; subst.
+  unfold ite. simpl. simplify. replace (1-0)%F with (1:F) by fqsatz.
+  rewrite scale_0, scale_1, add_0_l'. f_equal. lia.
 Qed.
 
 Lemma add_length: forall xs ys,
@@ -204,11 +255,6 @@ Qed.
   | [ |- context[ length (ite _ _ _) ] ] =>
     rewrite ite_length
   end : core.
-#[local]Hint Extern 10 (_ < _) => lia : core.
-#[local]Hint Extern 10 (_ <= _) => lia : core.
-#[local]Hint Extern 10 (_ > _) => lia : core.
-#[local]Hint Extern 10 (_ >= _) => lia : core.
-#[local]Hint Extern 10 (_ = _) => lia : core.
 
 Lemma firstn_mod: forall xs (i: nat),
   i < length xs ->
@@ -233,26 +279,60 @@ Proof.
   f_equal. rewrite firstn_skipn; auto.
 Qed.
 
+#[local]Hint Extern 10 => match goal with
+| [ |- context[ ite ?m _ _] ] =>
+  try (replace m with (0:F); try rewrite ite_false; try fqsatz)
+end : core.
+
+#[local]Hint Extern 10 => match goal with
+| [ |- context[ ite ?m _ _] ] =>
+  try (replace m with (1:F); try rewrite ite_true; try fqsatz)
+end : core.
+
 Lemma ite_as_le: forall m xs ys,
   binary m ->
+  length xs = length ys ->
   [| ite m xs ys |] = if dec (m = 1) then [|xs|] else [|ys|].
 Proof.
   unwrap_C.
   intros.
   destruct H; subst;
-  split_dec; try (exfalso; fqsatz).
-  rewrite ite_false; auto.
-  rewrite ite_true; auto.
+  split_dec; try (exfalso; fqsatz); auto.
 Qed.
 
-Lemma ite_firstn: forall i m xs ys,
+#[local]Hint Extern 10 => match goal with
+  | [ |- context[length (firstn _ _)]] =>
+    rewrite firstn_length_le by lia
+  end : core.
+
+Lemma scale_firstn: forall i m xs,
+  scale m (xs[:i]) = (scale m xs)[:i].
+Proof.
+  induction i; simpl; intros; destruct xs; auto.
+  unfold scale. simpl. f_equal. rewrite firstn_map. auto.
+Qed.
+
+
+Lemma add_firstn: forall (i: nat) xs ys,
+  (i <= length xs)%nat ->
+  (i <= length ys)%nat ->
+  add (xs[:i]) (ys[:i]) = (add xs ys)[:i].
+Proof.
+  induction i; destruct xs as [ | x xs]; destruct ys as [ | y ys]; simpl in *; auto; intros.
+  unfold add. simpl. f_equal.
+  rewrite <- combine_firstn, firstn_map. auto.
+Qed.
+
+Lemma ite_firstn: forall (i: nat) m xs ys,
   binary m ->
+  i <= length xs ->
+  i <= length ys ->
   ite m (xs[:i]) (ys[:i]) = ite m xs ys [:i].
 Proof.
-  intros.
-  destruct H; subst.
-  repeat rewrite ite_false; auto.
-  repeat rewrite ite_true; auto.
+  intros. unfold ite.
+  repeat rewrite scale_firstn.
+  rewrite add_firstn; auto;
+  rewrite scale_length; lia.
 Qed.
 
 Lemma ite_range: forall m xs ys,
@@ -263,8 +343,8 @@ Lemma ite_range: forall m xs ys,
 Proof.
   intros.
   destruct H; subst.
-  rewrite ite_false; auto.
-  rewrite ite_true; auto.
+  rewrite ite_false'; auto. apply Forall_firstn. auto.
+  rewrite ite_true'; auto. apply Forall_firstn. auto.
 Qed.
 
 Lemma mod_sub_geq: forall a b c,
@@ -368,7 +448,8 @@ Proof.
   assert (Hout: Iout k (D.iter f k True)). {
     apply D.iter_inv; unfold Iout. easy.
     intros i _cons IH Hi Hstep. subst f. intuition.
-    rewrite ite_firstn by auto. applys_eq (@firstn_congruence F). rewrite <- ite_firstn; auto.
+    rewrite ite_firstn; auto. applys_eq (@firstn_congruence F).
+    rewrite <- ite_firstn; auto.
     auto. lift_to_list. pose_lengths.
     fold_default.
     rewrite H2. rewrite H1. unfold ite.

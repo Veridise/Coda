@@ -397,6 +397,15 @@ Proof.
   auto.
 Qed.
 
+Lemma repr_le_ub': forall xs,
+  xs |: (n) ->
+  [| xs |] <= (2^(n*length xs) - 1)%Z.
+Proof.
+  intros.
+  assert ([|xs|] <= 2 ^ (n * length xs) - 1). eapply repr_le_ub. apply repr_trivial. auto.
+  lia.
+Qed.
+
 
 Fixpoint big_lt (xs ys: list F) :=
   match xs, ys with

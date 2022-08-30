@@ -72,44 +72,125 @@ Definition add (xs: list F) (ys: list F) := List.map (fun '(x,y) => x+y) (List.c
 Definition ite (m: F) (xs: list F) (ys: list F) :=
   add (scale m xs) (scale (1-m) ys).
 
-Lemma ite_true: forall m xs ys,
-  m = 1 ->
-  length xs = length ys ->
-  ite m xs ys = xs.
-Admitted.
+Create HintDb DSL discriminated.
 
-Lemma ite_false: forall m xs ys,
-  m = 0 ->
-  length xs = length ys ->
-  ite m xs ys = ys.
-Admitted.
+Lemma add_nil_l ys: add nil ys = nil.
+Proof. destruct ys; unfold add; reflexivity. Qed.
 
-Lemma ite_firstn: forall i m xs ys,
-  ite m (xs[:i]) (ys[:i]) = ite m xs ys [:i].
-Admitted.
+Lemma add_nil_r xs: add xs nil = nil.
+Proof. destruct xs; unfold add; reflexivity. Qed.
 
-Lemma add_length: forall xs ys,
-  length (add xs ys) = Nat.min (length xs) (length ys).
-Admitted.
+Hint Rewrite add_nil_l: DSL.
+Hint Rewrite add_nil_r: DSL.
 
-Lemma ite_length: forall m xs ys,
-  length (ite m xs ys) = Nat.min (length xs) (length ys).
-Admitted.
+Lemma ite_nil_l: forall m ys,
+  ite m nil ys = nil.
+Proof.
+  induction ys; unfold ite; simpl; intros; autorewrite with DSL; auto.
+Qed.
 
-Lemma scale_nth: forall m xs i d,
+Lemma ite_nil_r: forall m xs,
+  ite m xs nil = nil.
+Proof.
+  induction xs; unfold ite; simpl; intros; autorewrite with DSL; auto.
+Qed.
+
+Hint Rewrite ite_nil_l: DSL.
+Hint Rewrite ite_nil_r: DSL.
+
+Lemma scale_nil: forall m, scale m nil = nil.
+Proof. intros. unfold scale. auto. Qed.
+
+Hint Rewrite scale_nil: DSL.
+
+
+Lemma scale_nth: forall m xs (i: nat) d,
+  i < length xs ->
   List.nth i (scale m xs) d = m * (List.nth i xs d).
-Admitted.
+Proof. induction xs; intros; simpl in *. lia.
+  destruct i. auto.
+  simpl. rewrite IHxs. auto. lia.
+Qed.
+
 
 Lemma scale_length: forall m xs,
   length (scale m xs) = length xs.
+Proof.
+  intros. unfold scale. rewrite map_length. auto.
+Qed.
+
+
+Lemma scale_0: forall xs, scale 0 xs = List.repeat (0:F) (length xs).
 Admitted.
+
+Lemma scale_1: forall xs, scale 1 xs = xs.
+Admitted.
+
+Lemma add_0_r: forall xs n, add xs (List.repeat 0 n) = xs.
+Admitted.
+
+Lemma add_0_l: forall ys n, add (List.repeat 0 n) ys = ys.
+Admitted.
+
+Lemma ite_true: forall m xs ys,
+  m = 1 ->
+  ite m xs ys = xs.
+Proof.
+  unwrap_C. intros; subst.
+  unfold ite. simpl. simplify. replace (1-1)%F with (0:F) by fqsatz.
+  rewrite scale_0, scale_1, add_0_r. reflexivity.
+Qed.
+
+Lemma ite_false: forall m xs ys,
+  m = 0 ->
+  ite m xs ys = ys.
+Proof.
+  unwrap_C. intros; subst.
+  unfold ite. simpl. simplify. replace (1-0)%F with (1:F) by fqsatz.
+  rewrite scale_0, scale_1, add_0_l. reflexivity.
+Qed.
+
+Lemma add_length: forall xs ys,
+  length (add xs ys) = Nat.min (length xs) (length ys).
+Proof.
+  intros. unfold add. rewrite map_length. apply combine_length.
+Qed.
+
+Lemma ite_length: forall m xs ys,
+  length (ite m xs ys) = Nat.min (length xs) (length ys).
+Proof.
+  intros.
+  unfold ite. rewrite add_length, scale_length, scale_length. auto.
+Qed.
+
+Local Open Scope nat_scope.
+Lemma combine_nth2 {X Y}: forall i xs ys (dx:X) (dy:Y),
+  i < length xs ->
+  i < length ys ->
+  List.nth i (combine xs ys) (dx,dy) = (List.nth i xs dx, List.nth i ys dy).
+Proof.
+  induction i.
+  - intros. destruct xs; destruct ys; simpl in *; auto; lia.
+  - intros. destruct xs; destruct ys; cbn [length] in *; try lia.
+    simpl. apply IHi; lia.
+Qed.
+
+Local Close Scope nat_scope.
 
 Lemma add_nth: forall xs ys (i:nat) d,
   i < length xs ->
   i < length ys ->
   List.nth i (add xs ys) d =
   (List.nth i xs d) + (List.nth i ys d).
-Admitted.
+Proof.
+  intros. unfold add.
+  remember (fun '(x, y) => x + y) as f.
+  pose proof (map_nth f (combine xs ys)).
+  erewrite nth_oblivious.
+  rewrite map_nth.
+  rewrite combine_nth2 by lia. rewrite Heqf. auto.
+  rewrite map_length, combine_length. lia.
+Qed.
 
 #[local]Hint Extern 10 => match goal with
   | [ |- context[ length (scale _ _) ] ] =>
@@ -129,20 +210,120 @@ Admitted.
 #[local]Hint Extern 10 (_ >= _) => lia : core.
 #[local]Hint Extern 10 (_ = _) => lia : core.
 
-Lemma firstn_mod: forall xs k,
-  [| xs[:k] |] = [|xs|] mod (2^(n*k)).
-Admitted.
+Lemma firstn_mod: forall xs (i: nat),
+  i < length xs ->
+  xs |: (n) ->
+  [| xs[:i] |] = [|xs|] mod 2^(n*i).
+Proof.
+  intros xs i Hi Hxs.
+  replace [|xs|] with [|xs[:i] ++ skipn i xs|].
+  rewrite RZ.as_le_app.
+  rewrite firstn_length_le by lia.
+  rewrite Zplus_mod.
+  rewrite Zmult_comm with (n:=(2^(n*i))%Z).
+  rewrite Z_mod_mult.
+  simplify.
+  rewrite Zmod_mod, Zmod_small. reflexivity.
+  split. apply RZ.as_le_nonneg.
+  assert ([|xs [:i]|] <= 2 ^ (n * i) - 1).
+    applys_eq RZU.repr_le_ub'. repeat f_equal.
+    symmetry. apply firstn_length_le; lia.
+    apply Forall_firstn. auto.
+  lia.
+  f_equal. rewrite firstn_skipn; auto.
+Qed.
 
 Lemma ite_as_le: forall m xs ys,
   binary m ->
   [| ite m xs ys |] = if dec (m = 1) then [|xs|] else [|ys|].
-Admitted.
+Proof.
+  unwrap_C.
+  intros.
+  destruct H; subst;
+  split_dec; try (exfalso; fqsatz).
+  rewrite ite_false; auto.
+  rewrite ite_true; auto.
+Qed.
+
+Lemma ite_firstn: forall i m xs ys,
+  binary m ->
+  ite m (xs[:i]) (ys[:i]) = ite m xs ys [:i].
+Proof.
+  intros.
+  destruct H; subst.
+  repeat rewrite ite_false; auto.
+  repeat rewrite ite_true; auto.
+Qed.
 
 Lemma ite_range: forall m xs ys,
+  binary m ->
   xs |: (n) ->
   ys |: (n) ->
   ite m xs ys |: (n).
-Admitted.
+Proof.
+  intros.
+  destruct H; subst.
+  rewrite ite_false; auto.
+  rewrite ite_true; auto.
+Qed.
+
+Lemma mod_sub_geq: forall a b c,
+  0 <= a < c ->
+  0 <= b < c ->
+  a >= b ->
+  ((a-b) mod c = a-b)%Z.
+Proof.
+  intros a b c. intros.
+  rewrite Zmod_small. auto.
+  lia.
+Qed.
+
+Lemma mod_sub_lt: forall a b c,
+  0 <= a < c ->
+  0 <= b < c ->
+  a < b ->
+  ((a-b) mod c = a-b+c)%Z.
+Proof.
+  intros a b c. intros.
+  replace ((a - b) mod c) with (((a-b)+c) mod c).
+  rewrite Zmod_small. auto.
+  lia.
+  rewrite Zplus_mod.
+  rewrite Z_mod_same_full. simplify.
+  rewrite Zmod_mod.
+  auto.
+Qed.
+
+Ltac pose_as_le_nonneg := repeat match goal with
+| [ |- context[RZ.as_le ?n ?xs ] ] =>
+  let t := type of (RZ.as_le_nonneg n xs) in
+  lazymatch goal with
+  (* already posed *)
+  | [ _: t |- _] => fail
+  | _ => 
+    let Hnonneg := fresh "_Hnonneg" in
+    pose proof (RZ.as_le_nonneg n xs) as Hnonneg
+    ;move Hnonneg at top
+  end
+| _ => fail
+end.
+
+Ltac rewrite_length :=
+  repeat match goal with
+  | [ H: length ?xs = ?l |- context[length ?xs] ] =>
+    rewrite H
+  | [ H: length ?xs = ?l, H': context[length ?xs] |- _] =>
+    rewrite H in H'
+  end.
+
+Ltac lrewrite :=
+  repeat match goal with
+  | [ H: ?x = _ |- context[?x] ] => rewrite H
+  end.
+Ltac rrewrite :=
+  repeat match goal with
+  | [ H: _ = ?x |- context[?x] ] => rewrite H
+  end.
 
 Theorem soundness: forall (c: t),
   0 < n ->
@@ -169,6 +350,8 @@ Proof.
     'sub.(Sub.b)[:i] = 'b[:i]).
   assert (Hsub: Isub k (D.iter f1 k True)) by connection Isub.
   destruct (Hsub Psub) as [sub_a sub_b]. firstn_all.
+  destruct (Sub.soundness_ite sub) as [bin_underflow [Hsub_out_range Hsub_out]];
+  try (lrewrite; lia || auto).
 
   (* add *)
   pose (Iadd := fun (i:nat) _cons => _cons ->
@@ -176,6 +359,8 @@ Proof.
     'add.(Add.b)[:i] = 'p[:i]).
   assert (Hadd: Iadd k (D.iter f0 k True)) by connection Iadd.
   destruct (Hadd Padd) as [add_a add_b]. firstn_all.
+  destruct (Add.soundness add) as [Hadd_out Hadd_out_range];
+  try (lrewrite; lia || auto).
 
   (* out *)
   pose (Iout := fun (i:nat) _cons => _cons ->
@@ -183,45 +368,50 @@ Proof.
   assert (Hout: Iout k (D.iter f k True)). {
     apply D.iter_inv; unfold Iout. easy.
     intros i _cons IH Hi Hstep. subst f. intuition.
-    rewrite ite_firstn. applys_eq (@firstn_congruence F). rewrite <- ite_firstn.
+    rewrite ite_firstn by auto. applys_eq (@firstn_congruence F). rewrite <- ite_firstn; auto.
     auto. lift_to_list. pose_lengths.
     fold_default.
     rewrite H2. rewrite H1. unfold ite.
-    unfold_default. rewrite add_nth. repeat rewrite scale_nth.
+    unfold_default. rewrite add_nth; auto. repeat rewrite scale_nth; auto.
     fqsatz.
-    repeat rewrite scale_length. lia.
-    repeat rewrite scale_length. lia.
-    rewrite ite_length. lia.
+    rewrite ite_length; lia.
   }
   apply Hout in Pout. firstn_all. move Pout at bottom.
   rewrite Pout.
-  destruct (Add.soundness add) as [Hadd_out Hadd_out_range]. admit. admit. admit. admit. admit. 
-  destruct (Sub.soundness_ite sub) as [bin_underflow [Hsub_out_range Hsub_out]]. admit. admit. admit. admit. admit.
+  
   rewrite sub_a, sub_b in *. clear sub_a sub_b.
   rewrite add_a, add_b in *. clear add_a add_b.
-  intuition.
+
+  pose_as_le_nonneg.
+  pose proof (RZU.repr_le_ub' _ _ Ha).
+  pose proof (RZU.repr_le_ub' _ _ Hb).
+  pose proof (RZU.repr_le_ub' _ _ Hp).
+  rewrite_length.
+  
+  intuit.
   rewrite ite_as_le; auto.
-  split_dec; intuition; try fqsatz. 
+  split_dec; intuit; try fqsatz.
+  (* a < b *)
   rewrite e in *.
-  rewrite firstn_mod.
-  rewrite Hadd_out, H0.
+  rewrite firstn_mod; auto.
+  rewrite Hadd_out, H3.
   rewrite @F.to_Z_1; try lia. simplify.
   replace (2 ^ (n * k) + [|' a|] - [|' b|] + [|' p|])%Z with 
   (2 ^ (n * k) + ([|' a|] - [|' b|] + [|' p|]))%Z by lia.
   rewrite Zplus_mod, Z_mod_same_full.
   simplify.
   rewrite Zmod_mod.
-  rewrite Zmod_small.
-  admit. (* mod range *)
-  admit. (* range: 0 <= [|' a|] - [|' b|] + [|' p|] < 2 ^ (n * k) *)
+  pose_as_le_nonneg.
+  rewrite Zmod_small, mod_sub_lt; lia.
+  
 
   (* case a >= b *)
-  firstn_all. rewrite H0.
-  admit. (* mod range *)
+  firstn_all. rewrite H3.
+  rewrite mod_sub_geq; try lia.
 
-  rewrite ite_firstn.
+  rewrite ite_firstn; auto.
   apply Forall_firstn.
   apply ite_range; auto.
 
   Unshelve. all:exact F.zero.
-Admitted.
+Qed.

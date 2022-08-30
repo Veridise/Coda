@@ -160,17 +160,39 @@ Proof.
 Qed.
 
 Lemma soundness_helper:
-  forall (l:list (F * F)) (k:F),
-  (k >q F.of_Z q (length l))%F ->
+  forall (l:list (F * F)) (k:nat) (RNG: 1 <= k <= C.k ),
+  (k > length l) ->
   (fold_left
     (fun x y => if (fst y = snd y)? then x - 1 else x) l
-      k <> 0)%F.
+    (F.of_nat q k) <> 0).
 Proof.
+  unwrap_C. 
   induction l;simpl;intros.
-Admitted.
+  - intro. subst. simpl in *. rewrite Z.mod_small in *;try lia.
+    assert (RNG1: (C.k < 2 ^ C.k)).
+    { apply Zpow_facts.Zpower2_lt_lin;lia. }
+    assert(F.of_nat q k0 <> 0).
+    { unfold F.of_nat. apply F.of_Z_small_nonzero;try lia. }
+    easy.
+    rewrite Z.mod_small;try lia.
+  - assert (RNG1: 0 <= length l < q).
+    { destruct RNG. assert (C.k < 2 ^ C.k). apply Zpow_facts.Zpower2_lt_lin;lia. lia. }
+    destruct dec;subst;simpl in *.
+    + unfold F.of_nat in *. 
+      assert ((F.of_Z q k0 - 1) = (F.of_Z q (k0 - 1)%nat)).
+      { assert ((Z.of_nat (k0 - 1)) = (Z.of_nat k0) - 1)%Z. lia.
+        rewrite H0. rewrite F.of_Z_sub. fqsatz. }
+      rewrite H0.
+      eapply IHl;simpl;try lia.
+    + unfold F.of_nat in *.
+      eapply IHl;simpl;try lia.
+Qed.
+
+Lemma add_sub: forall (x y: F), x + y - y = x.
+Proof. unwrap_C. intros. fqsatz. Qed.
 
 Lemma soundness_helper_lemma1:
-  forall l k,
+  forall l (k:nat) (RNG: (k <= C.k)%Z),
   k = (length l) ->
   fold_left (fun x y => if (fst y = snd y)? then x - 1 else x)  l (F.of_nat q k) = 0 ->
   forallb (fun x : F * F => if dec (fst x = snd x) then true else false) l = true.
@@ -178,16 +200,14 @@ Proof.
   unwrap_C.
   induction l;intros;simpl in *;trivial.
   destruct dec;simpl.
-  - subst. eapply IHl;eauto.
-    replace (F.of_nat q (length l)) with ((F.of_nat q (S (length l)) - 1));auto.
+  - subst. eapply (IHl (length l));eauto;try lia.
+    replace (F.of_nat q (length l)) with ((F.of_nat q (S (length l)) - 1));auto;try lia.
     replace (S (length l)) with (length l + 1)%nat by lia.
     rewrite F.of_nat_add.
     replace (F.of_nat q 1) with (@F.one q);auto.
-    assert(1 - 1 = @F.zero q)%F.
-    { unfold F.sub. unfold F.opp. simpl. rewrite Zmod_1_l;simpl;try lia. admit. }
-    fqsatz. 
-  - eapply soundness_helper in H0;try easy. admit.
-Admitted.
+    rewrite add_sub. fqsatz. 
+  - apply soundness_helper in H0;try lia;try easy. 
+Qed.
 
 Lemma soundness_helper_lemma2:
 forall l k,
@@ -203,10 +223,8 @@ Proof.
   replace (S (length l)) with (length l + 1)%nat by lia.
   rewrite F.of_nat_add.
   replace (F.of_nat q 1) with (@F.one q);auto.
-  assert(1 - 1 = @F.zero q)%F.
-  { unfold F.sub. unfold F.opp. simpl. rewrite Zmod_1_l;simpl;try lia. admit. }
-  fqsatz.
-Admitted.
+  rewrite add_sub. fqsatz. 
+Qed.
 
 Lemma list_map_pair_nth_fst:
   forall i a b,
@@ -229,12 +247,13 @@ Proof.
 Qed.
 
 Theorem soundness: forall (c: t), 
+  1 <= k <= C.k ->
   if (forallb (fun x => (fst x = snd x)? ) (ListUtil.map2 pair (' c.(a)) (' c.(b)))) then
   c.(out) = 1
   else
   c.(out) = 0.
 Proof.
-  unwrap_C. intros c. 
+  unwrap_C. intros c RNG. 
   destruct c as [a b out _cons]. 
   destruct _cons as [isEquals [checkZero]]. subst. simpl in *.
   rem_iter.
@@ -274,8 +293,10 @@ Proof.
   pose proof (IsZero.soundness checkZero). unfold IsZero.spec in H.
   assert (length (ListUtil.map2 pair (' a [:k]) (' b [:k])) = k).
   { rewrite ListUtil.map2_length. do 2 rewrite firstn_length. lia. }
+  assert (RNG1: k < q).
+  { destruct RNG. assert (C.k < 2 ^ C.k). apply Zpow_facts.Zpower2_lt_lin;lia. lia. }
   destruct dec.
-  - rewrite H1 in e. apply soundness_helper_lemma1 in e;auto.
+  - rewrite H1 in e. apply soundness_helper_lemma1 in e;auto;try lia.
     replace (' a) with (' a [:k]). 2:{ rewrite <- firstn_all. rewrite Hlen_ka;auto. }
     replace (' b) with (' b [:k]). 2:{ rewrite <- firstn_all. rewrite Hlen_kb;auto. }
     destruct forallb;easy.

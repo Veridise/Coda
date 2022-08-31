@@ -1,6 +1,6 @@
-# circom-coq
+# Coda
 
-Formally verified circom circuits with machine-checked proofs, in Coq.
+Certified circom circuits in Coq.
 
 ## Requirements
 - [`opam`](https://opam.ocaml.org/)

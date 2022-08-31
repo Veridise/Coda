@@ -21,6 +21,8 @@ src/BigInt/BigIsEqual.v
 src/BigInt/BigAdd.v
 src/BigInt/BigSub.v
 src/BigInt/BigLessThan.v
+src/BigInt/BigAddModP.v
+src/BigInt/BigSubModP.v
 src/BigInt/CheckCarryToZero.v
 src/BigInt/Split.v
 src/BigInt/Theory/Polynom.v

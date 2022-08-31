@@ -76,8 +76,7 @@ Definition cons (a b c out borrow: F) :=
     lt.(LessThan._in) [0] = a /\
     lt.(LessThan._in) [1] = b_plus_c /\
     borrow = lt.(LessThan.out) /\
-    out = borrow * 2^n + a - b_plus_c /\
-    a - b - c + 2^n >=z 0.
+    out = borrow * 2^n + a - b_plus_c.
 
 Record t : Type := {
   a: F; b: F; c: F;
@@ -97,47 +96,50 @@ Theorem soundness: forall w,
   binary w.(c) ->
   (* a - b - c + 2^n >= 0 *)
   (0 <= |^w.(a)| - |^w.(b)| - |^w.(c)| + 2^n) ->
-  ( w.(a) - w.(b) - w.(c) + 2^n >=z 0 ) /\
+  0 <= |^ w.(a) - w.(b) - w.(c) + 2^n | ->
   (* post-conditions *)
   w.(out) - w.(borrow) * 2^n = w.(a) - w.(b) - w.(c) /\
   w.(out) | (n) /\
   binary w.(borrow).
 Proof.
-  unwrap_C. intros w Hnk Ha Hb Hc Habc.
-  assert (Hnk_pow: (0 <= 2^(n+2) <= 2^C.k)). split. lia. (apply Zpow_facts.Zpower_le_monotone; lia).
-  simplify' Hnk_pow. replace (2^2)%Z with 4 in Hnk_pow by lia.
+  unwrap_C. intros w Hnk Ha Hb Hc Habc Habc'.
+  assert (Hnk_pow': (0 <= 4 * 2^n <= 2^C.k)). {
+    replace 4 with (2^2)%Z by lia.
+    rewrite <- Zpower_exp; try lia. 
+    split. lia.
+    apply Zpow_facts.Zpower_le_monotone; lia.
+  }
   destruct w as [a b c out borrow _cons].
-  unfold cons in *. destruct _cons as [lt [H_in0 [H_in1 [H_borrow [H_out H_assert]]] ] ].
+  unfold cons in *. destruct _cons as [lt [H_in0 [H_in1 [H_borrow H_out]]]].
   cbn [ModSubThree.a ModSubThree.b ModSubThree.c ModSubThree.borrow ModSubThree.out] in *.
 
   apply in_range_binary in Hc.
-  assert (lt_range_1: LessThan._in lt [0] <=z (2 ^ S n -1)).
-  { rewrite H_in0. rewrite Ha. replace (2 ^ (S n))%Z with (2 ^ (n + 1))%Z. 
-  rewrite Zpower_exp;lia. lia. }
-  assert (lt_range_2: LessThan._in lt [1] <=z (2 ^ S n -1)).
-  { rewrite H_in1.
-    assert (0 <= |^b|). apply F.to_Z_range. lia.
-    assert (0 <= |^c|). apply F.to_Z_range. lia.
+  pose proof (F_to_Z_nonneg a).
+  pose proof (F_to_Z_nonneg b).
+  pose proof (F_to_Z_nonneg c).
+
+  assert (lt_range_1: LessThan._in lt [0] <=z (2 ^ S n -1)). { 
+    rewrite H_in0. rewrite Ha. replace (2 ^ (S n))%Z with (2 ^ (n + 1))%Z. 
+    rewrite Zpower_exp;lia. lia. 
+  }
+  assert (lt_range_2: LessThan._in lt [1] <=z (2 ^ S n -1)). {
+    rewrite H_in1.
     replace (S n) with (n+1)%nat by lia.
     rewrite Nat2Z.inj_add. simpl.
-    rewrite Z.mod_small. simplify. nia. }
-  
+    rewrite Z.mod_small. simplify. nia.
+  }
   destruct (LessThan.soundness lt) as [H_lt_b H_lt]; try lia.
-  rewrite H_in0, H_in1, H_out, <- H_borrow in *.
+  symmetry in H_borrow.
+  rewrite H_in0, H_in1, H_out, H_borrow in *. clear H_in0 H_in1 H_out H_borrow.
   intuition; auto; try fqsatz.
-  assert (0 <= |^ b | + |^ c | <= 2^n).
-  { pose proof (F_to_Z_nonneg b). pose proof (F_to_Z_nonneg c). lia. }
-  destruct (dec (borrow = 1)).
-  + rewrite e in *.
-    repeat (autorewrite with F_to_Z; simplify; try (simpl; lia)).
-    simpl. admit.
-  + assert(borrow = 0). destruct H_lt_b. fqsatz. exfalso; fqsatz.
-    eapply binary_in_range with (n:=1%nat) in H_lt_b; try lia.
-    pose proof (F_to_Z_nonneg borrow).
-    repeat (autorewrite with F_to_Z; simplify; try (simpl; lia || nia));
-    admit.
-Unshelve.
-Admitted.
+  assert (0 <= |^ b | + |^ c | <= 2^n). { 
+    pose proof (F_to_Z_nonneg b). pose proof (F_to_Z_nonneg c). lia.
+  }
+  destruct H_lt_b; subst borrow; split_dec; try fqsatz;
+  autorewrite with F_to_Z in H_lt; simplify; try (simpl; lia).
+  + repeat (autorewrite with F_to_Z; simplify; try (simpl; lia)).
+  + repeat (autorewrite with F_to_Z; simplify; try (simpl; lia)). 
+Qed.
 
 (* for default values. never used *)
 Definition wgen : t. skip. Defined.

@@ -101,7 +101,7 @@ Proof.
   intuition.
   - fqsatz.
   - subst.
-  remember (Num2Bits.out [n] ) as out_n. pose proof (length_to_list Num2Bits.out).
+  remember (Num2Bits.out n2b [n] ) as out_n. pose proof (length_to_list (Num2Bits.out n2b)).
   pose proof (Num2Bits.soundness n2b) as H_n2b. unfold repr_le2 in *.
   rewrite <- H_in.
   pose proof H_n2b as H_n2b'. unfold repr_le in H_n2b. destruct H_n2b as [_ [_ H_as_le] ].

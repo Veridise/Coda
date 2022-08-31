@@ -306,6 +306,18 @@ Proof.
   unfold List_nth_Default. rewrite nth_default_eq. auto.
 Qed.
 
+
+Lemma as_le_split_last' : forall i ws,
+  length ws = S i ->
+  ws |: (n) ->
+  [| ws |] = [| ws[:i] |] + 2^(n*i) * ToZ.to_Z (ws ! i).
+Proof.
+  intros. eapply as_le_split_last.
+  rewrite <- H.
+  eapply repr_trivial.
+  auto.
+Qed.
+
 Lemma as_be_nonneg: forall l,
   0 <= as_be n l.
 Proof.

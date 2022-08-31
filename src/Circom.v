@@ -18,9 +18,11 @@ Require Import Circom.BabyJubjub.
 
 Module Type CIRCOM.
   Parameter q: positive.
+  Parameter r: Z.
   Parameter k: Z.
   Axiom prime_q: prime q.
   Axiom two_lt_q: 2 < q.
+  Axiom r_k: r = k - 1.
   Axiom k_positive: 1 < k.
   Axiom q_lb: 2^k < q.
   Axiom q_gtb_1: (1 <? q)%positive = true.
@@ -32,6 +34,10 @@ End CIRCOM.
 Module C : CIRCOM.
 Definition q := BabyJubjub.p.
 Definition k := 253.
+Definition r := 252.
+
+Fact r_k: r = k - 1.
+Proof. unfold r, k. lia. Qed.
 
 Fact prime_q: prime q.
 Proof. exact BabyJubjub.is_prime. Qed.

@@ -107,7 +107,7 @@ Proof.
   intuition.
 Qed.
 
-Class t : Type := mk {
+Record t := mk {
   _in: F; 
   out: F^n; 
   _cons: cons _in out
@@ -160,6 +160,20 @@ Proof.
   unfold Inv in Hinv. intuition.
   subst. rewrite <- firstn_to_list. auto.
 Qed.
+
+Lemma range_check: forall (c: t),
+  n <= C.k ->
+  c.(_in) | (n).
+Proof.
+  intros c. specialize (soundness c). intros.
+  exact (R.repr_le_ub _ _ _ H H0).
+Qed.
+
+Definition wgen: t.
+Admitted.
+
+#[global] Instance Default: Default t.
+Proof. constructor. exact wgen. Defined.
 End _Num2Bits.
 End Num2Bits.
 

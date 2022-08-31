@@ -318,13 +318,6 @@ Proof.
   - apply binary_Z in H. apply leq_F_z_iff; auto.
 Qed.
 
-Lemma Forall_weaken: forall {A: Type} (P Q: A -> Prop) (l: list A),
-  (forall x, P x -> Q x) -> Forall P l -> Forall Q l.
-Proof.
-  intros. apply Forall_forall. rewrite Forall_forall in H0.
-  intros. auto.
-Qed.
-
 Lemma Forall_in_range: forall xs, xs |: (1) <-> Forall binary xs.
 Proof. intuition; eapply Forall_weaken; try apply in_range_binary; auto.
 Qed.

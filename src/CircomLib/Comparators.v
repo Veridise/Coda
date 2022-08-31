@@ -191,9 +191,9 @@ Proof.
     assert (H_x_nonneg: (0 <= F.to_Z x)%Z). apply F.to_Z_range. lia.
     assert (H_y_nonneg: (0 <= F.to_Z y)%Z). apply F.to_Z_range. lia.
     destruct (dec (out = 1)).
-    + assert (Hn: Num2Bits.out [n] = 0) by fqsatz.
+    + assert (Hn: Num2Bits.out n2b [n] = 0) by fqsatz.
       rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq in Hn.
-      remember (to_list (S n) Num2Bits.out) as n2bout.
+      remember (to_list (S n) (Num2Bits.out n2b)) as n2bout.
         unfold repr_le2 in *.
         eapply repr_le_last0' in Hn. 2: { rewrite H_n in H_n2b'. apply H_n2b'. }
         fold repr_le2 in Hn.
@@ -204,7 +204,7 @@ Proof.
         simpl in Hn. lia.
       }
       lia.
-    + destruct H0; try fqsatz. assert (Hn: Num2Bits.out [n] = 1) by fqsatz.
+    + destruct H0; try fqsatz. assert (Hn: Num2Bits.out n2b [n] = 1) by fqsatz.
     rewrite H_n in *.
     rewrite nth_Default_nth_default, <- nth_default_to_list, nth_default_eq in Hn.
     eapply repr_le_lb with (i:=n) in Hn; eauto; try lia.

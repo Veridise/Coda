@@ -292,3 +292,11 @@ Proof.
   - constructor; auto. destruct i. simpl. auto.
     apply IHi. lia. auto.
 Qed.
+
+
+Lemma Forall_weaken: forall {A: Type} (P Q: A -> Prop) (l: list A),
+  (forall x, P x -> Q x) -> Forall P l -> Forall Q l.
+Proof.
+  intros. apply Forall_forall. rewrite Forall_forall in H0.
+  intros. auto.
+Qed.

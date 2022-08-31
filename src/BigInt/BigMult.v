@@ -23,7 +23,6 @@ From Circom.CircomLib Require Import Bitify Comparators.
 *)
 
 Module BigMult.
-Context {n: nat}.
 
 Module B := Bitify.
 Module D := DSL.
@@ -31,6 +30,12 @@ Module Cmp := Comparators.
 Module RZU := ReprZUnsigned.
 Module RZ := RZU.RZ.
 Module R := Repr.
+Declare Scope DSL_scope.
+Delimit Scope DSL_scope with DSL.
+
+Module DL := DSLL.
+Import DL.
+Local Open Scope DSL_scope.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -201,6 +206,11 @@ Local Notation "x [ i ]" := (Tuple.nth_default 0 i x).
 Definition nth2 {m n} (i: nat) (x: tuple (tuple F n) m) := Tuple.nth_default (repeat 0 n) i x.
 (* Local Notation "x [ i ][ j ]" := (Tuple.nth_default 0 j (nth2 i x)). *)
 
+
+
+Section _BigMultNoCarry.
+Context {n: nat}.
+
 Definition init_poly ka kb (poly: tuple F (ka+ kb -1)) {m: nat} (x: tuple F m) _C := 
   D.iter (fun i _C => _C /\
         (* inner loop: poly[i] = \sum_{j=0...ka+kb-1} x[j] * i ** j *)
@@ -339,18 +349,10 @@ Definition BigMultNoCarry_cons
       out_poly[i] = a_poly[i] * b_poly[i] ) (ka+kb-1) _C in
   _C.
 
-Declare Scope DSL_scope.
-Delimit Scope DSL_scope with DSL.
-
-Module DL := DSLL.
-Import DL.
-
 Notation "a +d b" := (addL a b) (at level 50) : DSL_scope.
 Notation "a *d b" := (mulL a b) (at level 40) : DSL_scope.
 Notation "a $d b" := (scaleL a b) (at level 30) : DSL_scope.
 Notation "a ==d b" := (eqL a b) (at level 60) : DSL_scope.
-
-Local Open Scope DSL_scope.
 
 Definition BigMultNoCarry_cons'
   ka kb
@@ -398,15 +400,15 @@ Proof.
 Qed.
 Lemma range_nodup: forall n, NoDup (range n).
 Proof.
-  intro n. induction n; simpl; constructor; auto.
+  clear n. intro n. induction n; simpl; constructor; auto.
   unfold not. intros. apply range_range in H. lia.
 Qed.
-Lemma range_elem: forall n i, (i < n)%nat -> In i (range n).
+Lemma range_elem: forall k i, (i < k)%nat -> In i (range k).
 Proof.
-  intro n. induction n as [| n]; simpl; intros.
+  intro k. induction k as [| k]; simpl; intros.
   - lia.
-  - destruct (dec (i < n)%nat).
-    + right. apply IHn. lia.
+  - destruct (dec (i < k)%nat).
+    + right. apply IHk. lia.
     + left. lia.
 Qed.
 Lemma range_P: forall P n,
@@ -416,14 +418,14 @@ Proof.
   intros. apply X. apply range_range. auto.
 Qed.
 Lemma range_length: forall n, length (range n) = n.
-Proof. intro n. induction n; simpl; auto. Qed.
+Proof. clear n;intro n. induction n; simpl; auto. Qed.
 Lemma range_map_preimage {A: Type}: forall n (f: nat -> A) x,
   In x (List.map f (range n)) ->
   exists i, (i < n)%nat /\ f i = x.
 Proof.
-  intro n. induction n as [| n]; simpl; intros; destruct H.
-  - subst. exists n. split; (auto || lia).
-  - apply IHn in H. inversion H. intuition idtac. exists x0. split; (auto || lia).
+  intro k. induction k as [| k]; simpl; intros; destruct H.
+  - subst. exists k. split; (auto || lia).
+  - apply IHk in H. inversion H. intuition idtac. exists x0. split; (auto || lia).
 Qed.
 
 Require Import FinFun.
@@ -568,7 +570,7 @@ Theorem interpolant_unique: forall (a b: polynomial) n (X: list F),
   a = b.
 Proof.
   (* Proof: https://inst.eecs.berkeley.edu/~cs70/fa14/notes/n7.pdf *)
-  unwrap_C.
+  unwrap_C. clear n.
   intros a b n. intros.
   destruct (eq_poly_decidable a b).
   trivial.
@@ -671,4 +673,11 @@ Proof.
   }
   apply H_poly.
 Qed.
+End _BigMultNoCarry.
+
+Section _BigMult.
+(* TODO: BigMult *)
+
+End _BigMult.
+
 End BigMult.

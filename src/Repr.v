@@ -377,6 +377,16 @@ Proof with (lia || nia || eauto).
     repeat rewrite Z.mod_small...
 Qed.
 
+Lemma repr_le_ub': forall xs,
+  xs |: (1) ->
+  length xs <= k ->
+  |^as_le 1 xs| <= (2^(length xs) - 1)%Z.
+Proof.
+  intros.
+  eapply repr_le_ub; auto. apply repr_trivial; auto.
+Qed.
+
+
 Lemma Z_le_mul_pos: forall a b c,
   c > 0 ->
   a <= b ->

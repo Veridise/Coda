@@ -242,7 +242,7 @@ Proof.
     }
     lia.
   }
-  nia.
+  lia.
 
 Unshelve. exact F.zero.
 Qed.

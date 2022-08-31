@@ -15,19 +15,18 @@ Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable.
 (* Require Import Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
-Require Import Circom.Circom Circom.DSL Circom.Util Circom.ListUtil.
-Require Import Circom.Default.
-Require Import Circom.Repr.
+From Circom Require Import Circom DSL Util ListUtil Default Repr Simplify.
 (* Require Import VST.zlist.Zlist. *)
 
+Module D := DSL.
+Module R := Repr.
 
 (* Circuits:
  * https://github.com/iden3/circomlib/blob/master/circuits/comparators.circom
  *)
 Module Bitify.
 
-Module D := DSL.
-Module R := Repr.
+
 Import R.
 
 Local Open Scope list_scope.
@@ -169,8 +168,7 @@ Proof.
   exact (R.repr_le_ub _ _ _ H H0).
 Qed.
 
-Definition wgen: t.
-Admitted.
+Definition wgen: t. Admitted.
 
 #[global] Instance Default: Default t.
 Proof. constructor. exact wgen. Defined.
@@ -200,45 +198,38 @@ Record t := { _in: F^n; out: F; _cons: cons _in out}.
     rewrite firstn_length_le; lia
   end : core.
 
-Theorem soundness: forall (c: t) x,
-  repr_le2 x n ('c.(_in)) ->
-  x = c.(out).
+Theorem soundness: forall (c: t),
+  'c.(_in) |: (1) ->
+  c.(out) = as_le2 ('c.(_in)).
 Proof with (fqsatz || lia || eauto).
   unwrap_C.
   intros. destruct c as [_in out _cons]. unfold cons in *.
   simpl in *.
-  pose proof (length_to_list _in) as Hlen_in.
+  pose_lengths.
   rem_iter.
   pose (Inv := fun (i: nat) '(lc1, e2) => 
-    e2 = 2^i /\ repr_be2 lc1 i (rev ('_in[:i]))).
+    e2 = 2^i /\ lc1 = as_be 1 (rev ('_in[:i]))).
   assert (HInv: Inv n (D.iter f n (0,1))). {
     apply D.iter_inv; unfold Inv.
-    - simpl. split. 
-      + rewrite F.pow_0_r. fqsatz. 
-      + apply repr_trivial. auto.
-    - intros i [lc1 e2] [IHe2 IHlc1] Hi.
-      rewrite Heqf. 
+    - simpl. split; auto. simplify...
+    - intros i [lc1 e2] [IHe2 IHlc1] Hi. subst f.
       split.
-      + rewrite pow_S_N. fqsatz.
+      + rewrite pow_S_N...
       + rewrite IHe2.
-        pose proof IHlc1 as IHrepr.
         erewrite <- firstn_split_last with (l:='_in[:S i]) (n:=i)...
-        rewrite firstn_firstn. autorewrite with natsimplify.
+        rewrite firstn_firstn. simplify.
         rewrite rev_unit. rewrite firstn_nth...
-        unfold repr_be2, repr_be in IHlc1 |- *. intuition.
-        simpl. rewrite rev_length. auto.
-        destruct H as [_ [H _]].
-        constructor; auto. apply Forall_nth...
-        rewrite H3. lift_to_list. fold_default.
-        unfold as_be. cbn [as_be_acc length]. autorewrite with natsimplify.
-        rewrite <- Nat2N.inj_mul, Nat.mul_1_l.
-        rewrite rev_length. rewrite firstn_length_le...
+        lift_to_list. fold_default.
+        unfold as_be. cbn [as_be_acc length]. simplify.
+        fold (as_be 1 (rev (' _in [:i]))).
+        rewrite rev_length. rewrite firstn_length_le by lia...
   }
   unfold Inv in HInv.
   destruct (D.iter f n (0, 1)).
-  destruct HInv as [Hout [_ [_ Heq]]].
+  intuit.
   subst.
-  rewrite rev_be__le. rewrite firstn_all2... destruct H. intuition.
+  rewrite rev_be__le.
+  firstn_all. auto.
   Unshelve. exact F.zero.
 Qed.
 

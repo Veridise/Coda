@@ -102,8 +102,6 @@ Ltac rrewrite :=
   | [ H: _ = ?x |- context[?x] ] => rewrite H
   end.
 
-Ltac rewrite_clear H := rewrite H in *; clear H.
-
 Lemma scale_0: forall l, List.map (fun pi => 0 * pi) l = List.repeat (0:F) (length l).
 Proof.
   induction l as [ | x l]; simpl; auto.
@@ -197,6 +195,7 @@ Qed.
 
 
 Theorem soundness: forall (c: t),
+  (* pre-conditions *)
   0 < n ->
   0 < k ->
   n + 2 <= C.k ->
@@ -204,8 +203,10 @@ Theorem soundness: forall (c: t),
   'c.(b) |: (n) ->
   'c.(p) |: (n) ->
   [|'c.(a)|] <= [|'c.(p)|] - 1 ->
-  [|'c.(b)|] <= [|'c.(p)|] - 1->
-  [|'c.(out)|] = ([|'c.(a)|] + [|'c.(b)|]) mod [|'c.(p)|] /\ 'c.(out) |: (n).
+  [|'c.(b)|] <= [|'c.(p)|] - 1 ->
+  (* post-conditions *)
+  [|'c.(out)|] = ([|'c.(a)|] + [|'c.(b)|]) mod [|'c.(p)|] /\ 
+  'c.(out) |: (n).
 Proof with (lia || eauto).
   unwrap_C.
   intros c Hn Hk Hnk Ha Hb Hp Hap Hbp. 

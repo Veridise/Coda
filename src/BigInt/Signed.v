@@ -7,6 +7,7 @@ Require Import Coq.PArith.BinPosDef.
 Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Znumtheory Coq.NArith.NArith. (* import Zdiv before Znumtheory *)
 Require Import Coq.NArith.Nnat.
 Require Import Coq.ZArith.Znat.
+Require Import Coq.Classes.Equivalence.
 
 
 Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
@@ -23,11 +24,24 @@ From Circom Require Import Circom Util LibTactics Simplify.
 
 Module Signed.
 Local Open Scope circom_scope.
-Local Open Scope F_scope.
 Local Open Scope Z_scope.
 
-Definition to_Z (x: F) :=
-    if dec (|^x| <= 2^r - 1) then |^x| else |^x| - q.
+(* Local Coercion Zpos: positive >-> Z. *)
+
+Definition cong (a: Z) (b: Z) := a mod q = b mod q.
+Local Infix "~" := cong (at level 70).
+
+Lemma cong_reflexive: forall x, x ~ x.
+Admitted.
+
+#[local]Instance Equivalence_cong: Equivalence cong.
+Admitted.
+
+Lemma cong_add: forall x, x ~ x + q.
+Admitted.
+
+Lemma cong_sub: forall x, x ~ x - q.
+Admitted.
 
 Lemma pow_r: 2 * 2^r <= 2^k.
 Proof.
@@ -45,24 +59,26 @@ Lemma sub_mod: forall a b,
   (a - b) mod b = a mod b.
 Admitted.
 
-Local Notation "|% x |" := (to_Z x).
+Definition to_Z (x: F) : Z := if dec (|^x| <= half) then |^x| else |^x| - q.
+
+Notation "$ x" := (to_Z x) (at level 10).
+Notation "| x |" := (Z.abs x) (at level 70).
+Notation "x <=$ y" := (-y <= x <= y) (at level 50).
+Notation "x <$ y" := (-y < x < y) (at level 50).
+Notation "q//2" := half.
+
+Lemma to_Z_congruent: forall x, |^x| ~ $x.
+Proof.
+  intros. unfold to_Z. split_dec.
+  - reflexivity.
+  - apply cong_sub.
+Qed.
+
 Lemma to_Z_add: forall x y,
-  |% x + y| = |%x| + |%y|.
-Proof with (lia || eauto).
-  unwrap_C.
-  intros. unfold to_Z.
-  pose proof pow_r.
-  assert (0 <= |^x| < q). apply F.to_Z_range. lia.
-  assert (0 <= |^y| < q). apply F.to_Z_range. lia.
-  (* destruct (dec (x|(r))); destruct (dec (y|(r))). *)
-  split_dec; rewrite F.to_Z_add.
-  rewrite Zmod_small...
-  rewrite <- sub_mod.
-  rewrite Zmod_small...
-  
-  
-  
-  
+  |$x + $y| < q//2 ->
+  $(x + y) = $x + $y.
+Admitted.
 
-
-
+Lemma to_Z_mult: forall x y,
+  |$x * $y| < q//2 ->
+  $(x * y) = $x * $y.

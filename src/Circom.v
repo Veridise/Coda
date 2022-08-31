@@ -35,6 +35,8 @@ Module C : CIRCOM.
 Definition q := BabyJubjub.p.
 Definition k := 253.
 Definition r := 252.
+Definition half := q / 2.
+
 
 Fact r_k: r = k - 1.
 Proof. unfold r, k. lia. Qed.
@@ -102,12 +104,14 @@ Global Notation "2" := (F.add F.one F.one : F) : circom_scope.
 
 Definition binary (x: F) := x = F.zero \/ x = F.one.
 
+Definition half := q / 2.
+
 Global Notation "P '?'" :=
-(match (@dec P _) with
-  | left _ => true
-  | right _ => false
-  end)
-(at level 100).
+  (match (@dec P _) with
+    | left _ => true
+    | right _ => false
+    end)
+  (at level 100).
 
 Local Coercion Z.of_nat : nat >-> Z.
 Local Coercion N.of_nat : nat >-> N.

@@ -4,6 +4,7 @@ Require Import Lia.
 Require Import Circom.Util.
 Require Import Circom.Default.
 Require Import Circom.LibTactics.
+Require Import Circom.Simplify.
 
 
 Lemma nth_oblivious: forall {A: Type} l (i: nat) (d1 d2: A),
@@ -150,6 +151,7 @@ Definition List_nth_Default {T} `{Default T} i xs := List.nth_default default xs
 
 Global Notation "xs ! i " := (List_nth_Default i xs) (at level 20) : list_scope.
 Global Notation "xs [: i ]" := (List.firstn i xs) (at level 20) : list_scope.
+Global Notation "xs [ i :]" := (List.skipn i xs) (at level 20) : list_scope.
 
 Lemma fold_nth {T} `{Default T}: forall (i:nat) d l,
   i < length l ->
@@ -163,23 +165,6 @@ Ltac fold_default' H := repeat rewrite fold_nth in H; try lia.
 Ltac simpl_default := unfold_default; simpl; fold_default; try lia.
 Ltac default_apply L := unfold_default; L; fold_default; try lia.
 Ltac default_apply' H L := unfold_default' H; L; fold_default' H; try lia.
-
-Require Import Circom.Tuple.
-
-Local Open Scope tuple_scope.
-Lemma nth_Default_List_tuple {T n} `{Default T} (xs: tuple T n) i:
-  (to_list n xs) ! i = xs [i].
-Proof.
-  unfold List_nth_Default. unfold nth_Default, nth. rewrite nth_default_to_list. reflexivity.
-Qed.
-
-Ltac lift_to_list := repeat match goal with
-| [H: context[nth_Default _ _] |- _] => rewrite <-nth_Default_List_tuple in H; try lia
-| [ |- context[nth_Default _ _] ] => rewrite <-nth_Default_List_tuple; try lia
-| [H: tforall _ _ |- _] => apply tforall_Forall in H
-| [ |- tforall _ _] => apply tforall_Forall
-end.
-
 
 
 Lemma Forall_rev_iff {A: Type}: forall P (l: list A),
@@ -293,10 +278,49 @@ Proof.
     apply IHi. lia. auto.
 Qed.
 
-
 Lemma Forall_weaken: forall {A: Type} (P Q: A -> Prop) (l: list A),
   (forall x, P x -> Q x) -> Forall P l -> Forall Q l.
 Proof.
   intros. apply Forall_forall. rewrite Forall_forall in H0.
   intros. auto.
 Qed.
+
+Ltac destruct_match := 
+  match goal with
+  | [ H: context[match ?x with _ => _ end] |- _ ] => destruct x
+  | [ |- context[match ?x with _ => _ end] ] => destruct x
+  end.
+
+Lemma skipn_nth {A}: forall n (l: list A) i d,
+  List.nth i (l[n:]) d = List.nth (n+i) l d.
+Proof.
+  induction n; intros; simpl; auto;
+  repeat (destruct_match; simpl; auto).
+Qed.
+
+
+Ltac rewrite_length :=
+  repeat match goal with
+  | [ H: length ?xs = ?l |- context[length ?xs] ] =>
+    rewrite H
+  | [ |- context[length (firstn _ _)]] => rewrite firstn_length_le; try lia
+  | [ |- context[length (skipn _ _)]] => rewrite skipn_length; try lia
+  | [ H: length ?xs = ?l, H': context[length ?xs] |- _ ] =>
+    rewrite H in H'
+  end; simplify.
+
+Require Import Circom.Tuple.
+
+Local Open Scope tuple_scope.
+Lemma nth_Default_List_tuple {T n} `{Default T} (xs: tuple T n) i:
+  (to_list n xs) ! i = xs [i].
+Proof.
+  unfold List_nth_Default. unfold nth_Default, nth. rewrite nth_default_to_list. reflexivity.
+Qed.
+
+Ltac lift_to_list := repeat match goal with
+| [H: context[nth_Default _ _] |- _] => rewrite <-nth_Default_List_tuple in H; try lia
+| [ |- context[nth_Default _ _] ] => rewrite <-nth_Default_List_tuple; try lia
+| [H: tforall _ _ |- _] => apply tforall_Forall in H
+| [ |- tforall _ _] => apply tforall_Forall
+end.

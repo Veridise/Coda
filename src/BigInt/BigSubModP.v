@@ -24,7 +24,7 @@ From Circom.BigInt Require Import BigAdd BigLessThan BigSub.
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
 *)
 
-Module BigAddModP.
+Module BigSubModP.
 
 Module B := Bitify.
 Module D := DSL.
@@ -44,7 +44,7 @@ Local Open Scope tuple_scope.
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
-Section _BigAddModP.
+Section _BigSubModP.
 Context {n k: nat}.
 
 
@@ -496,3 +496,6 @@ Proof.
 
   Unshelve. all:exact F.zero.
 Qed.
+
+End _BigSubModP.
+End BigSubModP.

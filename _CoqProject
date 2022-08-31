@@ -26,4 +26,5 @@ src/BigInt/Split.v
 src/BigInt/Theory/Polynom.v
 src/BigInt/Theory/Polynom_test.v
 src/BigInt/BigMult.v
+src/BigInt/BigMod.v
 # src/BigInt/PrimeReduce.v

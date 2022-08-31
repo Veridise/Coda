@@ -708,7 +708,7 @@ Definition cons (a b: F^k) (out: F^(2*k)): Prop.
 skip. Defined.
 
 
-Record t := {
+Record t : Type := {
   a: F^k;
   b: F^k;
   out: F^(2*k);

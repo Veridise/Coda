@@ -22,7 +22,7 @@ From Circom.CircomLib Require Import Bitify Comparators.
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
 *)
 
-Module BigMult.
+Module BigMultNoCarry.
 
 Module B := Bitify.
 Module D := DSL.
@@ -673,11 +673,54 @@ Proof.
   }
   apply H_poly.
 Qed.
+
 End _BigMultNoCarry.
+End BigMultNoCarry.
+
+
+Module BigMult.
+
+Module B := Bitify.
+Module D := DSL.
+Module Cmp := Comparators.
+Module RZU := ReprZUnsigned.
+Module RZ := RZU.RZ.
+Module R := Repr.
+
+Import B.
+
+Local Open Scope list_scope.
+Local Open Scope Z_scope.
+Local Open Scope F_scope.
+Local Open Scope circom_scope.
+Local Open Scope tuple_scope.
+
+Local Coercion Z.of_nat: nat >-> Z.
+Local Coercion N.of_nat: nat >-> N.
+
 
 Section _BigMult.
-(* TODO: BigMult *)
+Context {n k: nat}.
+
+Local Notation "[| xs |]" := (RZ.as_le n xs).
+
+Definition cons (a b: F^k) (out: F^(2*k)): Prop.
+skip. Defined.
+
+
+Record t := {
+  a: F^k;
+  b: F^k;
+  out: F^(2*k);
+  _cons: cons a b out
+}.
+
+Local Open Scope F_scope.
+ 
+Theorem soundness: forall (c: t), 
+  ([|' c.(a) |] * [|' c.(b) |] = [|' c.(out) |])%Z.
+Proof.
+Admitted.
 
 End _BigMult.
-
 End BigMult.

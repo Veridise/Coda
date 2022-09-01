@@ -40,6 +40,14 @@ Local Open Scope tuple_scope.
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
+
+Lemma F_to_Z_nonneg: forall (x: F), (0 <= |^x|).
+Proof. intros. apply F.to_Z_range. lia. Qed.
+
+Ltac solve_to_Z := repeat (autorewrite with F_to_Z; simplify; try (simpl; lia)).
+Ltac solve_to_Z' H := autorewrite with F_to_Z in H; simplify' H; try (simpl in H; lia).
+
+
 Module ModSubThree.
 Section ModSubThree.
 Context {n: nat}.
@@ -84,9 +92,6 @@ Record t : Type := {
   _cons: cons a b c out borrow;
 }.
 
-Lemma F_to_Z_nonneg: forall (x: F), (0 <= |^x|).
-Proof. intros. apply F.to_Z_range. lia. Qed.
-
 Theorem soundness: forall w,
   (* pre-conditions *)
   n + 2 <= C.k ->
@@ -94,15 +99,13 @@ Theorem soundness: forall w,
   w.(a) | (n) -> 
   w.(b) | (n) -> 
   binary w.(c) ->
-  (* a - b - c + 2^n >= 0 *)
-  (0 <= |^w.(a)| - |^w.(b)| - |^w.(c)| + 2^n) ->
-  0 <= |^ w.(a) - w.(b) - w.(c) + 2^n | ->
   (* post-conditions *)
-  w.(out) - w.(borrow) * 2^n = w.(a) - w.(b) - w.(c) /\
+  w.(out) = (w.(a)+w.(borrow) * 2^n) - w.(b) - w.(c) /\
   w.(out) | (n) /\
-  binary w.(borrow).
+  binary w.(borrow) /\
+  (w.(borrow) = 1 <-> w.(a) <q (w.(b)+w.(c))).
 Proof.
-  unwrap_C. intros w Hnk Ha Hb Hc Habc Habc'.
+  unwrap_C. intros w Hnk Ha Hb Hc.
   assert (Hnk_pow': (0 <= 4 * 2^n <= 2^C.k)). {
     replace 4 with (2^2)%Z by lia.
     rewrite <- Zpower_exp; try lia. 
@@ -125,20 +128,17 @@ Proof.
   assert (lt_range_2: LessThan._in lt [1] <=z (2 ^ S n -1)). {
     rewrite H_in1.
     replace (S n) with (n+1)%nat by lia.
-    rewrite Nat2Z.inj_add. simpl.
-    rewrite Z.mod_small. simplify. nia.
+    solve_to_Z.
   }
   destruct (LessThan.soundness lt) as [H_lt_b H_lt]; try lia.
   symmetry in H_borrow.
   rewrite H_in0, H_in1, H_out, H_borrow in *. clear H_in0 H_in1 H_out H_borrow.
-  intuition; auto; try fqsatz.
   assert (0 <= |^ b | + |^ c | <= 2^n). { 
     pose proof (F_to_Z_nonneg b). pose proof (F_to_Z_nonneg c). lia.
   }
-  destruct H_lt_b; subst borrow; split_dec; try fqsatz;
-  autorewrite with F_to_Z in H_lt; simplify; try (simpl; lia).
-  + repeat (autorewrite with F_to_Z; simplify; try (simpl; lia)).
-  + repeat (autorewrite with F_to_Z; simplify; try (simpl; lia)). 
+  repeat split; intros; auto; destruct H_lt_b; subst borrow; split_dec; try fqsatz; try lia;
+  autorewrite with F_to_Z in H_lt; simplify; try (simpl; lia);
+  solve_to_Z.
 Qed.
 
 (* for default values. never used *)
@@ -151,7 +151,7 @@ End ModSubThree.
 
 Module M := ModSubThree.
 
-Section _BigSub.
+Section S.
 Context {n k: nat}.
 
 (* /*
@@ -227,19 +227,7 @@ Definition spec (w: t) :=
   ([|' w.(out) |] = [|' w.(a) |] - [| 'w.(b) |])%Z /\
   w.(underflow) = 0 /\
   'w.(out) |: (n).
-
-Definition spec_weak (w: t) :=
-  (* pre-condition *)
-  0 < n ->
-  0 < k ->
-  n + 2 <= C.k ->
-  'w.(a) |: (n) ->
-  'w.(b) |: (n) ->
-  (* post-condition *)
-  ([|' w.(out) |] - |^ w.(underflow) | * 2^(n*k) = [|' w.(a) |] - [|' w.(b) |])%Z /\
-  binary w.(underflow) /\
-  'w.(out) |: (n).
-
+  
 
 Lemma soundness_ite: forall (w: t),
   (* pre-conditions *)
@@ -261,7 +249,8 @@ Lemma soundness_ite: forall (w: t),
 Admitted.
 
 Ltac split_as_le xs i := 
-  erewrite RZ.as_le_split_last with (ws:=xs[:S i]) (i:=i);
+  erewrite RZ.as_le_split_last' with (ws:=xs[:S i]) (i:=i);
+  rewrite_length;
   try rewrite firstn_firstn; simplify;
   try rewrite firstn_nth by lia.
 
@@ -272,18 +261,25 @@ Proof.
   erewrite <- fold_nth with (d:=x);eauto. 
 Qed.
 
+#[local]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn : core.
+#[local]Hint Extern 10 => match goal with [ |- context[length _] ] => rewrite_length end : core.
+#[local]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn : core.
+#[local]Hint Extern 2 (binary ?a) => left; fqsatz : core.
+#[local]Hint Extern 2 (binary ?a) => right; fqsatz : core.
+#[local]Hint Extern 10 (_ < _) => lia : core.
+#[local]Hint Extern 10 (_ <= _) => lia : core.
+#[local]Hint Extern 10 (_ > _) => lia : core.
+#[local]Hint Extern 10 (_ >= _) => lia : core.
+
 Theorem soundness: forall (w: t), spec w.
 Proof.
   unwrap_C.
   intros. destruct w as [a b out underflow _cons]. unfold spec.
-  intros. cbn [_BigSub.out _BigSub.a _BigSub.b _BigSub.underflow] in *.
+  intros. cbn [S.out S.a S.b S.underflow] in *.
   unfold cons in _cons. destruct _cons as [unit prog].
   lift_to_list.
   rem_iter.
-  pose proof (length_to_list a) as Hlen_a.
-  pose proof (length_to_list b) as Hlen_b.
-  pose proof (length_to_list out) as Hlen_out.
-  pose proof (length_to_list unit) as Hlen_unit.
+  pose_lengths.
 
   destruct prog as [p_iter out_borrow].
   pose (Inv := fun (i: nat) (_cons: Prop) => _cons -> 
@@ -306,15 +302,16 @@ Proof.
     rewrite Heqf in *. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
     lift_to_list.
     pose proof (ModSubThree.soundness ('unit ! i )) as M0. 
+    pose_lengths.
     destruct IH as [IH_bin IH_eq]. auto.
     destruct M0 as [M_rng M_eq]; try lia.
     { rewrite Hai. unfold_default. apply Forall_nth. auto. lia. }
     { rewrite Hbi. unfold_default. apply Forall_nth. auto. lia. }
     { destruct (dec (i=0%nat)). rewrite Hci. left. fqsatz.
       rewrite Hci. apply IH_bin. lia. }
-    destruct (dec (S i = 0%nat)). discriminate. 
-    admit. (* TODO: modsubthree has an additional pre-condition *)
+    destruct (dec (S i = 0%nat)). discriminate.
     split_as_le ('out) i. split_as_le ('a) i. split_as_le ('b) i.
+    rewrite Hai in *.
     intuition idtac.
     (* binary *)
     + destruct (dec (j < i)). auto.
@@ -323,16 +320,16 @@ Proof.
       assert (Hij: j=i) by lia. rewrite Hij in *. 
       assert (M.c (' unit ! i) = 0).
       { destruct (dec (i = 0)%nat);auto. rewrite Hci. apply H5. lia. }
-      rewrite H12 in *. destruct H11;subst;auto. rewrite H11 in *.
+      admit.
+      (* rewrite H12 in *. destruct H11;subst;auto. rewrite H11 in *.
       assert ((ModSubThree.out (' unit ! i) - 1 * (1 + 1) ^ N.of_nat n) <q
               (ModSubThree.a (' unit ! i) - ModSubThree.b (' unit ! i) - 0) )%F.
       { skip. (* TODO *) } 
-      rewrite H7 in H13. lia.
+      rewrite H7 in H13. lia. *)
     (* out[:i] |: (n) *)
-    + eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le; eauto. lia.
-      rewrite firstn_firstn. autorewrite with natsimplify. auto.
-      rewrite firstn_nth by lia.
-      fold_default. rewrite Houti. auto. 
+    + eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le; eauto.
+      rewrite firstn_firstn. simplify. auto.
+      rewrite firstn_nth by lia. fold_default. rewrite Houti. auto. 
     + destruct (dec (i=0%nat)) as [].
       * (* i = 0 *) rewrite e in *.
         simplify.
@@ -350,23 +347,16 @@ Proof.
         (* range proof *)
         assert (|^'out!i| = |^'a!i| - |^'b!i|)%Z by admit.
         nia.
-    + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
-      eauto using RZ.repr_trivial.
-    + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
-      eauto using RZ.repr_trivial.
-    + unfold RZ.repr_le. intuition. rewrite firstn_length_le; lia.
-      eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le. reflexivity. lia.
-      rewrite firstn_firstn. simplify. auto.
-      rewrite firstn_nth by lia.
-      fold_default.
-      rewrite Houti. auto.
+    + admit.
+    + admit.
+    + admit.
   - unfold Inv in HInv.
     replace ('a) with ('a[:k]) by (applys_eq firstn_all; f_equal; lia).
     replace ('b) with ('b[:k]) by (applys_eq firstn_all; f_equal; lia).
     destruct (dec (k=0)%nat). lia.
     assert (H_out_inrange: ' out |: (n)). {
       intuition.
-      apply Forall_firstn_S with (i:=(k-1)%nat) (d:=0); try eauto. lia. 
+      apply Forall_firstn_S with (i:=(k-1)%nat) (d:=0); try eauto.
       apply Forall_firstn. rewrite firstn_to_list in H7;auto. 
       fold_default. rewrite firstn_to_list in H7;auto. 
       rewrite Forall_nth in H7.
@@ -374,18 +364,35 @@ Proof.
     }
     intuition; auto.
     * rewrite <- H9. 
-      assert (H_out: (' out) [:k] = (' out)).  
-      { rewrite <- firstn_all. rewrite Hlen_out;auto. }
+      assert (H_out: (' out) [:k] = (' out)).
+      { rewrite <- firstn_all. rewrite_length. auto. }
       rewrite H_out;auto.
     * rewrite out_borrow. apply H5;lia.
 Unshelve. exact F.zero. exact F.zero. exact F.zero.
 Admitted.
 
-Theorem soundness_weak: forall (w: t), spec_weak w.
+Theorem soundness_weak: forall (w: t),
+  (* pre-condition *)
+  0 < n ->
+  0 < k ->
+  n + 2 <= C.k ->
+  'w.(a) |: (n) ->
+  'w.(b) |: (n) ->
+  (* post-condition *)
+  ([|' w.(out) |] = [|' w.(a) |] - [|' w.(b) |] + |^ w.(underflow) | * 2^(n*k))%Z /\
+  binary w.(underflow) /\
+  'w.(out) |: (n).
 Proof.
   unwrap_C.
-  intros. destruct w as [a b out underflow _cons]. unfold spec_weak.
-  intros. cbn [_BigSub.out _BigSub.a _BigSub.b _BigSub.underflow] in *.
+  intros. 
+  assert (Hnk_pow': (0 <= 4 * 2^n <= 2^C.k)). {
+    replace 4 with (2^2)%Z by lia.
+    rewrite <- Zpower_exp; try lia. 
+    split. lia.
+    apply Zpow_facts.Zpower_le_monotone; lia.
+  }
+  destruct w as [a b out underflow _cons].
+  intros. cbn [S.out S.a S.b S.underflow] in *.
   unfold cons in _cons. destruct _cons as [unit prog].
   lift_to_list.
   rem_iter.
@@ -401,46 +408,61 @@ Proof.
     (* out are in range *)
     'out [:i] |: (n) /\
     (* sub is ok for prefix *)
-    ([| 'out [:i] |] -  2^(n*i)%nat * (if dec (i = 0)%nat then 0 else F.to_Z ('unit ! (i-1)).(M.borrow)) 
-      = [| 'a [:i] |] -  [| 'b [:i] |])%Z).
+    [| 'out [:i] |] 
+      = ([| 'a [:i] |] + 2^(n*i)%nat * (if dec (i = 0)%nat then 0 else |^('unit ! (i-1)).(M.borrow)|) -  [| 'b [:i] |])%Z).
   assert (HInv: Inv k (D.iter f k True)).
-  apply D.iter_inv.
-  - unfold Inv. intuition.
+  apply D.iter_inv; unfold Inv; clear Inv.
+  - intuition.
     + lia.
     + simpl. constructor.
     + destruct (dec (0=0)%nat). simpl. nia. lia.
-  - intros i _cons IH H_bound.
-    unfold Inv in *. intros Hf.
-    rewrite Heqf in *. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
+  - intros i _cons IH H_bound Hf.
+    subst f. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
     lift_to_list.
-    pose proof (ModSubThree.soundness ('unit ! i )) as M0.
-    destruct IH as [IH_bin IH_eq]. auto.
-    destruct M0 as [M_rng M_eq]; try lia.
-    { rewrite Hai. unfold_default. apply Forall_nth. auto. lia. }
-    { rewrite Hbi. unfold_default. apply Forall_nth. auto. lia. }
-    { destruct (dec (i=0%nat)). rewrite Hci. left. fqsatz.
-      rewrite Hci. apply IH_bin. lia. }
+    pose proof (M.soundness ('unit ! i )) as M0.
+    assert (Hci': M.c ('unit!i) = if dec (i=0)%nat then 0 else M.borrow ('unit!(i-1)))
+      by (destruct (dec (i=0)%nat); auto).
+    symmetry in Houti.
+    rewrite Hai, Hbi, Hci', Houti in *. clear Hai Hbi Hci Hci' Houti.
+    destruct IH as [IH_bin [IH_rng IH_eq]]. auto.
+    destruct M0 as [M_eq [M_rng [M_bin M_borrow]]].
+    lia.
+    unfold_default; apply Forall_nth; auto; lia.
+    unfold_default; apply Forall_nth; auto; lia.
+    destruct (dec (i=0%nat)); auto.
     destruct (dec (S i = 0%nat)). discriminate.
-    admit. (* TODO: modsubthree has an additional pre-condition *)
     split_as_le ('out) i. split_as_le ('a) i. split_as_le ('b) i.
-    intuition idtac.
-    (* binary *)
-    + destruct (dec (j < i)). auto.
-      assert (Hij: j=i) by lia. rewrite Hij in *. intuition.
-    (* out[:i] |: (n) *)
-    + eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le; eauto. lia.
-      rewrite firstn_firstn. autorewrite with natsimplify. auto.
+    assert (0 <= |^'a!i| <= 2^n-1)%Z. split. apply F_to_Z_nonneg. unfold_default. apply Forall_nth. auto. lia.
+    assert (0 <= |^'b!i| <= 2^n-1)%Z. split. apply F_to_Z_nonneg. unfold_default. apply Forall_nth. auto. lia.
+    repeat split.
+    + (* borrow binary *) intros.
+      destruct (dec (j < i)). auto.
+      assert (Hij: j=i) by lia. subst j. auto.
+    + (* out[:i] |: (n) *) 
+      eapply Forall_firstn_S. rewrite_length. reflexivity.
+      rewrite firstn_firstn. simplify. auto.
       rewrite firstn_nth by lia.
-      fold_default. rewrite Houti. auto. 
-    + assert (Hci': M.c ('unit!i) = if dec (i=0)%nat then 0 else M.borrow ('unit!(i-1)))
-        by (destruct (dec (i=0)%nat); auto). rewrite Hci' in *.
-      destruct (dec (i=0%nat)) as [].
-      * (* i = 0 *) rewrite e in *.
-        simplify.
+      fold_default.
+    + clear n0.
+      unfold RZ.ToZ.to_Z in *.
+      destruct (dec (i=0%nat)).
+      * (* case i = 0 *)
+        rewrite e in *. simplify. clear IH_eq IH_bin IH_rng.
         repeat erewrite firstn_1; try lia.
         repeat (fold_default; rewrite nth_0).
         (* range proof *)
-        assert (|^'out!0| - 2 ^ n * |^ M.borrow (' unit ! 0) | = |^'a!0| - |^'b!0|)%Z by admit.
+        assert (|^'out!0| = (2^n * |^ M.borrow ('unit!0) | + |^'a!0|) - |^'b!0|)%Z. {
+          apply f_equal with (f:=F.to_Z) in M_eq;
+          destruct M_bin as [M_bin|M_bin]; rewrite M_bin in *; clear M_bin;
+          simplify' M_eq; simplify;
+          simplify' M_borrow.
+          assert (' a ! 0 >=q ' b ! 0). destruct (dec (' a ! 0 <q ' b ! 0)); auto. exfalso. apply M_borrow in l. fqsatz.
+          solve_to_Z' M_eq; solve_to_Z.
+          assert (' a ! 0 <q ' b ! 0). destruct (dec (' a ! 0 <q ' b ! 0)); auto. apply M_borrow. auto.
+          (* replace (' a ! 0 - ' b ! 0 + (1 + 1) ^ n) with ((' a ! 0 + (1 + 1) ^ n)  - ' b ! 0) in M_eq by fqsatz. *)
+          solve_to_Z' M_eq; solve_to_Z.
+          rewrite M_eq. simpl. lia.
+        }
         unfold RZ.ToZ.to_Z.
         destruct (dec (1=0)%nat). discriminate.
         nia.
@@ -451,41 +473,41 @@ Proof.
         remember (M.borrow ('unit!i)) as ci.
         remember (M.borrow ('unit!(i-1))) as ci'.
         (* range proof *)
-        assert (|^'out!i| - 2^n * |^ ci| = |^'a!i| - |^'b!i| - |^ ci'|)%Z by admit. 
+        assert (|^'out!i| = |^'a!i| + 2^n * |^ ci| - |^'b!i| - |^ ci'|)%Z. {
+          assert (ci'_bin': 0 <= |^ci'| <= 1). {
+            assert (ci'_bin: binary ci'). subst. apply IH_bin. lia.
+            destruct ci'_bin as [H'|H']; rewrite H'; solve_to_Z.
+          }
+          apply f_equal with (f:=F.to_Z) in M_eq;
+          destruct M_bin as [M_bin|M_bin]; rewrite M_bin in *; clear M_bin;
+          simplify' M_eq; simplify;
+          simplify' M_borrow.
+          assert (H': ' a ! i >=q ('b!i + ci')). destruct (dec (' a ! i <q (' b ! i + ci'))); auto. exfalso. apply M_borrow in l. fqsatz.
+          solve_to_Z' M_eq; solve_to_Z' H'; solve_to_Z.
+          assert (H': ' a ! i <q (' b ! i+ci')). destruct (dec (' a ! i <q (' b ! i+ci'))); auto. apply M_borrow. auto.
+          solve_to_Z' M_eq; solve_to_Z' H'; solve_to_Z.
+          rewrite M_eq. simpl. lia.
+        }
         unfold RZ.ToZ.to_Z. 
         destruct (dec (S i = 0)%nat). discriminate.
         nia.
-    + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
-      eauto using RZ.repr_trivial.
-    + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
-      eauto using RZ.repr_trivial.
-    + unfold RZ.repr_le. intuition. rewrite firstn_length_le; lia.
-      eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le. reflexivity. lia.
-      rewrite firstn_firstn. simplify. auto.
-      rewrite firstn_nth by lia.
-      fold_default.
-      rewrite Houti. auto.
+    + auto.
+    + auto.
+    + eapply Forall_firstn_and_last; rewrite_length.
+      rewrite firstn_firstn; simplify. auto.
+      rewrite firstn_nth; auto. fold_default.
   - unfold Inv in HInv.
     replace ('a) with ('a[:k]) by (applys_eq firstn_all; f_equal; lia).
     replace ('b) with ('b[:k]) by (applys_eq firstn_all; f_equal; lia).
+    firstn_all.
     destruct (dec (k=0)%nat). lia.
-    assert (H_out_inrange: ' out |: (n)). {
-      intuition.
-      apply Forall_firstn_S with (i:=(k-1)%nat) (d:=0); try eauto. lia. 
-      apply Forall_firstn. rewrite firstn_to_list in H4;auto. 
-      fold_default. rewrite firstn_to_list in H4;auto. 
-      rewrite Forall_nth in H4.
-      unfold "!". rewrite nth_default_eq. apply H4;lia. 
-    }
-    intuition; auto.
-    * rewrite <- H7. 
-      assert (H_out: (' out) [:k] = (' out)).  
-      { rewrite <- firstn_all. rewrite Hlen_out;auto. }
-      rewrite H_out,out_borrow;auto. nia.
-    * rewrite out_borrow. apply H5;lia.
-Unshelve. exact F.zero. exact F.zero. exact F.zero.
-Admitted.
+    assert (H_out_inrange: ' out |: (n)) by intuit.
+    intuit; auto.
+    * rewrite H9, out_borrow;auto. nia.
+    * rewrite out_borrow. auto.
+Unshelve. all:exact F.zero.
+Qed.
 
-End _BigSub.
+End S.
 
 End BigSub.

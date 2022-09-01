@@ -60,3 +60,7 @@ Proof.
   intros.
   destruct H0; ((right; fqsatz) || (left; fqsatz)).
 Qed.
+
+Ltac split_and := match goal with
+  | [ |- _ /\ _] => split
+  end.

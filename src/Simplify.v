@@ -66,6 +66,8 @@ Lemma Fadd_0_r: forall (x: F), x + 0 = x.
 Proof. unwrap_C. intros. fqsatz. Qed.
 Lemma Fadd_0_l: forall (x: F), 0 + x = x.
 Proof. unwrap_C. intros. fqsatz. Qed.
+Lemma Fsub_0_r: forall (x: F), x - 0 = x.
+Proof. unwrap_C. intros. fqsatz. Qed.
 
 #[export] Hint Rewrite (Fmul_0_r) : simplify_F.
 #[export] Hint Rewrite (Fmul_0_l) : simplify_F.
@@ -73,6 +75,7 @@ Proof. unwrap_C. intros. fqsatz. Qed.
 #[export] Hint Rewrite (Fmul_1_l) : simplify_F.
 #[export] Hint Rewrite (Fadd_0_r) : simplify_F.
 #[export] Hint Rewrite (Fadd_0_l) : simplify_F.
+#[export] Hint Rewrite (Fsub_0_r) : simplify_F.
 #[export] Hint Rewrite (@F.pow_0_l) : simplify_F.
 #[export] Hint Rewrite (@F.pow_0_r) : simplify_F.
 #[export] Hint Rewrite (@F.pow_1_l) : simplify_F.
@@ -90,11 +93,13 @@ Create HintDb simplify_NZ discriminated.
 #[export] Hint Rewrite (Nat.mul_0_r): simplify_NZ.
 #[export] Hint Rewrite (Nat.add_0_r): simplify_NZ.
 #[export] Hint Rewrite (Nat.add_0_l): simplify_NZ.
+#[export] Hint Rewrite (Nat.sub_0_r): simplify_NZ.
 #[export] Hint Rewrite (Nat.mul_succ_r): simplify_NZ.
 #[export] Hint Rewrite (Nat.mul_add_distr_l): simplify_NZ.
 #[export] Hint Rewrite (Nat.mul_add_distr_r): simplify_NZ.
 #[export] Hint Rewrite (Z.add_0_r): simplify_NZ.
 #[export] Hint Rewrite (Z.add_0_l): simplify_NZ.
+#[export] Hint Rewrite (Z.sub_0_r): simplify_NZ.
 #[export] Hint Rewrite (Z.mul_1_l) : simplify_NZ.
 #[export] Hint Rewrite (Z.mul_1_r): simplify_NZ.
 #[export] Hint Rewrite (Z.mul_0_l): simplify_NZ.
@@ -112,6 +117,7 @@ Create HintDb simplify_NZ discriminated.
 #[export] Hint Rewrite (N.mul_0_r): simplify_NZ.
 #[export] Hint Rewrite (N.add_0_r): simplify_NZ.
 #[export] Hint Rewrite (N.add_0_l): simplify_NZ.
+#[export] Hint Rewrite (N.sub_0_r): simplify_NZ.
 #[export] Hint Rewrite (N.mul_succ_r): simplify_NZ.
 #[export] Hint Rewrite (N.mul_add_distr_l): simplify_NZ.
 #[export] Hint Rewrite (N.mul_add_distr_r): simplify_NZ.

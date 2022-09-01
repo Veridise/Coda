@@ -118,10 +118,6 @@ Proof.
   intros. intuition; specialize (H x0); tauto.
 Qed.
 
-Ltac split_and := match goal with
-  | [ |- _ /\ _] => split
-  end.
-
 Theorem soundness: forall (c: t),
   n <= C.k - 1 ->
   2 <= k ->

@@ -26,6 +26,12 @@ Ltac split_dec :=
   | [ |- context[dec ?P] ] => destruct (dec P)
   | [ H: context[dec ?P] |- _ ] => destruct (dec P)
   end.
+
+Ltac lrewrite :=
+  repeat match goal with
+  | [ H: ?x = _ |- context[?x] ] => rewrite H
+  end.
+
 Ltac intuit := intuition idtac.
 
 Local Open Scope circom_scope.

@@ -59,16 +59,6 @@ Definition cons (a b prod carry: F) :=
 
 Record t := { a: F; b: F; prod: F; carry: F; _cons: cons a b prod carry}.
 
-Ltac rewrite_length :=
-  repeat match goal with
-  | [ H: length ?xs = ?l |- context[length ?xs] ] =>
-    rewrite H
-  end; simplify.
-Ltac lrewrite :=
-  repeat match goal with
-  | [ H: ?x = _ |- context[?x] ] => rewrite H
-  end.
-
 Local Notation "[| xs |]" := (Bitify.R.as_le 1 xs).
 
 #[local]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn : core.
@@ -79,7 +69,7 @@ Theorem soundness: forall (c: t),
   let '(a,b,prod,carry) := (c.(a), c.(b), c.(prod), c.(carry)) in
   carry * 2^n + prod = a * b /\
   prod | (n).
-Proof with (lia || eauto).
+Proof with (lia || rewrite_length || fqsatz || eauto).
   unwrap_C.
   intros c Hn. destruct c as [a b prod carry _cons].
   destruct _cons as [n2b [n2b_in [b2n1 [b2n2 [loop [Pprod Pcarry]]]]]].
@@ -121,15 +111,11 @@ Proof with (lia || eauto).
   unfold R.as_le2 in *.
   split.
   rewrite Has.
-  rewrite firstn_all2 with (l:=(' N.out n2b [n:])); try (rewrite_length).
+  rewrite firstn_all2 with (l:=(' N.out n2b [n:]))...
   remember ('N.out n2b [:n]) as fst. remember ('N.out n2b [n:]) as snd.
   erewrite <- firstn_skipn with (l:='N.out n2b) (n:=n).
-  rewrite R.as_le_app.
-  subst fst snd. rewrite_length. fqsatz.
-  rewrite skipn_length. lia.
-  applys_eq R.repr_le_ub'. rewrite_length.
-  auto.
-  rewrite_length.
+  rewrite R.as_le_app... subst. fqsatz.
+  applys_eq R.repr_le_ub'; auto...
   Unshelve. all:exact F.zero.
 Qed.
 

@@ -1,5 +1,5 @@
 Require Import Circom.BigInt.Theory.Polynom.
 
-Locate "_ [ _ ]".
+(* Locate "_ [ _ ]".
 
-Locate Polynomial.unique_interpolant.
+Locate Polynomial.unique_interpolant. *)

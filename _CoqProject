@@ -1,4 +1,5 @@
 -R src Circom
+src/Config.v
 src/BabyJubjub.v
 src/Circom.v
 src/Repr.v

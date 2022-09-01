@@ -289,7 +289,7 @@ Proof.
       destruct (dec (i=0%nat)) as []; simplify' M_eq; simplify' Hl; simplify' Hr.
       * rewrite e in *. simplify. unfold RZ.ToZ.to_Z.
         repeat erewrite firstn_1; try lia.
-        repeat (fold_default; rewrite nth_0).
+        repeat (fold_default; rewrite nth_0); lia.
       * simplify.
         default_apply ltac:(repeat (rewrite firstn_nth; try lia)).
         unfold RZ.ToZ.to_Z.

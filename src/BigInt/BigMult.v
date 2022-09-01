@@ -428,7 +428,7 @@ Proof.
   - apply IHk in H. inversion H. intuition idtac. exists x0. split; (auto || lia).
 Qed.
 
-Require Import FinFun.
+Import FinFun.
 
 Local Open Scope Z_scope.
 Lemma Fof_Z_inj: forall x y, 

@@ -443,7 +443,7 @@ Local Close Scope P_scope.
  *         Tuple.Conversion           *
  **************************************)
 
-Require Import Circom.Tuple.
+Import Circom.Tuple.
 
 Definition toPoly {m} (xs: tuple F m) : polynomial := to_list m xs.
 Lemma toPoly_length: forall {m} (xs: tuple F m),
@@ -800,9 +800,6 @@ Lemma degree_max_congruence: forall d1 d2 b1 b2,
   d2 p<= b2 ->
   degree_max d1 d2 p<= degree_max b1 b2.
 Admitted.
-
-Locate Decidable.
-
 
 (**************************************
  *         Degree and Others          *

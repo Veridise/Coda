@@ -1,3 +1,4 @@
+Require Import Circom.Config.
 Require Import Coq.PArith.BinPosDef.
 Require Import Coq.ZArith.Zdiv.
 Require Import Coq.micromega.Lia.

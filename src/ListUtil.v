@@ -160,8 +160,8 @@ Proof. intros. unfold List_nth_Default. rewrite nth_default_eq. erewrite nth_obl
 
 Ltac unfold_default := unfold List_nth_Default; repeat rewrite nth_default_eq.
 Ltac unfold_default' H := unfold List_nth_Default in H; repeat rewrite nth_default_eq in H.
-Ltac fold_default := repeat rewrite fold_nth; try lia.
-Ltac fold_default' H := repeat rewrite fold_nth in H; try lia.
+Ltac fold_default := repeat (rewrite fold_nth; try lia).
+Ltac fold_default' H := repeat (rewrite fold_nth in H; try lia).
 Ltac simpl_default := unfold_default; simpl; fold_default; try lia.
 Ltac default_apply L := unfold_default; L; fold_default; try lia.
 Ltac default_apply' H L := unfold_default' H; L; fold_default' H; try lia.
@@ -303,10 +303,11 @@ Ltac rewrite_length :=
   repeat match goal with
   | [ H: length ?xs = ?l |- context[length ?xs] ] =>
     rewrite H
-  | [ |- context[length (firstn _ _)]] => rewrite firstn_length_le; try lia
-  | [ |- context[length (skipn _ _)]] => rewrite skipn_length; try lia
   | [ H: length ?xs = ?l, H': context[length ?xs] |- _ ] =>
     rewrite H in H'
+  | [ |- context[length (firstn _ _)]] => rewrite firstn_length_le; try lia
+  | [ |- context[length (skipn _ _)]] => rewrite skipn_length; try lia
+  | [ |- context[length (rev _)]] => rewrite rev_length
   end; simplify.
 
 Require Import Circom.Tuple.

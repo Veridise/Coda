@@ -53,3 +53,6 @@ time-of-build-pretty.log
 
 # vscode
 .vscode
+
+# config
+Config.v

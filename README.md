@@ -11,8 +11,15 @@ Certified circom circuits in Coq.
 
 ```bash
 make install-fiat-crypto
-make
+make install-coqprime
 ```
+
+- For auditing purposes, you can use the command 'make audit' to disable warnings.
+
+- For development, you can use the command 'make dev' to compile the library.
+
+
+## Development tips
 
 - Before starting working on a new source file, please add the file path to `_Coqproject`
 

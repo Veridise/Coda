@@ -21,14 +21,12 @@ Require Import Coq.Logic.PropExtensionality.
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
 From Circom Require Import Repr ReprZ.
 From Circom.CircomLib Require Import Bitify Comparators Gates.
-
+From Circom.BigInt.Definition Require Import Split.
 (* Circuit:
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
 *)
 
 Module Split.
-Context {n: nat}.
-
 Module B := Bitify.
 Module D := DSL.
 Module R := Repr.
@@ -103,8 +101,6 @@ End Split.
 
 
 Module SplitThree.
-Context {n: nat}.
-
 Module B := Bitify.
 Module D := DSL.
 Module R := Repr.

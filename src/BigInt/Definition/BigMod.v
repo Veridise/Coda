@@ -136,68 +136,6 @@ Definition cons (a: F^(2 * k)) (b: F^k) (div: F^(k+1)) (_mod: F^k) :=
 .
 
 Record t := { a: F^(2 * k); b: F^k; div: F^(k+1); _mod: F^k; _cons: cons a b div _mod }.
-Local Notation "[| xs |]" := (RZ.as_le n xs).
-
-(* Lemma firstn_congruence: forall i *)
-Local Notation "xs !! i" := (List.nth i xs _) (at level 10).
-
-Create HintDb DSL discriminated.
-
-#[local]Hint Extern 10 (_ < _) => lia : core.
-#[local]Hint Extern 10 (_ <= _) => lia : core.
-#[local]Hint Extern 10 (_ > _) => lia : core.
-#[local]Hint Extern 10 (_ >= _) => lia : core.
-#[local]Hint Extern 10 (_ = _) => lia : core.
-
-Ltac pose_as_le_nonneg := repeat match goal with
-| [ |- context[RZ.as_le ?n ?xs ] ] =>
-  let t := type of (RZ.as_le_nonneg n xs) in
-  lazymatch goal with
-  (* already posed *)
-  | [ _: t |- _] => fail
-  | _ => 
-    let Hnonneg := fresh "_Hnonneg" in
-    pose proof (RZ.as_le_nonneg n xs) as Hnonneg
-    ;move Hnonneg at top
-  end
-| _ => fail
-end.
-
-Ltac rewrite_length :=
-  repeat match goal with
-  | [ H: length ?xs = ?l |- context[length ?xs] ] =>
-    rewrite H
-  | [ H: length ?xs = ?l, H': context[length ?xs] |- _] =>
-    rewrite H in H'
-  end.
-
-Ltac lrewrite :=
-  repeat match goal with
-  | [ H: ?x = _ |- context[?x] ] => rewrite H
-  end.
-Ltac rrewrite :=
-  repeat match goal with
-  | [ H: _ = ?x |- context[?x] ] => rewrite H
-  end.
-
-Theorem soundness: forall (c: t),
-  0 < n ->
-  0 < k ->
-  n + 2 <= C.k ->
-  'c.(a) |: (n) ->
-  'c.(b) |: (n) ->
-  'c.(div) |: (n) ->
-  'c.(_mod) |: (n) ->
-  ([|'c.(a)|] = [|'c.(div)|] * [|'c.(b)|] + [|'c.(_mod)|])%Z.
-Proof.
-  unwrap_C.
-  intros c Hn Hk Hnk Ha Hb Hdiv Hmod.
-  destruct c as [a b div _mod [range_checks [mul [add [lt prog]]]]].
-  simpl in *.
-  destruct prog as [Prange [Pmul [Pmul1 [Pmul2 [Padd [Padd1 [Padd2 [Padd3 [Padd4 [Pa [Pa1 [Pa2 [Plt Plt1]]]]]]]]]]]]].
-  pose_lengths.
-  rem_iter.
-Abort.
 
 End _BigMod.
 End BigMod.

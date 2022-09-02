@@ -18,8 +18,9 @@ Require Import Ring.
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
 From Circom Require Import Repr ReprZ.
 From Circom.CircomLib Require Import Bitify Comparators.
-From Circom.BigInt Require Import BigAdd BigLessThan BigSub.
-
+From Circom.BigInt.Proof Require Import BigAdd BigLessThan BigSub.
+From Circom.BigInt.Definition Require Import BigAdd BigLessThan BigSub.
+From Circom.BigInt.Definition Require Import BigSubModP.
 (* Circuit:
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
 *)
@@ -32,8 +33,8 @@ Module Cmp := Comparators.
 Module RZU := ReprZUnsigned.
 Module RZ := RZU.RZ.
 Module R := Repr.
-Module Add := BigAdd.
-Module Sub := BigSub.
+Module Add := BigAdd.BigAdd.
+Module Sub := BigSub.BigSub.
 
 Local Open Scope list_scope.
 Local Open Scope Z_scope.

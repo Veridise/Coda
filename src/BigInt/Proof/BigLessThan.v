@@ -23,7 +23,7 @@ Require Import Coq.Logic.PropExtensionality.
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
 From Circom Require Import Repr ReprZ.
 From Circom.CircomLib Require Import Bitify Comparators Gates.
-
+From Circom.BigInt.Definition Require Import BigLessThan.
 (* Require Import VST.zlist.Zlist. *)
 
 

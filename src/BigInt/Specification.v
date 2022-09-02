@@ -39,6 +39,10 @@ Local Open Scope tuple_scope.
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
+Local Notation "[|| xs ||] '_' n" := (ReprZUnsigned.RZ.as_le n ('xs)) (at level 1).
+Local Notation "[| xs |] '_' n" := (ReprZUnsigned.RZ.as_le n xs) (at level 2).
+Local Notation "a ?=? b" := ((a?) = (b?)) (at level 70).
+
 (* BigIsZero *)
 Theorem BigIsZero_Soundness {k: nat}: forall (c: @BigIsZero.t k),
   1 <= k <= C.k ->
@@ -73,25 +77,25 @@ Proof.
 Qed.
 
 (* ModSumThree *)
-Theorem ModSumThree_Soundness {n: nat}: forall (w: @BigAdd.ModSumThree.t n),
+Module ModSumThree := BigAdd.ModSumThree.
+Theorem ModSumThree_Soundness {n: nat}: forall (w: @ModSumThree.t n),
   (* pre-conditions *)
   ( n <= C.k - 1 )%Z ->
   (* a and b are n-bits, i.e., <= 2^n-1 *)
-  w.(BigAdd.ModSumThree.a) | (n) -> 
-  w.(BigAdd.ModSumThree.b) | (n) -> 
-  binary w.(BigAdd.ModSumThree.c) ->
+  w.(ModSumThree.a) | (n) -> 
+  w.(ModSumThree.b) | (n) -> 
+  binary w.(ModSumThree.c) ->
   (* post-conditions *)
-  w.(BigAdd.ModSumThree.sum) + 2^n * w.(BigAdd.ModSumThree.carry) = 
-  w.(BigAdd.ModSumThree.a) + w.(BigAdd.ModSumThree.b) + w.(BigAdd.ModSumThree.c) /\
+  w.(ModSumThree.sum) + 2^n * w.(ModSumThree.carry) = 
+  w.(ModSumThree.a) + w.(ModSumThree.b) + w.(ModSumThree.c) /\
   (* sum is n-bits, i.e., <= 2^n-1 *)
-  w.(BigAdd.ModSumThree.sum) | (n) /\
-  binary w.(BigAdd.ModSumThree.carry).
+  w.(ModSumThree.sum) | (n) /\
+  binary w.(ModSumThree.carry).
 Proof.
-  exact BigAdd.ModSumThree.soundness.
+  exact ModSumThree.soundness.
 Qed.
 
 (* BigAdd *)
-Local Notation "[|| xs ||] '_' n" := (ReprZUnsigned.RZ.as_le n ('xs)) (at level 1).
 Theorem BigAdd_Soundness {n k: nat}: forall (w: @BigAdd.t n k),
   (* pre-condition *)
   n > 0 ->
@@ -108,28 +112,26 @@ Proof.
 Qed.
 
 (* ModSubThree *)
-Local Notation "a ?=? b" := ((a?) = (b?)) (at level 70).
-Theorem ModSubThree_Soundness {n: nat}: forall (w: @BigSub.ModSubThree.t n),
+Module ModSubThree := BigSub.ModSubThree.
+Theorem ModSubThree_Soundness {n: nat}: forall (w: @ModSubThree.t n),
   (* pre-conditions *)
   n + 2 <= C.k ->
   (* a and b are n-bits, i.e., <= 2^n-1 *)
-  w.(BigSub.ModSubThree.a) | (n) -> 
-  w.(BigSub.ModSubThree.b) | (n) -> 
-  binary w.(BigSub.ModSubThree.c) ->
+  w.(ModSubThree.a) | (n) -> 
+  w.(ModSubThree.b) | (n) -> 
+  binary w.(ModSubThree.c) ->
   (* post-conditions *)
-  w.(BigSub.ModSubThree.out) = 
-    (w.(BigSub.ModSubThree.a) + w.(BigSub.ModSubThree.borrow) * 2^n) 
-    - w.(BigSub.ModSubThree.b) - w.(BigSub.ModSubThree.c) /\
-  w.(BigSub.ModSubThree.out) | (n) /\
-  binary w.(BigSub.ModSubThree.borrow) /\
-  w.(BigSub.ModSubThree.borrow) = 1 ?=? w.(BigSub.ModSubThree.a) <q (w.(BigSub.ModSubThree.b)+w.(BigSub.ModSubThree.c)).
+  w.(ModSubThree.out) = 
+    (w.(ModSubThree.a) + w.(ModSubThree.borrow) * 2^n) 
+    - w.(ModSubThree.b) - w.(ModSubThree.c) /\
+  w.(ModSubThree.out) | (n) /\
+  binary w.(ModSubThree.borrow) /\
+  w.(ModSubThree.borrow) = 1 ?=? w.(ModSubThree.a) <q (w.(ModSubThree.b)+w.(ModSubThree.c)).
 Proof.
-  exact BigSub.ModSubThree.soundness.
+  exact ModSubThree.soundness.
 Qed.
 
 (* BigSub *)
-Local Notation "[| xs |] '_' n" := (ReprZUnsigned.RZ.as_le n xs) (at level 2).
-
 Theorem BigSub_Soundness {n k: nat}: forall (w: @BigSub.t n k),
   (* pre-condition *)
   0 < n ->

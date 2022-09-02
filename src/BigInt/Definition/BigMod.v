@@ -18,7 +18,7 @@ Require Import Ring.
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
 From Circom Require Import Repr ReprZ.
 From Circom.CircomLib Require Import Bitify.
-From Circom.BigInt Require Import BigAdd BigMult BigLessThan.
+From Circom.BigInt.Definition Require Import BigAdd BigMult BigLessThan.
 
 (* Circuit:
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom

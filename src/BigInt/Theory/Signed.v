@@ -203,3 +203,5 @@ Proof.
   assert (0 <= |^ x * y | < q) by (apply F.to_Z_range; lia).
   unfold to_Z in *. split_dec; try lia.
 Qed.
+
+End Signed.

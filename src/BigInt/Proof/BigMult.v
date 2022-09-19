@@ -718,6 +718,9 @@ Record t : Type := {
 Local Open Scope F_scope.
  
 Theorem soundness: forall (c: t), 
+  'c.(a) |: (n) ->
+  'c.(b) |: (n) ->
+  'c.(out) |: (n) /\
   ([|' c.(a) |] * [|' c.(b) |] = [|' c.(out) |])%Z.
 Proof.
 Admitted.

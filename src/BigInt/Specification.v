@@ -250,8 +250,20 @@ Proof.
   exact SplitThree.soundness.
 Qed.
 
+(* BigMod *)
+Theorem BigMod_Soundness {n k: nat}: forall (c: @BigMod.t n k), 
+  0 < n ->
+  0 < k ->
+  n + 2 <= C.k ->
+  'c.(BigMod.a) |: (n) ->
+  'c.(BigMod.b) |: (n) ->
+  'c.(BigMod.div) |: (n) ->
+  'c.(BigMod._mod) |: (n) ->
+  ([|'c.(BigMod.a)|] _ n = [|'c.(BigMod.div)|] _ n * [|'c.(BigMod.b)|] _ n + [|'c.(BigMod._mod)|] _ n)%Z.
+Proof.
+  exact BigMod.soundness.
+Qed.
+
 (* To Add: BigMultNoCarry *)
 
 (* TODO: BigMult *)
-
-(* TODO: BigMod *)

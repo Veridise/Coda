@@ -131,6 +131,7 @@ Definition cons (a: F^(2 * k)) (b: F^k) (div: F^(k+1)) (_mod: F^k) :=
     add.(Add.out)[i] = a[i]) (2 * k) True /\
   add.(Add.out)[2 * k] = 0 /\
   add.(Add.out)[2 * k + 1] = 0 /\
+  add.(Add.out)[2 * k + 2] = 0 /\ (* modified *)
   (* less than *)
   D.iter (fun (i: nat) (_cons: Prop) => _cons /\
     lt.(LessThan.a)[i] = _mod[i] /\
@@ -213,7 +214,7 @@ Proof.
   intros c Hn Hk Hnk Ha Hb Hdiv Hmod.
   destruct c as [a b div _mod [range_checks [mul [add [lt prog]]]]].
   simpl in *.
-  destruct prog as [Prange [Pmul [Pmul1 [Pmul2 [Padd [Padd1 [Padd2 [Padd3 [Padd4 [Pa [Pa1 [Pa2 [Plt Plt1]]]]]]]]]]]]].
+  destruct prog as [Prange [Pmul [Pmul1 [Pmul2 [Padd [Padd1 [Padd2 [Padd3 [Padd4 [Pa [Pa1 [Pa2 [Pa3 [Plt Plt1]]]]]]]]]]]]]].
   pose_lengths.
   rem_iter.
   simplify_all.
@@ -336,8 +337,6 @@ Proof.
     rewrite nth_Default_List_tuple;auto. rewrite Padd3. solve_to_Z.
     rewrite _Hlen6. fold_default. rewrite nth_Default_List_tuple;auto.
     replace (k + (k + 0) + 2 - 1)%nat with (k + (k + 0) + 1)%nat by lia. rewrite Padd4. solve_to_Z. }
-  assert(Pa3: Add.out add [k + (k + 0) + 2] = 0).
-  { admit. (* need to modify circuit *) }
   (* loop 1 *)
   assert(L1: [|' Mult.a mul |] = [|' div |]).
   { replace (' Mult.a mul) with ((' Mult.a mul [:k]) ++  (' Mult.a mul ! k) :: nil).
@@ -433,7 +432,8 @@ Proof.
   try rewrite L1, L2, L3, L4, L5, L6, L7 in *.
   rewrite <- mul_sound in add_sound.
   destruct add_sound;auto;try easy.
-Admitted.
+Unshelve. all:exact 0.
+Qed.
 
 End _BigMod.
 End BigMod.

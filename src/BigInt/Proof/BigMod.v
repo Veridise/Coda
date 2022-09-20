@@ -59,10 +59,15 @@ template BigMod(n, k) {
     signal output div[k + 1];
     signal output mod[k];
 
-    component range_checks[k + 1];
+    component div_range_checks[k + 1];
     for (var i = 0; i <= k; i++) {
-        range_checks[i] = Num2Bits(n);
-        range_checks[i].in <== div[i];
+        div_range_checks[i] = Num2Bits(n);
+        div_range_checks[i].in <== div[i];
+    }
+    component mod_range_checks[k];
+    for (var i = 0; i < k; i++) {
+        mod_range_checks[i] = Num2Bits(n);
+        mod_range_checks[i].in <== mod[i];
     }
 
     component mul = BigMult(n, k + 1);
@@ -103,12 +108,15 @@ template BigMod(n, k) {
 } *)
 
 Definition cons (a: F^(2 * k)) (b: F^k) (div: F^(k+1)) (_mod: F^k) :=
-  exists (range_checks: (@Num2Bits.t n) ^ (k + 1)) 
+  exists (div_range_checks: (@Num2Bits.t n) ^ (k + 1)) (mod_range_checks: (@Num2Bits.t n) ^ (k)) 
          (mul: @Mult.t (k+1)%nat) (add: @Add.t n (2 * k + 2)) 
          (lt: @LessThan.t n k),
   (* range check for div *)
   D.iter (fun (i: nat) (_cons: Prop) => _cons /\
-    range_checks[i].(Num2Bits._in) = div[i]) (k+1) True /\
+    div_range_checks[i].(Num2Bits._in) = div[i]) (k+1) True /\
+  (* range check for mod *)
+  D.iter (fun (i: nat) (_cons: Prop) => _cons /\
+    mod_range_checks[i].(Num2Bits._in) = _mod[i]) (k) True /\
   (* mul *)
   D.iter (fun (i: nat) (_cons: Prop) => _cons /\
     mul.(Mult.a)[i] = div[i] /\
@@ -199,15 +207,6 @@ Proof.
   induction n0;simpl;auto.
 Qed.
 
-Lemma add_lemma_1: forall i (a b: F^(i+2)) (c: F^(S (i+2))),
-b [i] = 0 ->
-b [i + 1] = 0 ->
-'a |: (n) ->
-'b |: (n) ->
-c [i + 2] <> 0 ->
-([|' c|] <> ([|' a|] + [|' b|])%Z).
-Admitted.
-
 Theorem soundness: forall (c: t),
   0 < n ->
   0 < k ->
@@ -220,9 +219,9 @@ Theorem soundness: forall (c: t),
 Proof.
   unwrap_C.
   intros c Hn Hk Hnk Ha Hb.
-  destruct c as [a b div _mod [range_checks [mul [add [lt prog]]]]].
+  destruct c as [a b div _mod [div_range_checks [mod_range_checks [mul [add [lt prog]]]]]].
   simpl in *.
-  destruct prog as [Prange [Pmul [Pmul1 [Pmul2 [Padd [Padd1 [Padd2 [Padd3 [Padd4 [Pa [Pa1 [Pa2 [Plt Plt1]]]]]]]]]]]]].
+  destruct prog as [Prange [Prange1 [Pmul [Pmul1 [Pmul2 [Padd [Padd1 [Padd2 [Padd3 [Padd4 [Pa [Pa1 [Pa2 [Plt Plt1]]]]]]]]]]]]]].
   rem_iter.
   simplify_all.
   pose_lengths. replace (2 * (k + 1))%nat with (2 * k + 2)%nat in _Hlen7 by lia.
@@ -262,7 +261,7 @@ Proof.
   assert (HInv4: Inv4 k (D.iter f k True)) by connection Inv4.
   pose (Inv0n := fun (i: nat) (_cons: Prop) => _cons -> 
                 'div[:i] |: (n)).
-  assert (HInv0n: Inv0n (k+1)%nat (D.iter f3 (k+1) True)).
+  assert (HInv0n: Inv0n (k+1)%nat (D.iter f4 (k+1) True)).
   { apply DSL.iter_inv; unfold Inv0n; try easy.
     + intros. simpl. easy. 
     + intros i _cons IH Hi Hstep;
@@ -271,7 +270,19 @@ Proof.
       all: replace (Init.Nat.min (S i) (k + 1) - 1)%nat with i by lia. 
       rewrite firstn_firstn. replace (Init.Nat.min i (S i)) with i by lia;auto.
       rewrite firstn_nth;try lia. fold_default. rewrite <- H0. 
-      pose proof (Num2Bits.range_check ((' range_checks ! i))). apply H2;auto. }
+      pose proof (Num2Bits.range_check ((' div_range_checks ! i))). apply H2;auto. }
+  pose (Inv0m := fun (i: nat) (_cons: Prop) => _cons -> 
+                '_mod[:i] |: (n)).
+  assert (HInv0m: Inv0m (k)%nat (D.iter f3 (k) True)).
+  { apply DSL.iter_inv; unfold Inv0m; try easy.
+    + intros. simpl. easy. 
+    + intros i _cons IH Hi Hstep;
+      subst; lift_to_list; intuition. 
+      eapply Forall_firstn_and_last. all: rewrite firstn_length;try lia. all: rewrite _Hlen2.
+      all: replace (Init.Nat.min (S i) k - 1)%nat with i by lia. 
+      rewrite firstn_firstn. replace (Init.Nat.min i (S i)) with i by lia;auto.
+      rewrite firstn_nth;try lia. fold_default. rewrite <- H0. 
+      pose proof (Num2Bits.range_check ((' mod_range_checks ! i))). apply H2;auto. }
   (* generate result *)
   pose proof (HInv4 Plt) as HInv4k. clear Plt HInv4.
   pose proof (HInv3 Pa) as HInv3k. clear Pa HInv3.
@@ -279,8 +290,11 @@ Proof.
   pose proof (HInv2_1 Padd) as HInv2_1k. clear HInv2_1.
   pose proof (HInv1 Pmul) as HInv1k. clear HInv1.
   pose proof (HInv0n Prange) as HInv0nk. clear Prange HInv0n.
+  pose proof (HInv0m Prange1) as HInv0mk. clear Prange1 HInv0m.
   assert (Hdiv: ' div |: (n)). 
   { intuition. rewrite <- firstn_all. rewrite _Hlen10;auto. } split;auto.
+  assert (Hmod: '_mod |: (n)). 
+  { intuition. rewrite <- firstn_all. rewrite _Hlen2;auto. } split;auto.
   (* prove correctness *)
   pose (Inv1_n := fun (i: nat) (_cons: Prop) => _cons -> 
                 '(Mult.a mul)[:i] |: (n) /\
@@ -336,8 +350,6 @@ Proof.
     replace (' Add.a add ! (k + (k + 0) + 2 - 1)) with (' Mult.out mul ! (k + (k + 0) + 2 - 1)).
     unfold_default. apply Forall_nth;auto. rewrite _Hlen7;lia. 
     do 2 rewrite nth_Default_List_tuple. replace (k + (k + 0) + 2 - 1)%nat with (k + (k + 0) + 1)%nat by lia;auto. }
-  assert (Hmod: ' _mod |: (n)).
-  { intuition. rewrite <- firstn_all. rewrite _Hlen2;auto. skip. (* source code need to be changed *) } split;auto.
   pose (Inv2_2n := fun (i: nat) (_cons: Prop) => _cons -> 
                 '(Add.b add)[:i] |: (n)).
   assert (HInv2_2n: Inv2_2n (k + k)%nat (D.iter f1 (k + k) True)).
@@ -366,7 +378,8 @@ Proof.
   assert(Pa3: add.(Add.out)[k + (k + 0) + 2] = 0 ).
   { destruct add_sound;auto;try easy. destruct (dec (add.(Add.out)[k + (k + 0) + 2] = 0));try easy.
     assert ([|' Add.out add|] <> ([|' Add.a add|] + [|' Add.b add|])%Z). 
-    eapply add_lemma_1;auto. easy. }
+    pose proof (Add.soundness_lemma add) as add_sound_lemma. edestruct add_sound_lemma;try lia;auto.
+    easy. }
   (* loop 1 *)
   assert(L1: [|' Mult.a mul |] = [|' div |]).
   { intuition. replace (' Mult.a mul) with ((' Mult.a mul [:k]) ++  (' Mult.a mul ! k) :: nil).

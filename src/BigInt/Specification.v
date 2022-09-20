@@ -257,8 +257,8 @@ Theorem BigMod_Soundness {n k: nat}: forall (c: @BigMod.t n k),
   n + 2 <= C.k ->
   'c.(BigMod.a) |: (n) ->
   'c.(BigMod.b) |: (n) ->
-  'c.(BigMod.div) |: (n) ->
-  'c.(BigMod._mod) |: (n) ->
+  'c.(BigMod.div) |: (n) /\
+  'c.(BigMod._mod) |: (n) /\
   ([|'c.(BigMod.a)|] _ n = [|'c.(BigMod.div)|] _ n * [|'c.(BigMod.b)|] _ n + [|'c.(BigMod._mod)|] _ n)%Z.
 Proof.
   exact BigMod.soundness.

@@ -321,5 +321,56 @@ Proof.
   Unshelve. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero. 
 Qed.
 
+Theorem soundness_lemma: forall (w: t) i,
+  (* pre-condition *)
+  n > 0 ->
+  k > 0 ->
+  (k = i + 2)%nat ->
+  (n + 1 <= C.k)%Z ->
+  (* a and b are proper big int *)
+  'w.(a) |: (n) ->
+  'w.(b) |: (n) ->
+  w.(b) [i] = 0 ->
+  w.(b) [i+1] = 0 ->
+  (* post-condition *)
+  w.(out)[i + 2] = 0.
+Proof.
+  unwrap_C.
+  intros. destruct w as [a b out _cons].
+  intros. cbn [_BigAdd.out _BigAdd.a _BigAdd.b] in *.
+  unfold cons in _cons. destruct _cons as [unit prog].
+  rem_iter.
+  pose proof (length_to_list a) as Hlen_a.
+  pose proof (length_to_list b) as Hlen_b.
+  pose proof (length_to_list out) as Hlen_out.
+  pose proof (length_to_list unit) as Hlen_unit.
+
+  destruct prog as [p_iter out_k]. rewrite <- H1. rewrite out_k.
+  pose (Inv := fun (i: nat) (_cons: Prop) => _cons -> 
+        (forall j:nat, j < i -> binary (('unit ! j).(M.c)) /\ binary (('unit ! j).(M.carry)) /\
+              M.a (unit [j]) = a [j] /\
+              M.b (unit [j]) = b [j]
+              )).
+  assert (HInv: Inv (k)%nat (D.iter f k True)).
+  { apply DSL.iter_inv; unfold Inv; try easy. 
+    - intros. lia. 
+    - intros i1 _cons IH Hi Hstep.
+      subst. intros. 
+      destruct (dec (j = i1));subst.
+      + lift_to_list. intuition;auto. destruct dec in H10;subst;try easy. rewrite H10;constructor;auto.
+        rewrite H10. specialize (H11 (i1-1)%nat). intuition. destruct H11;try lia. intuition;auto.
+        admit.  
+      + apply IH;intuition;lia. }
+  apply HInv in p_iter. subst. 
+  specialize (p_iter (i+1)%nat) as hh1. destruct hh1;try lia.
+  rewrite H6 in H7. intuition.
+  pose proof (ModSumThree.soundness (unit [i + 1])) as M0.
+  destruct M0;try lia. rewrite H7. lift_to_list.
+  rewrite Forall_forall in H3. apply H3. admit.
+  rewrite Forall_forall in H4. apply H4. admit.
+  lift_to_list. auto. lift_to_list. intuition.
+  rewrite H7 in *. rewrite H10 in *. admit.
+Admitted.
+
 End _BigAdd.
 End BigAdd.

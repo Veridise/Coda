@@ -128,7 +128,6 @@ Definition cons (a: F^(2 * k)) (b: F^k) (div: F^(k+1)) (_mod: F^k) :=
     add.(Add.out)[i] = a[i]) (2 * k) True /\
   add.(Add.out)[2 * k] = 0 /\
   add.(Add.out)[2 * k + 1] = 0 /\
-  add.(Add.out)[2 * k + 2] = 0 /\ (* modified *)
   (* less than *)
   D.iter (fun (i: nat) (_cons: Prop) => _cons /\
     lt.(LessThan.a)[i] = _mod[i] /\

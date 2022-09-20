@@ -131,7 +131,6 @@ Definition cons (a: F^(2 * k)) (b: F^k) (div: F^(k+1)) (_mod: F^k) :=
     add.(Add.out)[i] = a[i]) (2 * k) True /\
   add.(Add.out)[2 * k] = 0 /\
   add.(Add.out)[2 * k + 1] = 0 /\
-  add.(Add.out)[2 * k + 2] = 0 /\ (* modified *)
   (* less than *)
   D.iter (fun (i: nat) (_cons: Prop) => _cons /\
     lt.(LessThan.a)[i] = _mod[i] /\
@@ -200,24 +199,33 @@ Proof.
   induction n0;simpl;auto.
 Qed.
 
+Lemma add_lemma_1: forall i (a b: F^(i+2)) (c: F^(S (i+2))),
+b [i] = 0 ->
+b [i + 1] = 0 ->
+'a |: (n) ->
+'b |: (n) ->
+c [i + 2] <> 0 ->
+([|' c|] <> ([|' a|] + [|' b|])%Z).
+Admitted.
+
 Theorem soundness: forall (c: t),
   0 < n ->
   0 < k ->
   n + 2 <= C.k ->
   'c.(a) |: (n) ->
   'c.(b) |: (n) ->
-  'c.(div) |: (n) ->
-  'c.(_mod) |: (n) ->
+  'c.(div) |: (n) /\
+  'c.(_mod) |: (n) /\
   ([|'c.(a)|] = [|'c.(div)|] * [|'c.(b)|] + [|'c.(_mod)|])%Z.
 Proof.
   unwrap_C.
-  intros c Hn Hk Hnk Ha Hb Hdiv Hmod.
+  intros c Hn Hk Hnk Ha Hb.
   destruct c as [a b div _mod [range_checks [mul [add [lt prog]]]]].
   simpl in *.
-  destruct prog as [Prange [Pmul [Pmul1 [Pmul2 [Padd [Padd1 [Padd2 [Padd3 [Padd4 [Pa [Pa1 [Pa2 [Pa3 [Plt Plt1]]]]]]]]]]]]]].
-  pose_lengths.
+  destruct prog as [Prange [Pmul [Pmul1 [Pmul2 [Padd [Padd1 [Padd2 [Padd3 [Padd4 [Pa [Pa1 [Pa2 [Plt Plt1]]]]]]]]]]]]].
   rem_iter.
   simplify_all.
+  pose_lengths. replace (2 * (k + 1))%nat with (2 * k + 2)%nat in _Hlen7 by lia.
   pose (Inv1 := fun (i: nat) (_cons: Prop) => _cons -> 
                 '(Mult.a mul)[:i] = 'div[:i] /\
                 '(Mult.b mul)[:i] = 'b[:i]).
@@ -252,39 +260,54 @@ Proof.
                 '(LessThan.a lt)[:i] = '_mod[:i] /\
                 '(LessThan.b lt)[:i] = 'b[:i]).
   assert (HInv4: Inv4 k (D.iter f k True)) by connection Inv4.
+  pose (Inv0n := fun (i: nat) (_cons: Prop) => _cons -> 
+                'div[:i] |: (n)).
+  assert (HInv0n: Inv0n (k+1)%nat (D.iter f3 (k+1) True)).
+  { apply DSL.iter_inv; unfold Inv0n; try easy.
+    + intros. simpl. easy. 
+    + intros i _cons IH Hi Hstep;
+      subst; lift_to_list; intuition. 
+      eapply Forall_firstn_and_last. all: rewrite firstn_length;try lia. all: rewrite _Hlen10.
+      all: replace (Init.Nat.min (S i) (k + 1) - 1)%nat with i by lia. 
+      rewrite firstn_firstn. replace (Init.Nat.min i (S i)) with i by lia;auto.
+      rewrite firstn_nth;try lia. fold_default. rewrite <- H0. 
+      pose proof (Num2Bits.range_check ((' range_checks ! i))). apply H2;auto. }
   (* generate result *)
   pose proof (HInv4 Plt) as HInv4k. clear Plt HInv4.
   pose proof (HInv3 Pa) as HInv3k. clear Pa HInv3.
   pose proof (HInv2_2 Padd) as HInv2_2k. clear HInv2_2.
   pose proof (HInv2_1 Padd) as HInv2_1k. clear HInv2_1.
   pose proof (HInv1 Pmul) as HInv1k. clear HInv1.
-  intuition.
+  pose proof (HInv0n Prange) as HInv0nk. clear Prange HInv0n.
+  assert (Hdiv: ' div |: (n)). 
+  { intuition. rewrite <- firstn_all. rewrite _Hlen10;auto. } split;auto.
+  (* prove correctness *)
   pose (Inv1_n := fun (i: nat) (_cons: Prop) => _cons -> 
                 '(Mult.a mul)[:i] |: (n) /\
                 '(Mult.b mul)[:i] |: (n)).
   assert (HInv1_n: Inv1_n k (D.iter f2 k True)).
-  { apply DSL.iter_inv; unfold Inv1_n; try easy. simpl;easy. 
+  { intuition. apply DSL.iter_inv; unfold Inv1_n; try easy. simpl;easy. 
     intros i _cons IH Hi Hstep;
     subst; lift_to_list; intuition.
-    + eapply Forall_firstn_S with (i:=i). rewrite firstn_length. rewrite _Hlen10. lia. 
+    + eapply Forall_firstn_S with (i:=i). rewrite firstn_length. rewrite _Hlen9. lia. 
       rewrite firstn_firstn. replace (Init.Nat.min i (S i)) with i by lia;auto.
       rewrite firstn_nth;try lia. fold_default;try lia. rewrite H5. unfold_default.
       apply Forall_nth;auto. lia.
-    + eapply Forall_firstn_S with (i:=i). rewrite firstn_length. rewrite _Hlen9. lia. 
+    + eapply Forall_firstn_S with (i:=i). rewrite firstn_length. rewrite _Hlen8. lia. 
       rewrite firstn_firstn. replace (Init.Nat.min i (S i)) with i by lia;auto.
       rewrite firstn_nth;try lia. fold_default;try lia. rewrite H6. unfold_default.
       apply Forall_nth;auto. lia. }
   pose proof (HInv1_n Pmul) as [HInv1n1 HInv1n2]. clear Pmul HInv1_n.
   (* main proof *)
   assert(mul_a_rng: ' Mult.a mul |: (n)).
-  { eapply Forall_firstn_and_last;try lia. rewrite _Hlen10. replace (k + 1 - 1)%nat with k by lia;auto.
-    rewrite _Hlen10. replace (k + 1 - 1)%nat with k by lia. fold_default. 
+  { eapply Forall_firstn_and_last;try lia. rewrite _Hlen9. replace (k + 1 - 1)%nat with k by lia;auto.
+    rewrite _Hlen9. replace (k + 1 - 1)%nat with k by lia. fold_default. 
     rewrite nth_Default_List_tuple. rewrite Pmul1.
     rewrite <- nth_Default_List_tuple. unfold_default.
     apply Forall_nth;auto. lia. }
   assert(mul_b_rng: ' Mult.b mul |: (n)).
-  { eapply Forall_firstn_and_last;try lia. rewrite _Hlen9. replace (k + 1 - 1)%nat with k by lia;auto.
-    rewrite _Hlen9. replace (k + 1 - 1)%nat with k by lia. fold_default. 
+  { eapply Forall_firstn_and_last;try lia. rewrite _Hlen8. replace (k + 1 - 1)%nat with k by lia;auto.
+    rewrite _Hlen8. replace (k + 1 - 1)%nat with k by lia. fold_default. 
     rewrite nth_Default_List_tuple. rewrite Pmul2. solve_to_Z. }
   pose proof (@Mult.soundness n _ mul mul_a_rng mul_b_rng) as [mul_rng mul_sound].
   pose (Inv2_1n := fun (i: nat) (_cons: Prop) => _cons -> 
@@ -293,40 +316,13 @@ Proof.
   { apply DSL.iter_inv; unfold Inv2_1n; try easy. simpl;easy. 
     intros i _cons IH Hi Hstep;
     subst; lift_to_list; intuition.
-    eapply Forall_firstn_S with (i:=i). rewrite firstn_length. rewrite _Hlen7. lia. 
+    eapply Forall_firstn_S with (i:=i). rewrite firstn_length. rewrite _Hlen6. lia. 
       rewrite firstn_firstn. replace (Init.Nat.min i (S i)) with i by lia;auto.
       rewrite firstn_nth;try lia. fold_default.
       replace ((' Add.a add) ! i) with ((' Mult.out mul) ! i).
       unfold_default. apply Forall_nth;auto;lia. }
   pose proof (HInv2_1n Padd) as HInv2n1. clear HInv2_1n.
   assert(add_a_rng: ' Add.a add |: (n)).
-  { eapply Forall_firstn_and_last;try lia. rewrite _Hlen7. replace (k + (k + 0) + 2 - 1)%nat with (k + k + 1)%nat by lia;auto.
-    eapply Forall_firstn_and_last;try lia. rewrite firstn_length;lia. 
-    rewrite firstn_length. rewrite _Hlen7. rewrite firstn_firstn. 
-    replace (Init.Nat.min (Init.Nat.min (k + k + 1) (k + (k + 0) + 2) - 1) (k + k + 1))%nat with (k + k)%nat by lia;auto.
-    rewrite firstn_length. rewrite _Hlen7.
-    replace (Init.Nat.min (k + k + 1) (k + (k + 0) + 2) - 1)%nat with (k + (k + 0))%nat by lia;auto.
-    rewrite firstn_nth;try lia. fold_default.
-    replace ((' Add.a add) ! (k + (k + 0))) with ((' Mult.out mul) ! (k + (k + 0))).
-    unfold_default. apply Forall_nth;auto. rewrite _Hlen8;lia.
-    do 2 rewrite nth_Default_List_tuple;auto. rewrite _Hlen7. fold_default.
-    replace (' Add.a add ! (k + (k + 0) + 2 - 1)) with (' Mult.out mul ! (k + (k + 0) + 2 - 1)).
-    unfold_default. apply Forall_nth;auto. rewrite _Hlen8;lia. 
-    do 2 rewrite nth_Default_List_tuple. replace (k + (k + 0) + 2 - 1)%nat with (k + (k + 0) + 1)%nat by lia;auto. }
-  pose (Inv2_2n := fun (i: nat) (_cons: Prop) => _cons -> 
-                '(Add.b add)[:i] |: (n)).
-  assert (HInv2_2n: Inv2_2n (k + k)%nat (D.iter f1 (k + k) True)).
-  { apply DSL.iter_inv; unfold Inv2_2n; try easy. simpl;easy. 
-    intros i _cons IH Hi Hstep;
-    subst; lift_to_list; intuition.
-    eapply Forall_firstn_S with (i:=i). rewrite firstn_length. rewrite _Hlen6. lia. 
-    rewrite firstn_firstn. replace (Init.Nat.min i (S i)) with i by lia;auto.
-    rewrite firstn_nth;try lia. fold_default.
-    destruct dec in H6; rewrite H6.
-    + unfold_default. apply Forall_nth;auto;lia.
-    + solve_to_Z. }
-  pose proof (HInv2_2n Padd) as HInv2n2. clear Padd HInv2_2n.
-  assert(add_b_rng: ' Add.b add |: (n)).
   { eapply Forall_firstn_and_last;try lia. rewrite _Hlen6. replace (k + (k + 0) + 2 - 1)%nat with (k + k + 1)%nat by lia;auto.
     eapply Forall_firstn_and_last;try lia. rewrite firstn_length;lia. 
     rewrite firstn_length. rewrite _Hlen6. rewrite firstn_firstn. 
@@ -334,56 +330,90 @@ Proof.
     rewrite firstn_length. rewrite _Hlen6.
     replace (Init.Nat.min (k + k + 1) (k + (k + 0) + 2) - 1)%nat with (k + (k + 0))%nat by lia;auto.
     rewrite firstn_nth;try lia. fold_default.
+    replace ((' Add.a add) ! (k + (k + 0))) with ((' Mult.out mul) ! (k + (k + 0))).
+    unfold_default. apply Forall_nth;auto. rewrite _Hlen7;lia.
+    do 2 rewrite nth_Default_List_tuple;auto. rewrite _Hlen6. fold_default.
+    replace (' Add.a add ! (k + (k + 0) + 2 - 1)) with (' Mult.out mul ! (k + (k + 0) + 2 - 1)).
+    unfold_default. apply Forall_nth;auto. rewrite _Hlen7;lia. 
+    do 2 rewrite nth_Default_List_tuple. replace (k + (k + 0) + 2 - 1)%nat with (k + (k + 0) + 1)%nat by lia;auto. }
+  assert (Hmod: ' _mod |: (n)).
+  { intuition. rewrite <- firstn_all. rewrite _Hlen2;auto. skip. (* source code need to be changed *) } split;auto.
+  pose (Inv2_2n := fun (i: nat) (_cons: Prop) => _cons -> 
+                '(Add.b add)[:i] |: (n)).
+  assert (HInv2_2n: Inv2_2n (k + k)%nat (D.iter f1 (k + k) True)).
+  { apply DSL.iter_inv; unfold Inv2_2n; try easy. simpl;easy. 
+    intros i _cons IH Hi Hstep;
+    subst; lift_to_list; intuition.
+    eapply Forall_firstn_S with (i:=i). rewrite firstn_length. rewrite _Hlen5. lia. 
+    rewrite firstn_firstn. replace (Init.Nat.min i (S i)) with i by lia;auto.
+    rewrite firstn_nth;try lia. fold_default.
+    destruct dec in H6; rewrite H6.
+    + unfold_default. apply Forall_nth;auto;lia.
+    + solve_to_Z. }
+  pose proof (HInv2_2n Padd) as HInv2n2. clear Padd HInv2_2n.
+  assert(add_b_rng: ' Add.b add |: (n)).
+  { eapply Forall_firstn_and_last;try lia. rewrite _Hlen5. replace (k + (k + 0) + 2 - 1)%nat with (k + k + 1)%nat by lia;auto.
+    eapply Forall_firstn_and_last;try lia. rewrite firstn_length;lia. 
+    rewrite firstn_length. rewrite _Hlen5. rewrite firstn_firstn. 
+    replace (Init.Nat.min (Init.Nat.min (k + k + 1) (k + (k + 0) + 2) - 1) (k + k + 1))%nat with (k + k)%nat by lia;auto.
+    rewrite firstn_length. rewrite _Hlen5.
+    replace (Init.Nat.min (k + k + 1) (k + (k + 0) + 2) - 1)%nat with (k + (k + 0))%nat by lia;auto.
+    rewrite firstn_nth;try lia. fold_default.
     rewrite nth_Default_List_tuple;auto. rewrite Padd3. solve_to_Z.
-    rewrite _Hlen6. fold_default. rewrite nth_Default_List_tuple;auto.
+    rewrite _Hlen5. fold_default. rewrite nth_Default_List_tuple;auto.
     replace (k + (k + 0) + 2 - 1)%nat with (k + (k + 0) + 1)%nat by lia. rewrite Padd4. solve_to_Z. }
+  pose proof (Add.soundness add) as add_sound.
+  assert(Pa3: add.(Add.out)[k + (k + 0) + 2] = 0 ).
+  { destruct add_sound;auto;try easy. destruct (dec (add.(Add.out)[k + (k + 0) + 2] = 0));try easy.
+    assert ([|' Add.out add|] <> ([|' Add.a add|] + [|' Add.b add|])%Z). 
+    eapply add_lemma_1;auto. easy. }
   (* loop 1 *)
   assert(L1: [|' Mult.a mul |] = [|' div |]).
-  { replace (' Mult.a mul) with ((' Mult.a mul [:k]) ++  (' Mult.a mul ! k) :: nil).
+  { intuition. replace (' Mult.a mul) with ((' Mult.a mul [:k]) ++  (' Mult.a mul ! k) :: nil).
     replace (' div) with ((' div [:k]) ++  (' div ! k) :: nil).
     do 2 rewrite RZ.as_le_app. do 2 rewrite firstn_length.
-    rewrite _Hlen10, _Hlen0. rewrite H1. rewrite nth_Default_List_tuple. rewrite Pmul1. 
+    rewrite _Hlen10, _Hlen9. rewrite H1. rewrite nth_Default_List_tuple. rewrite Pmul1. 
     rewrite nth_Default_List_tuple. auto.
     erewrite <- firstn_split_last. fold_default;auto. all:try lia.
     erewrite <- firstn_split_last. fold_default;auto. all:try lia. }
   assert(L2: [|' Mult.b mul |] = [|' b |]).
-  { replace (' Mult.b mul) with ((' Mult.b mul [:k]) ++  (' Mult.b mul ! k) :: nil).
+  { intuition. replace (' Mult.b mul) with ((' Mult.b mul [:k]) ++  (' Mult.b mul ! k) :: nil).
     replace (' b) with ((' b [:k])).
     rewrite RZ.as_le_app. rewrite firstn_length.
-    rewrite _Hlen9. rewrite H2. rewrite nth_Default_List_tuple. rewrite Pmul2.  
-    solve_to_Z. rewrite <- firstn_all. rewrite _Hlen1;auto.
+    rewrite _Hlen8. rewrite H2. rewrite nth_Default_List_tuple. rewrite Pmul2.  
+    solve_to_Z. rewrite <- firstn_all. rewrite _Hlen;auto.
     erewrite <- firstn_split_last. fold_default;auto. all:try lia. }
   (* loop 2 *)
   assert(L3: [|' Add.a add |] = [|' Mult.out mul |]).
-  { replace (' Add.a add) with ((' Add.a add [:k + k]) ++  (' Add.a add ! (k + k)) :: (' Add.a add ! (k + k + 1)) :: nil).
+  { intuition. replace (' Add.a add) with ((' Add.a add [:k + k]) ++  (' Add.a add ! (k + k)) :: (' Add.a add ! (k + k + 1)) :: nil).
     replace (' Mult.out mul) with ((' Mult.out mul [:k + k]) ++ (' Mult.out mul ! (k + k)) :: (' Mult.out mul ! (k + k + 1)) :: nil).
     repeat rewrite RZ.as_le_app. repeat rewrite firstn_length.
-    rewrite _Hlen7, _Hlen8. rewrite HInv2_1k. repeat rewrite nth_Default_List_tuple. 
+    rewrite _Hlen6, _Hlen7. rewrite HInv2_1k. repeat rewrite nth_Default_List_tuple. 
     replace (k + k)%nat with (k + (k + 0))%nat by lia.
     rewrite Padd1, Padd2. auto.
     erewrite <- firstn_split_last with (n:=(k + k + 1)%nat). fold_default;auto. all:try lia.
     rewrite ListUtil.app_cons_app_app. f_equal. 
     erewrite <- firstn_split_last with (n:=(k + k)%nat). rewrite firstn_firstn. rewrite firstn_nth;try lia.
     replace (Init.Nat.min (k + k) (k + k + 1)) with (k+k)%nat by lia;fold_default;auto.
-    rewrite firstn_length. rewrite _Hlen8. lia.
+    rewrite firstn_length. rewrite _Hlen7. lia.
     erewrite <- firstn_split_last with (n:=(k + k + 1)%nat). fold_default;auto. all:try lia.
     rewrite ListUtil.app_cons_app_app. f_equal. 
     erewrite <- firstn_split_last with (n:=(k + k)%nat). rewrite firstn_firstn. rewrite firstn_nth;try lia.
     replace (Init.Nat.min (k + k) (k + k + 1)) with (k+k)%nat by lia;fold_default;auto.
-    rewrite firstn_length. rewrite _Hlen7. lia. }
+    rewrite firstn_length. rewrite _Hlen6. lia. }
   assert(L4: [|' Add.b add |] = [|' _mod |]).
   { destruct dec in HInv2_2k;try lia.
     replace (' Add.b add) with (' _mod [:k] ++ List.repeat 0 (k + k - k + 2)).
     replace (' _mod) with (' _mod [:k]).
     repeat rewrite RZ.as_le_app. repeat rewrite firstn_length. rewrite all_zero_repr. solve_to_Z.
     replace ((' _mod [:k]) [:k]) with ((' _mod [:k]));auto. replace (' _mod [:k]) with (' _mod) at 2;auto.
-    rewrite <- firstn_all at 1. rewrite _Hlen;auto. rewrite <- firstn_all. rewrite _Hlen;auto.
+    rewrite <- firstn_all at 1. rewrite _Hlen2;auto. rewrite <- firstn_all. rewrite _Hlen2;auto.
     replace (' _mod [:k] ++ List.repeat 0 (k + k - k + 2)) with ((' _mod [:k]) ++ List.repeat 0 (k + k - k) ++ 0 :: 0 :: nil);auto.
     rewrite app_assoc. rewrite <- HInv2_2k.
     rewrite <- firstn_skipn with (n:=k) in HInv2_2k at 1.
-    rewrite <- firstn_all. rewrite _Hlen6.
+    rewrite <- firstn_all. rewrite _Hlen5.
     assert (LEN: (length (' Add.b add [:k + (k + 0) + 2]) = k+k+2)%nat).
-    { rewrite firstn_length. rewrite _Hlen6. lia. } 
+    { rewrite firstn_length. rewrite _Hlen5. lia. } 
     erewrite <- firstn_split_last with (n:=(k + (k + 0) + 1)%nat). all:try lia. 
     rewrite firstn_firstn. rewrite firstn_nth;try lia.  fold_default;auto.
     replace (Init.Nat.min (k + (k + 0) + 1) (k + (k + 0) + 2)) with (k + (k + 0) + 1)%nat by lia.
@@ -391,7 +421,7 @@ Proof.
     replace (' Add.b add [:k + (k + 0) + 1]) with (' Add.b add [:k + k] ++ (' Add.b add ! (k + (k + 0))) :: nil).
     rewrite nth_Default_List_tuple. rewrite Padd3. rewrite <- app_assoc. auto.
     assert (LEN1: (length (' Add.b add [:k + (k + 0) + 1]) = k+k+1)%nat).
-    { rewrite firstn_length. rewrite _Hlen6. lia. } 
+    { rewrite firstn_length. rewrite _Hlen5. lia. } 
     erewrite <- firstn_split_last with (n:=(k + (k+0))%nat). all:try lia.
     rewrite firstn_firstn. rewrite firstn_nth;try lia.  fold_default;auto.
     replace (Init.Nat.min (k + (k + 0)) (k + (k + 0) + 1)) with (k + (k + 0))%nat by lia.
@@ -402,36 +432,36 @@ Proof.
   { replace (' Add.out add) with ((' Add.out add [:k + k]) ++ (' Add.out add ! (k + k)) :: (' Add.out add ! (k + k + 1)) :: (' Add.out add ! (k + k + 2)) :: nil).
     replace (' a) with ((' a [:k + k])).
     repeat rewrite RZ.as_le_app. repeat rewrite firstn_length.
-    rewrite _Hlen5. rewrite HInv3k. repeat rewrite nth_Default_List_tuple. 
+    rewrite _Hlen4. rewrite HInv3k. repeat rewrite nth_Default_List_tuple. 
     replace (k + k)%nat with (k + (k + 0))%nat by lia.
     rewrite Pa1, Pa2, Pa3. solve_to_Z.
-    rewrite <- firstn_all. rewrite _Hlen2. replace (k + k)%nat with (k + (k + 0))%nat by lia;auto. 
+    rewrite <- firstn_all. rewrite _Hlen0. replace (k + k)%nat with (k + (k + 0))%nat by lia;auto. 
     erewrite <- firstn_split_last with (n:=(k + k + 2)%nat). fold_default;auto. all:try lia. 
     do 2 rewrite ListUtil.app_cons_app_app. f_equal.
     erewrite <- firstn_split_last with (n:=(k + k + 1)%nat). rewrite firstn_firstn. rewrite firstn_nth;try lia.
     replace (Init.Nat.min (k + k + 1) (k + k + 2)) with (k + k +1)%nat by lia;fold_default;auto. f_equal.
     erewrite <- firstn_split_last with (n:=(k + k)%nat). rewrite firstn_firstn. rewrite firstn_nth;try lia.
     replace (Init.Nat.min (k + k) (k + k + 1)) with (k + k)%nat by lia;fold_default;auto. 
-    rewrite firstn_length. rewrite _Hlen5. lia. 
-    rewrite firstn_length. rewrite _Hlen5. lia. }
+    rewrite firstn_length. rewrite _Hlen4. lia. 
+    rewrite firstn_length. rewrite _Hlen4. lia. }
   (* loop 4 *)
   assert(L6: [|' LessThan.a lt |] = [|' _mod |]).
-  { replace (' LessThan.a lt) with (' LessThan.a lt [:k]).
+  { intuition. replace (' LessThan.a lt) with (' LessThan.a lt [:k]).
     replace (' _mod) with (' _mod [:k]).
     rewrite H;auto.
-    rewrite <- firstn_all. rewrite _Hlen;auto.
-    rewrite <- firstn_all. rewrite _Hlen3;auto. }
+    rewrite <- firstn_all. rewrite _Hlen2;auto.
+    rewrite <- firstn_all. rewrite _Hlen1;auto. }
   assert(L7: [|' LessThan.b lt |] = [|' b |]).
-  { replace (' LessThan.b lt) with (' LessThan.b lt [:k]).
+  { intuition. replace (' LessThan.b lt) with (' LessThan.b lt [:k]).
     replace (' b) with (' b [:k]).
     rewrite H0;auto.
-    rewrite <- firstn_all. rewrite _Hlen1;auto.
-    rewrite <- firstn_all. rewrite _Hlen4;auto. }
-  pose proof (Add.soundness add) as add_sound.
+    rewrite <- firstn_all. rewrite _Hlen;auto.
+    rewrite <- firstn_all. rewrite _Hlen3;auto. }
   pose proof (LessThan.soundness lt) as lt_sound.
   try rewrite L1, L2, L3, L4, L5, L6, L7 in *.
   rewrite <- mul_sound in add_sound.
   destruct add_sound;auto;try easy.
+  (* range checks *)
 Unshelve. all:exact 0.
 Qed.
 

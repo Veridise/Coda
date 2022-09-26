@@ -40,6 +40,7 @@ src/BigInt/Proof/BigSubModP.v
 src/BigInt/Proof/CheckCarryToZero.v
 src/BigInt/Proof/Split.v
 src/BigInt/Theory/Polynom.v
+src/BigInt/Theory/Signed.v
 src/BigInt/Theory/Polynom_test.v
 src/BigInt/Proof/BigMult.v
 src/BigInt/Proof/BigMod.v

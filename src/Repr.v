@@ -5,19 +5,13 @@ Require Import Coq.Arith.PeanoNat.
 Require Import Coq.Arith.Compare_dec.
 Require Import Coq.PArith.BinPosDef.
 Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Znumtheory Coq.NArith.NArith. (* import Zdiv before Znumtheory *)
-Require Import Coq.NArith.Nnat.
 
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Crypto.Algebra.Nsatz.
-
-Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable.
-(* Require Import Crypto.Util.Notations. *)
-Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
-Require Import Circom.Circom Circom.DSL Circom.Util Circom.ListUtil.
-Require Import Circom.Default.
-(* Require Import VST.zlist.Zlist. *)
+
+From Circom Require Import Circom DSL Util ListUtil Simplify.
 
 
 (* Circuits:
@@ -263,24 +257,24 @@ Proof.
   rewrite firstn_skipn. auto.
 Qed.
 
-Lemma as_le_split_last : forall i x ws,
-  repr_le x (S i) ws ->
-  [| ws |] = [| ws[:i] |] + 2^(n*i)%nat * ws ! i.
+Lemma as_le_split_last : forall i ws,
+  length ws = S i ->
+  ws |: (n) ->
+  [| ws |] = [| ws[:i] |] + 2^(n*i) * ws ! i.
 Proof.
   unwrap_C.
-  intros. pose proof H as H'.
-  unfold repr_le in H. intuition.
-  subst.
+  intros i ws Hlen Hrange. 
   assert (exists ws', ws = ws'). exists ws. reflexivity.
-  destruct H1 as [ws' Hws]. pose proof Hws as Hws'.
+  destruct H as [ws' Hws]. pose proof Hws as Hws'.
   erewrite <- firstn_split_last with (l:=ws) (n:=i)(d:=0) in Hws; auto.
   pose proof (as_le_app (ws[:i]) (ws!i::nil)).
-  rewrite firstn_length_le in H1 by lia.
-  replace ([|ws ! i :: nil|]) with (ws ! i) in H1 by (simpl; fqsatz).
-  rewrite Nat2N.inj_mul, <- H1.
+  rewrite firstn_length_le in H by lia.
+  simpl in H. simplify' H.
+  rewrite <- H.
   subst.
   f_equal.
-  unfold List_nth_Default. rewrite nth_default_eq. auto.
+  rewrite fold_nth in Hws' by lia.
+  auto.
 Qed.
 
 End Representation.
@@ -297,7 +291,7 @@ Definition as_be2 := (as_be 1).
 
 
 
-Lemma binary_Z: forall x, binary x <-> |^x| = 0%Z \/ |^x| = 1%Z.
+Lemma binary_Z: forall x, binary x <-> ^x = 0%Z \/ ^x = 1%Z.
 Proof.
   unfold binary;split;intros;unwrap_C.
   - destruct H;subst;simpl;auto. right. apply Zmod_1_l. lia. 
@@ -372,15 +366,13 @@ Proof with (lia || nia || eauto).
     (* actual proof starts here *)
     cbn [as_le].
     rewrite pow_S_Z.
-    autorewrite with F_to_Z...
-    autorewrite with zsimplify.
-    repeat rewrite Z.mod_small...
+    repeat (autorewrite with F_to_Z; simplify; try lia).
 Qed.
 
 Lemma repr_le_ub': forall xs,
   xs |: (1) ->
   length xs <= k ->
-  |^as_le 1 xs| <= (2^(length xs) - 1)%Z.
+  ^as_le 1 xs <= (2^(length xs) - 1)%Z.
 Proof.
   intros.
   eapply repr_le_ub; auto. apply repr_trivial; auto.
@@ -392,6 +384,11 @@ Lemma Z_le_mul_pos: forall a b c,
   a <= b ->
   a * c <= b * c.
 Proof. intros. nia. Qed.
+
+Lemma F_mul_add_distr_l:
+forall n m p : F, p * (n + m) = (n * p + m * p).
+Proof. unwrap_C. intros. fqsatz. Qed.
+
 
 (* ws[i] = 1 -> [|ws|] >= 2^i *)
 Theorem repr_le_lb: forall (n i: nat) ws x,
@@ -426,7 +423,7 @@ Proof with (lia || auto).
   cbn [length as_le].
   fold (as_le2).
 
-  assert (0 <= F.to_Z (as_le2 (firstn i ws)) <= (2 ^ i - 1)). {
+  assert (0 <= F.to_Z (as_le2 (ws[:i])) <= (2 ^ i - 1)). {
     split. apply F.to_Z_range...
     eapply repr_le_ub with (firstn i ws).
     remember (firstn i ws) as f.
@@ -451,16 +448,17 @@ Proof with (lia || auto).
   rewrite skipn_length in H4.
   rewrite <- Heql in H4.
 
-  autorewrite with F_to_Z...
-  autorewrite with zsimplify.
-  replace (2 mod q) with 2%Z by (rewrite Zmod_small; lia).
 
-  remember (F.to_Z (as_le2 (firstn i ws))) as pre.
-  remember (F.to_Z (as_le2 (skipn (1 + i) ws))) as post.
+  simplify.
+  rewrite F_mul_add_distr_l.
+  simplify.
 
-  assert (pre + 2 ^ i * (1 + 2 * post) < q). {
-    replace (2 ^ i * (1 + 2 * post))%Z with (2^i + 2 ^i * 2 * post)%Z by lia.
-    assert (2^(i+1) * post <= 2^l - 2^(i+1)).
+  remember (as_le2 (ws[:i])) as pre.
+  remember (as_le2 (ws[1+i:])) as post.
+
+  assert (^pre + 2 ^ i * (1 + 2 * ^post) < q). {
+    replace (2 ^ i * (1 + 2 * ^post))%Z with (2^i + 2 ^i * 2 * ^post)%Z by lia.
+    assert (2^(i+1) * ^post <= 2^l - 2^(i+1)).
     destruct H4. apply Z_le_mul_pos with (c:=(2^(i+1))%Z) in H5.
     rewrite Z.mul_sub_distr_r in H5.
     autorewrite with zsimplify in H5.
@@ -468,7 +466,7 @@ Proof with (lia || auto).
     replace ((l - (1 + i))%nat + (i + 1))%Z with (Z.of_nat l) in H5 by lia.
     nia.
     lia.
-    replace (2 ^ (i + 1) * post)%Z with (2 ^ i * 2 * post)%Z in H5 by (rewrite Zpower_exp; lia).
+    replace (2 ^ (i + 1) * ^post)%Z with (2 ^ i * 2 * ^post)%Z in H5 by (rewrite Zpower_exp; lia).
     etransitivity.
     apply Z.add_lt_le_mono with (m:=(2 ^ i)%Z).
     lia.
@@ -476,8 +474,10 @@ Proof with (lia || auto).
     apply H5.
     rewrite Zpower_exp by lia. rewrite Z.pow_1_r. lia.
   }
-  assert (1 + 2 * post < q). { assert (2^i > 0) by lia. nia. }
-  repeat rewrite Zmod_small...
+  assert (1 + 2 * ^post < q). { assert (2^i > 0) by lia. nia. }
+  
+  repeat (autorewrite with F_to_Z; simplify; try (simpl; lia ));
+  replace (1 + 1)%Z with 2%Z; try lia.
 Qed.
 
 End Base2.

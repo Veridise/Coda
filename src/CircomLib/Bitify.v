@@ -113,7 +113,7 @@ Record t := mk {
 }.
 
 Theorem soundness: forall (w: t), 
-  repr_le2 w.(_in) n  ('w.(out)).
+  repr_le2 w.(_in) n ('w.(out)).
 Proof.
   unwrap_C. intros.
   destruct w as [_in _out _cons]. unfold cons in *. simpl.
@@ -166,6 +166,13 @@ Lemma range_check: forall (c: t),
 Proof.
   intros c. specialize (soundness c). intros.
   exact (R.repr_le_ub _ _ _ H H0).
+Qed.
+
+Lemma soundness': forall (c:t),
+  'c.(out) |: (1) /\
+  c.(_in) = as_le 1 ('c.(out)).
+Proof.
+  intros. destruct (soundness c). auto.
 Qed.
 
 Definition wgen: t. Admitted.

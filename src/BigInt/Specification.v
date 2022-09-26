@@ -39,7 +39,6 @@ Local Open Scope tuple_scope.
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
-Local Notation "[|| xs ||] '_' n" := (ReprZUnsigned.RZ.as_le n ('xs)) (at level 1).
 Local Notation "[| xs |] '_' n" := (ReprZUnsigned.RZ.as_le n xs) (at level 2).
 Local Notation "a ?=? b" := ((a?) = (b?)) (at level 70).
 
@@ -105,7 +104,7 @@ Theorem BigAdd_Soundness {n k: nat}: forall (w: @BigAdd.t n k),
   'w.(BigAdd.a) |: (n) ->
   'w.(BigAdd.b) |: (n) ->
   (* post-condition *)
-  ([|| w.(BigAdd.out) ||] _ n = [|| w.(BigAdd.a) ||] _ n + [|| w.(BigAdd.b) ||] _ n)%Z /\
+  ([|' w.(BigAdd.out) |] _ n = [|' w.(BigAdd.a) |] _ n + [|' w.(BigAdd.b) |] _ n)%Z /\
   'w.(BigAdd.out) |: (n).
 Proof.
   exact BigAdd.soundness.
@@ -140,7 +139,7 @@ Theorem BigSub_Soundness {n k: nat}: forall (w: @BigSub.t n k),
   'w.(BigSub.a) |: (n) ->
   'w.(BigSub.b) |: (n) ->
   (* post-condition *)
-  ([|' w.(BigSub.out) |] _ n = [|' w.(BigSub.a) |] _ n - [|' w.(BigSub.b) |] _ n + |^ w.(BigSub.underflow) | * 2^(n*k))%Z /\
+  ([|' w.(BigSub.out) |] _ n = [|' w.(BigSub.a) |] _ n - [|' w.(BigSub.b) |] _ n + ^ w.(BigSub.underflow)  * 2^(n*k))%Z /\
   'w.(BigSub.out) |: (n) /\
   binary w.(BigSub.underflow) /\
   (w.(BigSub.underflow) = 1 ?=? ([|' w.(BigSub.a) |] _ n < [|' w.(BigSub.b) |] _ n)).
@@ -163,7 +162,7 @@ Theorem BigSub_Soundness_ite {n k: nat}: forall (w: @BigSub.t n k),
     ([|' w.(BigSub.out) |] _ n = [|' w.(BigSub.a) |] _ n - [|' w.(BigSub.b) |] _ n)%Z
   else
     w.(BigSub.underflow) = 1 /\
-    ([|' w.(BigSub.out) |] _ n = 2^(n*k) * |^w.(BigSub.underflow) | + [|' w.(BigSub.a) |] _ n - [|' w.(BigSub.b) |] _ n)%Z
+    ([|' w.(BigSub.out) |] _ n = 2^(n*k) * ^w.(BigSub.underflow)  + [|' w.(BigSub.a) |] _ n - [|' w.(BigSub.b) |] _ n)%Z
   .
 Proof.
   exact BigSub.soundness_ite.

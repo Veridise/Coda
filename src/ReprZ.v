@@ -14,10 +14,9 @@ Require Crypto.Algebra.Nsatz.
 
 Require Import Circom.Tuple.
 Require Import Crypto.Util.Decidable.
-(* Require Import Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
-Require Import Circom.Circom Circom.DSL Circom.Util Circom.ListUtil.
-Require Import Circom.Default.
+
+From Circom Require Import Circom DSL Util ListUtil Default Signed.
 
 
 Module Type TO_Z.
@@ -25,7 +24,6 @@ Module Type TO_Z.
   Axiom to_Z_0: to_Z 0%F = 0%Z.
   Axiom to_Z_1: to_Z 1%F = 1%Z.
   Axiom to_Z_2: to_Z (1+1)%F = 2%Z.
-  Axiom to_Z_nonneg: forall x, 0 <= to_Z x.
   (* Variable add_hyp: F -> F -> Prop. *)
   (* Variable mul_hyp: F -> F -> Prop. *)
   (* Axiom to_Z_add: forall x y, add_hyp x y -> to_Z (x + y) = to_Z x + to_Z y. *)
@@ -318,22 +316,6 @@ Proof.
   auto.
 Qed.
 
-Lemma as_be_nonneg: forall l,
-  0 <= as_be n l.
-Proof.
-  induction l; intros; unfold as_be; cbn.
-  - lia.
-  - autorewrite with natsimplify. unfold as_be in *.
-    specialize (to_Z_nonneg a).
-    nia.
-Qed.
-
-Lemma as_le_nonneg: forall l,
-  0 <= as_le n l.
-Proof.
-  intros.
-  rewrite le__rev_be. apply as_be_nonneg.
-Qed.
 
 End Representation.
 
@@ -355,11 +337,7 @@ Proof. unwrap_C. unfold to_Z. rewrite @F.to_Z_1; lia. Qed.
 Lemma to_Z_2: to_Z 2 = 2%Z.
 Proof. unwrap_C. unfold to_Z. rewrite F.to_Z_add, @F.to_Z_1, Zmod_small; lia. Qed.
 
-Lemma to_Z_nonneg: forall x, 0 <= to_Z x.
-Proof. unwrap_C. intros. unfold to_Z. apply F.to_Z_range. lia. Qed.
-
 End ToZUnsigned.
-
 
 
 Module ReprZUnsigned.
@@ -376,6 +354,27 @@ Notation "[\ xs \]" := (RZ.as_be n xs).
 
 Local Open Scope circom_scope.
 
+
+Lemma to_Z_nonneg: forall x, 0 <= ToZUnsigned.to_Z x.
+Proof. unwrap_C. intros. unfold ToZUnsigned.to_Z. apply F.to_Z_range. lia. Qed.
+
+
+Lemma as_be_nonneg: forall l, 0 <= as_be n l.
+Proof.
+  induction l; intros; unfold as_be; cbn.
+  - lia.
+  - autorewrite with natsimplify. unfold as_be in *.
+    specialize (to_Z_nonneg a).
+    nia.
+Qed.
+
+Lemma as_le_nonneg:
+  forall l, 0 <= as_le n l.
+Proof.
+  intros.
+  rewrite le__rev_be. apply as_be_nonneg.
+Qed.
+
 Theorem repr_be_ub: forall ws x l,
   repr_be n x l ws ->
   (* n <= k -> *)
@@ -390,8 +389,8 @@ Proof with (lia || nia || eauto).
     assert (H_ws: as_be n ws <= (2^(n * l) - 1)%Z). {
       apply IHws. invert H_range. unfold repr_be; intuition.
     }
-    pose proof (as_be_nonneg 0) ws.
-    assert (0 <= |^ w| <= 2^n-1). split. apply F.to_Z_range; try lia. invert H_range. auto.
+    pose proof (as_be_nonneg ws).
+    assert (0 <= ^ w <= 2^n-1). split. apply F.to_Z_range; try lia. invert H_range. auto.
     replace (n * S l) with (n * l + n) by lia. rewrite Zpower_exp by lia.
     unfold RZ.ToZ.to_Z.
     nia.
@@ -439,8 +438,8 @@ Proof.
   induction xs as [ | x xs]; intros ys Hlen Hxs Hys Hlt; 
   destruct ys as [ |y ys]; simpl in Hlen; try discriminate.
   simpl in *.
-  pose proof (as_be_nonneg n xs) as Hxs_lb.
-  pose proof (as_be_nonneg n ys) as Hys_lb.
+  pose proof (as_be_nonneg xs) as Hxs_lb.
+  pose proof (as_be_nonneg ys) as Hys_lb.
   invert Hxs.
   invert Hys.
   assert (Hxs_ub: [\xs \] <= 2 ^ (n * length xs) - 1). eapply repr_be_ub; subst; unfold repr_be; intuition.
@@ -460,7 +459,7 @@ Proof.
 Qed.
 
 Lemma F_to_Z_inj: forall x y,
-  |^x| = |^y| -> x = y.
+  ^x = ^y -> x = y.
 Proof.
   intros. apply f_equal with (f:=@F.of_Z q) in H.
   repeat rewrite F.of_Z_to_Z in H.
@@ -478,8 +477,8 @@ Proof.
   induction xs as [ | x xs]; intros ys Hlen Hxs Hys Hlt; 
   destruct ys as [ |y ys]; simpl in Hlen; try discriminate.
   simpl in *.
-  pose proof (as_be_nonneg n xs) as Hxs_lb.
-  pose proof (as_be_nonneg n ys) as Hys_lb.
+  pose proof (as_be_nonneg xs) as Hxs_lb.
+  pose proof (as_be_nonneg ys) as Hys_lb.
   invert Hxs.
   invert Hys.
   assert (Hxs_ub: [\xs \] <= 2 ^ (n * length xs) - 1). eapply repr_be_ub; subst; unfold repr_be; intuition.
@@ -489,9 +488,9 @@ Proof.
   destruct (dec (x <q y)). reflexivity.
   destruct (dec (x=y)). apply IHxs; eauto. apply f_equal with (f:=F.to_Z) in e.
   rewrite H0 in *. nia.
-  assert (Hgt: |^x| > |^y|). {
+  assert (Hgt: ^x > ^y). {
     pose proof n_leq_k. assert (2^n <= 2^k). apply Zpow_facts.Zpower_le_monotone; lia.
-    assert (|^x| <> |^y|). { intros ?. apply n1. apply F_to_Z_inj; auto; lia. }
+    assert (^x <> ^y). { intros ?. apply n1. apply F_to_Z_inj; auto; lia. }
     lia.
   }
   rewrite H0 in *. nia.
@@ -599,3 +598,81 @@ Qed.
 End _ReprZUnsigned.
 
 End ReprZUnsigned.
+
+
+
+Module ToZSigned <: TO_Z.
+Local Open Scope circom_scope.
+
+Definition to_Z : F -> Z := Signed.to_Z.
+
+Lemma to_Z_0: to_Z 0 = 0.
+Proof. exact Signed.to_Z_0. Qed.
+
+Lemma to_Z_1: to_Z 1 = 1.
+Proof. exact Signed.to_Z_1. Qed.
+
+Lemma to_Z_2: to_Z 2 = 2%Z.
+Proof. exact Signed.to_Z_2. Qed.
+
+End ToZSigned.
+
+Module ReprZSigned.
+
+Module RZ := (ReprZ ToZSigned).
+
+Import RZ.
+
+Section _ReprZSigned.
+Context (n: nat) (n_leq_k: n <= C.k).
+
+Notation "[| xs |]" := (RZ.as_le n xs).
+Notation "[\ xs \]" := (RZ.as_be n xs).
+
+(* 
+Theorem repr_be_ub: forall ws x l,
+  repr_be n x l ws ->
+  (* n <= k -> *)
+  x <= (2^(n*l) - 1)%Z.
+Proof with (lia || nia || eauto).
+  unwrap_C.
+  induction ws as [ | w ws]; intros x l H_repr.
+  - unfold repr_be, as_be in *. intuition. subst. simpl. lia.
+  - destruct H_repr as [H_l [H_range H]]. subst.
+    cbn [length as_be]. autorewrite with natsimplify.
+    remember (length ws) as l.
+    assert (H_ws: as_be n ws <= (2^(n * l) - 1)%Z). {
+      apply IHws. invert H_range. unfold repr_be; intuition.
+    }
+    pose proof (as_be_nonneg 0) ws.
+    assert (0 <= ^ w <= 2^n-1). split. apply F.to_Z_range; try lia. invert H_range. auto.
+    replace (n * S l) with (n * l + n) by lia. rewrite Zpower_exp by lia.
+    unfold RZ.ToZ.to_Z.
+    nia.
+Qed.
+
+
+
+Theorem repr_le_ub: forall xs x m,
+  repr_le n x m xs ->
+  x <= (2^(n*m) - 1)%Z.
+Proof.
+  intros.
+  eapply repr_be_ub with (ws:=(rev xs)).
+  apply repr_rev.
+  auto.
+Qed.
+
+Lemma repr_le_ub': forall xs,
+  xs |: (n) ->
+  [| xs |] <= (2^(n*length xs) - 1)%Z.
+Proof.
+  intros.
+  assert ([|xs|] <= 2 ^ (n * length xs) - 1). eapply repr_le_ub. apply repr_trivial. auto.
+  lia.
+Qed. *)
+
+
+End _ReprZSigned.
+
+End ReprZSigned.

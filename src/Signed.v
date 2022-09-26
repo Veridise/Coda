@@ -16,8 +16,6 @@ Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
 
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
-Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
-Require Import Ring.
 
 
 From Circom Require Import Circom Util LibTactics Simplify.
@@ -68,24 +66,12 @@ Proof.
   intros. rewrite H, H0. eauto with *.
 Qed.
 
-Lemma pow_r: 2 * 2^r <= 2^k.
-Proof.
-  unwrap_C. pose proof r_k.
-  replace (2*2^r) with (2^(r+1)).
-  apply Zpow_facts.Zpower_le_monotone; try lia.
-  rewrite Zpower_exp; simplify.
-Qed.
-
-Definition to_Z (x: F) : Z := if dec (|^x| <= half) then |^x| else |^x| - q.
+Definition to_Z (x: F) : Z := if dec (^x <= half) then ^x else ^x - q.
 
 Notation "$ x" := (to_Z x) (at level 30).
 Notation "| x |" := (Z.abs x) (at level 60).
-Notation "x <=$ y" := (-y <= x <= y) (at level 50).
-Notation "x <$ y" := (-y < x < y) (at level 65).
 
-Notation "q//2" := half.
-
-Lemma to_Z_congruent: forall x, |^x| ~ $x.
+Lemma to_Z_congruent: forall x, ^x ~ $x.
 Proof.
   intros. unfold to_Z. split_dec.
   - reflexivity.
@@ -115,13 +101,9 @@ Proof.
   split_dec; lia.
 Qed.
 
-Axiom half_spec:
-  q//2 + q//2 < q /\
-  q//2 + q//2 + 1 >= q.
-
 Lemma abs_lt (a b: Z):
   |a| < b ->
-  a <$ b.
+  -b < a < b.
 Proof.
   pose proof (Zabs_spec a).
   intuit; split_dec; lia.
@@ -167,7 +149,7 @@ Proof.
   repeat red in H1.
   rewrite ?Zmod_small in H1;
   try lia.
-  assert (0 <= |^ x + y | < q) by (apply F.to_Z_range; lia).
+  assert (0 <= ^(x + y) < q) by (apply F.to_Z_range; lia).
   unfold to_Z in *. split_dec; try lia.
 Qed.
 
@@ -200,6 +182,156 @@ Proof.
   repeat red in H1.
   rewrite ?Zmod_small in H1;
   try lia.
-  assert (0 <= |^ x * y | < q) by (apply F.to_Z_range; lia).
+  assert (0 <= ^(x * y) < q) by (apply F.to_Z_range; lia).
   unfold to_Z in *. split_dec; try lia.
 Qed.
+
+Local Open Scope circom_scope.
+
+Lemma le_sub1_r_pow: forall x a b,
+  0 < x ->
+  0 <= a ->
+  a <= b - 1 ->
+  x * x^a <= x^b.
+Proof.
+  intros.
+  assert (a + 1 <= b) by lia.
+  replace (x*x^a) with (x^(1+a)). apply Zpow_facts.Zpower_le_monotone. lia.
+  lia.
+  rewrite Zpower_exp; try lia.
+Qed.
+
+Lemma le_sub1_l_pow: forall x a b,
+  0 < x ->
+  0 <= a ->
+  0 <= b ->
+  a - 1 <= b  ->
+  x^a <= x * x^b.
+Proof.
+  intros.
+  assert (a <= b+1) by lia.
+  replace (x*x^b) with (x^(1+b)). apply Zpow_facts.Zpower_le_monotone. lia.
+  lia.
+  rewrite Zpower_exp; try lia.
+Qed.
+
+Lemma pow_sub_l_le: forall x a b c,
+  0 < x ->
+  0 <= b <= a ->
+  x^(a-b) <= c <->
+  x^a <= x^b * c.
+Proof.
+  intros. assert (0 <= x ^ b) by lia.
+  replace (x^a) with (x^(b + (a-b))) by (f_equal; lia).
+  rewrite Zpower_exp in * by lia.
+  nia.
+Qed.
+
+Lemma pow_sub_r_le: forall x a b c,
+  0 < x ->
+  0 <= b <= a ->
+  c <= x^(a-b) <->
+  x^b * c <= x^a.
+Proof.
+  intros. assert (0 <= x ^ b) by lia.
+  replace (x^a) with (x^(b + (a-b))) by (f_equal; lia).
+  rewrite Zpower_exp in * by lia.
+  nia.
+Qed.
+
+Lemma half_lb: 2^(k-1) <= q//2.
+Proof.
+  unwrap_C.
+  destruct half_spec.
+  apply pow_sub_l_le; try lia.
+Qed.
+
+Lemma lt_pow: forall a b x,
+  1 < x ->
+  0 <= a < b -> 
+  x^a < x^b.
+Proof.
+  intros. apply Zpow_facts.Zpower_lt_monotone; lia.
+Qed.
+
+Lemma le_pow: forall a b x,
+  1 < x ->
+  0 <= a < b -> 
+  x^a <= x^b.
+Proof.
+  intros. apply Zpow_facts.Zpower_le_monotone; lia.
+Qed.
+
+Lemma pow_2_k_sub_1: 2 <= 2^(k-1).
+Proof.
+  unwrap_C.
+  (* assert (2^1 < 2^k). apply lt_pow; lia. *)
+  replace (2 <= 2^(k-1)) with (2^1 <= 2^(k-1)).
+  apply Zpow_facts.Zpower_le_monotone; try lia.
+  f_equal.
+Qed.
+
+Lemma half_ge_2: 2 <= q//2.
+Proof.
+  etransitivity. apply pow_2_k_sub_1. apply half_lb.
+Qed.
+
+Lemma to_Z_2_pow: forall (n:N),
+  n <= k - 1 ->
+  $((2:F) ^ n) = $(2:F) ^ n.
+Proof.
+  unwrap_C.
+  intros n Hnk. unfold to_Z.
+  pose proof Hnk as Hnk'.
+  apply (le_sub1_r_pow 2) in Hnk; try lia.
+  pose proof half_ge_2.
+  destruct half_spec as [half_spec half_spec'].
+  repeat (autorewrite with F_to_Z; try lia);
+  try (simpl; lia).
+  split_dec; try lia.
+  exfalso. apply n0.
+  etransitivity.
+  2: { apply half_lb. }
+  simpl.
+  apply Zpow_facts.Zpower_le_monotone; try lia.
+Qed.
+
+
+Lemma to_Z_0: $0 = 0.
+Proof.
+  unwrap_C.
+  unfold to_Z.
+  autorewrite with F_to_Z; try lia.
+  split_dec.
+  auto.
+  pose proof half_spec.
+  lia.
+Qed.
+
+Lemma to_Z_1: $1 = 1.
+Proof.
+  unwrap_C.
+  unfold to_Z. 
+  autorewrite with F_to_Z; try lia.
+  split_dec.
+  auto.
+  pose proof half_spec.
+  lia.
+Qed.
+
+Lemma to_Z_2: $2 = 2%Z.
+Proof.
+  unwrap_C.
+  unfold to_Z. 
+  autorewrite with F_to_Z; try lia.
+  split_dec.
+  auto.
+  pose proof half_spec.
+  pose proof half_geq_2. lia.
+Qed.
+
+
+
+End Signed.
+
+Notation "$ x" := (Signed.to_Z x) (at level 30) : circom_scope.

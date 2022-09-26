@@ -153,13 +153,13 @@ Create HintDb DSL discriminated.
 
 Ltac pose_as_le_nonneg := repeat match goal with
 | [ |- context[RZ.as_le ?n ?xs ] ] =>
-  let t := type of (RZ.as_le_nonneg n xs) in
+  let t := type of (RZU.as_le_nonneg n xs) in
   lazymatch goal with
   (* already posed *)
   | [ _: t |- _] => fail
   | _ => 
     let Hnonneg := fresh "_Hnonneg" in
-    pose proof (RZ.as_le_nonneg n xs) as Hnonneg
+    pose proof (RZU.as_le_nonneg n xs) as Hnonneg
     ;move Hnonneg at top
   end
 | _ => fail

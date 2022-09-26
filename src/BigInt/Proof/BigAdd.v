@@ -104,7 +104,7 @@ Proof.
   remember (Num2Bits.out n2b [n] ) as out_n. pose proof (length_to_list (Num2Bits.out n2b)).
   pose proof (Num2Bits.soundness n2b) as H_n2b. unfold repr_le2 in *.
   rewrite <- H_in.
-  pose proof H_n2b as H_n2b'. unfold repr_le in H_n2b. destruct H_n2b as [_ [_ H_as_le] ].
+  pose proof H_n2b as H_n2b'. unfold repr_le in H_n2b. destruct H_n2b as [_ [H_n2b_bin H_as_le] ].
   rewrite H_as_le.
   erewrite as_le_split_last; eauto.
 
@@ -270,19 +270,19 @@ Proof.
       remember (M.carry ('unit!i)) as ci.
       remember (M.carry ('unit!(i-1))) as ci'.
       (* prepare ranges *)
-      assert (0 <= |^ 'a!i|)%Z. apply F.to_Z_range; lia.
-      assert (0 <= |^ 'b!i|)%Z. apply F.to_Z_range; lia.
-      assert (0 <= |^ 'out!i|)%Z. apply F.to_Z_range; lia.
-      assert (|^ 'a ! i | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
-      assert (|^ 'b ! i | <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
-      assert (|^ 'out ! i | <= 2^n-1)%Z. auto.
+      assert (0 <= ^ 'a!i)%Z. apply F.to_Z_range; lia.
+      assert (0 <= ^ 'b!i)%Z. apply F.to_Z_range; lia.
+      assert (0 <= ^ 'out!i)%Z. apply F.to_Z_range; lia.
+      assert (^ 'a ! i  <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
+      assert (^ 'b ! i  <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
+      assert (^ 'out ! i  <= 2^n-1)%Z. auto.
       assert (2*2^n <= 2^C.k)%Z. replace (2*2^n)%Z with (2^(n+1))%Z. apply Zpow_facts.Zpower_le_monotone; try lia. rewrite Zpower_exp; try lia.
-      assert (Hci_bin: (0 <= |^ci| <= 1)%Z). destruct M_bin as [M_bin|M_bin]; rewrite M_bin in *; autorewrite with F_to_Z; lia.
-      assert (Hci'_bin: (0 <= |^ci'| <= 1)%Z). specialize (H4 (i-1)%nat). destruct H4 as [M_bin'|M_bin']; try lia; rewrite Heqci', M_bin' in *; autorewrite with F_to_Z; lia.
+      assert (Hci_bin: (0 <= ^ci <= 1)%Z). destruct M_bin as [M_bin|M_bin]; rewrite M_bin in *; autorewrite with F_to_Z; lia.
+      assert (Hci'_bin: (0 <= ^ci' <= 1)%Z). specialize (H4 (i-1)%nat). destruct H4 as [M_bin'|M_bin']; try lia; rewrite Heqci', M_bin' in *; autorewrite with F_to_Z; lia.
       (* push F.to_Z *)
-      assert (Hl: (|^' out ! i + (1 + 1) ^ n * ci| = |^'out!i| + 2^n*|^ci|)%Z). repeat (autorewrite with F_to_Z; cbn -[to_list F.pow]; try lia; try nia).
-      assert (Hr: (|^' a ! i + ' b ! i + (if dec (i = 0)%nat then 0 else ci')| 
-        = |^'a!i| + |^'b!i| + |^(if dec (i = 0)%nat then 0 else ci')|)%Z). 
+      assert (Hl: (^(' out ! i + (1 + 1) ^ n * ci) = ^'out!i + 2^n*^ci)%Z). repeat (autorewrite with F_to_Z; cbn -[to_list F.pow]; try lia; try nia).
+      assert (Hr: (^(' a ! i + ' b ! i + (if dec (i = 0)%nat then 0 else ci')) 
+        = ^'a!i + ^'b!i + ^(if dec (i = 0)%nat then 0 else ci'))%Z). 
         { destruct (dec (i=0)%nat); simplify; repeat (autorewrite with F_to_Z; try lia; try nia). }
       symmetry in Hl, Hr, M_eq.
       apply f_equal with (f:=F.to_Z) in M_eq.

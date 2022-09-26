@@ -6,7 +6,6 @@ Require Import Coq.PArith.BinPosDef.
 Require Import Coq.ZArith.Znumtheory.
 
 Require Import Crypto.Spec.ModularArithmetic.
-Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.PrimeFieldTheorems.
 Require Import Coq.Bool.Bool.
 

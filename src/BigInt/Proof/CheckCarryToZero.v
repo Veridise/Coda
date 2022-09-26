@@ -19,10 +19,10 @@ Require Import Ring.
 
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
-From Circom Require Import Repr ReprZ.
+From Circom Require Import Repr ReprZ Signed.
 From Circom.CircomLib Require Import Bitify Comparators Gates.
 From Circom.BigInt.Definition Require Import CheckCarryToZero.
-(* Circuit:
+(* Circuit:Z
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
 *)
 
@@ -31,9 +31,8 @@ Module CheckCarryToZero.
 Module B := Bitify.
 Module D := DSL.
 Module Cmp := Comparators.
-Module RZU := ReprZUnsigned.
-Module RZ := RZU.RZ.
-Module R := Repr.
+Module RZS := ReprZSigned.
+Module RZ := RZS.RZ.
 
 Import B.
 
@@ -59,15 +58,13 @@ Definition cons (_in: F^k) :=
   let EPSILON := 1%nat in
   exists
   (carry: F^k)
-  (carryRangeChecks: (@Num2Bits.t (m - n)) ^ k),
-  (* (carryRangeChecks: (@Num2Bits.t (m + EPSILON - n)) ^ k), *)
+  (carryRangeChecks: (@Num2Bits.t (m + EPSILON - n)) ^ k),
     D.iter (fun (i: nat) _cons => _cons /\
       (if (dec (i=0))%nat then
         _in[i] = carry[i] * 2^n
       else
         _in[i] + carry[i-1] = carry[i] * 2^n) /\
-      (* carryRangeChecks[i].(Num2Bits._in) = carry[i] + 2^(m+EPSILON-n-1) *)
-      carryRangeChecks[i].(Num2Bits._in) = carry[i]
+      carryRangeChecks[i].(Num2Bits._in) = carry[i] + 2^(m+EPSILON-n-1)
       )
       (k-1) True /\
     _in[k-1] + carry[k-2] = 0.
@@ -115,35 +112,79 @@ Proof.
   lia.
 Qed.
 
+Notation "| x |" := (Z.abs x) (at level 60).
+
 Theorem soundness: forall (c: t), 
   1 <= n <= m ->
   2 <= k ->
-  m < r ->
+  m <= C.k-1 ->
   'c.(_in) |: (m) ->
-  'c.(_in) |: (n) ->
+  (* 'c.(_in) |: (n) -> *)
   [| 'c.(_in) |] = 0%Z.
 Proof.
   unwrap_C.
-  pose proof r_k as r_k.
-  intros c H_n H_k H_m H_xm H_xn. destruct c as [x _cons]. destruct _cons as [carry [check [iter last] ] ]. simpl.
+  intros c H_n H_k H_m H_xm.
+  destruct c as [x _cons]. destruct _cons as [carry [check [iter last] ] ].
   simpl in *.
   rem_iter.
   pose_lengths.
+  replace (m + 1 - n - 1)%N with (m-n)%N in * by lia.
   
   assert (Hnm: 0 <= 2^n <= 2^m). split. nia. apply Zpow_facts.Zpower_le_monotone; lia.
-  assert (Hmr: 0 <= 2*2^m <= 2^r). split. nia. rewrite pow_S. apply Zpow_facts.Zpower_le_monotone; lia.
-  assert (Hrk: 0 <= 2^r <= 2^C.k). split. nia. apply Zpow_facts.Zpower_le_monotone; lia.
+  assert (Hmr: 0 <= 2*2^m <= 2^C.k). split. nia. rewrite pow_S. apply Zpow_facts.Zpower_le_monotone; lia.
+  (* assert (Hrk: 0 <= 2^r <= 2^C.k). split. nia. apply Zpow_facts.Zpower_le_monotone; lia. *)
+
+  pose (Inv_carry_range := fun (i: nat) _cons => _cons ->
+    forall (j: nat), j < i ->
+      |$'carry!j| <= 2^(m-1)%nat).
+  assert (Hinv_carry_range: Inv_carry_range (k-1)%nat (D.iter f (k-1)%nat (True))). {
+    apply D.iter_inv; unfold Inv_carry_range.
+    - lia.
+    - intros i _cons IH Hi Hstep j Hj. subst f.
+      lift_to_list.
+      assert (N2B_range: Num2Bits._in (' check ! i) | ((m + 1- n)%nat)). {
+        apply (@Num2Bits.range_check _ (' check ! i)). lia.
+      }
+      lift_to_list.
+      intuit.
+      rewrite H8 in N2B_range.
+      destruct (dec (j<i)). auto.
+      assert (j=i) by lia. subst j.
+      
+
+      
+  }
+  
   
 
   pose (Inv := fun (i: nat) _cons => _cons -> 
     forall (j: nat), j < i ->
-    (2^(n*(j+1)) * |^'carry ! j|)%Z = [| ' x [:j+1] |] /\
-    |^'carry!j| <= 2^(m-n)-1).
+    (j = 0%nat -> 'carry!0 * 2^n = 'x!0) /\
+    (j > 0%nat -> 'carry!j * 2^n = 'x!j + 'carry!(j-1))).
   assert (Hinv: Inv (k-1)%nat (D.iter f (k-1)%nat (True))).
   {
     apply D.iter_inv; unfold Inv.
     - lia.
     - intros i _cons IH Hi Hstep j Hj. subst f.
+      split; intros Hj'.
+      + subst j.
+        split_dec.
+        subst i.
+        intuit. lift_to_list.
+        fqsatz.
+        intuit. specialize (H6 0%nat). apply H6; lia.
+      + intuit.
+        destruct (dec (j=i)). 2: {
+          apply H6; lia.
+        }
+        split_dec. lia.
+        subst j. lift_to_list.
+        fqsatz.
+  }
+  admit.
+        Admitted.
+(*
+
       destruct Hstep as [Hcons [Pcarry Pcheck]].
       destruct (dec (j = i)%nat). subst j.
       (* interesting case: j = i *)
@@ -152,11 +193,11 @@ Proof.
           pose proof (Num2Bits.range_check ('check!i)) as Hcheck.
           rewrite Pcheck in *.
           assert ((m - n)%nat <= C.k). lia. apply Hcheck in H. 
-          assert (|^'carry!i| <= 2^(m-n)-1)%Z by (rewrite <- Nat2Z.inj_sub; lia).
+          assert (^'carry!i <= 2^(m-n)-1)%Z by (rewrite <- Nat2Z.inj_sub; lia).
           auto.
         }
-        assert (Hcheck': 0 <= (2^n * |^'carry!i|)%Z <= 2^m). {
-          assert (0 <= |^ ' carry ! i | ). apply F.to_Z_range; lia.
+        assert (Hcheck': 0 <= (2^n * ^'carry!i)%Z <= 2^m). {
+          assert (0 <= ^ ' carry ! i  ). apply F.to_Z_range; lia.
           split. nia.
           apply Z.mul_le_mono_nonneg_l with (p:=(2^n)%Z) in Hcheck''; try lia.
           rewrite Z.mul_sub_distr_l in Hcheck''.
@@ -188,15 +229,15 @@ Proof.
           default_apply ltac:(rewrite firstn_nth).
           rewrite <- Hcons.
           (* range proof *)
-          assert (2^n*|^'carry!i| = |^'carry!(i-1)|+|^'x!i|)%Z. {
+          assert (2^n*^'carry!i = ^'carry!(i-1)+^'x!i)%Z. {
             apply f_equal with (f:=F.to_Z) in Pcarry.
             autorewrite with F_to_Z in Pcarry; try lia;
             repeat (autorewrite with F_to_Z; simpl; try lia).
             simpl in Pcarry. nia.
-            assert (0 <= |^ ' carry ! (i-1) | ). apply F.to_Z_range; lia.
-            assert (0 <= |^ ' x!i | ). apply F.to_Z_range; lia.
-            assert (|^'x!i | <= 2^m-1)%Z. unfold_default. apply Forall_nth; auto. lia.
-            assert (|^ ' carry ! (i - 1) | <= 2^m-1). {
+            assert (0 <= ^ ' carry ! (i-1)  ). apply F.to_Z_range; lia.
+            assert (0 <= ^ ' x!i  ). apply F.to_Z_range; lia.
+            assert (^'x!i  <= 2^m-1)%Z. unfold_default. apply Forall_nth; auto. lia.
+            assert (^ ' carry ! (i - 1)  <= 2^m-1). {
               etransitivity. apply Hcarry_prev.
               assert (2^(m-n)<=2^m)%Z.
               eapply Zmult_le_reg_r with (p:=(2^n)%Z). nia.
@@ -215,7 +256,7 @@ Proof.
   specialize (Hinv iter (k-2)%nat). clear Inv iter.
   destruct Hinv as [Hinv Hcheck]; try lia.
 
-  assert (H: (2^(n * (k-1)) * |^'carry!(k - 2)|)%Z = [|' x [:k - 2 + 1]|]). {
+  assert (H: (2^(n * (k-1)) * ^'carry!(k - 2))%Z = [|' x [:k - 2 + 1]|]). {
     replace (n * (k - 1))%Z with (n * ((k - 2)%nat + 1))%Z by nia.
     apply Hinv.
   }
@@ -225,14 +266,14 @@ Proof.
   rewrite <- H.
 
   lift_to_list.
-  assert (|^'x!(k - 1)| + |^'carry!(k - 2)| = 0)%Z. {
+  assert (^'x!(k - 1) + ^'carry!(k - 2) = 0)%Z. {
     apply f_equal with (f:=F.to_Z) in last.
     autorewrite with F_to_Z in last; try lia;
     repeat autorewrite with F_to_Z; try lia.
-    assert (0 <= |^ ' x ! (k - 1) |). apply F.to_Z_range. lia.
-    assert (0 <= |^ ' carry ! (k - 2) |). apply F.to_Z_range. lia.
-    assert (|^ ' x ! (k - 1) | <= 2^m-1)%Z. unfold_default. apply Forall_nth. auto. lia.
-    assert (|^ ' carry ! (k - 2) |<= 2^m-1). {
+    assert (0 <= ^ ' x ! (k - 1) ). apply F.to_Z_range. lia.
+    assert (0 <= ^ ' carry ! (k - 2) ). apply F.to_Z_range. lia.
+    assert (^ ' x ! (k - 1)  <= 2^m-1)%Z. unfold_default. apply Forall_nth. auto. lia.
+    assert (^ ' carry ! (k - 2) <= 2^m-1). {
       etransitivity. apply Hcheck.
       assert (2^(m-n)<=2^m)%Z.
       eapply Zmult_le_reg_r with (p:=(2^n)%Z). nia.
@@ -244,8 +285,9 @@ Proof.
   }
   lia.
 
-Unshelve. exact F.zero.
+Unshelve. exact F.zero. 
 Qed.
+*)
 
 End _CheckCarryToZero.
 End CheckCarryToZero.

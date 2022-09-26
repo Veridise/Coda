@@ -18,28 +18,18 @@ Require Import Circom.BabyJubjub.
 
 Module Type CIRCOM.
   Parameter q: positive.
-  Parameter r: Z.
   Parameter k: Z.
   Axiom prime_q: prime q.
   Axiom two_lt_q: 2 < q.
-  Axiom r_k: r = k - 1.
-  Axiom k_positive: 1 < k.
+  Axiom k_lb: 2 <= k.
   Axiom q_lb: 2^k < q.
   Axiom q_gtb_1: (1 <? q)%positive = true.
-  Axiom pow_nonzero: forall (a: N), a <= k -> @F.pow q (F.add F.one F.one) a <> F.zero.
-  Axiom to_Z_2pow: forall (a: N), a <= k -> F.to_Z (@F.pow q (F.add F.one F.one) a) = 2^a.
 End CIRCOM.
 
 
 Module C : CIRCOM.
 Definition q := BabyJubjub.p.
 Definition k := 253.
-Definition r := 252.
-Definition half := q / 2.
-
-
-Fact r_k: r = k - 1.
-Proof. unfold r, k. lia. Qed.
 
 Fact prime_q: prime q.
 Proof. exact BabyJubjub.is_prime. Qed.
@@ -47,7 +37,7 @@ Proof. exact BabyJubjub.is_prime. Qed.
 Fact two_lt_q: 2 < q.
 Proof. unfold q, BabyJubjub.p. lia. Qed.
 
-Fact k_positive: 1 < k.
+Fact k_lb: 2 <= k.
 Proof. unfold k. lia. Qed.
 
 Fact q_lb: 2^k < q.
@@ -58,16 +48,6 @@ Proof.
   pose proof two_lt_q.
   apply Pos.ltb_lt. lia.
 Qed.
-
-Lemma pow_nonzero: forall (a: N), 
-  a <= k -> 
-  @F.pow q (F.add F.one F.one) a <> F.zero.
-Admitted.
-
-Lemma to_Z_2pow: forall (a: N), 
-  a <= k -> 
-  F.to_Z (@F.pow q (F.add F.one F.one) a) = 2^a.
-Admitted.
 
 End C.
 
@@ -80,10 +60,8 @@ Global Ltac fqsatz := fsatz_safe; autorewrite with circom; auto.
 Global Ltac unwrap_C :=
   pose proof prime_q as prime_q;
   pose proof two_lt_q as two_lt_q;
-  pose proof k_positive as k_positive;
-  pose proof q_lb as q_lb;
-  pose proof pow_nonzero as pow_nonzero;
-  pose proof to_Z_2pow as to_Z_2pow.
+  pose proof k_lb as k_lb;
+  pose proof q_lb as q_lb.
 
 Declare Scope circom_scope.
 Delimit Scope circom_scope with circom.
@@ -104,8 +82,6 @@ Global Notation "2" := (F.add F.one F.one : F) : circom_scope.
 
 Definition binary (x: F) := x = F.zero \/ x = F.one.
 
-Definition half := q / 2.
-
 Global Notation "P '?'" :=
   (match (@dec P _) with
     | left _ => true
@@ -115,10 +91,74 @@ Global Notation "P '?'" :=
 
 Local Coercion Z.of_nat : nat >-> Z.
 Local Coercion N.of_nat : nat >-> N.
+
 Local Open Scope circom_scope.
 
 Global Notation "x | ( n )" := (x <=z (2^n-1)%Z) (at level 40) : circom_scope.
 Global Notation "xs |: ( n )" := (List.Forall (fun x => x | (n)) xs) (at level 40) : circom_scope.
-Global Notation "|^ x |" := (@F.to_Z q x) : circom_scope.
+Global Notation "^ x" := (@F.to_Z q x) (at level 30): circom_scope.
+
+
+(* Facts about q/2 *)
+Definition half := q / 2.
+Notation "q//2" := half.
+
+Lemma prime_odd: forall p,
+  prime p ->
+  p > 2 ->
+  p mod 2 = 1.
+Proof.
+  intros.
+  assert (rel_prime p 2). apply rel_prime_sym, H. lia.
+  apply Zrel_prime_neq_mod_0 in H1; try lia.
+  assert (0 <= p mod 2 < 2). apply Z_mod_lt. lia.
+  lia.
+Qed.
+
+Lemma half_spec:
+  q//2 + q//2 < q /\
+  q <= q//2 + q//2 + 1.
+Proof.
+  unwrap_C.
+  unfold half.
+  replace (q / 2 + q / 2) with (q / 2 * 2) by lia.
+  rewrite Modulo.Z.mul_div_eq' by lia.
+  assert (0 <= q mod 2 < 2). apply Z_mod_lt. lia.
+  rewrite prime_odd; auto; lia.
+Qed.
+
+Lemma half_lt_q: q//2 + q//2 < q.
+Proof. pose proof half_spec. easy. Qed.
+
+Lemma half_gt_q: q <= q//2 + q//2 + 1.
+Proof. pose proof half_spec. easy. Qed.
+
+Lemma half_geq_2: 2 <= q//2.
+Proof.
+  unwrap_C.
+  assert (2*2 <= 2* q//2). {
+    unfold half.
+    replace (2*(q/2)) with ((q / 2) * 2) by nia.
+    rewrite Modulo.Z.mul_div_eq' by lia.
+    assert (0 <= q mod 2 < 2). apply Z_mod_lt. lia.
+    rewrite prime_odd; auto; try lia.
+    assert (2^2 <= q - 1).
+    transitivity (2^k).
+    apply Zpow_facts.Zpower_le_monotone; try lia.
+    lia.
+    lia.
+  }
+  lia.
+Qed.
+
+
+Lemma pow_nonzero: forall (a: N),
+  a <= k -> 
+  @F.pow q (F.add F.one F.one) a <> F.zero.
+Admitted.
+
+Lemma to_Z_2pow: forall (a: N), a <= k -> 
+  ^(@F.pow q (F.add F.one F.one) a) = 2^a.
+Admitted.
 
 Local Close Scope circom_scope.

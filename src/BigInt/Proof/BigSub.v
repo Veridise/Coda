@@ -41,7 +41,7 @@ Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
 
-Lemma F_to_Z_nonneg: forall (x: F), (0 <= |^x|).
+Lemma F_to_Z_nonneg: forall (x: F), (0 <= ^x).
 Proof. intros. apply F.to_Z_range. lia. Qed.
 
 Ltac solve_to_Z := repeat (autorewrite with F_to_Z; simplify; try (simpl; lia)).
@@ -135,7 +135,7 @@ Proof.
   destruct (LessThan.soundness lt) as [H_lt_b H_lt]; try lia.
   symmetry in H_borrow.
   rewrite H_in0, H_in1, H_out, H_borrow in *. clear H_in0 H_in1 H_out H_borrow.
-  assert (0 <= |^ b | + |^ c | <= 2^n). { 
+  assert (0 <= ^ b  + ^ c  <= 2^n). { 
     pose proof (F_to_Z_nonneg b). pose proof (F_to_Z_nonneg c). lia.
   }
   repeat split; intros; auto; destruct H_lt_b; subst borrow; split_dec; try fqsatz; try lia;
@@ -271,7 +271,7 @@ Ltac solve_0_1 := (exfalso; solve [
       (apply F1_neq_0; auto)]).
 
 Lemma F_neq_to_Z_iff: forall x y,
-  x <> y <-> |^x| <> |^y|.
+  x <> y <-> ^x <> ^y.
 Proof.
   split; intros; intro H'; apply F.eq_to_Z_iff in H'; auto.
 Qed.
@@ -286,7 +286,7 @@ Theorem soundness: forall (w: t),
   'w.(a) |: (n) ->
   'w.(b) |: (n) ->
   (* post-condition *)
-  ([|' w.(out) |] = [|' w.(a) |] - [|' w.(b) |] + |^ w.(underflow) | * 2^(n*k))%Z /\
+  ([|' w.(out) |] = [|' w.(a) |] - [|' w.(b) |] + ^ w.(underflow)  * 2^(n*k))%Z /\
   'w.(out) |: (n) /\
   binary w.(underflow) /\
   (w.(underflow) = 1 ?=? ([|' w.(a) |] < [|' w.(b) |])).
@@ -318,7 +318,7 @@ Proof.
     'out [:i] |: (n) /\
     (* sub is ok for prefix *)
     [| 'out [:i] |] 
-      = ([| 'a [:i] |] + 2^(n*i)%nat * (if dec (i = 0)%nat then 0 else |^('unit ! (i-1)).(M.borrow)|) -  [| 'b [:i] |])%Z).
+      = ([| 'a [:i] |] + 2^(n*i)%nat * (if dec (i = 0)%nat then 0 else ^('unit ! (i-1)).(M.borrow)) -  [| 'b [:i] |])%Z).
   assert (HInv: Inv k (D.iter f k True)).
   apply D.iter_inv; unfold Inv; clear Inv.
   - intuit; try lia.
@@ -340,8 +340,8 @@ Proof.
     destruct (dec (i=0%nat)); auto.
     destruct (dec (S i = 0%nat)). discriminate.
     split_as_le ('out) i. split_as_le ('a) i. split_as_le ('b) i.
-    assert (0 <= |^'a!i| <= 2^n-1)%Z. split. apply F_to_Z_nonneg. unfold_default. apply Forall_nth. auto. lia.
-    assert (0 <= |^'b!i| <= 2^n-1)%Z. split. apply F_to_Z_nonneg. unfold_default. apply Forall_nth. auto. lia.
+    assert (0 <= ^'a!i <= 2^n-1)%Z. split. apply F_to_Z_nonneg. unfold_default. apply Forall_nth. auto. lia.
+    assert (0 <= ^'b!i <= 2^n-1)%Z. split. apply F_to_Z_nonneg. unfold_default. apply Forall_nth. auto. lia.
     repeat split_and.
     + (* borrow *)
       intros.
@@ -406,7 +406,7 @@ Proof.
         repeat erewrite firstn_1; try lia.
         repeat (fold_default; rewrite nth_0).
         (* range proof *)
-        assert (|^'out!0| = (2^n * |^ M.borrow ('unit!0) | + |^'a!0|) - |^'b!0|)%Z. {
+        assert (^'out!0 = (2^n * ^ M.borrow ('unit!0)  + ^'a!0) - ^'b!0)%Z. {
           apply f_equal with (f:=F.to_Z) in M_eq;
           destruct M_bin as [M_bin|M_bin]; rewrite M_bin in *; clear M_bin;
           simplify' M_eq; simplify;
@@ -425,8 +425,8 @@ Proof.
         remember (M.borrow ('unit!i)) as ci.
         remember (M.borrow ('unit!(i-1))) as ci'.
         (* range proof *)
-        assert (|^'out!i| = |^'a!i| + 2^n * |^ ci| - |^'b!i| - |^ ci'|)%Z. {
-          assert (ci'_bin': 0 <= |^ci'| <= 1). {
+        assert (^'out!i = ^'a!i + 2^n * ^ ci - ^'b!i - ^ ci')%Z. {
+          assert (ci'_bin': 0 <= ^ci' <= 1). {
             assert (ci'_bin: binary ci'). subst. apply IH_bin. lia.
             destruct ci'_bin as [H'|H']; rewrite H'; solve_to_Z.
           }
@@ -481,7 +481,7 @@ Lemma soundness_ite: forall (w: t),
     ([|' w.(out) |] = [|' w.(a) |] - [|' w.(b) |])%Z
   else
     w.(underflow) = 1 /\
-    ([|' w.(out) |] = 2^(n*k) * |^w.(underflow) | + [|' w.(a) |] - [|' w.(b) |])%Z
+    ([|' w.(out) |] = 2^(n*k) * ^w.(underflow)  + [|' w.(a) |] - [|' w.(b) |])%Z
   .
 Proof.
   intros.

@@ -11,12 +11,10 @@ Require Import Crypto.Algebra.Hierarchy Crypto.Algebra.Field.
 Require Import Crypto.Spec.ModularArithmetic.
 Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.PrimeFieldTheorems.
 
-Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
-Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
-Require Import Ring.
+Require Import Crypto.Util.Decidable.
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
-From Circom Require Import Repr ReprZ.
+From Circom Require Import ReprZ.
 From Circom.CircomLib Require Import Bitify Comparators.
 
 (* Circuit:
@@ -38,7 +36,6 @@ Local Open Scope F_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
 
-Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
 
@@ -114,10 +111,6 @@ Context {n k: nat}.
     }
     out[k] <== unit[k - 2].carry;
 } *)
-
-(* interpret a tuple of weights as representing a little-endian base-2^n number *)
-Local Notation "[| xs |]" := (RZ.as_le n xs).
-Local Notation "[|| xs ||]" := (RZ.as_le n ('xs)).
 
 Definition cons (a b: tuple F k) (out: tuple F (S k)) :=
   exists (unit: tuple (@M.t n) k),

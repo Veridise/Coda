@@ -21,7 +21,7 @@ Local Open Scope circom_scope.
 
 
 (* Base 2^n representations *)
-Lemma to_Z_2: |^2| = 2%Z.
+Lemma to_Z_2: ^2 = 2%Z.
 Proof. unwrap_C. simpl. repeat rewrite Z.mod_small; lia. Qed.
 
 Lemma to_Z_sub: forall x y, (F.to_Z y < q)%Z ->

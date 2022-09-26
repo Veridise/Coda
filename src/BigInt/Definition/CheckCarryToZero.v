@@ -31,9 +31,8 @@ Module CheckCarryToZero.
 Module B := Bitify.
 Module D := DSL.
 Module Cmp := Comparators.
-Module RZU := ReprZUnsigned.
-Module RZ := RZU.RZ.
-Module R := Repr.
+Module RZS := ReprZSigned.
+Module RZ := RZS.RZ.
 
 Import B.
 

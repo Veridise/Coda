@@ -17,8 +17,7 @@ Require Import BabyJubjub.
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 Require Import Ring.
 
-Require Import Circom.Circom.
-Require Import Circom.DSL.
+From Circom.Spec Import Circom DSL Repr ReprZ.
 Require Import Circom.CircomLib.Bitify.
 
 

@@ -18,8 +18,8 @@ Require Import Ring.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Logic.PropExtensionality.
 
-From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
-From Circom Require Import Repr ReprZ.
+From Circom.Spec Import Circom DSL Repr ReprZ.
+From Circom Require Import Default Util Tuple ListUtil LibTactics Simplify.
 From Circom.CircomLib Require Import Bitify Comparators Gates.
 From Circom.BigInt.Definition Require Import BigIsZero.
 (* Circuit:

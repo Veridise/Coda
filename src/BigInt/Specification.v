@@ -217,7 +217,7 @@ Proof.
 Qed.
 
 (* CheckCarryToZero *)
-Theorem CheckCarryToZero_Soundness {n m k: nat}: forall (c: @CheckCarryToZero.t n m k), 
+(* Theorem CheckCarryToZero_Soundness {n m k: nat}: forall (c: @CheckCarryToZero.t n m k), 
   1 <= n <= m ->
   2 <= k ->
   m < r ->
@@ -226,7 +226,7 @@ Theorem CheckCarryToZero_Soundness {n m k: nat}: forall (c: @CheckCarryToZero.t 
   [| 'c.(CheckCarryToZero._in) |] _ n = 0%Z.
 Proof.
   exact CheckCarryToZero.soundness.
-Qed.
+Qed. *)
 
 (* Split *)
 Theorem Split_Soundness {n m: nat}: forall (c: @Split.t n m), 

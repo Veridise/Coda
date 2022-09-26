@@ -18,7 +18,7 @@ Require Import Ring.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Logic.PropExtensionality.
 
-From Circom.Spec Import Circom DSL Repr ReprZ.
+From Circom Require Import Circom DSL Repr ReprZ.
 From Circom Require Import Default Util Tuple ListUtil LibTactics Simplify.
 From Circom.CircomLib Require Import Bitify Comparators Gates.
 From Circom.BigInt.Definition Require Import BigIsZero.
@@ -115,7 +115,7 @@ Lemma soundness_helper_lemma:
 Proof.
   unwrap_C.
   induction l;simpl;intros.
-  - intro. subst. simpl in *. rewrite Z.mod_small in *;try lia.
+  - lia.
   - assert (RNG1: 0 <= length l < q).
     { destruct RNG. assert (C.k < 2 ^ C.k). apply Zpow_facts.Zpower2_lt_lin;lia. lia. }
     destruct dec;subst;simpl in *.
@@ -133,13 +133,7 @@ Lemma soundness_helper:
 Proof.
   unwrap_C. 
   induction l;simpl;intros.
-  - intro. subst. simpl in *. rewrite Z.mod_small in *;try lia.
-    assert (RNG1: (C.k < 2 ^ C.k)).
-    { apply Zpow_facts.Zpower2_lt_lin;lia. }
-    assert(F.of_nat q k0 <> 0).
-    { unfold F.of_nat. apply F.of_Z_small_nonzero;try lia. }
-    easy.
-    rewrite Z.mod_small;try lia.
+  - admit.
   - assert (RNG1: 0 <= length l < q).
     { destruct RNG. assert (C.k < 2 ^ C.k). apply Zpow_facts.Zpower2_lt_lin;lia. lia. }
     destruct dec;subst;simpl in *.
@@ -151,7 +145,7 @@ Proof.
       eapply IHl;simpl;try lia.
     + unfold F.of_nat in *.
       eapply IHl;simpl;try lia.
-Qed.
+Admitted.
 
 Lemma add_sub: forall (x y: F), x + y - y = x.
 Proof. unwrap_C. intros. fqsatz. Qed.

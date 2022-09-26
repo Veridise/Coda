@@ -150,8 +150,7 @@ Proof.
       rewrite H8 in N2B_range.
       destruct (dec (j<i)). auto.
       assert (j=i) by lia. subst j.
-      
-
+      admit.
       
   }
   

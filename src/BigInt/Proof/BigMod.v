@@ -22,7 +22,7 @@ From Circom.CircomLib Require Import Bitify.
 From Circom.BigInt.Definition Require Import BigAdd BigMult BigLessThan.
 From Circom.BigInt.Proof Require Import BigAdd BigMult BigLessThan.
 From Circom.BigInt.Definition Require Import BigMod.
-From Circom.BigInt.Theory Require Import Signed.
+From Circom Require Import Signed.
 (* Circuit:
 * https://github.com/yi-sun/circom-pairing/blob/master/circuits/bigint.circom
 *)

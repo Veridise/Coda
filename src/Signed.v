@@ -188,6 +188,45 @@ Qed.
 
 Local Open Scope circom_scope.
 
+
+Lemma le_sub_l_pow: forall x a b c,
+  0 < x ->
+  0 <= a ->
+  0 <= b ->
+  0 <= a-b ->
+  a-b <= c ->
+  x^a <= x^b * x^c.
+Proof.
+  intros.
+  rewrite <- Zpower_exp; try lia.
+  apply Zpow_facts.Zpower_le_monotone; lia.
+Qed.
+
+Lemma le_sub1_l_pow: forall x a b,
+  0 < x ->
+  1 <= a ->
+  0 <= b ->
+  a - 1 <= b  ->
+  x^a <= x * x^b.
+Proof.
+  intros.
+  replace (x * x^b) with (x^1 * x^b) by lia.
+  apply le_sub_l_pow; try lia.
+Qed.
+
+
+Lemma le_sub_r_pow: forall x a b c,
+  0 < x ->
+  0 <= a ->
+  0 <= b ->
+  a <= c-b ->
+  x^b * x^a <= x^c.
+Proof.
+  intros.
+  rewrite <- Zpower_exp; try lia.
+  apply Zpow_facts.Zpower_le_monotone; lia.
+Qed.
+
 Lemma le_sub1_r_pow: forall x a b,
   0 < x ->
   0 <= a ->
@@ -195,24 +234,8 @@ Lemma le_sub1_r_pow: forall x a b,
   x * x^a <= x^b.
 Proof.
   intros.
-  assert (a + 1 <= b) by lia.
-  replace (x*x^a) with (x^(1+a)). apply Zpow_facts.Zpower_le_monotone. lia.
-  lia.
-  rewrite Zpower_exp; try lia.
-Qed.
-
-Lemma le_sub1_l_pow: forall x a b,
-  0 < x ->
-  0 <= a ->
-  0 <= b ->
-  a - 1 <= b  ->
-  x^a <= x * x^b.
-Proof.
-  intros.
-  assert (a <= b+1) by lia.
-  replace (x*x^b) with (x^(1+b)). apply Zpow_facts.Zpower_le_monotone. lia.
-  lia.
-  rewrite Zpower_exp; try lia.
+  replace (x*x^a) with (x^1*x^a) by lia.
+  apply le_sub_r_pow; try lia.
 Qed.
 
 Lemma pow_sub_l_le: forall x a b c,
@@ -227,6 +250,19 @@ Proof.
   nia.
 Qed.
 
+Lemma pow_sub_l_lt: forall x a b c,
+  0 < x ->
+  0 <= b <= a ->
+  x^(a-b) < c <->
+  x^a < x^b * c.
+Proof.
+  intros. assert (0 <= x ^ b) by lia.
+  replace (x^a) with (x^(b + (a-b))) by (f_equal; lia).
+  rewrite Zpower_exp in * by lia.
+  nia.
+Qed.
+
+
 Lemma pow_sub_r_le: forall x a b c,
   0 < x ->
   0 <= b <= a ->
@@ -238,6 +274,16 @@ Proof.
   rewrite Zpower_exp in * by lia.
   nia.
 Qed.
+
+Lemma quotient_then_mul_is_floor: forall (x: Z),
+  x / 2 * 2 <= x.
+Proof.
+  intros.
+  rewrite Modulo.Z.mul_div_eq' by lia.
+  assert (0 <= x mod 2 < 2). apply Z_mod_lt. lia.
+  lia.
+Qed.
+
 
 Lemma half_lb: 2^(k-1) <= q//2.
 Proof.
@@ -330,6 +376,75 @@ Proof.
   pose proof half_geq_2. lia.
 Qed.
 
+Lemma abs_nonneg: forall x,
+  0 <= x -> |x| = x.
+Admitted.
+
+Lemma abs_neg: forall x,
+  x <= 0 -> |x| = -x.
+Admitted.
+
+Lemma mod1: forall x y,
+  y <= x < y+y ->
+  x mod y = x - y.
+Admitted.
+
+
+Ltac solve_to_Z := repeat (autorewrite with F_to_Z; try (lia || simpl; lia)).
+Ltac solve_to_Z' H := autorewrite with F_to_Z in H; try (lia || simpl; lia).
+
+Local Coercion Z.of_nat: nat >-> Z.
+Local Coercion N.of_nat: nat >-> N.
+
+Lemma range_check x (l:N)
+  (Hl: l <= C.k - 2)
+  (Hx: |$x| <= 2^(C.k - 1)):
+  ^(x+2^l) <= 2^(l+1) ->
+  |$x| <= 2^l.
+Proof.
+  unwrap_C. intros.
+  pose proof Hl as Hl'.
+  eapply le_sub_r_pow with (x:=2%Z) in Hl; try lia.
+  (* eapply pow_sub_r_le in Hx; try lia. *)
+  unfold to_Z in *.
+
+  assert (Hx_to_Z: 0 <= ^x < q). apply F.to_Z_range; lia.
+  split_dec.
+  (* ^x <= q//2 *)
+  rewrite abs_nonneg by lia.
+  rewrite Zpower_exp in H by lia.
+  assert (^(x + (1 + 1) ^ l) = ^x + 2^l).
+  solve_to_Z. split. lia.
+  simpl.
+  assert (2^l <= q//2). {
+    transitivity (2^(k-1)).
+    apply Zpow_facts.Zpower_le_monotone; try lia.
+    apply half_lb.
+  }
+  destruct half_spec. lia.
+  rewrite H0 in H.
+  lia.
+
+  (* ^x > q//2 *)
+  rewrite abs_neg by lia.
+  assert (0 <= ^(x+2^l)). apply F.to_Z_range. lia.
+  rewrite F.to_Z_add, mod1 in H0.
+  solve_to_Z' H0; solve_to_Z.
+  simpl in H0. lia.
+  
+  solve_to_Z; simpl.
+  assert (~(^x + 2^l < q)). {
+    intro Hfalse. 
+    solve_to_Z' H; solve_to_Z. simpl in H.
+    assert (^ x + 2 ^ l <= q//2).
+    pose proof half_lb.
+    transitivity (2^(l+1)). lia.
+    transitivity (2^(k-1)); try lia.
+    apply Zpow_facts.Zpower_le_monotone; try lia.
+    lia.
+  }
+  lia.
+Qed.
 
 
 End Signed.

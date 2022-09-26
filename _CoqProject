@@ -13,6 +13,7 @@ src/ListUtil.v
 src/LibTactics.v
 src/PigeonHole.v
 src/Simplify.v
+src/Signed.v
 src/CircomLib/Comparators.v
 src/CircomLib/Bitify.v
 src/CircomLib/Gates.v
@@ -40,7 +41,6 @@ src/BigInt/Proof/BigSubModP.v
 src/BigInt/Proof/CheckCarryToZero.v
 src/BigInt/Proof/Split.v
 src/BigInt/Theory/Polynom.v
-src/BigInt/Theory/Signed.v
 src/BigInt/Theory/Polynom_test.v
 src/BigInt/Proof/BigMult.v
 src/BigInt/Proof/BigMod.v

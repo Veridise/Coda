@@ -136,7 +136,7 @@ Proof.
 
   pose (Inv_carry_range := fun (i: nat) _cons => _cons ->
     forall (j: nat), j < i ->
-      |$'carry!j| <= 2^(m-1)%nat).
+      |$'carry!j| <= 2^(m-n)).
   assert (Hinv_carry_range: Inv_carry_range (k-1)%nat (D.iter f (k-1)%nat (True))). {
     apply D.iter_inv; unfold Inv_carry_range.
     - lia.
@@ -150,9 +150,25 @@ Proof.
       rewrite H8 in N2B_range.
       destruct (dec (j<i)). auto.
       assert (j=i) by lia. subst j.
-      admit.
-      
-  }
+      replace (Z.sub (Z.of_nat m) (Z.of_nat n)) with (Z.of_N (N.sub (N.of_nat m) (N.of_nat n))) by lia.
+      apply Signed.range_check; try lia.
+      transitivity (2^(m+1-n)%nat-1)%Z. auto.
+      match goal with 
+      | [ |- 2^?a - 1 <= 2^?b]  => assert (Hpow: a = b) by lia; rewrite Hpow
+      end. lia.
+  pose (Inv_sum := fun (i: nat) _cons => _cons ->
+    forall (j: nat) , j<i ->
+      (2^(n*j) * $'carry!j = [| 'x |])%Z).
+  assert (Hinv_sum: Inv_sum (k-1)%nat (D.iter f (k-1)%nat (True))). {
+    apply D.iter_inv; unfold Inv_sum.
+    - lia.
+    - intros i _cons IH Hi Hstep j Hj. subst f.
+      lift_to_list.
+      split_dec.
+      assert (j = 0)%nat by lia. subst i j.
+      simplify.
+
+
   
   
 

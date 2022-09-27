@@ -284,21 +284,19 @@ Proof.
   rewrite firstn_skipn. auto.
 Qed.
 
-Lemma as_le_split_last : forall i x ws,
-  repr_le x (S i) ws ->
+Lemma as_le_split_last : forall i ws,
+  length ws = S i ->
   [| ws |] = [| ws[:i] |] + 2^(n*i) * ToZ.to_Z (ws ! i).
 Proof.
   unwrap_C.
-  intros. pose proof H as H'.
-  unfold repr_le in H. intuition.
-  subst.
-  assert (exists ws', ws = ws'). exists ws. reflexivity.
-  destruct H1 as [ws' Hws]. pose proof Hws as Hws'.
+  intros.
+  assert (Hws': exists ws', ws = ws'). exists ws. reflexivity.
+  destruct Hws' as [ws' Hws]. pose proof Hws as Hws'.
   erewrite <- firstn_split_last with (l:=ws) (n:=i)(d:=0%F) in Hws; auto.
-  pose proof (as_le_app n (ws[:i]) (ws!i::nil)).
-  rewrite firstn_length_le in H1 by lia.
-  replace ([| ws ! i :: nil |]) with (ToZ.to_Z (ws ! i)) in H1 by (simpl; nia).
-  rewrite <- H1.
+  pose proof (as_le_app n (ws[:i]) (ws!i::nil)) as Happ.
+  rewrite firstn_length_le in Happ by lia.
+  replace ([| ws ! i :: nil |]) with (ToZ.to_Z (ws ! i)) in Happ by (simpl; nia).
+  rewrite <- Happ.
   subst.
   f_equal.
   unfold List_nth_Default. rewrite nth_default_eq. auto.
@@ -307,13 +305,10 @@ Qed.
 
 Lemma as_le_split_last' : forall i ws,
   length ws = S i ->
-  ws |: (n) ->
   [| ws |] = [| ws[:i] |] + 2^(n*i) * ToZ.to_Z (ws ! i).
 Proof.
   intros. eapply as_le_split_last.
-  rewrite <- H.
-  eapply repr_trivial.
-  auto.
+  rewrite <- H. auto.
 Qed.
 
 

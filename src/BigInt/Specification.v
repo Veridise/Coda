@@ -21,7 +21,7 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Logic.PropExtensionality.
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
-From Circom Require Import Repr ReprZ.
+From Circom Require Import Repr ReprZ Signed.
 
 From Circom.BigInt.Definition Require Import 
       BigIsZero BigIsEqual ModProd BigAdd BigSub BigLessThan BigAddModP
@@ -40,6 +40,7 @@ Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
 Local Notation "[| xs |] '_' n" := (ReprZUnsigned.RZ.as_le n xs) (at level 2).
+Local Notation "[| xs |] '_$' n" := (ReprZSigned.RZ.as_le n xs) (at level 2).
 Local Notation "a ?=? b" := ((a?) = (b?)) (at level 70).
 
 (* BigIsZero *)
@@ -217,16 +218,15 @@ Proof.
 Qed.
 
 (* CheckCarryToZero *)
-(* Theorem CheckCarryToZero_Soundness {n m k: nat}: forall (c: @CheckCarryToZero.t n m k), 
+Theorem CheckCarryToZero_Soundness {n m k: nat}: forall (c: @CheckCarryToZero.t n m k), 
   1 <= n <= m ->
   2 <= k ->
-  m < r ->
-  'c.(CheckCarryToZero._in) |: (m) ->
-  'c.(CheckCarryToZero._in) |: (n) ->
-  [| 'c.(CheckCarryToZero._in) |] _ n = 0%Z.
+  m <= C.k-2 ->
+  Forall (fun x => Z.abs ($x) <= 2^(m-1)%Z) ('c.(CheckCarryToZero._in)) ->
+  [| 'c.(CheckCarryToZero._in) |] _$ n = 0%Z.
 Proof.
   exact CheckCarryToZero.soundness.
-Qed. *)
+Qed.
 
 (* Split *)
 Theorem Split_Soundness {n m: nat}: forall (c: @Split.t n m), 

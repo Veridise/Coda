@@ -54,15 +54,13 @@ Definition cons (_in: F^k) :=
   let EPSILON := 1%nat in
   exists
   (carry: F^k)
-  (carryRangeChecks: (@Num2Bits.t (m - n)) ^ k),
-  (* (carryRangeChecks: (@Num2Bits.t (m + EPSILON - n)) ^ k), *)
+  (carryRangeChecks: (@Num2Bits.t (m + EPSILON - n)) ^ k),
     D.iter (fun (i: nat) _cons => _cons /\
       (if (dec (i=0))%nat then
         _in[i] = carry[i] * 2^n
       else
         _in[i] + carry[i-1] = carry[i] * 2^n) /\
-      (* carryRangeChecks[i].(Num2Bits._in) = carry[i] + 2^(m+EPSILON-n-1) *)
-      carryRangeChecks[i].(Num2Bits._in) = carry[i]
+      carryRangeChecks[i].(Num2Bits._in) = carry[i] + 2^(m+EPSILON-n-1)
       )
       (k-1) True /\
     _in[k-1] + carry[k-2] = 0.

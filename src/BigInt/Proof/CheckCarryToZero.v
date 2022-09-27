@@ -167,6 +167,7 @@ Proof.
   assert (Hmr: 0 <= 2*2^m <= 2^C.k). split. nia. rewrite pow_S. apply Zpow_facts.Zpower_le_monotone; lia.
   (* assert (Hrk: 0 <= 2^r <= 2^C.k). split. nia. apply Zpow_facts.Zpower_le_monotone; lia. *)
 
+  (* carry's are bounded by 2^(m-n) *)
   pose (Inv_carry_range := fun (i: nat) _cons => _cons ->
     forall (j: nat), j < i ->
       |$'carry!j| <= 2^(m-n)).
@@ -190,6 +191,8 @@ Proof.
       | [ |- 2^?a - 1 <= 2^?b]  => assert (Hpow: a = b) by lia; rewrite Hpow
       end. lia.
   }
+
+  (* prefix is equal to carry!j * 2^n(j+1) *)
   pose (Inv_sum := fun (i: nat) _cons => _cons ->
     forall (j: nat) , j<i ->
       (2^(n*(j+1)) * $'carry!j = [| 'x[:j+1] |])%Z).
@@ -200,6 +203,7 @@ Proof.
       assert (Hcarry: | $ ' carry ! j | <= 2 ^ (m - n)). apply Hinv_carry_range. auto. lia.
       assert (Hcarry': | $ ' carry ! (j-1)%nat | <= 2 ^ (m - n)). apply Hinv_carry_range. auto. lia.
       assert (Hcarry_2n: ($('carry!j * (1+1)^n) = $'carry!j * 2^n)%Z). {
+        (* range check: distribute sum *)
         rewrite Signed.to_Z_mul, Signed.to_Z_2_pow, Signed.to_Z_2. nia. lia.
         rewrite Signed.to_Z_2_pow, Signed.to_Z_2 by lia.
         rewrite Signed.abs_nonneg with (x:=(Z.pow (Zpos (xO xH)) (Z.of_N (N.of_nat n)))) by lia.
@@ -234,6 +238,8 @@ Proof.
         rewrite Z.mul_add_distr_l, Zpower_exp by lia.
         simplify.
         rewrite firstn_length_le; lia.
+
+        (* range check: distribute sum *)
         eapply Z.le_lt_trans with (2^((m-1)+1))%Z.
         apply le_2pow_add1.
         (* |$'x!i| <= 2^(m-1) *)
@@ -241,29 +247,27 @@ Proof.
         apply le_pow_trans with (m-n)%Z; try lia.
         eapply pow_lt_trans with ((C.k-1)%Z); try lia.
   }
+  (* last carry is in range *)
   assert (Hcarry_k_2_range: | $ ' carry ! (k - 2) | <= 2 ^ (m - n)). apply Hinv_carry_range. auto. lia.
+  (* (k-1)-prefix *)
   assert (Hcarry_k_2: (2 ^ (n * ((k - 2)%nat + 1)) * $ ' carry ! (k - 2))%Z = [|' x [:k - 2 + 1]|]). apply Hinv_sum. auto. lia.
   replace (k - 2 + 1)%nat with (k-1)%nat in Hcarry_k_2 by lia.
   replace ((k - 2)%nat + 1)%Z with (k-1)%Z in Hcarry_k_2 by lia.
   lift_to_list.
+  (* distribute sum *)
   apply f_equal with (f:=Signed.to_Z) in last.
   rewrite Signed.to_Z_add, Signed.to_Z_0 in last.
   rewrite RZ.as_le_split_last' with (i:=(k-1)%nat). unfold RZ.ToZ.to_Z.
   rewrite <- Hcarry_k_2.
   rewrite Nat2Z.inj_sub by lia. simpl. lia.
   lia.
+  (* range check: distribute sum *)
   eapply Z.le_lt_trans with (2^((m-1)+1))%Z.
-        apply le_2pow_add1.
-        (* |$'x!i| <= 2^(m-1) *)
-        unfold_default. apply Forall_nth. auto. lia.
-        apply le_pow_trans with (m-n)%Z; try lia.
-        eapply pow_lt_trans with ((C.k-1)%Z); try lia.
-
-  
-  
-
-  
-
+  apply le_2pow_add1.
+  (* |$'x!i| <= 2^(m-1) *)
+  unfold_default. apply Forall_nth. auto. lia.
+  apply le_pow_trans with (m-n)%Z; try lia.
+  eapply pow_lt_trans with ((C.k-1)%Z); try lia.
 Unshelve. exact F.zero. 
 Qed.
 

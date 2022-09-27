@@ -443,11 +443,6 @@ Proof.
         unfold RZ.ToZ.to_Z. 
         destruct (dec (S i = 0)%nat). discriminate.
         nia.
-    + auto.
-    + auto.
-    + eapply Forall_firstn_and_last; rewrite_length.
-      rewrite firstn_firstn; simplify. auto.
-      rewrite firstn_nth; auto. fold_default.
   - unfold Inv in HInv.
     replace ('a) with ('a[:k]) by (applys_eq firstn_all; f_equal; lia).
     replace ('b) with ('b[:k]) by (applys_eq firstn_all; f_equal; lia).

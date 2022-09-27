@@ -299,11 +299,7 @@ Proof.
     + eapply RZ.repr_le_firstn; eauto. rewrite firstn_length_le; lia.
       eauto using RZ.repr_trivial.
     + unfold RZ.repr_le. intuition. rewrite firstn_length_le; lia.
-      eapply Forall_firstn_S with (d:=0). rewrite firstn_length_le. reflexivity. lia.
-      rewrite firstn_firstn. simplify. auto.
-      rewrite firstn_nth by lia.
-      fold_default.
-      rewrite <- Houti. auto.
+      
   - unfold Inv in HInv.
     replace ('a) with ('a[:k]) by (applys_eq firstn_all; f_equal; lia).
     replace ('b) with ('b[:k]) by (applys_eq firstn_all; f_equal; lia).
@@ -316,8 +312,8 @@ Proof.
     intuition; auto.
     rewrite <- H7. rewrite <- out_k.
     simplify.
-    apply RZ.as_le_split_last with (x:=[|' out|]).
-    applys_eq RZ.repr_trivial; auto.
+    apply RZ.as_le_split_last'.
+    lia.
   Unshelve. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero. 
 Qed.
 

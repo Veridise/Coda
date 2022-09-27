@@ -123,10 +123,8 @@ Lemma as_le_msb_0: forall xs l,
 Proof.
   intros.
   unwrap_C.
-  pose proof (RZ.repr_trivial n xs H0).
-  pose proof (RZ.as_le_split_last n l [|xs|] xs).
-  rewrite H in H2.
-  apply H3 in H2.
+  pose proof (RZ.as_le_split_last' n l xs).
+  specialize (H2 H).
   rewrite H2.
   destruct (dec (xs ! l = 0)).
   rewrite e. simplify.

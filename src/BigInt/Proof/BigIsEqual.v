@@ -168,7 +168,15 @@ Lemma soundness_helper:
 Proof.
   unwrap_C. 
   induction l;simpl;intros.
-  - intro. admit.
+  - intros;destruct k0;try easy;try lia.
+    replace (S k0) with (k0 + 1)%nat by lia.
+    unfold F.of_nat. replace 0%F with (F.of_Z q 0). intro.
+    rewrite <- F.eq_of_Z_iff in H0. 
+    apply Modulo.Z.small_mod_eq in H0;try split;try lia.
+    rewrite Z.mod_small in H0;try lia. 
+    assert (C.k < 2 ^ C.k). apply Zpow_facts.Zpower2_lt_lin;lia. lia.
+    rewrite <- F.inv_0. pose proof F.inv_spec as [? ?]. rewrite H0.
+    auto.
   - assert (RNG1: 0 <= length l < q).
     { destruct RNG. assert (C.k < 2 ^ C.k). apply Zpow_facts.Zpower2_lt_lin;lia. lia. }
     destruct dec;subst;simpl in *.
@@ -180,7 +188,7 @@ Proof.
       eapply IHl;simpl;try lia.
     + unfold F.of_nat in *.
       eapply IHl;simpl;try lia.
-Admitted.
+Qed.
 
 Lemma add_sub: forall (x y: F), x + y - y = x.
 Proof. unwrap_C. intros. fqsatz. Qed.

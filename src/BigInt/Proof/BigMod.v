@@ -32,9 +32,8 @@ Module BigMod.
 Module B := Bitify.
 Module D := DSL.
 Module Cmp := Comparators.
-Module RZU := ReprZUnsigned.
-Module RZ := RZU.RZ.
-Module R := Repr.
+Module RZS := ReprZSigned.
+Module RZ := RZS.RZ.
 Module Add := BigAdd.BigAdd.
 Module Mult := BigMult.BigMult.
 Module LessThan := BigLessThan.BigLessThan.
@@ -160,20 +159,6 @@ Create HintDb DSL discriminated.
 #[local]Hint Extern 10 (_ >= _) => lia : core.
 #[local]Hint Extern 10 (_ = _) => lia : core.
 
-Ltac pose_as_le_nonneg := repeat match goal with
-| [ |- context[RZ.as_le ?n ?xs ] ] =>
-  let t := type of (RZU.as_le_nonneg n xs) in
-  lazymatch goal with
-  (* already posed *)
-  | [ _: t |- _] => fail
-  | _ => 
-    let Hnonneg := fresh "_Hnonneg" in
-    pose proof (RZU.as_le_nonneg n xs) as Hnonneg
-    ;move Hnonneg at top
-  end
-| _ => fail
-end.
-
 Ltac rewrite_length :=
   repeat match goal with
   | [ H: length ?xs = ?l |- context[length ?xs] ] =>
@@ -201,10 +186,13 @@ Ltac split_dec_f :=
   | [ |- context[dec (@eq F ?a ?b)] ] => destruct (dec (a=b))
   end.
 
+(* dec (x <=z q//2) *)
 Lemma all_zero_repr: forall n,
   [|List.repeat 0 n|] = 0%Z.
 Proof.
   induction n0;simpl;auto.
+  rewrite IHn0. 
+  unfold RZ.ToZ.to_Z. rewrite Signed.to_Z_0. auto.
 Qed.
 
 Theorem soundness: forall (c: t),
@@ -374,12 +362,12 @@ Proof.
     rewrite nth_Default_List_tuple;auto. rewrite Padd3. solve_to_Z.
     rewrite _Hlen5. fold_default. rewrite nth_Default_List_tuple;auto.
     replace (k + (k + 0) + 2 - 1)%nat with (k + (k + 0) + 1)%nat by lia. rewrite Padd4. solve_to_Z. }
-  pose proof (Add.soundness add) as add_sound.
+  pose proof (Add.soundnessZ add) as add_sound.
   assert(Pa3: add.(Add.out)[k + (k + 0) + 2] = 0 ).
   { destruct add_sound;auto;try easy. destruct (dec (add.(Add.out)[k + (k + 0) + 2] = 0));try easy.
     assert ([|' Add.out add|] <> ([|' Add.a add|] + [|' Add.b add|])%Z). 
     pose proof (Add.soundness_lemma add) as add_sound_lemma. edestruct add_sound_lemma;try lia;auto.
-    easy. }
+     easy. }
   (* loop 1 *)
   assert(L1: [|' Mult.a mul |] = [|' div |]).
   { intuition. replace (' Mult.a mul) with ((' Mult.a mul [:k]) ++  (' Mult.a mul ! k) :: nil).
@@ -394,7 +382,7 @@ Proof.
     replace (' b) with ((' b [:k])).
     rewrite RZ.as_le_app. rewrite firstn_length.
     rewrite _Hlen8. rewrite H2. rewrite nth_Default_List_tuple. rewrite Pmul2.  
-    solve_to_Z. rewrite <- firstn_all. rewrite _Hlen;auto.
+    solve_to_Z. simpl. unfold RZ.ToZ.to_Z. rewrite Signed.to_Z_0. auto. rewrite <- firstn_all. rewrite _Hlen;auto.
     erewrite <- firstn_split_last. fold_default;auto. all:try lia. }
   (* loop 2 *)
   assert(L3: [|' Add.a add |] = [|' Mult.out mul |]).
@@ -447,7 +435,7 @@ Proof.
     repeat rewrite RZ.as_le_app. repeat rewrite firstn_length.
     rewrite _Hlen4. rewrite HInv3k. repeat rewrite nth_Default_List_tuple. 
     replace (k + k)%nat with (k + (k + 0))%nat by lia.
-    rewrite Pa1, Pa2, Pa3. solve_to_Z.
+    rewrite Pa1, Pa2, Pa3. solve_to_Z.  simpl. unfold RZ.ToZ.to_Z. rewrite Signed.to_Z_0. auto.
     rewrite <- firstn_all. rewrite _Hlen0. replace (k + k)%nat with (k + (k + 0))%nat by lia;auto. 
     erewrite <- firstn_split_last with (n:=(k + k + 2)%nat). fold_default;auto. all:try lia. 
     do 2 rewrite ListUtil.app_cons_app_app. f_equal.
@@ -472,7 +460,6 @@ Proof.
     rewrite <- firstn_all. rewrite _Hlen3;auto. }
   pose proof (LessThan.soundness lt) as lt_sound.
   try rewrite L1, L2, L3, L4, L5, L6, L7 in *.
-  rewrite <- mul_sound in add_sound.
   destruct add_sound;auto;try easy.
   (* range checks *)
 Unshelve. all:exact 0.

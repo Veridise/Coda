@@ -31,6 +31,8 @@ Module Cmp := Comparators.
 Module RZU := ReprZUnsigned.
 Module RZ := RZU.RZ.
 Module R := Repr.
+Module RZS := ReprZSigned.
+Module RZ2 := RZS.RZ.
 
 Local Open Scope list_scope.
 Local Open Scope Z_scope.
@@ -316,6 +318,22 @@ Proof.
     lia.
   Unshelve. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero. 
 Qed.
+
+Local Notation "[| xs |]'" := (RZ2.as_le n xs).
+Local Notation "[|| xs ||]'" := (RZ2.as_le n ('xs)).
+
+Theorem soundnessZ: forall (w: t),
+  (* pre-condition *)
+  n > 0 ->
+  k > 0 ->
+  (n + 1 <= C.k)%Z ->
+  (* a and b are proper big int *)
+  'w.(a) |: (n) ->
+  'w.(b) |: (n) ->
+  (* post-condition *)
+  ([|| w.(out) ||]' = [|| w.(a) ||]' + [|| w.(b) ||]')%Z /\
+  'w.(out) |: (n).
+Admitted.
 
 Theorem soundness_lemma: forall (w: t) i,
   (* pre-condition *)

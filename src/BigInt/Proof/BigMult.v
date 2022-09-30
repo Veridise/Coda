@@ -683,8 +683,8 @@ Module BigMult.
 Module B := Bitify.
 Module D := DSL.
 Module Cmp := Comparators.
-Module RZU := ReprZUnsigned.
-Module RZ := RZU.RZ.
+Module RZS := ReprZSigned.
+Module RZ := RZS.RZ.
 Module R := Repr.
 
 Import B.

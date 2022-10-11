@@ -62,6 +62,18 @@ Fixpoint fmap {A : Type} (f : sig -> A) (ss : sigArray) (l : list A) : Prop :=
   | _, _ => False
   end.
 
+Lemma fmap_sound: forall A (f : sig -> A) ss l, fmap f ss l -> List.map f ss = l.
+Proof.
+  intros A f.
+  induction ss; intros; simpl in H; simpl; destruct l; intuition.
+  - apply IHss in H1. rewrite <- H0, H1. reflexivity.
+Qed.
+
+Lemma fmap_complete: forall A (f : sig -> A) ss, fmap f ss (List.map f ss).
+Proof.
+  intros A f. induction ss; simpl; auto.
+Qed.
+
 Inductive foldl {A : Type} : (A -> sig -> A) -> sigArray -> A -> A -> Prop :=
 | foldl_nil: forall f a, foldl f nil a a
 | foldl_app: forall f ss a a' s, foldl f ss a a' -> foldl f (ss ++ (cons s nil)) a (f a' s).
@@ -73,6 +85,18 @@ Fixpoint ffoldl {A : Type} (f : A -> sig -> A) (ss : sigArray) (acc a : A) : Pro
       let acc' := f acc s' in
       ffoldl f ss' acc' a
   end.
+
+Lemma ffoldl_sound: forall A (f : A -> sig -> A) ss acc a,
+    ffoldl f ss acc a -> List.fold_left f ss acc = a.
+Proof.
+  intros A f. induction ss; intros; simpl in H; simpl; auto.
+Qed.
+
+Lemma ffoldl_complete: forall A (f : A -> sig -> A) ss acc,
+    ffoldl f ss acc (List.fold_left f ss acc).
+Proof.
+  intros A f. induction ss; intros; simpl; auto.
+Qed.
 
 Inductive foldr {A : Type} : (sig -> A -> A) -> A -> sigArray -> A -> Prop :=
 | foldr_nil: forall f a, foldr f a nil a

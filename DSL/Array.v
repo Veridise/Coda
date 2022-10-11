@@ -105,6 +105,33 @@ Inductive foldr {A : Type} : (sig -> A -> A) -> A -> sigArray -> A -> Prop :=
 Definition ffoldr {A : Type} (f : sig -> A -> A) (acc : A) (ss : sigArray) (a : A) : Prop :=
   ffoldl (fun acc s => f s acc) (rev ss) acc a.
 
+Lemma ffoldr_sound: forall A (f : sig -> A -> A) acc ss a,
+    ffoldr f acc ss a -> List.fold_right f acc ss = a.
+Proof.
+  intros A f acc ss. revert acc.
+  induction ss; intros; unfold ffoldr in H; simpl in H; simpl.
+  - auto.
+  - apply ffoldl_sound in H. rewrite fold_left_app in H. simpl in H.
+    assert (H0: ffoldl (fun (acc : A) (s : sig) => f s acc) (rev ss) acc
+                  (fold_left (fun (acc : A) (s : sig) => f s acc) (rev ss) acc)).
+    { apply ffoldl_complete. }
+    unfold ffoldr in IHss. apply IHss in H0. rewrite <- H0 in H. apply H.
+Qed.
+
+Lemma ffoldr_complete: forall A (f : sig -> A -> A) acc ss,
+    ffoldr f acc ss (List.fold_right f acc ss).
+Proof.
+  intros A f acc ss. revert acc.
+  induction ss; intros; unfold ffoldr; simpl.
+  - auto.
+  - assert (H0: fold_left (fun (acc0 : A) (s : sig) => f s acc0)
+                  (rev ss ++ a :: nil) acc = (f a (fold_right f acc ss))).
+    { rewrite fold_left_app. simpl. unfold ffoldr in IHss.
+      specialize IHss with (acc := acc) as H0'.
+      apply ffoldl_sound in H0'. rewrite H0'. reflexivity. }
+    rewrite <- H0. apply ffoldl_complete.
+Qed.
+
 Inductive map2 {A : Type} : (sig -> sig -> A) -> sigArray -> sigArray -> list A -> Prop :=
 | map2_nil_l: forall f ss, map2 f nil ss nil
 | map2_nil_r: forall f ss, map2 f ss nil nil

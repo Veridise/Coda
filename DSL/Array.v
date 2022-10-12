@@ -1,6 +1,5 @@
-Require Import BinPosDef.
+Require Import BinPosDef List.
 Require Import Crypto.Spec.ModularArithmetic.
-Require Import List.
 
 Context {q : positive}.
 
@@ -25,16 +24,27 @@ End Get.
 
 Module Init.
 
-  Inductive iinit : sigArray -> sig -> nat -> Prop :=
-  | iinit_zero: forall s, iinit nil s 0
-  | iinit_succ: forall ss s i, iinit ss s i -> iinit (s :: ss) s (S i).
+  Inductive iinit : sig -> nat -> sigArray -> Prop :=
+  | iinit_zero: forall s, iinit s 0 nil
+  | iinit_succ: forall s n ss, iinit s n ss -> iinit s (S n) (s :: ss).
 
-  Fixpoint init (ss : sigArray) (s : sig) (n : nat) : Prop :=
+  Fixpoint init (s : sig) (n : nat) (ss : sigArray) : Prop :=
     match ss, n with
     | nil, O => True
-    | s' :: ss', S n' => s' = s /\ init ss' s n'
+    | s' :: ss', S n' => s' = s /\ init s n' ss'
     | _, _ => False
     end.
+
+  Lemma init_sound: forall s n ss, init s n ss -> ss = repeat s n.
+  Proof.
+    intro. induction n; intros; simpl in H; simpl; destruct ss; intuition.
+    - apply IHn in H1. rewrite H0, <- H1. reflexivity.
+  Qed.
+
+  Lemma init_complete: forall s n, init s n (repeat s n).
+  Proof.
+    intro. induction n; simpl; auto.
+  Qed.
 
 End Init.
 
@@ -53,11 +63,22 @@ Module Scale.
     | _, _ => False
     end.
 
+  Lemma scale_sound: forall c s1 s2, scale c s1 s2 -> scale_fn c s1 = s2.
+  Proof.
+    intro. induction s1; intros; simpl in H; simpl; destruct s2; intuition.
+    - apply IHs1 in H1. rewrite H0, H1. reflexivity.
+  Qed.
+
+  Lemma scale_complete: forall c ss, scale c ss (scale_fn c ss).
+  Proof.
+    intro. induction ss; simpl; auto.
+  Qed.
+
 End Scale.
 
 Module Sum.
 
-  Definition sum_fn (ss : sigArray) := fold_left F.add ss F.zero.
+  Definition sum_fn (ss : sigArray) := fold_right F.add F.zero ss.
 
   Inductive isum : sigArray -> sig -> Prop :=
   | isum_nil: isum nil F.zero
@@ -68,6 +89,14 @@ Module Sum.
     | nil => s = F.zero
     | s' :: ss' => sum ss' (F.sub s s')
     end.
+
+  Lemma sum_sound: forall ss s, sum ss s -> sum_fn ss = s.
+  Proof.
+    induction ss; intros.
+    - auto.
+    - simpl in H. apply IHss in H. unfold sum_fn in H.
+      unfold sum_fn. simpl. rewrite H. admit.
+  Admitted.
 
 End Sum.
 

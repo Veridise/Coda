@@ -40,6 +40,8 @@ End Init.
 
 Module Scale.
 
+  Definition scale_fn (c : sig) := List.map (F.mul c).
+
   Inductive iscale : sig -> sigArray -> sigArray -> Prop :=
   | iscale_nil: forall c, iscale c nil nil
   | iscale_cons: forall c ss ss' s, iscale c ss ss' -> iscale c (s :: ss) (F.mul c s :: ss').
@@ -54,6 +56,8 @@ Module Scale.
 End Scale.
 
 Module Sum.
+
+  Definition sum_fn (ss : sigArray) := fold_left F.add ss F.zero.
 
   Inductive isum : sigArray -> sig -> Prop :=
   | isum_nil: isum nil F.zero
@@ -158,6 +162,13 @@ End Fold.
 
 Module Map2.
 
+  Fixpoint map2_fn {A : Type} (f : sig -> sig -> A) (s1 s2 : sigArray) : list A :=
+    match s1, s2 with
+    | s' :: s1', s'' :: s2' =>
+        (f s' s'') :: map2_fn f s1' s2'
+    | _, _ => nil
+    end.
+
   Inductive imap2 {A : Type} : (sig -> sig -> A) -> sigArray -> sigArray -> list A -> Prop :=
   | imap2_nil_l: forall f ss, imap2 f nil ss nil
   | imap2_nil_r: forall f ss, imap2 f ss nil nil
@@ -175,6 +186,13 @@ End Map2.
 
 Module Fold2.
 
+  Fixpoint foldl2_fn {A : Type} (f : A -> sig -> sig -> A) (s1 s2 : sigArray) (acc : A) : A :=
+    match s1, s2 with
+    | s' :: s1', s'' :: s2' =>
+        foldl2_fn f s1' s2' (f acc s' s'')
+    | _, _ => acc
+    end.
+
   Inductive ifoldl2 {A : Type} : (A -> sig -> sig -> A) -> sigArray -> sigArray -> A -> A -> Prop :=
   | ifoldl2_nil_l: forall f ss a, ifoldl2 f nil ss a a
   | ifoldl2_nil_r: forall f ss a, ifoldl2 f ss nil a a
@@ -188,6 +206,13 @@ Module Fold2.
         let acc' := f acc s' s'' in
         foldl2 f s1' s2' acc' a
     | _, _ => False
+    end.
+
+  Fixpoint foldr2_fn {A : Type} (f : sig -> sig -> A -> A) (acc : A) (s1 s2 : sigArray) : A :=
+    match s1, s2 with
+    | s' :: s1', s'' :: s2' =>
+        foldr2_fn f (f s' s'' acc) s1' s2'
+    | _, _ => acc
     end.
 
   Inductive ifoldr2 {A : Type} : (sig -> sig -> A -> A) -> A -> sigArray -> sigArray -> A -> Prop :=

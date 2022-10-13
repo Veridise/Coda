@@ -1,4 +1,4 @@
-(** DSL abstract syntax tree *)
+(** DSL AST *)
 
 (* Constrainable expressions *)
 type expr =
@@ -10,12 +10,12 @@ type expr =
   | Mul of expr * expr
 
 (* Signal array *)
-type arry = expr list
+type arr = expr list
 
 (* Circuit inputs and outputs *)
 type io =
   | Expr of expr
-  | Arry of arry
+  | Arr of arr
 
 type io_opt = io option
 
@@ -24,45 +24,36 @@ type stmt =
   (* Constraint *)
   | Cons of expr * expr
   (* Call circuit *)
-  | Call of (io_opt -> stmt list * io_opt) * io_opt * io_opt
+  | Call of (io_opt -> io_opt -> stmt list) * io_opt * io_opt
   (* Map *)
-  | Map of (expr -> stmt list) * arry
+  | Map of (expr -> stmt list) * arr
 
 type stmts = stmt list
 
 (* Circuits *)
-type circ = io_opt -> stmts * io_opt
+type circ = io_opt -> io_opt -> stmts
 
 (* IsZero *)
-let is_zero (i : io_opt) : stmts * io_opt =
-  match i with
-  | Some (Expr e) ->
-     let stmts = [
-         Cons (Var "out", Add (Opp (Mul (e, Var "inv")), Sig 1)) ;
-         Cons (Mul (e, Var "out"), Sig 0)
-       ] in
-     (stmts, Some (Expr (Var "out")))
-  | _ -> ([], None)
+let is_zero i o =
+  match i, o with
+  | Some (Expr i), Some (Expr o) -> [
+      Cons (o, Add (Opp (Mul (i, Var "inv")), Sig 1)) ;
+      Cons (Mul (i, o), Sig 0)
+    ]
+  | _ -> []
 
 (* IsEqual *)
-let is_equal (i : io_opt) : stmts * io_opt =
-  match i with
-  | Some (Arry [i0; i1]) ->
-     let stmts = [
-         Call (is_zero, Some (Expr (Sub (i1, i0))), Some (Expr (Var "out")))
-       ] in
-     (stmts, Some (Expr (Var "out")))
-  | _ -> ([], None)
+let is_equal i o =
+  match i, o with
+  | Some (Arr [i0; i1]), Some (Expr o) -> [
+      Call (is_zero, Some (Expr (Sub (i1, i0))), Some (Expr o))
+    ]
+  | _ -> []
 
 (* Num2Bits *)
-let num2bits (n : int) (i : io_opt) : stmts * io_opt =
-  match i with
-  | Some (Expr e) ->
-     let out = List.init n (fun i -> Sig i) in
-     let f e' = [ Cons (Mul (e', Sub (e', Sig 1)), Sig 0) ] in
-     let stmts = [
-         Map (f, out) ;
-         Cons (Var "lc1", e)
-       ] in
-     (stmts, Some (Arry out))
-  | _ -> ([], None)
+let num2bits n i o =
+  match i, o with
+  | Some (Expr i), Some (Arr o) when List.length o = n ->
+     let f e = [ Cons (Mul (e, Sub (e, Sig 1)), Sig 0) ] in
+     [ Map (f, o) ; Cons (Var "lc1", i) ]
+  | _ -> []

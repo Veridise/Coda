@@ -2,58 +2,82 @@
 
 (* Constrainable expressions *)
 type expr =
+  (* const *)
   | Sig of int
+  (* variable *)
   | Var of string
+  (* array operation *)
+  | Get of expr * int
+  (* unary operation *)
   | Opp of expr
+  (* binary operation *)
   | Add of expr * expr
   | Sub of expr * expr
   | Mul of expr * expr
+  (* call template *)
+  | Call of string
+  (* template field *)
+  | Field of expr * string
 
 (* Signal array *)
-type arr = expr list
+type varType = 
+  | Array of int list (* var x[123][456][789]] ==> Array [123;456;789] *)
+  | Expr (* var x; *)
 
-(* Circuit inputs and outputs *)
-type io =
-  | Expr of expr
-  | Arr of arr
-
-type io_opt = io option
+(* Circuit inputs and outputs / temp vars *)
+type varDecl =
+  | Input of varType
+  | Output of varType
+  | Signal of varType
 
 (* Statements *)
 type stmt =
   (* Constraint *)
-  | Cons of expr * expr
-  (* Call circuit *)
-  | Call of (io_opt -> io_opt -> stmt list) * io_opt * io_opt
+  | Constraint of expr * expr
   (* Map *)
-  | Map of (expr -> stmt list) * arr
-
+  (* | Map of (expr -> stmt list) * arr *)
 type stmts = stmt list
 
-(* Circuits *)
-type circ = io_opt -> io_opt -> stmts
+(* Circuit *)
+type circuit = 
+  | Template of string * (string * varDecl) list * stmts
 
-(* IsZero *)
-let is_zero i o =
-  match i, o with
-  | Some (Expr i), Some (Expr o) -> [
-      Cons (o, Add (Opp (Mul (i, Var "inv")), Sig 1)) ;
-      Cons (Mul (i, o), Sig 0)
-    ]
-  | _ -> []
+(* Program *)
+type program = circuit list
 
-(* IsEqual *)
-let is_equal i o =
-  match i, o with
-  | Some (Arr [i0; i1]), Some (Expr o) -> [
-      Call (is_zero, Some (Expr (Sub (i1, i0))), Some (Expr o))
-    ]
-  | _ -> []
+(* Environment: for typechecking *)
+type env = string -> ((string * varDecl) list) option
 
-(* Num2Bits *)
-let num2bits n i o =
+(* generate environment from program *)
+let genv (p: program) : env =
+  let rec genv' (p: program) (e: env) : env =
+    match p with
+    | [] -> e
+    | (Template (name, args, _))::p' -> 
+        genv' p' (fun x -> if x = name then Some args else e x)
+  in genv' p (fun _ -> None)
+
+(* Examples *)
+let is_zero = 
+  Template ("IsZero", 
+            [("in", Input Expr);
+             ("out", Output Expr);
+             ("inv", Input Expr)], 
+            [Constraint (Var "out", Add (Opp (Mul (Var "in", Var "inv")), Sig 1));
+             Constraint (Mul (Var "in", Var "out"), Sig 0)])
+
+let is_equal =
+  Template ("IsEqual", 
+            [("in", Input (Array [2]));
+             ("out", Output Expr);
+             ("isz", Input Expr)],
+            [Constraint (Var "isz", Call "IsZero");
+             Constraint (Sub (Get (Var "in", 1), Get (Var "in", 0)), Field (Var "isz", "in"));
+             Constraint (Var "out", Field (Var "isz", "out"))])
+             
+(* let num2bits n i o =
   match i, o with
   | Some (Expr i), Some (Arr o) when List.length o = n ->
      let f e = [ Cons (Mul (e, Sub (e, Sig 1)), Sig 0) ] in
      [ Map (f, o) ; Cons (Var "lc1", i) ]
-  | _ -> []
+  | _ -> [] *)

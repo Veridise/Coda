@@ -1,24 +1,53 @@
+(** DSL AST *)
+
+(* Constrainable expressions *)
 type expr =
+  (* const *)
   | Sig of int
+  (* variable *)
   | Var of string
+  (* array operation *)
+  | Get of expr * int
+  (* unary operation *)
   | Opp of expr
+  (* binary operation *)
   | Add of expr * expr
   | Sub of expr * expr
   | Mul of expr * expr
-type arr = expr list
+  (* call template *)
+  | Call of string
+  (* template field *)
+  | Field of expr * string
 
-type io =
-  | Expr of expr
-  | Arr of arr
-type io_opt = io option
+(* Signal array *)
+type varType = 
+  | Array of int list (* var x[123][456][789]] ==> Array [123;456;789] *)
+  | Expr (* var x; *)
 
+(* Circuit inputs and outputs / temp vars *)
+type varDecl =
+  | Input of varType
+  | Output of varType
+  | Signal of varType
+
+(* Statements *)
 type stmt =
-  | Cons of expr * expr
-  | Call of (io_opt -> io_opt -> stmt list) * io_opt * io_opt
-  | Map of (expr -> stmt list) * arr
+  (* Constraint *)
+  | Constraint of expr * expr
+  (* Map *)
+  (* | Map of (expr -> stmt list) * arr *)
 type stmts = stmt list
 
-type circ = io_opt -> io_opt -> stmts
-val is_zero: circ
-val is_equal: circ
-val num2bits: int -> circ
+(* Circuit *)
+type circuit = 
+  | Template of string * (string * varDecl) list * stmts
+
+(* Program *)
+type program = circuit list
+
+(* Environment: for typechecking *)
+type env = string -> ((string * varDecl) list) option
+
+val genv: program -> env
+val is_zero: circuit
+val is_equal: circuit

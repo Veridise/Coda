@@ -35,7 +35,8 @@ type stmt =
   (* Constraint *)
   | Constraint of expr * expr
   (* Map *)
-  (* | Map of (expr -> stmt list) * arr *)
+  | Map of (string * varDecl) * stmt list * expr
+
 type stmts = stmt list
 
 (* Circuit *)
@@ -74,10 +75,13 @@ let is_equal =
             [Constraint (Var "isz", Call "IsZero");
              Constraint (Sub (Get (Var "in", 1), Get (Var "in", 0)), Field (Var "isz", "in"));
              Constraint (Var "out", Field (Var "isz", "out"))])
-             
-(* let num2bits n i o =
-  match i, o with
-  | Some (Expr i), Some (Arr o) when List.length o = n ->
-     let f e = [ Cons (Mul (e, Sub (e, Sig 1)), Sig 0) ] in
-     [ Map (f, o) ; Cons (Var "lc1", i) ]
-  | _ -> [] *)
+
+let num2bits_32 =
+  Template ("Num2Bits_32",
+            [("in", Input Expr);
+             ("out", Output (Array [4]));
+             ("lc1", Signal Expr)],
+            [Map (("s", Signal Expr),
+                  [Constraint (Mul (Var "s", Sub (Var "s", Sig 1)), Sig 0)],
+                  Var "out");
+             Constraint (Var "lc1", Var "in")])

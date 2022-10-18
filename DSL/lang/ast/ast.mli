@@ -35,7 +35,8 @@ type stmt =
   (* Constraint *)
   | Constraint of expr * expr
   (* Map *)
-  (* | Map of (expr -> stmt list) * arr *)
+  | Map of (string * varDecl) * stmt list * expr
+
 type stmts = stmt list
 
 (* Circuit *)
@@ -51,3 +52,4 @@ type env = string -> ((string * varDecl) list) option
 val genv: program -> env
 val is_zero: circuit
 val is_equal: circuit
+val num2bits_32: circuit

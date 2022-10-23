@@ -30,24 +30,36 @@ type varDecl =
   | Output of varType
   | Signal of varType
 
+type var = string * varDecl
+
 (* Statements *)
 type stmt =
   (* Constraint *)
   | Constraint of expr * expr
-  (* Map *)
-  | Map of (string * varDecl) * stmt list * expr
+  (* Map (fun a -> stmts) arr *)
+  | Map of var * stmt list * expr
+  (* Map2 (fun a b -> stmts) arr_a arr_b *)
+  | Map2 of var * var * stmt list * expr * expr
+  (* Foldl (fun acc a -> stmts) acc arr *)
+  | Foldl of var * var * stmt list * expr * expr
+  (* Foldl2 (fun acc a b -> stmts) acc arr_a arr_b *)
+  | Foldl2 of var * var * var * stmt list * expr * expr * expr
+  (* Foldr (fun a acc -> stmts) arr acc *)
+  | Foldr of var * var * stmt list * expr * expr
+  (* Foldr2 (fun a b acc -> stmts) arr_a arr_b acc *)
+  | Foldr2 of var * var * var * stmt list * expr * expr * expr
 
 type stmts = stmt list
 
 (* Circuit *)
 type circuit = 
-  | Template of string * (string * varDecl) list * stmts
+  | Template of string * var list * stmts
 
 (* Program *)
 type program = circuit list
 
 (* Environment: for typechecking *)
-type env = string -> ((string * varDecl) list) option
+type env = string -> (var list) option
 
 val genv: program -> env
 val is_zero: circuit

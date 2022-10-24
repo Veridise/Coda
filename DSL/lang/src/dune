@@ -1,0 +1,3 @@
+(executable
+ (name main)
+ (libraries base stdio stdlib core langast))

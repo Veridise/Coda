@@ -41,6 +41,8 @@ type stmt =
   | Iter of string * string * (string * expr * expr) list * stmt
   (* map (fun x -> stmts) xs *)
   | Map of (string * varType) * stmt list * expr
+  (* map2 (fun x y -> stmts) xs ys *)
+  | Map2 of (string * string * varType) * stmt list * expr * expr
 
 type stmts = stmt list
 
@@ -167,6 +169,7 @@ let rec print_stmt (s: stmt) : unit =
       print_string s2;
       print_string ")"
   | Map _ -> ()
+  | Map2 _ -> ()
 
 (* print stmts *)
 let rec print_stmts (s: stmts) : unit =
@@ -257,6 +260,7 @@ let string_of_dsl_coq c =
           print ") "; print "(";print_loop_decl_init l; print ", True)) in _C /\\";
         | Call (s1, s2) -> print "exists ("; print s1; print ": "; print s2; print ".t),"
         | Map _ -> ()
+        | Map2 _ -> ()
       in
       print_stmt h; print_newline();
     | h::t -> 
@@ -268,6 +272,7 @@ let string_of_dsl_coq c =
           print ") "; print "(";print_loop_decl_init l; print ", True)) in _C /\\";
         | Call (s1, s2) -> print "exists ("; print s1; print ": "; print s2; print ".t),"
         | Map _ -> ()
+        | Map2 _ -> ()
       in
       print_stmt h; (match h with | Call _ -> print "" | Iter _ -> print "" | _ -> print " /\\ "); print_newline(); print_stmts t
   in

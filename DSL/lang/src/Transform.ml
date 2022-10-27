@@ -36,6 +36,7 @@ let rec transpile_stmt (s: Langast.AST.stmt) : Langast.Circom.stmt list =
                               List.append (transpile_iter_var_assign l) (transpile_stmt s))]
   | Call (s1, s2) -> [Call (s1, s2)]
   | Map _ -> []
+  | Map2 _ -> []
 
 let transpile_varParams (p: Langast.AST.varParams) : Langast.Circom.varParams =
   match p with

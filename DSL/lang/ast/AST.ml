@@ -35,10 +35,12 @@ type varDecl =
 type stmt =
   (* call: name, template *)
   | Call of string * string
-  (* Constraint *)
+  (* e1 === e2 *)
   | Constraint of expr * expr
   (* iter index range_max (var_name, expr, expr) stmt *)
   | Iter of string * string * (string * expr * expr) list * stmt
+  (* map (fun x -> stmts) xs *)
+  | Map of (string * varType) * stmt list * expr
 
 type stmts = stmt list
 
@@ -164,6 +166,7 @@ let rec print_stmt (s: stmt) : unit =
       print_string ", ";
       print_string s2;
       print_string ")"
+  | Map _ -> ()
 
 (* print stmts *)
 let rec print_stmts (s: stmts) : unit =
@@ -252,7 +255,8 @@ let string_of_dsl_coq c =
           print "let '("; print_loop_decl l; print ", _C) :="; print "(D.iter (fun ("; print s2; print ": nat) '("; print_loop_decl l; print ", _C) => "; print_newline(); 
           print "("; print_loop_decl_iter l; print ", "; print_newline(); print_stmt s3; print "/\\ _C)";print_newline();
           print ") "; print "(";print_loop_decl_init l; print ", True)) in _C /\\";
-         | Call (s1, s2) -> print "exists ("; print s1; print ": "; print s2; print ".t),"
+        | Call (s1, s2) -> print "exists ("; print s1; print ": "; print s2; print ".t),"
+        | Map _ -> ()
       in
       print_stmt h; print_newline();
     | h::t -> 
@@ -263,6 +267,7 @@ let string_of_dsl_coq c =
           print "("; print_loop_decl_iter l; print ", "; print_newline(); print_stmt s3; print "/\\ _C)";print_newline();
           print ") "; print "(";print_loop_decl_init l; print ", True)) in _C /\\";
         | Call (s1, s2) -> print "exists ("; print s1; print ": "; print s2; print ".t),"
+        | Map _ -> ()
       in
       print_stmt h; (match h with | Call _ -> print "" | Iter _ -> print "" | _ -> print " /\\ "); print_newline(); print_stmts t
   in
@@ -326,3 +331,11 @@ let num2bits =
                    Constraint (Mul (Get (Var "out", VarInt "i"), Sub (Get (Var "out", VarInt "i"), Sig 1)), Sig 0));
              Constraint (Var "lc1", Var "_in")])
 
+let num2bits_map =
+  Template ("Num2Bits", ["n"],
+            [("_in", Input Expr);
+             ("out", Output (Array [VarInt "n"]))],
+            [Map (("x", Expr),
+                  [Constraint (Mul (Var "x", Sub (Var "x", Sig 1)), Sig 0)],
+                  Var "out");
+             Constraint (Var "lc1", Var "_in")])

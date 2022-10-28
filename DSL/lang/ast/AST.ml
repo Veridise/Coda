@@ -31,8 +31,11 @@ type varDecl =
   | Output of varType
   | Signal of varType
 
-type fnsig  = (string * varType) * varType
-type fnsig2 = (string * varType) * (string * varType) * varType
+(* Signatures for map and fold function arguments *)
+type mapsig   = (string * varType) * varType
+type map2sig  = (string * varType) * (string * varType) * varType
+type foldsig  = (string * varType) * (string * varType)
+type fold2sig = (string * varType) * (string * varType) * (string * varType)
 
 (* Statements *)
 type stmt =
@@ -43,9 +46,17 @@ type stmt =
   (* iter index range_max (var_name, expr, expr) stmt *)
   | Iter of string * string * (string * expr * expr) list * stmt
   (* map (fun x -> stmts) xs *)
-  | Map of fnsig * stmt list * expr
+  | Map of mapsig * stmt list * expr
   (* map2 (fun x y -> stmts) xs ys *)
-  | Map2 of fnsig2 * stmt list * expr * expr
+  | Map2 of map2sig * stmt list * expr * expr
+  (* foldl (fun acc x -> stmts) acc xs *)
+  | Foldl of foldsig * stmt list * expr * expr
+  (* foldl2 (fun acc x y -> stmts) acc xs ys *)
+  | Foldl2 of fold2sig * stmt list * expr * expr * expr
+  (* foldr (fun x acc -> stmts) xs acc *)
+  | Foldr of foldsig * stmt list * expr * expr
+  (* foldr2 (fun x y acc -> stmts) xs ys acc *)
+  | Foldr2 of fold2sig * stmt list * expr * expr * expr
 
 type stmts = stmt list
 
@@ -173,6 +184,10 @@ let rec print_stmt (s: stmt) : unit =
       print_string ")"
   | Map _ -> ()
   | Map2 _ -> ()
+  | Foldl _ -> ()
+  | Foldl2 _ -> ()
+  | Foldr _ -> ()
+  | Foldr2 _ -> ()
 
 (* print stmts *)
 let rec print_stmts (s: stmts) : unit =
@@ -264,6 +279,10 @@ let string_of_dsl_coq c =
         | Call (s1, s2) -> print "exists ("; print s1; print ": "; print s2; print ".t),"
         | Map _ -> ()
         | Map2 _ -> ()
+        | Foldl _ -> ()
+        | Foldl2 _ -> ()
+        | Foldr _ -> ()
+        | Foldr2 _ -> ()
       in
       print_stmt h; print_newline();
     | h::t -> 
@@ -276,6 +295,10 @@ let string_of_dsl_coq c =
         | Call (s1, s2) -> print "exists ("; print s1; print ": "; print s2; print ".t),"
         | Map _ -> ()
         | Map2 _ -> ()
+        | Foldl _ -> ()
+        | Foldl2 _ -> ()
+        | Foldr _ -> ()
+        | Foldr2 _ -> ()
       in
       print_stmt h; (match h with | Call _ -> print "" | Iter _ -> print "" | _ -> print " /\\ "); print_newline(); print_stmts t
   in

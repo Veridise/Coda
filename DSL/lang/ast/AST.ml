@@ -31,6 +31,9 @@ type varDecl =
   | Output of varType
   | Signal of varType
 
+type fnsig  = (string * varType) * varType
+type fnsig2 = (string * varType) * (string * varType) * varType
+
 (* Statements *)
 type stmt =
   (* call: name, template *)
@@ -40,9 +43,9 @@ type stmt =
   (* iter index range_max (var_name, expr, expr) stmt *)
   | Iter of string * string * (string * expr * expr) list * stmt
   (* map (fun x -> stmts) xs *)
-  | Map of (string * varType) * stmt list * expr
+  | Map of fnsig * stmt list * expr
   (* map2 (fun x y -> stmts) xs ys *)
-  | Map2 of (string * string * varType) * stmt list * expr * expr
+  | Map2 of fnsig2 * stmt list * expr * expr
 
 type stmts = stmt list
 
@@ -340,7 +343,7 @@ let num2bits_map =
   Template ("Num2Bits", ["n"],
             [("_in", Input Expr);
              ("out", Output (Array [VarInt "n"]))],
-            [Map (("x", Expr),
+            [Map ((("x", Expr), Expr),
                   [Constraint (Mul (Var "x", Sub (Var "x", Sig 1)), Sig 0)],
                   Var "out");
              Constraint (Var "lc1", Var "_in")])

@@ -26,4 +26,8 @@ let demo target =
 
 let _ = demo is_zero; print_newline(); print_newline(); print_newline(); 
         demo is_equal; print_newline(); print_newline(); print_newline();  
-        demo num2bits;
+        demo num2bits;print_newline(); print_newline(); print_newline();  
+        demo modsum;print_newline(); print_newline(); print_newline();  
+        demo modsub;print_newline(); print_newline(); print_newline();  
+        demo modsumthree;print_newline(); print_newline(); print_newline();  
+        demo modsubthree;print_newline(); print_newline(); print_newline();  

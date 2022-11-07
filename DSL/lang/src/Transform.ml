@@ -13,6 +13,7 @@ let rec transpile_expr (e: Langast.AST.expr) : Langast.Circom.expr =
   | Add (e1, e2) -> Add (transpile_expr e1, transpile_expr e2)
   | Sub (e1, e2) -> Sub (transpile_expr e1, transpile_expr e2)
   | Mul (e1, e2) -> Mul (transpile_expr e1, transpile_expr e2)
+  | Exp2 e -> Shl ((Sig 1), (transpile_expr e))
   | Field (e, x) -> Field (transpile_expr e, x)
 
 

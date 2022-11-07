@@ -22,6 +22,7 @@ type expr =
   | Add of expr * expr
   | Sub of expr * expr
   | Mul of expr * expr
+  | Exp2 of expr
   (* template field *)
   | Field of expr * string
 
@@ -126,6 +127,10 @@ let rec print_expr (e: expr) : unit =
       print_expr e1;
       print_string ", ";
       print_expr e2;
+      print_string ")"
+  | Exp2 (e1) -> 
+      print_string "Exp2 (";
+      print_expr e1;
       print_string ")"
   | Field (e, s) -> 
       print_string "Field (";
@@ -249,6 +254,7 @@ let string_of_dsl_coq c =
     | Add (e1, e2) -> print "("; print_expr e1; print " + "; print_expr e2; print ")"
     | Sub (e1, e2) -> print "("; print_expr e1; print " - "; print_expr e2; print ")"
     | Mul (e1, e2) -> print "("; print_expr e1; print " * "; print_expr e2; print ")"
+    | Exp2 (e1) -> print "("; print " 2 ^ "; print_expr e1; print ")"
     | Field (e, s) -> print_expr e; print "."; print s
   in
   let rec print_loop_decl = function
@@ -370,3 +376,53 @@ let num2bits_map =
                   [Constraint (Mul (Var "x", Sub (Var "x", Sig 1)), Sig 0)],
                   Var "out");
              Constraint (Var "lc1", Var "_in")])
+
+let modsum = 
+  Template ("ModSum", ["n"],
+            [("a", Input Expr);
+            ("b", Input Expr);
+            ("sum", Output Expr);
+            ("carry", Output Expr);],
+            [Call ("n2b", "Num2Bits");
+             Constraint (Field (Var "n2b", "_in"), Add (Var "a", Var "b"));
+             Constraint (Var "carry", (Get (Field (Var "n2b", "out"), VarInt "n")));
+             Constraint (Var "sum", Sub ( Add (Var "a", Var "b"), Mul (Var "carry", Exp2 (Var "n"))) );
+             ])
+
+let modsumthree = 
+  Template ("ModSumThree", ["n"],
+            [("a", Input Expr);
+            ("b", Input Expr);
+            ("c", Input Expr);
+            ("sum", Output Expr);
+            ("carry", Output Expr);],
+            [Call ("n2b", "Num2Bits");
+             Constraint (Field (Var "n2b", "_in"), Add (Var "a", (Add (Var "b", Var "c"))));
+             Constraint (Var "carry", Add (Get (Field (Var "n2b", "out"), VarInt "n"), Mul (Sig 2, Get (Field (Var "n2b", "out"), VarInt "n+1"))));
+             Constraint (Var "sum", Sub ( Add (Var "a", (Add (Var "b", Var "c"))), Mul (Var "carry", Exp2 (Var "n"))) );
+             ])
+
+let modsub = 
+  Template ("ModSub", ["n"],
+            [("a", Input Expr);
+            ("b", Input Expr);
+            ("out", Output Expr);
+            ("borrow", Output Expr);],
+            [Call ("lt", "LessThan");
+             Constraint (Get (Field (Var "lt", "_in"), ConstInt 0), Var "a");
+             Constraint (Get (Field (Var "lt", "_in"), ConstInt 1), Var "b");
+             Constraint (Field (Var "lt", "out"), Var "borrow");
+             Constraint (Var "out", Add ( Mul ( Var "borrow", Exp2 (Var "n")), Sub (Var "a", Var "b")))])
+
+let modsubthree = 
+  Template ("ModSumThree", ["n"],
+            [("a", Input Expr);
+            ("b", Input Expr);
+            ("c", Input Expr);
+            ("out", Output Expr);
+            ("borrow", Output Expr);],
+            [Call ("lt", "LessThan");
+            Constraint (Get (Field (Var "lt", "_in"), ConstInt 0), Var "a");
+            Constraint (Get (Field (Var "lt", "_in"), ConstInt 1), Add (Var "b", Var "c"));
+            Constraint (Field (Var "lt", "out"), Var "borrow");
+            Constraint (Var "out", Add ( Mul ( Var "borrow", Exp2 (Var "n")), Sub (Var "a", Add (Var "b", Var "c"))))])

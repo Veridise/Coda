@@ -24,6 +24,7 @@ type expr =
   | Sub of expr * expr
   | Mul of expr * expr
   | Lt of expr * expr
+  | Shl of expr * expr
   (* template field *)
   | Field of expr * string
 
@@ -71,6 +72,7 @@ let rec print_expr = function
   | AddSelf e -> print_string "AddSelf("; print_expr e; print_string ")"
   | Sub (e1, e2) -> print_string "Sub("; print_expr e1; print_string ", "; print_expr e2; print_string ")"
   | Mul (e1, e2) -> print_string "Mul("; print_expr e1; print_string ", "; print_expr e2; print_string ")"
+  | Shl (e1, e2) -> print_string "Shl("; print_expr e1; print_string ", "; print_expr e2; print_string ")"
   | Lt (e1, e2) -> print_string "Lt("; print_expr e1; print_string ", "; print_expr e2; print_string ")"
   | Field (e, s) -> print_string "Field("; print_expr e; print_string ", "; print_string s; print_string ")"
 
@@ -135,6 +137,7 @@ let string_of_circuit c =
     | AddSelf e -> print "("; print_expr e; print "++)"
     | Sub (e1, e2) -> print "("; print_expr e1; print " - "; print_expr e2; print ")"
     | Mul (e1, e2) -> print "("; print_expr e1; print " * "; print_expr e2; print ")"
+    | Shl (e1, e2) -> print "("; print_expr e1; print " << "; print_expr e2; print ")"
     | Lt (e1, e2) -> print "("; print_expr e1; print " < "; print_expr e2; print ")"
     | Field (e, s) -> print_expr e; print "."; print s
   in

@@ -77,7 +77,7 @@ Proof.
 Qed.
 
 (* ModSumThree *)
-Module ModSumThree := BigAdd.ModSumThree.
+Module ModSumThree := BigAdd.ModSumThreeOpt.
 Theorem ModSumThree_Soundness {n: nat}: forall (w: @ModSumThree.t n),
   (* pre-conditions *)
   ( n <= C.k - 1 )%Z ->

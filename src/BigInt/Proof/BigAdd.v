@@ -16,7 +16,7 @@ Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.seto
 Require Import Ring.
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
-From Circom Require Import Repr ReprZ.
+From Circom Require Import Repr ReprZ LibOverflow Signed.
 From Circom.CircomLib Require Import Bitify Comparators.
 From Circom.BigInt.Definition Require Import BigAdd.
 (* Circuit:
@@ -44,14 +44,14 @@ Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
 
-Module ModSumThree.
-Section ModSumThree.
+Module ModSumThreeOpt.
+Section ModSumThreeOpt.
 Context {n: nat}.
 Import B R.
 
 (* Note: this is a simplified version from circom-pairing *)
 (* 
-template ModSumThree(n) {
+template ModSumThreeOpt(n) {
   assert(n + 1 <= 253);
   signal input a;
   signal input b;
@@ -133,12 +133,164 @@ Qed.
 (* for default values. never used *)
 Definition wgen : t. skip. Defined.
 
+#[global] Instance Default : Default (ModSumThreeOpt.t) := { 
+  default := wgen 
+}.
+
+End ModSumThreeOpt.
+End ModSumThreeOpt.
+
+Module ModSumThree.
+Section ModSumThree.
+Context {n: nat}.
+Import B R.
+
+(* Note: this is the original version from circom-pairing *)
+(* 
+template ModSumThree(n) {
+  assert(n + 2 <= 253);
+  signal input a;
+  signal input b;
+  signal input c;
+  signal output sum;
+  signal output carry;
+
+  component n2b = Num2Bits(n + 2);
+  n2b.in <== a + b + c;
+  carry <== n2b.out[n] + 2 * n2b.out[n + 1];
+  sum <== a + b + c - carry * (1 << n);
+} 
+*)
+
+Definition cons (a b c sum carry: F) :=
+  exists (n2b: @Num2Bits.t (S (S n))),
+    n2b.(Num2Bits._in) = a + b + c /\
+    carry = n2b.(Num2Bits.out) [n] + 2 * n2b.(Num2Bits.out) [n + 1]/\
+    sum = a + b + c - carry * 2^n.
+
+Record t : Type := {
+  a: F; b: F; c: F;
+  sum: F; carry: F;
+  _cons: cons a b c sum carry;
+}.
+
+Lemma add_sub: forall (x y: F), x + y - y = x.
+Proof. unwrap_C. intros. fqsatz. Qed.
+
+Theorem soundness: forall w,
+  (* pre-conditions *)
+  ( n <= C.k - 2 )%Z ->
+  (* a and b are n-bits, i.e., <= 2^n-1 *)
+  w.(a) | (n) -> 
+  w.(b) | (n) -> 
+  binary w.(c) ->
+  (* post-conditions *)
+  w.(sum) + 2^n * w.(carry) = w.(a) + w.(b) + w.(c) /\
+  (* sum is n-bits, i.e., <= 2^n-1 *)
+  w.(sum) | (n) /\
+  binary w.(carry).
+Proof.
+  unwrap_C.
+  intros c Hnk Ha Hb Hc.
+  destruct c as [a b c sum carry _cons].
+  simpl in *. unfold cons in *.
+  destruct _cons as [n2b [H_in [H_carry H_sum] ] ].
+  apply R.in_range_binary in Hc.
+  intuition.
+  - fqsatz.
+  - subst.
+  remember (Num2Bits.out n2b [n] ) as out_n. pose proof (length_to_list (Num2Bits.out n2b)).
+  pose proof (Num2Bits.soundness n2b) as H_n2b. unfold repr_le2 in *.
+
+  assert (Hlast0: Num2Bits.out n2b [n + 1] = 0). {
+    lift_to_list.
+    unfold R.repr_le in H_n2b. intuit.
+    applys_eq R.repr_le_ub_last0.
+    fold_default. f_equal. lia. lia.
+    auto.
+    lia.
+    rewrite H_in in *.
+    rewrite <- H3.
+    rewrite H.
+    replace (S (S n) - 1)%nat with (S n) by lia.
+    assert (0 <= ^a). apply F.to_Z_range. lia.
+    assert (0 <= ^b). apply F.to_Z_range. lia.
+    assert (0 <= ^c). apply F.to_Z_range. lia.
+    assert (0 <= ^ a + ^ b + ^c < q). {
+      assert (^ a + ^ b + ^c < 2 * 2^n). lia.
+      eapply Signed.le_sub_r_pow with (x:=2%Z) in Hnk; try lia.
+    }
+    repeat (autorewrite with F_to_Z; try lia).
+    rewrite pow_S_Z. lia.
+  }
+  rewrite Hlast0 in *.
+  simplify.
+
+
+  rewrite <- H_in.
+  pose proof H_n2b as H_n2b'. unfold repr_le in H_n2b. destruct H_n2b as [_ [H_n2b_bin H_as_le] ].
+  rewrite H_as_le.
+  erewrite as_le_split_last; eauto.
+  lift_to_list.
+  replace ('Num2Bits.out n2b ! S n) with ('Num2Bits.out n2b ! (n+1)%nat) by (f_equal; lia).
+  rewrite Hlast0. simplify.
+  rewrite as_le_split_last with (i:=n).
+  lift_to_list.
+  rewrite firstn_firstn. rewrite Nat.min_l by lia.
+  unfold_default. rewrite firstn_nth; try lia. fold_default.
+  rewrite <- Heqout_n.
+  simplify.
+  match goal with
+  | [ |- context[?x + ?y - ?z] ] => replace (x+y-z) with x by fqsatz
+  end.
+  eapply repr_le_ub; try lia.
+  eapply repr_le_firstn; eauto.
+  rewrite firstn_length_le; lia.
+  rewrite H. auto.
+  rewrite firstn_length_le; try lia.
+  apply Forall_firstn. auto.
+  - rewrite H_carry.
+  pose proof (Num2Bits.soundness n2b) as H_n2b. 
+  unfold repr_le2, repr_le in *.
+  intuit.
+  assert (Hlast0: Num2Bits.out n2b [n + 1] = 0). {
+    lift_to_list.
+    (* unfold R.repr_le in H_n2b. intuit. *)
+    applys_eq R.repr_le_ub_last0.
+    fold_default. f_equal. lia. lia.
+    auto.
+    lia.
+    rewrite H_in in *.
+    rewrite <- H2.
+    rewrite H.
+    replace (S (S n) - 1)%nat with (S n) by lia.
+    assert (0 <= ^a). apply F.to_Z_range. lia.
+    assert (0 <= ^b). apply F.to_Z_range. lia.
+    assert (0 <= ^c). apply F.to_Z_range. lia.
+    assert (0 <= ^ a + ^ b + ^c < q). {
+      assert (^ a + ^ b + ^c < 2 * 2^n). lia.
+      eapply Signed.le_sub_r_pow with (x:=2%Z) in Hnk; try lia.
+    }
+    repeat (autorewrite with F_to_Z; try lia).
+    rewrite pow_S_Z. lia.
+  }
+  lift_to_list.
+  rewrite Hlast0. simplify.
+  unfold_default.
+  apply Forall_nth; try lia.
+  apply Forall_in_range.
+  auto.
+Qed.
+
+(* for default values. never used *)
+Definition wgen : t. skip. Defined.
+
 #[global] Instance Default : Default (ModSumThree.t) := { default := wgen }.
 
 End ModSumThree.
 End ModSumThree.
 
-Module M := ModSumThree.
+Module M := ModSumThreeOpt.
 
 Section _BigAdd.
 Context {n k: nat}.
@@ -156,7 +308,7 @@ Context {n k: nat}.
 
     component unit[k - 1];
     for (var i = 1; i < k; i++) {
-        unit[i - 1] = ModSumThree(n);
+        unit[i - 1] = ModSumThreeOpt(n);
         unit[i - 1].a <== a[i];
         unit[i - 1].b <== b[i];
         if (i == 1) {
@@ -195,12 +347,13 @@ Record t := {
 }.
 
 Ltac split_as_le xs i := 
-  erewrite RZ.as_le_split_last with (ws:=xs[:S i]) (i:=i);
+  erewrite RZ.as_le_split_last' with (ws:=xs[:S i]) (i:=i);
   try rewrite firstn_firstn; simplify;
   try rewrite firstn_nth by lia.
 
 Lemma nth_0 {T} `{Default T}: forall (x: T), (x :: nil) ! 0 = x.
 Proof. intro x. erewrite <- fold_nth with (d:=x); auto. Qed.
+
 
 Theorem soundness: forall (w: t),
   (* pre-condition *)
@@ -239,22 +392,26 @@ Proof.
   - unfold Inv. intuition.
     + lia.
     + simpl. constructor.
-    + destruct (dec (0=0)%nat). simpl. nia. lia.
+    + split_dec. simpl. nia. lia.
   - intros i _cons IH H_bound.
     unfold Inv in *. intros Hf.
     rewrite Heqf in *. destruct Hf as [Hcons [Hai [Hbi [Hci Houti] ] ] ].
     symmetry in Houti.
     lift_to_list.
-    pose proof (ModSumThree.soundness ('unit ! i )) as M0.
+    (* push if-then-else inside equality *)
+    assert (Hci': M.c ('unit!i) = if dec (i=0)%nat then 0 else M.carry ('unit!(i-1)))
+    by (destruct (dec (i=0)%nat); auto).
+    clear Hci.
     destruct IH as [IH_bin IH_eq]. auto.
+    pose proof (ModSumThreeOpt.soundness ('unit ! i )) as M0.
     destruct M0 as [M_eq [M_sum M_bin] ]. lia.
     rewrite Hai. unfold_default. apply Forall_nth. auto. lia.
     rewrite Hbi. unfold_default. apply Forall_nth. auto. lia.
-    destruct (dec (i=0%nat)). rewrite Hci. left. fqsatz.
-    rewrite Hci. apply IH_bin. lia.
+    destruct (dec (i=0%nat)). rewrite Hci'. left. fqsatz.
+    rewrite Hci'. apply IH_bin. lia.
     destruct (dec (S i = 0%nat)). discriminate.
     split_as_le ('out) i. split_as_le ('a) i. split_as_le ('b) i.
-    repeat (apply conj_use; split); intuition idtac.
+    repeat (apply conj_use; split); intuit.
     (* binary *)
     + destruct (dec (j < i)). auto.
       assert (Hij: j=i) by lia. rewrite Hij in *. intuition.
@@ -263,25 +420,35 @@ Proof.
       rewrite firstn_firstn. autorewrite with natsimplify. auto.
       rewrite firstn_nth by lia.
       fold_default. rewrite <- Houti. auto.
-    + 
-      (* push if-then-else inside equality *)
-      assert (Hci': M.c ('unit!i) = if dec (i=0)%nat then 0 else M.carry ('unit!(i-1)))
-        by (destruct (dec (i=0)%nat); auto).
-      clear Hci.
-      rewrite Hai, Hbi, Hci', Houti in *. clear Hai Hbi Hci' Houti.
+    + rewrite Hai, Hbi, Hci', Houti in *. clear Hai Hbi Hci' Houti.
       remember (M.carry ('unit!i)) as ci.
       remember (M.carry ('unit!(i-1))) as ci'.
       (* prepare ranges *)
       assert (0 <= ^ 'a!i)%Z. apply F.to_Z_range; lia.
       assert (0 <= ^ 'b!i)%Z. apply F.to_Z_range; lia.
       assert (0 <= ^ 'out!i)%Z. apply F.to_Z_range; lia.
-      assert (^ 'a ! i  <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
-      assert (^ 'b ! i  <= 2^n-1)%Z. erewrite <- fold_nth; try lia. apply Forall_nth; auto. lia.
+      assert (^ 'a ! i  <= 2^n-1)%Z. unfold_default. apply Forall_nth; auto. lia.
+      assert (^ 'b ! i  <= 2^n-1)%Z. unfold_default. apply Forall_nth; auto. lia.
       assert (^ 'out ! i  <= 2^n-1)%Z. auto.
       assert (2*2^n <= 2^C.k)%Z. replace (2*2^n)%Z with (2^(n+1))%Z. apply Zpow_facts.Zpower_le_monotone; try lia. rewrite Zpower_exp; try lia.
       assert (Hci_bin: (0 <= ^ci <= 1)%Z). destruct M_bin as [M_bin|M_bin]; rewrite M_bin in *; autorewrite with F_to_Z; lia.
       assert (Hci'_bin: (0 <= ^ci' <= 1)%Z). specialize (H4 (i-1)%nat). destruct H4 as [M_bin'|M_bin']; try lia; rewrite Heqci', M_bin' in *; autorewrite with F_to_Z; lia.
+      
       (* push F.to_Z *)
+      pose proof M_eq as M_eq'.
+      apply f_equal with (f:=Signed.to_Z) in M_eq'.
+      (* assert (2 <= n < C.k-2) by admit.
+      assert (Z.abs ($ ' a ! i) <= 2^(n-1)) by admit.
+      assert (Z.abs ($ ' b ! i) <= 2^(n-1)) by admit.
+      assert (Z.abs ($ ' out ! i) <= 2^(n-1)) by admit.
+      assert (Z.abs ($ci) <= 2^(1%N)) by admit.
+      split_dec.
+      simplify' M_eq'.
+      autorewrite with F_to_Signed in M_eq'; try lia;
+      repeat autorewrite with F_to_Signed; try lia;
+      overflow (4%nat). *)
+      
+
       assert (Hl: (^(' out ! i + (1 + 1) ^ n * ci) = ^'out!i + 2^n*^ci)%Z). repeat (autorewrite with F_to_Z; cbn -[to_list F.pow]; try lia; try nia).
       assert (Hr: (^(' a ! i + ' b ! i + (if dec (i = 0)%nat then 0 else ci')) 
         = ^'a!i + ^'b!i + ^(if dec (i = 0)%nat then 0 else ci'))%Z). 
@@ -316,7 +483,7 @@ Proof.
     simplify.
     apply RZ.as_le_split_last'.
     lia.
-  Unshelve. exact F.zero. exact F.zero. exact F.zero. exact F.zero. exact F.zero. 
+  Unshelve. exact F.zero. exact F.zero. exact F.zero.
 Qed.
 
 Local Notation "[| xs |]'" := (RZ2.as_le n xs).
@@ -378,7 +545,7 @@ Proof.
   apply HInv in p_iter. subst. 
   specialize (p_iter (i+1)%nat) as hh1. destruct hh1;try lia.
   rewrite H6 in H7. intuition.
-  pose proof (ModSumThree.soundness (unit [i + 1])) as M0.
+  pose proof (ModSumThreeOpt.soundness (unit [i + 1])) as M0.
   destruct M0;try lia. rewrite H7. lift_to_list.
   rewrite Forall_forall in H3. apply H3. admit.
   rewrite Forall_forall in H4. apply H4. admit.

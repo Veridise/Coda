@@ -379,6 +379,45 @@ Proof.
 Qed.
 
 
+Lemma repr_le_nonneg: forall xs,
+  xs |: (1) ->
+  (0 <= F.to_Z (as_le 1 xs))%Z.
+Proof.
+  unwrap_C.
+  induction xs; intros; cbn [as_le].
+  - autorewrite with F_to_Z. lia.
+  - invert H.
+    apply F.to_Z_range. lia.
+Qed.
+
+
+Lemma repr_le_ub_last0: forall xs (i: nat),
+  xs |: (1) ->
+  (length xs <= k)%Z ->
+  (i = length xs - 1)%nat ->
+  ^as_le 1 xs <= (2^i - 1)%Z ->
+  List.nth (length xs-1)%nat xs 0 = 0.
+Proof.
+  intros. subst i.
+  unwrap_C.
+  remember (nth (length xs - 1) xs 0) as last.
+  assert (Hlast: binary last). {
+  destruct xs.
+  - simpl in Heqlast. left. auto.
+  - apply in_range_binary. subst. apply Forall_nth. auto.
+    simpl. lia.
+  }
+  destruct Hlast. auto.
+  exfalso.
+  pose proof (repr_le_ub' _ H H0).
+  rewrite as_le_split_last with (i:=(length xs-1)%nat) in H2.
+  autorewrite with F_to_Z in H2;
+  repeat (autorewrite with F_to_Z; try lia).
+Admitted.
+    
+
+
+
 Lemma Z_le_mul_pos: forall a b c,
   c > 0 ->
   a <= b ->

@@ -153,6 +153,13 @@ Proof.
   unfold to_Z in *. split_dec; try lia.
 Qed.
 
+Lemma to_Z_sub: forall x y,
+  (|$x| + |$y|) < q//2 ->
+  $x >= $y ->
+  $(x - y) = $x - $y.
+Proof.
+Admitted.
+
 Lemma to_Z_mul: forall x y,
   (|$x| * |$y|) < q//2 ->
   $(x * y) = $x * $y.
@@ -322,25 +329,6 @@ Proof.
   etransitivity. apply pow_2_k_sub_1. apply half_lb.
 Qed.
 
-Lemma to_Z_2_pow: forall (n:N),
-  n <= k - 1 ->
-  $((2:F) ^ n) = $(2:F) ^ n.
-Proof.
-  unwrap_C.
-  intros n Hnk. unfold to_Z.
-  pose proof Hnk as Hnk'.
-  apply (le_sub1_r_pow 2) in Hnk; try lia.
-  pose proof half_ge_2.
-  destruct half_spec as [half_spec half_spec'].
-  repeat (autorewrite with F_to_Z; try lia);
-  try (simpl; lia).
-  split_dec; try lia.
-  exfalso. apply n0.
-  etransitivity.
-  2: { apply half_lb. }
-  simpl.
-  apply Zpow_facts.Zpower_le_monotone; try lia.
-Qed.
 
 
 Lemma to_Z_0: $0 = 0.
@@ -376,6 +364,32 @@ Proof.
   pose proof half_geq_2. lia.
 Qed.
 
+
+Lemma to_Z_2_pow: forall (n:N),
+  n <= k - 1 ->
+  $((2:F) ^ n) = 2 ^ n.
+Proof.
+  unwrap_C.
+  intros n Hnk. 
+  assert ($((2:F) ^ n) = $(2:F) ^ n). {
+    unfold to_Z.
+    pose proof Hnk as Hnk'.
+    apply (le_sub1_r_pow 2) in Hnk; try lia.
+    pose proof half_ge_2.
+    destruct half_spec as [half_spec half_spec'].
+    repeat (autorewrite with F_to_Z; try lia);
+    try (simpl; lia).
+    split_dec; try lia.
+    exfalso. apply n0.
+    etransitivity.
+    2: { apply half_lb. }
+    simpl.
+    apply Zpow_facts.Zpower_le_monotone; try lia.
+  }
+  rewrite H. rewrite to_Z_2. reflexivity.
+Qed.
+
+
 Lemma abs_nonneg: forall x,
   0 <= x -> |x| = x.
 Admitted.
@@ -389,6 +403,9 @@ Lemma mod1: forall x y,
   x mod y = x - y.
 Admitted.
 
+Lemma pow_nonneg: forall (n: N), |2^n| = 2^n.
+Proof. intros. rewrite abs_nonneg; lia. Qed.
+
 
 Ltac solve_to_Z := repeat (autorewrite with F_to_Z; try (lia || simpl; lia)).
 Ltac solve_to_Z' H := autorewrite with F_to_Z in H; try (lia || simpl; lia).
@@ -396,9 +413,9 @@ Ltac solve_to_Z' H := autorewrite with F_to_Z in H; try (lia || simpl; lia).
 Local Coercion Z.of_nat: nat >-> Z.
 Local Coercion N.of_nat: nat >-> N.
 
+(* TODO: change to l:Z *)
 Lemma range_check x (l:N)
-  (Hl: l <= C.k - 2)
-  (Hx: |$x| <= 2^(C.k - 1)):
+  (Hl: l <= C.k - 2):
   ^(x+2^l) <= 2^(l+1) ->
   |$x| <= 2^l.
 Proof.
@@ -450,3 +467,19 @@ Qed.
 End Signed.
 
 Notation "$ x" := (Signed.to_Z x) (at level 30) : circom_scope.
+
+
+
+Create HintDb F_to_Signed discriminated.
+#[export] Hint Rewrite (Signed.to_Z_2) : F_to_Signed.
+#[export] Hint Rewrite (Signed.to_Z_add) : F_to_Signed.
+#[export] Hint Rewrite (Signed.to_Z_sub) : F_to_Signed.
+#[export] Hint Rewrite (Signed.to_Z_mul) : F_to_Signed.
+#[export] Hint Rewrite (Signed.to_Z_2_pow) : F_to_Signed.
+#[export] Hint Rewrite (Signed.to_Z_0) : F_to_Signed.
+#[export] Hint Rewrite (Signed.to_Z_1) : F_to_Signed.
+#[export] Hint Rewrite (Signed.to_Z_2) : F_to_Signed.
+#[export] Hint Rewrite (Signed.pow_nonneg) : F_to_Signed.
+
+(* Lemma test: forall (n:N), n <= C.k - 1 -> $(2^n) = 2^n. *)
+(* Proof. intros. autorewrite with F_to_Signed; lia. Qed. *)

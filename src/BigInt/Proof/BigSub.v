@@ -15,7 +15,7 @@ Require Import Crypto.Arithmetic.ModularArithmeticTheorems Crypto.Arithmetic.Pri
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
-From Circom Require Import Repr ReprZ.
+From Circom Require Import Repr ReprZ LibOverflow Signed.
 From Circom.CircomLib Require Import Bitify Comparators.
 From Circom.BigInt.Definition Require Import BigSub.
 (* Circuit:

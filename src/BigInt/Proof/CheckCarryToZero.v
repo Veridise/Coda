@@ -19,7 +19,7 @@ Require Import Ring.
 
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
-From Circom Require Import Repr ReprZ Signed.
+From Circom Require Import Repr ReprZ Signed LibOverflow.
 From Circom.CircomLib Require Import Bitify Comparators Gates.
 From Circom.BigInt.Definition Require Import CheckCarryToZero.
 (* Circuit:Z
@@ -200,17 +200,13 @@ Proof.
     apply D.iter_inv; unfold Inv_sum.
     - lia.
     - intros i _cons IH Hi Hstep j Hj.
+    Locate to_Z_2_pow.
       assert (Hcarry: | $ ' carry ! j | <= 2 ^ (m - n)). apply Hinv_carry_range. auto. lia.
       assert (Hcarry': | $ ' carry ! (j-1)%nat | <= 2 ^ (m - n)). apply Hinv_carry_range. auto. lia.
       assert (Hcarry_2n: ($('carry!j * (1+1)^n) = $'carry!j * 2^n)%Z). {
         (* range check: distribute sum *)
-        rewrite Signed.to_Z_mul, Signed.to_Z_2_pow, Signed.to_Z_2. nia. lia.
-        rewrite Signed.to_Z_2_pow, Signed.to_Z_2 by lia.
-        rewrite Signed.abs_nonneg with (x:=(Z.pow (Zpos (xO xH)) (Z.of_N (N.of_nat n)))) by lia.
-        eapply Z.le_lt_trans.
-        apply Z.mul_le_mono_nonneg_r. lia. eauto.
-        rewrite <- Zpower_exp, nat_N_Z by lia.
-        apply pow_lt_trans with ((C.k-1))%Z; try lia.
+        repeat autorewrite with F_to_Signed; try lia.
+        overflow (3%nat).
       }
       subst f. lift_to_list.
       split_dec.
@@ -239,13 +235,12 @@ Proof.
         simplify.
         rewrite firstn_length_le; lia.
 
+        assert (| $ 'x!i | <= 2 ^ (m - 1)). {
+          unfold_default. apply Forall_nth. auto. lia.
+        }
+
         (* range check: distribute sum *)
-        eapply Z.le_lt_trans with (2^((m-1)+1))%Z.
-        apply le_2pow_add1.
-        (* |$'x!i| <= 2^(m-1) *)
-        unfold_default. apply Forall_nth. auto. lia.
-        apply le_pow_trans with (m-n)%Z; try lia.
-        eapply pow_lt_trans with ((C.k-1)%Z); try lia.
+        overflow (5%nat).
   }
   (* last carry is in range *)
   assert (Hcarry_k_2_range: | $ ' carry ! (k - 2) | <= 2 ^ (m - n)). apply Hinv_carry_range. auto. lia.
@@ -254,20 +249,21 @@ Proof.
   replace (k - 2 + 1)%nat with (k-1)%nat in Hcarry_k_2 by lia.
   replace ((k - 2)%nat + 1)%Z with (k-1)%Z in Hcarry_k_2 by lia.
   lift_to_list.
+
+  assert (| $ 'x!(k-1) | <= 2 ^ (m - 1)). {
+          unfold_default. apply Forall_nth. auto. lia.
+        }
+
   (* distribute sum *)
   apply f_equal with (f:=Signed.to_Z) in last.
-  rewrite Signed.to_Z_add, Signed.to_Z_0 in last.
-  rewrite RZ.as_le_split_last' with (i:=(k-1)%nat). unfold RZ.ToZ.to_Z.
+  autorewrite with F_to_Signed in last.
+  rewrite RZ.as_le_split_last' with (i:=(k-1)%nat); try lia.
+  unfold RZ.ToZ.to_Z.
   rewrite <- Hcarry_k_2.
-  rewrite Nat2Z.inj_sub by lia. simpl. lia.
+  rewrite Nat2Z.inj_sub by lia. simpl.
   lia.
-  (* range check: distribute sum *)
-  eapply Z.le_lt_trans with (2^((m-1)+1))%Z.
-  apply le_2pow_add1.
-  (* |$'x!i| <= 2^(m-1) *)
-  unfold_default. apply Forall_nth. auto. lia.
-  apply le_pow_trans with (m-n)%Z; try lia.
-  eapply pow_lt_trans with ((C.k-1)%Z); try lia.
+
+  overflow (5%nat).
 Unshelve. exact F.zero. 
 Qed.
 

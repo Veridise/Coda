@@ -5,7 +5,7 @@ type typ =
   | TRef of refinement
   | TFun of string * refinement * typ
   | TProd of typ list * qual option
-  | TArr of typ * qual
+  | TArr of typ * qual * expr
   [@@deriving show, eq]
 
 and refinement = tyBase * qual
@@ -34,7 +34,7 @@ and expr =
   (* variable *)
   | Var of string
   (* abstraction *)
-  | Lam of string * typ * expr
+  | Lam of pattern * typ * expr
   (* application *)
   | App of expr * expr
   (* unary operation *)
@@ -55,25 +55,28 @@ and expr =
   | Scale of expr * expr
   | Take of expr
   | Drop of expr
-  | Sum of expr
+  (* indexed sum: var, start, end, body *)
+  | Sum of string * expr * expr * expr
   (* product ops *)
   | PCons of expr list * qual option
-  | PDestr of expr * string list * expr
+  | PDestr of expr * pattern * expr
   (* functional ops *)
   | Map of expr * expr
   | Zip of expr * expr
-  | Foldl of expr * expr * expr
+  | Foldl of {f:expr; acc:expr; xs:expr}
   [@@deriving show, eq]
-and binop = Add | Sub | Mul
+and binop = Add | Sub | Mul | Pow
 and boolop = And | Or
   [@@deriving show, eq]
 and const = CNil | CUnit | CInt of int | CF of int | CBool of bool
   [@@deriving show, eq]
+and pattern = PStr of string | PProd of pattern list
 
 (* Statements *)
 type stmt =
   | SSkip
   | SLet of string * typ option * expr
+  | SLetP of pattern * typ option * expr
   | SAssert of expr
   [@@deriving show, eq]
 
@@ -98,14 +101,28 @@ let opp e = Opp e
 let add e1 e2 = Binop (Add, e1, e2)
 let sub e1 e2 = Binop (Sub, e1, e2)
 let mul e1 e2 = Binop (Mul, e1, e2)
+let pow e1 e2 = Binop (Pow, e1, e2)
 let eq e1 e2 = Eq (e1, e2)
-let assert_eq e1 e2 = SAssert (Eq (e1, e2))
+let bor e1 e2 = Boolop (Or, e1, e2)
+let band e1 e2 = Boolop (And, e1, e2)
+let assert_eq e1 e2 = SAssert (eq e1 e2)
 let v x = Var x
 let nu = Var "nu"
 let fc n = Const (CF n)
+let zc n = Const (CInt n)
 let f0 = fc 0
 let f1 = fc 1
+let f2 = fc 2
+let z0 = zc 0
+let z1 = zc 1
+let z2 = zc 2
+let tf_binary = TRef (TF, QExpr (bor (eq nu f0) (eq nu f1)))
 let slet x e = SLet (x, None, e)
+let sum si es ee eb = Sum (si, es, ee, eb)
+let get xs i = Get (xs, i)
+let toBigInt (i: string) (n: expr) (k: expr) (xs: expr) : expr = 
+  let ei = v i in
+  sum i z0 k (mul (get xs ei) (pow f2 (mul n ei)))
 
 let is_zero_spec = TRef (TF, QIte (QExpr (eq (v "in") f0), QExpr (eq nu f1), QExpr (eq nu f0)))
 let is_zero = Circuit {
@@ -126,6 +143,36 @@ let is_equal = Circuit {
     slet "z1" (sub f1 (v "z0"));
     assert_eq (v "out") (v "z1")
   ]
+}
+
+
+
+let num2bits = Circuit {
+  name = "Num2Bits";
+  params = [
+    ("n", Input, tint); 
+    ("in", Input, tf); 
+    ("out", Output, TArr (tf_binary, QExpr (eq (toBigInt "i" z1 (v "n") nu) (v "in")), v "n"))
+  ];
+  body = [
+    SSkip;
+    ]
+    (* SLetP (PProd [PStr "_", PStr "lc1", PStr "_", PStr "cons"]) (Foldl {
+      f=Lam (PProd [PProd [PStr "i", PStr "lc1", PStr "e2", PStr "cons"]; PStr "outi"],
+          PCons ([
+            (* i *)
+            add (v "i") z1;
+            (* lc1 *)
+            add (v "lc1") (mul (v "outi") (v "e2"));
+            (* e2 *)
+            add (v "e2") (v "e2");
+            (* cons *)
+            band cons (eq f0 (mul (v "outi") (sub (v "outi") f1)))
+          ], None));
+      acc=PCons ([f0, f0, f1, CBool true]);
+      xs=(v "out")});
+    SAssert (and (v "cons", eq (v "lc1") (v "in"))) *)
+  
 }
 
 type alpha = expr list
@@ -201,7 +248,7 @@ let typecheck_stmt (d: delta) (g: gamma) (a: alpha) (s: stmt) : (gamma * alpha *
 
 let rec to_base_typ = function
   | TRef (tb, _) -> TRef (tb, QTrue)
-  | TArr (t,_) -> TArr (to_base_typ t, QTrue)
+  | TArr (t,_,n) -> TArr (to_base_typ t, QTrue, n)
   | TFun _ -> todos "to_base_typ: TFun"
   | TProd _ -> todos "to_base_typ: TProd"
   [@@deriving show, eq]

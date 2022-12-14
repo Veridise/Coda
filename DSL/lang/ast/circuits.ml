@@ -3,36 +3,43 @@ open Lib__Dsl
 open Lib__Typecheck
 
 
-let _ = typecheck [] [] [] (Iter {
+(* let _ = typecheck [] [] [] (Iter {
   s=z0; 
   e=zc 5; 
   body=Lam ("i", tint, Lam ("x", tf, add (v "x") f1));
   init=f0;
-  inv=fun i -> fun x -> QExpr (eq i x)});;
+  inv=fun i -> fun x -> QExpr (eq i x)});; *)
 
-let d = add_to_delta d_empty is_zero
-
-let is_zero_spec = TRef (TF, QIte (QExpr (eq (v "in") f0), QExpr (eq nu f1), QExpr (eq nu f0)))
+let is_zero_spec = TRef (TF, QExpr (ite (eq (v "in") f0) (eq nu f1) (eq nu f0)))
 let is_zero = Circuit {
   name = "isZero";
-  params = [("in", Input, tf); ("out", Output, is_zero_spec); ("inv", Exists, tf)];
+  signals = [("in", Input, tf); ("out", Output, is_zero_spec); ("inv", Exists, tf)];
+  property = None;
   body = [
     assert_eq (v "out") (add (opp (mul (v "in") (v "inv"))) f1);
     assert_eq (mul (v "in") (v "out")) f0
   ]
 }
 
+let _ = typecheck_circuit [] is_zero;;
+
+
+(* 
+let d = add_to_delta d_empty is_zero
+
 let is_equal_spec = TRef (TF, QIte (QExpr (eq (v "x") (v "y")), QExpr (eq nu f1), QExpr (eq nu f0)))
 let is_equal = Circuit {
   name = "isEqual";
   params = [("x", Input, tf); ("y", Input, tf); ("out", Output, is_equal_spec)];
+  property = None;
   body = [
     slet "z0" (Call ("isZero", [sub (v "x") (v "y")]));
     (* slet "z1" (sub f1 (v "z0")); *)
     assert_eq (v "out") (v "z0")
   ]
-}
+} *)
 
+(*
 let num2bits = Circuit {
   name = "Num2Bits";
   params = [
@@ -40,6 +47,7 @@ let num2bits = Circuit {
     ("in", Input, tf); 
     ("out", Output, TArr (tf_binary, QExpr (eq (toBigInt "i" z1 (v "n") nu) (v "in")), v "n"))
   ];
+  property = None;
   body = [
     (* SSkip; *)
     SLetP (PProd [PStr "_"; PStr "lc1"; PStr "_"; PStr "cons"], None,
@@ -61,4 +69,4 @@ let num2bits = Circuit {
       xs=(v "out")})) ;
     SAssert (band (v "cons") (eq (v "lc1") (v "in")))
   ]
-}
+} *)

@@ -1,6 +1,5 @@
 open Ast
 open Dsl
-
 open Utils
 
 (* circuit declarations *)
@@ -8,7 +7,7 @@ type delta = (string * ctyp) list [@@deriving show]
 (* typing environment *)
 type gamma = (string * typ) list [@@deriving show]
 
-type alpha = expr list [@@deriving show]
+type alpha = qual list [@@deriving show]
 
 let d_empty = []
 
@@ -18,19 +17,31 @@ let a_empty = []
 
 let add_to_delta (d: delta) (c: circuit) : delta =
   match c with
-  | Circuit {name;params;body} -> (name, params) :: d
+  | Circuit {name; signals; property; body} -> (name, (signals,property)) :: d
 
-type cons = Subtype of gamma * alpha * typ * typ | HasType of gamma * alpha * string * typ [@@deriving show]
+type cons = 
+  | Subtype of gamma * alpha * typ * typ
+  | HasType of gamma * alpha * string * typ
+  | CheckCons of gamma * alpha * qual 
+  [@@deriving show]
 
-let functionalize (ctype: ctyp) : typ list * typ =
-  let get_typ (_,_,t) = t in
-  let inputs = List.filter (function (_,Input,_) -> true | _ -> false) ctype in
-  let outputs = List.filter (function (_,Output,_) -> true | _ -> false) ctype in 
-  assert (List.length outputs = 1);
-  (List.map get_typ inputs, get_typ (List.hd outputs))
+let map_opt (f: 'a -> 'b option) (xs: 'a list) : 'b list = 
+  List.map f xs 
+  |> List.filter (function Some _ -> true | _ -> false) 
+  |> List.map (function Some y -> y | _ -> failwith "impossible")
+
+let functionalize ((signals, q_opt): ctyp) : typ =
+  let get_typ (_,t) = t in
+  let get_name (x,_) = x in
+  let inputs = map_opt (function (x,Input,t) -> Some (x,t) | _ -> None) signals in
+  let outputs = map_opt (function (x,Output,t) -> Some (x,t) | _ -> None) signals in 
+  let (xs_out, ts_out) = List.split outputs in
+  let q = Option.map (fun q -> (xs_out, q)) q_opt in
+  List.fold_right (uncurry tfun) inputs (tprod ts_out q)
 
 let rec typecheck (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list) = 
-  let rec f : expr -> typ * cons list = function
+  let rec f (e: expr) : typ * cons list = 
+    match e with
     | Const c -> 
       let t = match c with
         | CF _ -> TRef (TF, QExpr (eq (v "nu") e))
@@ -44,24 +55,34 @@ let rec typecheck (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list)
       (t, [])
     | Binop (op, e1, e2) ->
       (* TODO: reflect *)
-      let ((tb1, q1), cs1) = f e1 in
-      let ((tb2, q2), cs2) = f e2 in
-      (TRef (tb1, QExpr (eq (v "nu") (Binop (op, e1, e2)))), cs1 @ cs2)
-    | Opp e ->
+      (* TODO: rule out invalid cases *)
+      let (TRef (tb1, q1), cs1) = f e1 in
+      let (TRef (tb2, q2), cs2) = f e2 in
+      (TRef (tb1, QExpr (eq (v "nu") e)), cs1 @ cs2)
+    | Boolop (op, e1, e2) ->
       (* TODO: reflect *)
-      f e
+      (* TODO: rule out invalid cases *)
+      let (TRef (tb1, q1), cs1) = f e1 in
+      let (TRef (tb2, q2), cs2) = f e2 in
+      (TRef (tb1, QExpr (eq (v "nu") e)), cs1 @ cs2)
+    | Comp (op, e1, e2) ->
+      (* TODO: reflect *)
+      (* TODO: rule out invalid cases *)
+      let (TRef (tb1, q1), cs1) = f e1 in
+      let (TRef (tb2, q2), cs2) = f e2 in
+      (TRef (tb1, QExpr (eq (v "nu") e)), cs1 @ cs2)
+    | Opp e' | Not e' ->
+      (* TODO: reflect *)
+      (* TODO: rule out invalid cases *)
+      let (TRef (tb, q), cs) = f e' in
+      (TRef (tb, QExpr (eq (v "nu") e)), cs)
     | Call (circ, args) ->
       (match List.assoc_opt circ d with
-      | Some ctype -> 
-        let (args_t, args_cs) = List.map f args |> List.split  in
-        let (params_t, out_t) = functionalize ctype in
-        let subs = List.map (fun (arg_t, param_t) -> Subtype (g, a, arg_t, param_t)) (List.combine args_t params_t) in
-        (out_t, List.concat args_cs @ subs)
+      | Some ct -> 
+        let (t_args, cs_args) = List.map f args |> List.split  in
+        let (t_out, cs_out) = check_app g a (functionalize ct) t_args in
+        (t_out, List.concat cs_args @ cs_out)
       | None -> failwith ("No such circuit: " ^ circ))
-    | Comp (_, e1, e2) ->
-      let (t1, cs1) = f e1 in
-      let (t2, cs2) = f e2 in
-      (tbool, cs1 @ cs2)
     | Iter {s; e; body; init; inv} ->
       let (ts, cs) = f s in
       let (te, ce) = f e in
@@ -70,7 +91,7 @@ let rec typecheck (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list)
       let tx_base = match tx with | TRef (t, _) -> t | _ -> failwith "invalid base type" in
       (* s is int *)
       let t_iter = 
-        (* TODO: check var freshness *)
+        (* TODO: ensure var freshness *)
         tfun "s" tint (
         tfun "e" (TRef (TInt, QExpr (leq nu (v "s")))) (
         tfun "body" (
@@ -83,6 +104,20 @@ let rec typecheck (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list)
     | Lam (x, t, body) ->
       let (t_body, cs) = typecheck d ((x,t)::g) a body in
       (tfun x t t_body, cs)
+    | PCons (es, q_opt) ->
+      let (ts, cs_s) = List.map f es |> List.split in
+      (tbool, [])
+      (* (tprod ts q_opt, cs_s @ (match q_opt with
+        | Some (xs, q) -> [CheckCons (List.combine xs ts @ g, a, q)]
+        | None -> [])) *)
+    | PDestr (e1, xs, e2) ->
+      let (t1, cs1) = f e1 in
+      (match t1 with
+      | TProd (ts, q_opt) ->
+        let a' = match q_opt with Some (xs, q) -> [q] | _ -> [] in
+        let (t2, cs2) = typecheck d (List.combine xs ts) (a' @ a) e2 in
+        (t2, cs1 @ cs2)
+      | _ -> failwith "not a product")
     | _ -> todo ()
   in f e
 
@@ -106,7 +141,7 @@ let typecheck_stmt (d: delta) (g: gamma) (a: alpha) (s: stmt) : (gamma * alpha *
     let (t', cs) = typecheck d g a e in
     ((x,t')::g, [], cs)
   | SAssert e ->
-    (g, [e], [])
+    (g, [QExpr e], [])
 
 let rec to_base_typ = function
   | TRef (tb, _) -> TRef (tb, QTrue)
@@ -117,24 +152,25 @@ let rec to_base_typ = function
   
 let init_gamma (c: circuit) : gamma =
   match c with
-  | Circuit {name;params;body} ->
-    List.map (function
+  | Circuit {name; signals; property; body} ->
+    signals |> List.map (function
       (* populate gamma with pre-conditions *)
       | (x,Input,t) -> (x, t) 
       (* ignore post-conditions *)
       | (x,Output,t) -> (x, to_base_typ t)
       (* ignore existential variables *)
-      | (x,Exists,t) -> (x, to_base_typ t)) params
-  
+      | (x,Exists,t) -> (x, to_base_typ t))
+
 let typecheck_circuit (d: delta) (c: circuit) : cons list =
   match c with
-  | Circuit {name;params;body} ->
+  | Circuit {name; signals; property; body} ->
     let (g, a, cs) = List.fold_left
       (fun ((g, a, cs): gamma * alpha * cons list) (s: stmt) ->
         let (g', a', cs') = typecheck_stmt d g a s in 
         (g', a @ a', cs @ cs'))
       (init_gamma c, [], [])
       body in
-    let outputs = List.filter (function (_,Output,_) -> true | _ -> false) params in
+    let outputs = List.filter (function (_,Output,_) -> true | _ -> false) signals in
     let out_cons = List.map (fun (x,_,t) -> HasType (g, a, x, t)) outputs in
-    cs @ out_cons
+    let q_cons = property |> Option.map (fun q -> CheckCons (g, a, q)) |> Option.to_list in
+    cs @ out_cons @ q_cons

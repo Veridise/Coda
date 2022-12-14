@@ -19,10 +19,10 @@ type typ =
     
     [@printer fun fmt (t, q, l) -> fprintf fmt "Array<%s>[%s](%s)" (show_typ t) (show_qual q) (show_expr l)]
   
-  (* Product type: length, element types, optional aggregate qualifier *)
-  | TProd of int * typ list * (string list * qual) option
+  (* Product type: element types, optional aggregate qualifier *)
+  | TProd of typ list * (string list * qual) option
     
-    [@printer fun fmt (k, ts, q) -> let ts_str = String.concat " × " (List.map show_typ ts) in
+    [@printer fun fmt (ts, q) -> let ts_str = String.concat " × " (List.map show_typ ts) in
       match q with
       | None -> fprintf fmt "%s" ts_str
       | Some (xs, q) -> fprintf fmt "(%s)_(λ%s. %s)" ts_str (String.concat " " xs) (show_qual q)]
@@ -86,7 +86,7 @@ and expr =
   | Fn of func * expr
   [@@deriving show]
 and binop = Add | Sub | Mul | Pow [@@deriving show]
-and boolop = And | Or [@@deriving show]
+and boolop = And | Or | Imply [@@deriving show]
 and aop = Cons | Get | Scale | Take | Drop [@@deriving show]
 and func = Id | ToUZ | ToSZ [@@deriving show]
 and comp = Eq | Leq | Lt [@@deriving show]
@@ -102,13 +102,16 @@ type stmt =
   | SForall of (string list -> expr)
   [@@deriving show]
 
-type circuit = 
-  Circuit of {name:string; params: ctyp; body: stmt list}
-  [@@deriving show]
+type circuit =  Circuit of {
+  name: string; 
+  signals: signal list;
+  property: qual option;
+  body: stmt list
+} [@@deriving show]
 
 (* Circuit typing *)
-and ctyp = (string * mode * typ) list [@@deriving show]
-
+and signal = string * mode * typ [@@deriving show]
+and ctyp = signal list * qual option [@@deriving show]
 and mode = Input | Output | Exists [@@deriving show]
 
 

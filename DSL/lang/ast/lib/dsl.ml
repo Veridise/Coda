@@ -1,0 +1,36 @@
+open Ast
+let tf = TRef (TF, QTrue)
+let tint = TRef (TInt, QTrue)
+let tbool = TRef (TBool, QTrue)
+let tfun s tx tr : typ = TFun (s, tx, tr)
+let opp e = Opp e
+let add e1 e2 = Binop (Add, e1, e2)
+let sub e1 e2 = Binop (Sub, e1, e2)
+let mul e1 e2 = Binop (Mul, e1, e2)
+let pow e1 e2 = Binop (Pow, e1, e2)
+let eq e1 e2 = Comp (Eq, e1, e2)
+let leq e1 e2 = Comp (Leq, e1, e2)
+let lt e1 e2 = Comp (Lt, e1, e2)
+let bor e1 e2 = Boolop (Or, e1, e2)
+let band e1 e2 = Boolop (And, e1, e2)
+let assert_eq e1 e2 = SAssert (eq e1 e2)
+let v x = Var x
+let nu = Var "nu"
+let fc n = Const (CF n)
+let zc n = Const (CInt n)
+let f0 = fc 0
+let f1 = fc 1
+let f2 = fc 2
+let z0 = zc 0
+let z1 = zc 1
+let z2 = zc 2
+let btrue = Const (CBool true)
+let bfalse = Const (CBool false)
+let tf_binary = TRef (TF, QExpr (bor (eq nu f0) (eq nu f1)))
+let slet x e = SLet (x, None, e)
+let sum si es ee eb = Sum (si, es, ee, eb)
+let get xs i = ArrayOp (Get, xs, i)
+let toBigInt (i: string) (n: expr) (k: expr) (xs: expr) : expr = 
+  let ei = v i in
+  sum i z0 k (mul (get xs ei) (pow f2 (mul n ei)))
+let z_range l r = TRef (TInt, QExpr (band (leq l nu) (leq nu r)))

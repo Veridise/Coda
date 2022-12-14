@@ -1,0 +1,8 @@
+(env
+  (dev
+    (flags (:standard -warn-error -A))))
+
+(library
+ (name lib)
+ (modules utils ast dsl typecheck)
+ (preprocess (pps ppx_deriving.show ppx_deriving.eq)))

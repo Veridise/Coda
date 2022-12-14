@@ -54,10 +54,9 @@ and expr =
   | Const of const   [@printer fun fmt c -> fprintf fmt "%s" (show_const c)]    
   (* variable *)
   | Var of string    [@printer fun fmt x -> fprintf fmt "%s" x]
-  (* abstraction *)
+  (* abstraction & application *)
   | Lam of string * typ * expr   [@printer fun fmt (x,tx,e) -> fprintf fmt "λ%s: %s. %s" x (show_typ tx) (show_expr e)]
   | LamP of pattern * typ * expr [@printer fun fmt (p,tx,e) -> fprintf fmt "λ%s: %s. %s" (show_pattern p) (show_typ tx) (show_expr e)]
-  (* application *)
   | App of expr * expr           [@printer fun fmt (e1,e2) -> fprintf fmt "%s %s" (show_expr e1) (show_expr e2)]
   (* unary operation *)
   | Opp of expr                    [@printer fun fmt e -> fprintf fmt "(- %s)" (show_expr e)]
@@ -85,12 +84,31 @@ and expr =
   | Iter of {s: expr; e: expr; body: expr; init: expr; inv: expr -> expr -> qual}
   | Fn of func * expr
   [@@deriving show]
-and binop = Add | Sub | Mul | Pow [@@deriving show]
-and boolop = And | Or | Imply [@@deriving show]
+and binop = 
+  | Add [@printer fun fmt _ -> fprintf fmt "+"]
+  | Sub [@printer fun fmt _ -> fprintf fmt "-"]
+  | Mul [@printer fun fmt _ -> fprintf fmt "*"]
+  | Pow [@printer fun fmt _ -> fprintf fmt "^"]
+  [@@deriving show]
+and boolop = 
+  | And   [@printer fun fmt _ -> fprintf fmt "&&"]
+  | Or    [@printer fun fmt _ -> fprintf fmt "||"]
+  | Imply [@printer fun fmt _ -> fprintf fmt "==>"]
+  [@@deriving show]
 and aop = Cons | Get | Scale | Take | Drop [@@deriving show]
 and func = Id | ToUZ | ToSZ [@@deriving show]
-and comp = Eq | Leq | Lt [@@deriving show]
-and const = CNil | CUnit | CInt of int | CF of int | CBool of bool [@@deriving show]
+and comp = 
+  | Eq  [@printer fun fmt _ -> fprintf fmt "="]
+  | Leq [@printer fun fmt _ -> fprintf fmt "<="]
+  | Lt  [@printer fun fmt _ -> fprintf fmt "<"]
+  [@@deriving show]
+and const = 
+  | CNil          [@printer fun fmt _ -> fprintf fmt "[]"]
+  | CUnit         [@printer fun fmt _ -> fprintf fmt "()"]
+  | CInt of int   [@printer fun fmt n -> fprintf fmt "%d" n]
+  | CF of int     [@printer fun fmt n -> fprintf fmt "F%d" n]
+  | CBool of bool [@printer fun fmt b -> fprintf fmt "%s" (Bool.to_string b)]
+  [@@deriving show]
 and pattern = PStr of string | PProd of pattern list [@@deriving show]
 
 (* Statements *)

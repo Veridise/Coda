@@ -20,12 +20,12 @@ type typ =
     [@printer fun fmt (t, q, l) -> fprintf fmt "Array<%s>[%s](%s)" (show_typ t) (show_qual q) (show_expr l)]
   
   (* Product type: element types, optional aggregate qualifier *)
-  | TProd of typ list * (string list * qual) option
+  | TProd of typ list * ((expr, qual) binder) option
     
     [@printer fun fmt (ts, q) -> let ts_str = String.concat " × " (List.map show_typ ts) in
       match q with
       | None -> fprintf fmt "%s" ts_str
-      | Some (xs, q) -> fprintf fmt "(%s)_(λ%s. %s)" ts_str (String.concat " " xs) (show_qual q)]
+      | Some (xs, q) -> fprintf fmt "(%s)_(λ%s. %s)" ts_str (String.concat " " xs) (show_qual (q (List.map (fun x -> Var x) xs)))]
   
   [@@deriving show]
 
@@ -42,9 +42,11 @@ and tyBase =
   | TBool (* boolean *)    [@printer fun fmt _ -> fprintf fmt "B"]    
   [@@deriving show, eq] 
 
+and ('a, 'b) binder = string list * ('a list -> 'b)
+
 and qual =
   | QP (* field size *)      [@printer fun fmt _ -> fprintf fmt "p"]
-  | QExpr of expr            [@printer fun fmt e -> fprintf fmt "<expr>"]
+  | QExpr of expr            [@printer fun fmt e -> fprintf fmt "%s" (show_expr e)]
   | QTrue                    [@printer fun fmt _ -> fprintf fmt "⊤"]
   | QForall of string * qual [@printer fun fmt (s,q) -> fprintf fmt "∀%s. %s" s (show_qual q)]
   [@@deriving show]
@@ -74,7 +76,7 @@ and expr =
   (* indexed sum: var, start, end, body *) 
   | Sum of string * expr * expr * expr [@printer fun fmt (i,s,e,b) -> fprintf fmt "sum_{%s <= %s <= %s} %s" (show_expr s) i (show_expr e) (show_expr b)]
   (* product ops *)
-  | PCons of expr list * (string list * qual) option
+  | PCons of expr list * ((expr, qual) binder) option
   | PDestr of expr * string list * expr
   | PDestrP of expr * pattern * expr
   (* functional ops *)
@@ -120,16 +122,19 @@ type stmt =
   | SForall of (string list -> expr)
   [@@deriving show]
 
+type tyProperty = expr list -> expr list -> qual
+
 type circuit =  Circuit of {
   name: string; 
   signals: signal list;
-  property: qual option;
+  property: tyProperty option
+  [@printer fun fmt b -> fprintf fmt "1"];
   body: stmt list
 } [@@deriving show]
 
 (* Circuit typing *)
 and signal = string * mode * typ [@@deriving show]
-and ctyp = signal list * qual option [@@deriving show]
+and ctyp = signal list * tyProperty option [@printer fun fmt b -> fprintf fmt "1"] [@@deriving show]
 and mode = Input | Output | Exists [@@deriving show]
 
 
@@ -170,7 +175,10 @@ and vars_expr : expr -> SS.t = function
   | Call (_, es) -> unions (List.map vars_expr es)
   | ArrayOp (_, e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)
   | Sum (i, s, e, b) -> unions [vars_expr s; vars_expr e; except (vars_expr b) i]
-  | PCons (es, Some (xs, q)) -> unions ((excepts (vars_qual q) xs) :: (List.map vars_expr es))
+  | PCons (es, Some (xs, q)) ->
+      let q' = q (List.map (fun x -> Var x) xs) in
+      unions ((excepts (vars_qual q') xs) :: (List.map vars_expr es))
+  | PCons (es, None) -> unions (List.map vars_expr es)
   | PDestr (e1, xs, e2) -> SS.union (vars_expr e1) (excepts (vars_expr e2) xs)
   | PDestrP (e1, p, e2) -> SS.union (vars_expr e1) (SS.diff (vars_expr e2) (vars_pattern p))
   | Map (e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)

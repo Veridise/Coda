@@ -53,6 +53,18 @@ let functionalize ((signals, q_opt): ctyp) : typ =
 let functionalize_circ (Circuit {name; signals; property; body}) : typ =
   functionalize (signals, property)
 
+let rec subtype (g: gamma) (a: alpha) (t1: typ) (t2: typ) : cons list =
+  match (t1, t2) with
+  | (TRef _, TRef _) -> [Subtype (g, a, t1, t2)]
+  | (TFun (x1,s1,t1'), TFun (x2,s2,t2')) ->
+    if x1 = x2 then
+      Subtype (g, a, s2, s1) :: subtype ((x1,s2)::g) a t1' t2'
+    else
+      failwith "TODO: subst for function subtyping"
+  | (TProd _, TProd _) -> failwith "TODO: product subtyping"
+  | (TArr _, TArr _) -> failwith "TODO: array subtyping"
+  | _ -> failwith ("Subtype: illegal subtype " ^ (show_typ t1) ^ (show_typ t2))
+
 let rec typecheck (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list) = 
   let rec f (e: expr) : typ * cons list =
     let (t, cs) = f' e in (coerce_psingle t, cs)
@@ -166,7 +178,7 @@ and check_app (g: gamma) (a: alpha) (t_f: typ) (t_args: typ list) : typ * cons l
     (match t_f with
     | TFun (x, t_x, t_body) ->
       let (t, cs) = check_app ((x,t_arg)::g) a t_body t_args' in
-      (t, Subtype (g, a, t_arg, t_x) :: cs)
+      (t, subtype g a t_arg t_x @ cs)
     | _ -> failwith "Not a function")
 
 let typecheck_stmt (d: delta) (g: gamma) (a: alpha) (s: stmt) : (gamma * alpha * cons list) =

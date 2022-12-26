@@ -39,3 +39,5 @@ let toBigInt (i: string) (n: expr) (k: expr) (xs: expr) : expr =
   let ei = v i in
   sum i z0 k (mul (get xs ei) (pow f2 (mul n ei)))
 let z_range l r = TRef (TInt, QExpr (band (leq l nu) (leq nu r)))
+let toSZ e = Fn (ToSZ, e)
+let toUZ e = Fn (ToUZ, e)

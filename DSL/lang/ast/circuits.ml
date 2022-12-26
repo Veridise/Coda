@@ -57,8 +57,8 @@ let (tloop, check_loop) = typecheck [] [] [] (Iter {
   s=z0; 
   e=zc 5; 
   body=Lam ("i", tint, Lam ("x", tf, add (v "x") f1));
-  init=z0;
-  inv= fun i -> fun x -> QExpr (eq i x)});; 
+  init=f0;
+  inv= fun i -> fun x -> QExpr (eq (toUZ x) i)});; 
   (* 
 
 let num2bits = Circuit {

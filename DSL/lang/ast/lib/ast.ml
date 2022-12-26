@@ -84,7 +84,8 @@ and expr =
   | Zip of expr * expr
   | Foldl of {f:expr; acc:expr; xs:expr}
   | Iter of {s: expr; e: expr; body: expr; init: expr; inv: expr -> expr -> qual}
-  | Fn of func * expr
+  (* Built-in functions *)
+  | Fn of func * expr [@printer fun fmt (f,e) -> fprintf fmt "(%s %s)" (show_func f) (show_expr e)]
   [@@deriving show]
 and binop = 
   | Add [@printer fun fmt _ -> fprintf fmt "+"]
@@ -98,7 +99,11 @@ and boolop =
   | Imply [@printer fun fmt _ -> fprintf fmt "==>"]
   [@@deriving show]
 and aop = Cons | Get | Scale | Take | Drop [@@deriving show]
-and func = Id | ToUZ | ToSZ [@@deriving show]
+and func = 
+  | Id [@printer fun fmt _ -> fprintf fmt "id"]
+  | ToUZ [@printer fun fmt _ -> fprintf fmt "toUZ"]
+  | ToSZ [@printer fun fmt _ -> fprintf fmt "toSZ"]
+  [@@deriving show]
 and comp = 
   | Eq  [@printer fun fmt _ -> fprintf fmt "="]
   | Leq [@printer fun fmt _ -> fprintf fmt "<="]

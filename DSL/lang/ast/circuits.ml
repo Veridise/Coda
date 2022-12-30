@@ -3,10 +3,13 @@ open Lib__Dsl
 open Lib__Typecheck
 
 (*
+let tx = tf in
+let ty = re TF (eq nu (v "x")) in
 let c1 = Circuit {
   name = "c1";
   inputs = [("x", tf)];
-  outputs = [("y", re TF (eq nu (v "x")))];
+  outputs = [("y", ty)];
+  ctype = tfun "x" tx (fun x -> ty);
   exists = [];
   body = []
 }
@@ -76,7 +79,7 @@ let (tn2bloop, check_n2bloop) = synthesize [] [] [] (Iter {
       elet "lc1" (tget (v "lc1_e2") 0) (
       elet "e2" (tget (v "lc1_e2") 1) (
       tmake [
-        add (v "lc1") (mul (v "outi") (v "e2"));
+        add (v "lc1") (mul f1 (v "e2"));
         add (v "e2") (v "e2")]))));
   init=tmake [f0; f1];
   inv=fun i -> fun x -> ttuple [tf; tf]

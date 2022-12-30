@@ -2,6 +2,8 @@
 
 let nu_str = "ν"
 
+
+
 type typ =
   (* Refinement type *)
   | TRef of refinement
@@ -9,12 +11,13 @@ type typ =
     [@printer fun fmt r -> fprintf fmt "%s" (show_refinement r)]
 
   (* Function type: input name, input type, output type *)
-  | TFun of (string * typ * typ)
+  | TFun of string * typ * (expr -> typ)
     
-    [@printer fun fmt (x, tx, tr) -> 
-      match tx with 
-        | TFun _ ->  fprintf fmt "%s: (%s) -> %s" x (show_typ tx) (show_typ tr)
-        | _ -> fprintf fmt "%s: %s -> %s" x (show_typ tx) (show_typ tr)]
+    [@printer fun fmt (x, t1, ft2) -> 
+      let t2 = ft2 (Var x) in
+      match t1 with 
+        | TFun _ ->  fprintf fmt "%s: (%s) -> %s" x (show_typ t1) (show_typ t2)
+        | _ -> fprintf fmt "%s: %s -> %s" x (show_typ t1) (show_typ t2)]
   
   (* Array type: element type, aggregate qualifier, length expression *)
   | TArr of typ * (expr -> qual) * expr 
@@ -29,7 +32,7 @@ type typ =
       fprintf fmt "%s" ts_str]
   
   (* Dependent product type: element types, and an aggregate qualifier *)
-  | TDProd of typ list * ((expr, qual) binder)
+  | TDProd of typ list * ((expr, qual) binders)
     
     (* [@printer fun fmt (ts, (xs, q)) -> 
       let ts_str = String.concat " × " (List.map show_typ ts) in
@@ -50,12 +53,13 @@ and tyBase =
   | TBool (* boolean *)    [@printer fun fmt _ -> fprintf fmt "B"]    
   [@@deriving show, eq] 
 
-and ('a, 'b) binder = string list * ('a list -> 'b)
+and ('a, 'b) binders = string list * ('a list -> 'b)
+and ('a, 'b) binder = string * ('a -> 'b)
 
 and qual =
   | QP (* field size *)      [@printer fun fmt _ -> fprintf fmt "p"]
-  | QExpr of expr            [@printer fun fmt e -> fprintf fmt "%s" (show_expr e)]
   | QTrue                    [@printer fun fmt _ -> fprintf fmt "⊤"]
+  | QExpr of expr            [@printer fun fmt e -> fprintf fmt "%s" (show_expr e)]
   | QForall of string * qual [@printer fun fmt (s,q) -> fprintf fmt "∀%s. %s" s (show_qual q)]
   [@@deriving show]
 
@@ -81,7 +85,7 @@ and expr =
   (* call: name, template *)
   | Call of string * (expr list)   [@printer fun fmt (c,args) -> fprintf fmt "#%s(%s)" c (String.concat " " (List.map show_expr args))]
   (* let-binding *)
-  | LetIn of string * expr * expr
+  | LetIn of string * expr * expr  [@printer fun fmt (x,e1,e2) -> fprintf fmt "let %s = %s in %s" x (show_expr e1) (show_expr e2)]
   (* array ops *)
   | ArrayOp of (aop * expr * expr) [@printer fun fmt (op,e1,e2) -> fprintf fmt "(%s %s %s)" (show_aop op) (show_expr e1) (show_expr e2)]
   (* indexed sum: var, start, end, body *) 
@@ -90,7 +94,7 @@ and expr =
   | TMake of expr list [@printer fun fmt es -> fprintf fmt "(%s)" (String.concat ", " (List.map show_expr es))]
   | TGet of expr * int [@printer fun fmt (e,n) -> fprintf fmt "%s.%d" (show_expr e) n]
   (* dependent product ops *)
-  | DPCons of expr list * ((expr, qual) binder)
+  | DPCons of expr list * ((expr, qual) binders)
   | DPDestr of expr * string list * expr
   | DPDestrP of expr * pattern * expr
   (* functional ops *)
@@ -146,6 +150,7 @@ type circuit =  Circuit of {
   inputs: signal list;
   exists: signal list;
   outputs: signal list;
+  ctype: typ;
   body: stmt list
 } [@@deriving show]
 
@@ -167,7 +172,7 @@ let fresh () = let c = !count in count := c+1; "_var_" ^ Int.to_string c
 
 let rec vars_typ : typ -> SS.t = function
   | TRef (_, q) -> except (vars_qual q) nu_str
-  | TFun (x, tx, tr) -> SS.union (vars_typ tx) (except (vars_typ tr) nu_str)
+  | TFun (x, t1, ft2) -> SS.union (vars_typ t1) (except (vars_typ (ft2 (Var x))) x)
   | TTuple _ -> todo ()
   | TDProd _ -> todo ()
   | TArr (t, q, e) -> unions [vars_typ t; except (vars_qual (q (Var nu_str))) nu_str; vars_expr e]
@@ -210,3 +215,59 @@ and vars_expr : expr -> SS.t = function
 and vars_pattern : pattern -> SS.t = function
   | PStr x -> SS.singleton x
   | PProd pp -> unions (List.map vars_pattern pp)
+
+let rec subst_typ (x: string) (e: expr) (t: typ) : typ =
+  let f = subst_typ x e in
+  match t with
+  | TRef (tb, q) -> TRef (tb, subst_qual x e q)
+  | TFun (y, t1, ft2) ->
+    if x = y then t
+    else TFun (y, subst_typ x e t1, (fun xe -> subst_typ x e (ft2 xe)))
+  | TArr (t, fq, e') -> TArr (f t, (fun nu -> subst_qual x e (fq nu)), subst_expr x e e')
+  | TTuple ts -> TTuple (List.map f ts)
+  | TDProd _ -> todo ()
+
+and subst_qual (x: string) (e: expr) (q: qual) : qual =
+  match q with
+  | QP -> q
+  | QTrue -> q
+  | QExpr e' -> QExpr (subst_expr x e e')
+  | QForall (i, q') ->
+    if i = x then q
+    else QForall (i, subst_qual x e q')
+
+and subst_expr (x: string) (ef: expr) (e: expr) : expr =
+  let f = subst_expr x ef in
+  match e with
+  | Const _ -> e
+  | Var y -> if x = y then ef else e
+  | LamA (y, t, body) ->
+    if x = y then e else LamA (y, subst_typ x ef t, f body)
+  | App (e1, e2) -> App (f e1, f e2)
+  | Not e' -> Not (f e')
+  | Opp e' -> Opp (f e')
+  | Binop (op, e1, e2) -> Binop (op, f e1, f e2)
+  | Boolop (op, e1, e2) -> Boolop (op, f e1, f e2)
+  | Comp (op, e1, e2) -> Comp (op, f e1, f e2) 
+  | Call (c, es) -> Call (c, List.map f es)
+  | ArrayOp (op, e1, e2) -> ArrayOp (op, f e1, f e2)
+  | TMake es -> TMake (List.map f es)
+  | TGet (e, n) -> TGet (f e, n)
+  | Fn (fn, e) -> Fn (fn, f e)
+  | Iter {s; e; body; init; inv} ->
+    Iter {
+      s = f s; 
+      e = f e; 
+      body = f body; 
+      init = f init; 
+      inv = (fun ei -> fun ex -> (subst_typ x ef (inv ei ex)))
+    }
+  | DPCons (es, (xs, q)) -> todos "subst_expr: DPCons"
+  | Sum (i, s, e, b) -> todos "subst_expr: Sum"
+  | DPDestr (e1, xs, e2) -> todos "subst_expr: DPDestr"
+  | DPDestrP (e1, p, e2) -> todos "subst_expr: DPDestrP"
+  | Map (e1, e2) -> todos "subst_expr: Map"
+  | Zip (e1, e2) -> todos "subst_expr: Zip"
+  | Foldl {f; acc; xs} -> todos "subst_expr: Foldl"
+  | _ -> todos "subst_expr"
+  

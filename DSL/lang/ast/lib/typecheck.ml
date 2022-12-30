@@ -19,7 +19,7 @@ let a_empty = []
 
 let add_to_delta (d: delta) (c: circuit) : delta =
   match c with
-  | Circuit {name; inputs; outputs; exists; body} -> (name, c) :: d
+  | Circuit {name; inputs; outputs; exists; ctype; body} -> (name, c) :: d
 
 type cons = 
   | Subtype of gamma * alpha * typ * typ
@@ -33,20 +33,18 @@ type cons =
 let pc (cs: cons list) : unit =
   cs |> List.map show_cons |> String.concat "\n\n" |> print_endline
 
-let functionalize_circ (Circuit {name; inputs; outputs; exists; body}) : typ =
-  let get_typ (_,t) = t in
+let functionalize_circ (Circuit {name; inputs; outputs; exists; ctype; body}) : typ =
+  ctype
+  (* let get_typ (_,t) = t in
   let get_name (x,_) = x in
   assert (List.length outputs = 1);
-  List.fold_right (uncurry tfun) inputs (get_typ (List.hd outputs))
+  List.fold_right (uncurry tfun) inputs (get_typ (List.hd outputs)) *)
 
 let rec subtype (g: gamma) (a: alpha) (t1: typ) (t2: typ) : cons list =
   match (t1, t2) with
   | (TRef _, TRef _) -> [Subtype (g, a, t1, t2)]
-  | (TFun (x1,s1,t1'), TFun (x2,s2,t2')) ->
-    if x1 = x2 then
-      Subtype (g, a, s2, s1) :: subtype ((x1,s2)::g) a t1' t2'
-    else
-      failwith "TODO: subst for function subtyping"
+  | (TFun (x,t1,ft2), TFun (y,t1',ft2')) ->
+    Subtype (g, a, t1', t1) :: subtype ((x,t1')::g) a (ft2 (v x)) (ft2' (v x))
   | (TTuple ts1, TTuple ts2) -> List.concat_map (uncurry (subtype g a)) (List.combine ts1 ts2)
   | (TDProd _, TDProd _) -> failwith "TODO: product subtyping"
   | (TArr _, TArr _) -> failwith "TODO: array subtyping"
@@ -57,6 +55,7 @@ let coerce_psingle : typ -> typ = function
   | t -> t
 
 let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list) = 
+  print_endline (Format.sprintf "Synthesizing type for %s" (show_expr e));
   let rec f (e: expr) : typ * cons list =
     let (t, cs) = f' e in (coerce_psingle t, cs)
   and f' (e: expr) : typ * cons list = 
@@ -78,7 +77,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       let cs = check d g a e t in (t, cs)
     | LamA (x, t1, e) ->
       let (t2, cs) = synthesize d ((x,t1)::g) a e in
-      (tfun x t1 t2, cs)
+      (tfun x t1 (fun xe -> subst_typ x xe t2), cs)
     | Binop (op, e1, e2) ->
       (* TODO: reflect *)
       let (TRef (tb1, q1), cs1) = f e1 in
@@ -128,19 +127,19 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       (* s is int *)
       let t_iter = 
         (* TODO: ensure var freshness *)
-        tfun "s" tint (
-        tfun "e" (TRef (TInt, QExpr (leq (v "s") nu))) (
+        tfun "s" tint (fun s ->
+        tfun "e" (TRef (TInt, QExpr (leq (v "s") nu))) (fun e ->
         tfun "body" (
           (* assume s <= i <= e *)
-          tfun "i" (z_range (v "s") (v "e")) (
+          tfun "i" (z_range s e) (fun i ->
           (* assume inv(i,x) holds *)
-          tfun "x" (inv (v "i") nu)
+          tfun "x" (inv i nu) (fun _ ->
           (* prove inv(i+1,output) holds *)
-          (inv (add z1 (v "i")) nu))) (
+          (inv (add z1 i) nu)))) (fun _ ->
         (* prove inv(s,init) holds *)
-        tfun "init" (inv (v "s") nu)
+        tfun "init" (inv (v "s") nu) (fun _ ->
         (* conclude inv(e,output) holds *)
-        (inv e nu)))) in 
+        (inv e nu))))) in 
       check_app d g a t_iter [s; e; body; init]
     | TMake es ->
       let (ts, cs_s) = List.(map f es |> split) in
@@ -183,24 +182,23 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
   in f e
 
 and check_app (d: delta) (g: gamma) (a: alpha) (t: typ) (es: expr list) : typ * cons list =
-  (* print_endline ("Function: " ^ show_typ t); *)
-  (* print_endline (String.concat "\n" (List.map show_typ t_args)); *)
   match es with
   | [] -> (t, [])
   | e::es' ->
     (match t with
-    | TFun (x, t1, t2) ->
-      let (t, cs) = check_app d ((x,t1)::g) a t2 es' in
+    | TFun (x, t1, ft2) ->
+      let (t, cs) = check_app d ((x,t1)::g) a (ft2 (v x)) es' in
       (t, check d g a e t1 @ cs)
     | _ -> failwith "Not a function")
 
 and check (d: delta) (g: gamma) (a: alpha) (e: expr) (t: typ) : cons list =
+  print_endline (Format.sprintf "Checking %s has type %s" (show_expr e) (show_typ t));
   match (e, t) with
-  | (Lam (x, body), TFun (y, t1, t2)) ->
-    if x = y then
-      check d ((x,t1)::g) a body t2
-    else
-      failwith "Lam's argument string disagrees with type argument string"
+  | (Lam (x, body), TFun (y, t1, ft2)) ->
+      check d ((x,t1)::g) a body (ft2 (v x))
+  | (LamA (x, t, body), TFun (y, t1, ft2)) -> 
+      subtype g a t1 t @ check d ((x,t1)::g) a body (ft2 (v x))
+
   | (LetIn (x, e1, e2), t2) ->
     let (t1, cs) = synthesize d g a e1 in
     check d ((x,t1)::g) a e2 t2
@@ -231,12 +229,12 @@ let rec to_base_typ = function
 let init_gamma (c: circuit) : gamma =
   let to_base_types = List.map (fun (x,t) -> (x, to_base_typ t)) in
   match c with
-  | Circuit {name; inputs; outputs; exists; body} ->
+  | Circuit {name; inputs; outputs; exists; ctype; body} ->
     inputs @ to_base_types outputs @ to_base_types exists
 
 let typecheck_circuit (d: delta) (c: circuit) : cons list =
   match c with
-  | Circuit {name; inputs; outputs; exists; body} ->
+  | Circuit {name; inputs; outputs; exists; ctype; body} ->
     let (g, a, cs) = List.fold_left
       (fun ((g, a, cs): gamma * alpha * cons list) (s: stmt) ->
         let (g', a', cs') = typecheck_stmt d g a s in 

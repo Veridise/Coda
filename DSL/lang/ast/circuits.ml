@@ -2,11 +2,12 @@ open Lib__Ast
 open Lib__Dsl
 open Lib__Typecheck
 
-(* let c1 = Circuit {
+(*
+let c1 = Circuit {
   name = "c1";
-  signals = [("x", Input, tf); ("y", Output, re TF (eq nu (v "x")))];
-  (* property = Some (function [x] -> function [y] -> QExpr (eq x y)); *)
-  property = None;
+  inputs = [("x", tf)];
+  outputs = [("y", re TF (eq nu (v "x")))];
+  exists = [];
   body = []
 }
 
@@ -14,23 +15,25 @@ let d = add_to_delta [] c1
 
 let c2 = Circuit {
   name = "c2";
-  signals = [("x", Input, tf); ("y", Output, re TF (eq nu (v "x")))];
-  property = None;
+inputs = [("x", tf)];
+outputs = [("y", re TF (eq nu (v "x")))];
+exists = [];
   body = [
     slet "y'" (Call ("c1", [v "x"]));
     assert_eq (v "y") (v "y'")
   ]
 }
 
-let cs2 = typecheck_circuit d c2 *)
+let cs2 = typecheck_circuit d c2
 
 
 
 let is_zero_spec = re TF (ite (eq (v "in") f0) (eq nu f1) (eq nu f0))
 let is_zero = Circuit {
   name = "isZero";
-  signals = [("in", Input, tf); ("out", Output, is_zero_spec); ("inv", Exists, tf)];
-  property = None;
+inputs = [("in", tf)];
+outputs = [("out", is_zero_spec)];
+exists = [("inv", tf)];
   body = [
     assert_eq (v "out") (add (opp (mul (v "in") (v "inv"))) f1);
     assert_eq (mul (v "in") (v "out")) f0
@@ -42,8 +45,9 @@ let check_is_zero = typecheck_circuit [] is_zero;;
 let is_equal_spec = re TF (ite (eq (v "x") (v "y")) (eq nu f1) (eq nu f0))
 let is_equal = Circuit {
   name = "isEqual";
-  signals = [("x", Input, tf); ("y", Input, tf); ("out", Output, is_equal_spec)];
-  property = None;
+inputs = [("x", tf);  ("y", tf)];
+outputs = [("out", is_equal_spec)];
+exists = [];
   body = [
     slet "z0" (Call ("isZero", [sub (v "x") (v "y")]));
     (* slet "z1" (sub f1 (v "z0")); *)
@@ -52,31 +56,46 @@ let is_equal = Circuit {
 }
 
 let check_is_equal = typecheck_circuit (add_to_delta d_empty is_zero) is_equal;;
+*)
 
-let (tloop, check_loop) = typecheck [] [] [] (Iter {
+let (tloop, check_loop) = synthesize [] [] [] (Iter {
   s=z0; 
   e=zc 5; 
-  body=Lam ("i", tint, Lam ("x", tf, add (v "x") f1));
+  body=lama "i" tint (lama "x" tf (add (v "x") f1));
   init=f0;
-  inv= fun i -> fun x -> QExpr (eq (toUZ x) i)});; 
-  (* 
+  inv= fun i -> fun x -> tfq (QExpr (eq (toUZ x) i))
+})
+
+
+let (tn2bloop, check_n2bloop) = synthesize [] [] [] (Iter {
+  s=z0; 
+  e=zc 5;
+  body=
+    lama "i" tint (
+    lama "lc1_e2" (ttuple [tf;tf]) (
+      elet "lc1" (tget (v "lc1_e2") 0) (
+      elet "e2" (tget (v "lc1_e2") 1) (
+      tmake [
+        add (v "lc1") (mul (v "outi") (v "e2"));
+        add (v "e2") (v "e2")]))));
+  init=tmake [f0; f1];
+  inv=fun i -> fun x -> ttuple [tf; tf]
+})
+(* 
 
 let num2bits = Circuit {
   name = "Num2Bits";
-  signals = [
-    ("n", Input, tint); 
-    ("in", Input, tf); 
-    ("out", Output, TArr (tf_binary, QExpr (eq (toBigInt "i" z1 (v "n") nu) (v "in")), v "n"))
-  ];
-  property = None;
+inputs = [("n", tint); ("in", tf)];
+outputs = [("out", TArr (tf_binary, QExpr (eq (toBigInt "i" z1 (v "n") nu) (v "in")), v "n"))];
+exists = [];
   body = [
     (* SSkip; *)
     SLetP (PProd [PStr "_"; PStr "lc1"; PStr "_"; PStr "cons"], None,
       (Foldl {
       f=LamP (
         PProd [PProd [PStr "i"; PStr "lc1"; PStr "e2"; PStr "cons"]; PStr "outi"],
-        TProd ([tint; tf; tf; tbool], None),
-        PCons ([
+        TTuple [tint; tf; tf; tbool]),
+        
           (* i *)
           add (v "i") z1;
           (* lc1 *)

@@ -1,9 +1,14 @@
 open Ast
 let tf = TRef (TF, QTrue)
+let tfq q = TRef (TF, q)
 let tint = TRef (TInt, QTrue)
 let tbool = TRef (TBool, QTrue)
+let lam x e = Lam (x, e)
+let lama x t e = LamA (x, t, e)
+let ascribe e t = Ascribe (e, t)
 let tfun s tx tr = TFun (s, tx, tr)
-let tprod xs q_opt = TProd (xs, q_opt)
+let tprod ts q_opt = TDProd (ts, q_opt)
+let ttuple ts = TTuple ts
 let re tb e = TRef (tb, QExpr e)
 let opp e = Opp e
 let add e1 e2 = Binop (Add, e1, e2)
@@ -32,9 +37,17 @@ let z2 = zc 2
 let btrue = Const (CBool true)
 let bfalse = Const (CBool false)
 let tf_binary = TRef (TF, QExpr (bor (eq nu f0) (eq nu f1)))
-let slet x e = SLet (x, None, e)
+
+let tmake es = TMake es
+let tget e n = TGet (e, n)
+
+let slet x e = SLet (x, e)
+let elet x e1 e2 = LetIn (x, e1, e2)
 let sum si es ee eb = Sum (si, es, ee, eb)
 let get xs i = ArrayOp (Get, xs, i)
+let cons x xs = ArrayOp (Cons, x, xs)
+let take n xs = ArrayOp (Take, n, xs)
+let drop n xs = ArrayOp (Drop, n, xs)
 let toBigInt (i: string) (n: expr) (k: expr) (xs: expr) : expr = 
   let ei = v i in
   sum i z0 k (mul (get xs ei) (pow f2 (mul n ei)))

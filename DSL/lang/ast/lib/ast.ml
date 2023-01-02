@@ -11,10 +11,9 @@ type typ =
     [@printer fun fmt r -> fprintf fmt "%s" (show_refinement r)]
 
   (* Function type: input name, input type, output type *)
-  | TFun of string * typ * (expr -> typ)
+  | TFun of string * typ * typ
     
-    [@printer fun fmt (x, t1, ft2) -> 
-      let t2 = ft2 (Var x) in
+    [@printer fun fmt (x, t1, t2) -> 
       match t1 with 
         | TFun _ ->  fprintf fmt "%s: (%s) -> %s" x (show_typ t1) (show_typ t2)
         | _ -> fprintf fmt "%s: %s -> %s" x (show_typ t1) (show_typ t2)]
@@ -70,6 +69,7 @@ and expr =
   | Var of string    [@printer fun fmt x -> fprintf fmt "%s" x]
   (* ascription *)
   | Ascribe of expr * typ  [@printer fun fmt (e,t) -> fprintf fmt "(%s :: %s)" (show_expr e) (show_typ t)]
+  | AscribeUnsafe of expr * typ [@printer fun fmt (e,t) -> fprintf fmt "(%s ! <%s>)" (show_expr e) (show_typ t)]
   (* abstraction & application *)
   | LamA of string * typ * expr   [@printer fun fmt (x,t,e) -> fprintf fmt "λ%s: %s. %s" x (show_typ t) (show_expr e)]
   | Lam of string * expr   [@printer fun fmt (x,e) -> fprintf fmt "λ%s. %s" x (show_expr e)]
@@ -172,7 +172,7 @@ let fresh () = let c = !count in count := c+1; "_var_" ^ Int.to_string c
 
 let rec vars_typ : typ -> SS.t = function
   | TRef (_, q) -> except (vars_qual q) nu_str
-  | TFun (x, t1, ft2) -> SS.union (vars_typ t1) (except (vars_typ (ft2 (Var x))) x)
+  | TFun (x, t1, t2) -> SS.union (vars_typ t1) (except (vars_typ t2) x)
   | TTuple _ -> todo ()
   | TDProd _ -> todo ()
   | TArr (t, q, e) -> unions [vars_typ t; except (vars_qual (q (Var nu_str))) nu_str; vars_expr e]
@@ -220,9 +220,12 @@ let rec subst_typ (x: string) (e: expr) (t: typ) : typ =
   let f = subst_typ x e in
   match t with
   | TRef (tb, q) -> TRef (tb, subst_qual x e q)
-  | TFun (y, t1, ft2) ->
-    if x = y then t
-    else TFun (y, subst_typ x e t1, (fun xe -> subst_typ x e (ft2 xe)))
+  | TFun (y, t1, t2) ->
+    if x = y then
+      t
+    else
+      (* TODO: alpha-rename *)
+      TFun (y, subst_typ x e t1, subst_typ x e t2) 
   | TArr (t, fq, e') -> TArr (f t, (fun nu -> subst_qual x e (fq nu)), subst_expr x e e')
   | TTuple ts -> TTuple (List.map f ts)
   | TDProd _ -> todo ()

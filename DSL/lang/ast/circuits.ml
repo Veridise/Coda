@@ -2,25 +2,28 @@ open Lib__Ast
 open Lib__Dsl
 open Lib__Typecheck
 
-(*
-let tx = tf in
-let ty = re TF (eq nu (v "x")) in
+
+let tx = tf
+let ty = re TF (eq nu (v "x"))
 let c1 = Circuit {
   name = "c1";
   inputs = [("x", tf)];
   outputs = [("y", ty)];
-  ctype = tfun "x" tx (fun x -> ty);
   exists = [];
+  ctype = tfun "x" tf ty;
   body = []
 }
 
 let d = add_to_delta [] c1
 
+let ty = re TF (eq nu (v "x"))
+
 let c2 = Circuit {
   name = "c2";
-inputs = [("x", tf)];
-outputs = [("y", re TF (eq nu (v "x")))];
-exists = [];
+  inputs = [("x", tf)];
+  outputs = [("y", ty)];
+  exists = [];
+  ctype = tfun "x" tf ty;
   body = [
     slet "y'" (Call ("c1", [v "x"]));
     assert_eq (v "y") (v "y'")
@@ -31,12 +34,13 @@ let cs2 = typecheck_circuit d c2
 
 
 
-let is_zero_spec = re TF (ite (eq (v "in") f0) (eq nu f1) (eq nu f0))
+let t_out = re TF (ite (eq (v "in") f0) (eq nu f1) (eq nu f0))
 let is_zero = Circuit {
   name = "isZero";
-inputs = [("in", tf)];
-outputs = [("out", is_zero_spec)];
-exists = [("inv", tf)];
+  inputs = [("in", tf)];
+  outputs = [("out", t_out)];
+  exists = [("inv", tf)];
+  ctype = tfun "in" tf t_out;
   body = [
     assert_eq (v "out") (add (opp (mul (v "in") (v "inv"))) f1);
     assert_eq (mul (v "in") (v "out")) f0
@@ -45,11 +49,12 @@ exists = [("inv", tf)];
 
 let check_is_zero = typecheck_circuit [] is_zero;;
 
-let is_equal_spec = re TF (ite (eq (v "x") (v "y")) (eq nu f1) (eq nu f0))
+let t_out = re TF (ite (eq (v "x") (v "y")) (eq nu f1) (eq nu f0))
 let is_equal = Circuit {
   name = "isEqual";
 inputs = [("x", tf);  ("y", tf)];
-outputs = [("out", is_equal_spec)];
+outputs = [("out", t_out)];
+ctype = tfun "in" tf t_out;
 exists = [];
   body = [
     slet "z0" (Call ("isZero", [sub (v "x") (v "y")]));
@@ -59,14 +64,14 @@ exists = [];
 }
 
 let check_is_equal = typecheck_circuit (add_to_delta d_empty is_zero) is_equal;;
-*)
+
 
 let (tloop, check_loop) = synthesize [] [] [] (Iter {
-  s=z0; 
-  e=zc 5; 
-  body=lama "i" tint (lama "x" tf (add (v "x") f1));
-  init=f0;
-  inv= fun i -> fun x -> tfq (QExpr (eq (toUZ x) i))
+  s = z0; 
+  e = zc 5; 
+  body = lama "i" tint (lama "x" tf (add (v "x") f1));
+  init = f0;
+  inv = fun i -> fun x -> tfq (QExpr (eq (toUZ x) i))
 })
 
 
@@ -82,7 +87,7 @@ let (tn2bloop, check_n2bloop) = synthesize [] [] [] (Iter {
         add (v "lc1") (mul f1 (v "e2"));
         add (v "e2") (v "e2")]))));
   init=tmake [f0; f1];
-  inv=fun i -> fun x -> ttuple [tf; tf]
+  inv = fun i -> fun x -> ttuple [tf; tf]
 })
 (* 
 

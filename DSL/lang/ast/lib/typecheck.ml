@@ -43,8 +43,8 @@ let functionalize_circ (Circuit {name; inputs; outputs; exists; ctype; body}) : 
 let rec subtype (g: gamma) (a: alpha) (t1: typ) (t2: typ) : cons list =
   match (t1, t2) with
   | (TRef _, TRef _) -> [Subtype (g, a, t1, t2)]
-  | (TFun (x,t1,ft2), TFun (y,t1',ft2')) ->
-    Subtype (g, a, t1', t1) :: subtype ((x,t1')::g) a (ft2 (v x)) (ft2' (v x))
+  | (TFun (x,t1,t2), TFun (y,t1',t2')) ->
+    Subtype (g, a, t1', t1) :: subtype ((x,t1')::g) a t2 (subst_typ y (v x) t2')
   | (TTuple ts1, TTuple ts2) -> List.concat_map (uncurry (subtype g a)) (List.combine ts1 ts2)
   | (TDProd _, TDProd _) -> failwith "TODO: product subtyping"
   | (TArr _, TArr _) -> failwith "TODO: array subtyping"
@@ -75,9 +75,17 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       (t, [])
     | Ascribe (e, t) ->
       let cs = check d g a e t in (t, cs)
+    | AscribeUnsafe (x, t) -> (t, [])
     | LamA (x, t1, e) ->
       let (t2, cs) = synthesize d ((x,t1)::g) a e in
-      (tfun x t1 (fun xe -> subst_typ x xe t2), cs)
+      (tfun x t1 t2, cs)
+    | App (e1, e2) ->
+      let (t1, cs1) = f e1 in
+      (match t1 with
+      | TFun (x, tx, tr) ->
+        let cs2 = check d g a e2 tx in
+        (subst_typ x e2 tr, cs1 @ cs2)
+      | _ -> failwith (Format.sprintf "App: not a function: %s" (show_typ t1)))
     | Binop (op, e1, e2) ->
       (* TODO: reflect *)
       let (TRef (tb1, q1), cs1) = f e1 in
@@ -118,29 +126,28 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       | _ -> failwith ("Opp: Invalid operand type " ^ (show_tyBase tb)))
     | Call (c_name, args) ->
       (match List.assoc_opt c_name d with
-      | Some c -> 
-        let (t_out, cs_out) = check_app d g a (functionalize_circ c) args in
-        (t_out, cs_out)
+      | Some c -> synthesize d g a (dummy_apps c_name (functionalize_circ c) args)
       | None -> failwith ("No such circuit: " ^ c_name))
     | Iter {s; e; body; init; inv} ->
       let (tx, cx) = f init in
       (* s is int *)
       let t_iter = 
         (* TODO: ensure var freshness *)
-        tfun "s" tint (fun s ->
-        tfun "e" (TRef (TInt, QExpr (leq (v "s") nu))) (fun e ->
-        tfun "body" (
+        tfun "s" tint
+        (tfun "e" (TRef (TInt, QExpr (leq (v "s") nu)))
+        (tfun "body" (
           (* assume s <= i <= e *)
-          tfun "i" (z_range s e) (fun i ->
+          (tfun "i" (z_range s e)
           (* assume inv(i,x) holds *)
-          tfun "x" (inv i nu) (fun _ ->
+          (tfun "x" (inv (v "i") nu)
           (* prove inv(i+1,output) holds *)
-          (inv (add z1 i) nu)))) (fun _ ->
+          (inv (add z1 (v "i")) nu))))
         (* prove inv(s,init) holds *)
-        tfun "init" (inv (v "s") nu) (fun _ ->
+        (tfun "init" (inv (v "s") nu)
         (* conclude inv(e,output) holds *)
-        (inv e nu))))) in 
-      check_app d g a t_iter [s; e; body; init]
+        (inv (v "e") nu)))) in 
+      synthesize d g a (dummy_apps "iter" t_iter [s;e;body;init])
+      (* synthesize_app d g a t_iter [s; e; body; init] *)
     | TMake es ->
       let (ts, cs_s) = List.(map f es |> split) in
       (ttuple ts, List.concat cs_s)
@@ -181,23 +188,23 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
     | _ -> failwith (Format.sprintf "Synthesis unavailable for expression %s" (show_expr e))
   in f e
 
-and check_app (d: delta) (g: gamma) (a: alpha) (t: typ) (es: expr list) : typ * cons list =
+and synthesize_app (d: delta) (g: gamma) (a: alpha) (t: typ) (es: expr list) : typ * cons list =
   match es with
   | [] -> (t, [])
   | e::es' ->
     (match t with
-    | TFun (x, t1, ft2) ->
-      let (t, cs) = check_app d ((x,t1)::g) a (ft2 (v x)) es' in
+    | TFun (x, t1, t2) ->
+      let (t, cs) = synthesize_app d ((x,t1)::g) a t2 es' in
       (t, check d g a e t1 @ cs)
     | _ -> failwith "Not a function")
 
 and check (d: delta) (g: gamma) (a: alpha) (e: expr) (t: typ) : cons list =
   print_endline (Format.sprintf "Checking %s has type %s" (show_expr e) (show_typ t));
   match (e, t) with
-  | (Lam (x, body), TFun (y, t1, ft2)) ->
-      check d ((x,t1)::g) a body (ft2 (v x))
-  | (LamA (x, t, body), TFun (y, t1, ft2)) -> 
-      subtype g a t1 t @ check d ((x,t1)::g) a body (ft2 (v x))
+  | (Lam (x, body), TFun (y, t1, t2)) ->
+      check d ((x,t1)::g) a body t2
+  | (LamA (x, t, body), TFun (y, t1, t2)) -> 
+      subtype g a t1 t @ check d ((x,t1)::g) a body t2
 
   | (LetIn (x, e1, e2), t2) ->
     let (t1, cs) = synthesize d g a e1 in

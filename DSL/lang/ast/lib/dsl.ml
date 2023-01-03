@@ -1,8 +1,10 @@
 open Ast
-let tf = TRef (TF, QTrue)
+let triv tb = TRef (tb, QTrue)
+let tf = triv TF
 let tfq q = TRef (TF, q)
-let tint = TRef (TInt, QTrue)
-let tbool = TRef (TBool, QTrue)
+let tfe e = TRef (TF, QExpr e)
+let tint = triv TInt
+let tbool = triv TBool
 let lam x e = Lam (x, e)
 let lama x t e = LamA (x, t, e)
 let ascribe e t = Ascribe (e, t)
@@ -25,6 +27,7 @@ let lt e1 e2 = Comp (Lt, e1, e2)
 let bnot e = Not e
 let bor e1 e2 = Boolop (Or, e1, e2)
 let band e1 e2 = Boolop (And, e1, e2)
+let qand q1 q2 = QAnd (q1, q2)
 let imply e1 e2 = Boolop (Imply, e1, e2)
 let ite e1 e2 e3 = band (imply e1 e2) (imply (bnot e1) e3)
 let assert_eq e1 e2 = SAssert (eq e1 e2)
@@ -38,6 +41,8 @@ let f2 = fc 2
 let z0 = zc 0
 let z1 = zc 1
 let z2 = zc 2
+let add1z e = add e z1
+let add1f e = add e f1
 let btrue = Const (CBool true)
 let bfalse = Const (CBool false)
 let tf_binary = TRef (TF, QExpr (bor (eq nu f0) (eq nu f1)))
@@ -47,14 +52,14 @@ let tget e n = TGet (e, n)
 
 let slet x e = SLet (x, e)
 let elet x e1 e2 = LetIn (x, e1, e2)
-let sum si es ee eb = Sum (si, es, ee, eb)
+let tarr t q e = TArr (t, q, e)
+let sum es ee eb tb = Sum {s=es;e=ee;body=eb;tb=tb}
 let get xs i = ArrayOp (Get, xs, i)
 let cons x xs = ArrayOp (Cons, x, xs)
 let take n xs = ArrayOp (Take, n, xs)
 let drop n xs = ArrayOp (Drop, n, xs)
-let toBigInt (i: string) (n: expr) (k: expr) (xs: expr) : expr = 
-  let ei = v i in
-  sum i z0 k (mul (get xs ei) (pow f2 (mul n ei)))
+let to_big_int (n: expr) (k: expr) (xs: expr) (tb: tyBase): expr = 
+  sum z0 k (lama "i" tint (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))) tb
 let z_range l r = TRef (TInt, QExpr (band (leq l nu) (leq nu r)))
 let toSZ e = Fn (ToSZ, e)
 let toUZ e = Fn (ToUZ, e)

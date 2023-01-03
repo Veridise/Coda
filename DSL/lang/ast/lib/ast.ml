@@ -3,7 +3,6 @@
 let nu_str = "ν"
 
 
-
 type typ =
   (* Refinement type *)
   | TRef of refinement
@@ -19,9 +18,9 @@ type typ =
         | _ -> fprintf fmt "%s: %s -> %s" x (show_typ t1) (show_typ t2)]
   
   (* Array type: element type, aggregate qualifier, length expression *)
-  | TArr of typ * (expr -> qual) * expr 
+  | TArr of typ * qual * expr 
     
-    [@printer fun fmt (t, q, l) -> fprintf fmt "Array<%s>[%s](%s)" (show_typ t) (show_qual (q (Var nu_str))) (show_expr l)]
+    [@printer fun fmt (t, q, l) -> fprintf fmt "Array<%s>[%s](%s)" (show_typ t) (show_qual q) (show_expr l)]
   
   (* Tuple type: element types *)
   | TTuple of typ list
@@ -59,6 +58,7 @@ and qual =
   | QP (* field size *)      [@printer fun fmt _ -> fprintf fmt "p"]
   | QTrue                    [@printer fun fmt _ -> fprintf fmt "⊤"]
   | QExpr of expr            [@printer fun fmt e -> fprintf fmt "%s" (show_expr e)]
+  | QAnd of qual * qual      [@printer fun fmt (q1,q2) -> fprintf fmt "(qand %s %s)" (show_qual q1) (show_qual q2)]
   | QForall of string * qual [@printer fun fmt (s,q) -> fprintf fmt "∀%s. %s" s (show_qual q)]
   [@@deriving show]
 
@@ -89,7 +89,7 @@ and expr =
   (* array ops *)
   | ArrayOp of (aop * expr * expr) [@printer fun fmt (op,e1,e2) -> fprintf fmt "(%s %s %s)" (show_aop op) (show_expr e1) (show_expr e2)]
   (* indexed sum: var, start, end, body *) 
-  | Sum of string * expr * expr * expr [@printer fun fmt (i,s,e,b) -> fprintf fmt "sum_{%s <= %s <= %s} %s" (show_expr s) i (show_expr e) (show_expr b)]
+  | Sum of tsum
   (* tuple ops *)
   | TMake of expr list [@printer fun fmt es -> fprintf fmt "(%s)" (String.concat ", " (List.map show_expr es))]
   | TGet of expr * int [@printer fun fmt (e,n) -> fprintf fmt "%s.%d" (show_expr e) n]
@@ -116,7 +116,13 @@ and boolop =
   | Or    [@printer fun fmt _ -> fprintf fmt "||"]
   | Imply [@printer fun fmt _ -> fprintf fmt "==>"]
   [@@deriving show]
-and aop = Cons | Get | Scale | Take | Drop [@@deriving show]
+and aop = 
+  | Cons  [@printer fun fmt _ -> fprintf fmt "cons"]
+  | Get   [@printer fun fmt _ -> fprintf fmt "get"]
+  | Scale [@printer fun fmt _ -> fprintf fmt "scale"]
+  | Take [@printer fun fmt _ -> fprintf fmt "take"]
+  | Drop [@printer fun fmt _ -> fprintf fmt "drop"]
+  [@@deriving show]
 and func = 
   | Id [@printer fun fmt _ -> fprintf fmt "id"]
   | ToUZ [@printer fun fmt _ -> fprintf fmt "toUZ"]
@@ -135,6 +141,7 @@ and const =
   | CBool of bool [@printer fun fmt b -> fprintf fmt "%s" (Bool.to_string b)]
   [@@deriving show]
 and pattern = PStr of string | PProd of pattern list [@@deriving show]
+and tsum = {s: expr; e: expr; body: expr; tb: tyBase} [@@deriving show]
 
 (* Statements *)
 type stmt =
@@ -175,7 +182,7 @@ let rec vars_typ : typ -> SS.t = function
   | TFun (x, t1, t2) -> SS.union (vars_typ t1) (except (vars_typ t2) x)
   | TTuple _ -> todo ()
   | TDProd _ -> todo ()
-  | TArr (t, q, e) -> unions [vars_typ t; except (vars_qual (q (Var nu_str))) nu_str; vars_expr e]
+  | TArr (t, q, e) -> unions [vars_typ t; except (vars_qual q) nu_str; vars_expr e]
 
 and vars_qual : qual -> SS.t = function
   | QExpr e -> vars_expr e
@@ -195,7 +202,7 @@ and vars_expr : expr -> SS.t = function
   | Comp (_, e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)
   | Call (_, es) -> unions (List.map vars_expr es)
   | ArrayOp (_, e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)
-  | Sum (i, s, e, b) -> unions [vars_expr s; vars_expr e; except (vars_expr b) i]
+  | Sum {s=s;e=e';body=body;tb=tb} -> unions [vars_expr s; vars_expr e'; vars_expr body]
   | DPCons (es, (xs, q)) ->
       let q' = q (List.map (fun x -> Var x) xs) in
       unions ((excepts (vars_qual q') xs) :: (List.map vars_expr es))
@@ -226,7 +233,7 @@ let rec subst_typ (x: string) (e: expr) (t: typ) : typ =
     else
       (* TODO: alpha-rename *)
       TFun (y, subst_typ x e t1, subst_typ x e t2) 
-  | TArr (t, fq, e') -> TArr (f t, (fun nu -> subst_qual x e (fq nu)), subst_expr x e e')
+  | TArr (t, q, e') -> TArr (f t, subst_qual x e q, subst_expr x e e')
   | TTuple ts -> TTuple (List.map f ts)
   | TDProd _ -> todo ()
 
@@ -265,8 +272,8 @@ and subst_expr (x: string) (ef: expr) (e: expr) : expr =
       init = f init; 
       inv = (fun ei -> fun ex -> (subst_typ x ef (inv ei ex)))
     }
+  | Sum {s=s;e=e';body=body;tb=tb} -> Sum {s=f s; e=f e'; body=f body; tb=tb}
   | DPCons (es, (xs, q)) -> todos "subst_expr: DPCons"
-  | Sum (i, s, e, b) -> todos "subst_expr: Sum"
   | DPDestr (e1, xs, e2) -> todos "subst_expr: DPDestr"
   | DPDestrP (e1, p, e2) -> todos "subst_expr: DPDestrP"
   | Map (e1, e2) -> todos "subst_expr: Map"

@@ -74,21 +74,23 @@ let (tloop, check_loop) = synthesize [] [] [] (Iter {
   inv = fun i -> fun x -> tfq (QExpr (eq (toUZ x) i))
 })
 
-
-let (tn2bloop, check_n2bloop) = synthesize [] [] [] (Iter {
+let (tn2bloop, check_n2bloop) = synthesize [] [("out", tarr tf QTrue (zc 5))] [] (
+  (Iter {
   s=z0; 
-  e=zc 5;
+  e=zc 4;
   body=
     lama "i" tint (
     lama "lc1_e2" (ttuple [tf;tf]) (
       elet "lc1" (tget (v "lc1_e2") 0) (
       elet "e2" (tget (v "lc1_e2") 1) (
       tmake [
-        add (v "lc1") (mul f1 (v "e2"));
+        add (v "lc1") (mul (get (v "out") (v "i")) (v "e2"));
         add (v "e2") (v "e2")]))));
   init=tmake [f0; f1];
-  inv = fun i -> fun x -> ttuple [tf; tf]
-})
+  inv = fun i -> fun x -> ttuple [
+    tfe (eq nu (to_big_int f1 i (take (v "out") i) TF));
+    tfe (eq nu (pow f2 i))]
+}))
 (* 
 
 let num2bits = Circuit {

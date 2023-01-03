@@ -30,8 +30,14 @@ type cons =
     [@printer fun fmt (g,a,q) -> fprintf fmt "Gamma:\n%s\nAlpha:\n%s\n---Constrain---\n%s" (show_gamma g) (show_alpha a) (show_qual q)]
   [@@deriving show]
 
+
+let filter_trivial =
+  List.filter (function
+    | Subtype (_, _, TRef (t1, _), TRef (t2, QTrue)) -> t1 <> t2
+    | _ -> true)
+
 let pc (cs: cons list) : unit =
-  cs |> List.map show_cons |> String.concat "\n\n" |> print_endline
+  cs |> filter_trivial |> List.map show_cons |> String.concat "\n\n" |> print_endline
 
 let functionalize_circ (Circuit {name; inputs; outputs; exists; ctype; body}) : typ =
   ctype
@@ -53,6 +59,13 @@ let rec subtype (g: gamma) (a: alpha) (t1: typ) (t2: typ) : cons list =
 let coerce_psingle : typ -> typ = function
   | TTuple [t] -> t
   | t -> t
+
+let refine (t: typ) (q: qual) : typ =
+  match t with
+  | TRef (tb, q') -> TRef (tb, qand q' q)
+  | TArr (t, q', el) -> TArr (t, qand q' q, el)
+  | TTuple _ -> failwith "Cannot refine TTuple"
+  | TFun _ -> failwith "Cannot refine TFun"
 
 let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list) = 
   print_endline (Format.sprintf "Synthesizing type for %s" (show_expr e));
@@ -128,6 +141,13 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       (match List.assoc_opt c_name d with
       | Some c -> synthesize d g a (dummy_apps c_name (functionalize_circ c) args)
       | None -> failwith ("No such circuit: " ^ c_name))
+    | Sum {s=s; e=e'; body=b; tb=tb} ->
+      let t_sum = 
+        tfun "s" tint (
+          tfun "e" tint (
+            tfun "body" (tfun "i" tint (triv tb)) (triv tb))) in
+      let cs = check d g a (dummy_apps "sum" t_sum [s;e';b]) (triv tb) in
+      (TRef (tb, QExpr (eq nu e)), cs)
     | Iter {s; e; body; init; inv} ->
       let (tx, cx) = f init in
       (* s is int *)
@@ -160,17 +180,37 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         else
           failwith "Tuple access out of bounds"
       | _ -> failwith "Synthesize: expect tuple type")
-    | ArrayOp (Cons, e1, e2) ->
-      todos "ArrayOp: Cons"
-      (* let (t1, cs1) = f e1 in
-      let (TArr (t2, q, e), cs2) = f e2 in
-      (TArr (t2, fun nu -> q (drop z1 nu), add e z1), cs1 @ cs2 @ [subtype g a t1 t2]) *)
     | ArrayOp (Get, e1, e2) ->
-      todos "ArrayOp: Get"
-      (* let (TArr (t1, q, e), cs1) = f e1 in
+      let (t1, cs1) = f e1 in
+      (match t1 with
+      | TArr (t, q, el) ->
+        (* check index in range *)
+        let cs2 = check d g a e2 (z_range z0 el) in
+        (refine t (QExpr (eq nu e)), cs1 @ cs2)
+      | _ -> failwith "Synthesize: get: not an array")
+    | ArrayOp (Cons, e1, e2) ->
       let (t2, cs2) = f e2 in
-      todo () *)
-      (* t1 augmented with v = e1[e2] *)
+      (match t2 with
+      | TArr (t, q, el) ->
+        let cs1 = check d g a e1 t in
+        (TArr (t, QExpr (eq nu e), add1z el), cs1 @ cs2)
+      | _ -> failwith "Synthesize: cons: not an array")
+    | ArrayOp (Take, e1, e2) ->
+      let (t1, cs1) = f e1 in
+      (match t1 with
+      | TArr (t, q, el) ->
+        (* check index in range *)
+        let cs2 = check d g a e2 (z_range z0 el) in
+        (TArr (t, QExpr (eq nu e), e2), cs1 @ cs2)
+      | _ -> failwith "Synthesize: take: not an array")
+    | ArrayOp (Drop, e1, e2) ->
+      let (t1, cs1) = f e1 in
+      (match t1 with
+      | TArr (t, q, el) ->
+        (* check index in range *)
+        let cs2 = check d g a e2 (z_range z0 el) in
+        (TArr (t, QExpr (eq nu e), sub el e2), cs1 @ cs2)
+      | _ -> failwith "Synthesize: drop: not an array")
     (* | DPCons (es, q_opt) ->
       todos "DPCons"
       (* let (ts, cs_s) = List.map f es |> List.split in
@@ -227,7 +267,7 @@ let typecheck_stmt (d: delta) (g: gamma) (a: alpha) (s: stmt) : (gamma * alpha *
 
 let rec to_base_typ = function
   | TRef (tb, _) -> TRef (tb, QTrue)
-  | TArr (t,_,n) -> TArr (to_base_typ t, (fun _ -> QTrue), n)
+  | TArr (t,_,n) -> TArr (to_base_typ t, QTrue, n)
   | TFun _ -> todos "to_base_typ: TFun"
   | TTuple _ -> todos "to_base_typ: TTuple"
   | TDProd _ -> todos "to_base_typ: TDProd"

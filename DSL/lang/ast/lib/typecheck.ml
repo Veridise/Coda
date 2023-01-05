@@ -295,6 +295,6 @@ let typecheck_circuit (d: delta) (c: circuit) : cons list =
       body in
     assert (List.length outputs = 1);
     let out_cons = List.map (fun (x,t) -> HasType (g, a, x, t)) outputs in
-    let vars_in = inputs |> List.map (fun (x,_) -> x) |> List.map v in
-    let vars_out = outputs |> List.map (fun (x,_) -> x) |> List.map v in
+    (* let vars_in = inputs |> List.map (fun (x,_) -> x) |> List.map v in *)
+    (* let vars_out = outputs |> List.map (fun (x,_) -> x) |> List.map v in *)
     cs @ out_cons

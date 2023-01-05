@@ -91,7 +91,7 @@ and expr =
   (* indexed sum: var, start, end, body *) 
   | Sum of {s: expr; e: expr; body: expr}
   (* this belongs to refinement terms *)
-  | RSum of expr * expr * typ      [@printer fun fmt (s,e,t) -> fprintf fmt "\sum_{%s, %s}(%s)" (show_expr s) (show_expr e) (show_typ t)]
+  | RSum of expr * expr * typ      [@printer fun fmt (s,e,t) -> fprintf fmt "\\sum_{%s, %s}(%s)" (show_expr s) (show_expr e) (show_typ t)]
   (* tuple ops *)
   | TMake of expr list [@printer fun fmt es -> fprintf fmt "(%s)" (String.concat ", " (List.map show_expr es))]
   | TGet of expr * int [@printer fun fmt (e,n) -> fprintf fmt "%s.%d" (show_expr e) n]
@@ -105,7 +105,7 @@ and expr =
   | Foldl of {f:expr; acc:expr; xs:expr}
   | Iter of {s: expr; e: expr; body: expr; init: expr; inv: expr -> expr -> typ}
   (* Built-in functions *)
-  | Fn of func * expr [@printer fun fmt (f,e) -> fprintf fmt "(%s %s)" (show_func f) (show_expr e)]
+  | Fn of func * expr list [@printer fun fmt (f,es) -> fprintf fmt "(%s %s)" (show_func f) (String.concat " " (List.map show_expr es))]
   [@@deriving show]
 and binop = 
   | Add [@printer fun fmt _ -> fprintf fmt "+"]
@@ -128,6 +128,7 @@ and aop =
   [@@deriving show]
 and func = 
   | Id [@printer fun fmt _ -> fprintf fmt "id"]
+  | Unint of string [@printer fun fmt s -> fprintf fmt "$%s" s]
   | ToUZ [@printer fun fmt _ -> fprintf fmt "toUZ"]
   | ToSZ [@printer fun fmt _ -> fprintf fmt "toSZ"]
   [@@deriving show]
@@ -218,7 +219,7 @@ and vars_expr : expr -> SS.t = function
     let (x1, x2) = (fresh (), fresh ()) in
     let vars_inv = excepts (vars_typ (inv (Var x1) (Var x2))) [x1; x2] in
     unions [vars_e; vars_inv]
-  | Fn (_, e) -> vars_expr e
+  | Fn (_, es) -> unions (List.map vars_expr es)
   
 and vars_pattern : pattern -> SS.t = function
   | PStr x -> SS.singleton x
@@ -265,7 +266,7 @@ and subst_expr (x: string) (ef: expr) (e: expr) : expr =
   | ArrayOp (op, e1, e2) -> ArrayOp (op, f e1, f e2)
   | TMake es -> TMake (List.map f es)
   | TGet (e, n) -> TGet (f e, n)
-  | Fn (fn, e) -> Fn (fn, f e)
+  | Fn (fn, es) -> Fn (fn, List.map f es)
   | Iter {s; e; body; init; inv} ->
     Iter {
       s = f s; 

@@ -22,15 +22,17 @@ let sub e1 e2 = Binop (Sub, e1, e2)
 let mul e1 e2 = Binop (Mul, e1, e2)
 let pow e1 e2 = Binop (Pow, e1, e2)
 let eq e1 e2 = Comp (Eq, e1, e2)
+let qeq e1 e2 = QExpr (eq e1 e2)
 let leq e1 e2 = Comp (Leq, e1, e2)
 let lt e1 e2 = Comp (Lt, e1, e2)
+
 let bnot e = Not e
 let bor e1 e2 = Boolop (Or, e1, e2)
 let band e1 e2 = Boolop (And, e1, e2)
 let qand q1 q2 = QAnd (q1, q2)
 let imply e1 e2 = Boolop (Imply, e1, e2)
 let ite e1 e2 e3 = band (imply e1 e2) (imply (bnot e1) e3)
-let assert_eq e1 e2 = SAssert (eq e1 e2)
+let assert_eq e1 e2 = SAssert (qeq e1 e2)
 let v x = Var x
 let nu = Var "ν"
 let fc n = Const (CF n)
@@ -46,20 +48,25 @@ let add1f e = add e f1
 let btrue = Const (CBool true)
 let bfalse = Const (CBool false)
 let tf_binary = TRef (TF, QExpr (bor (eq nu f0) (eq nu f1)))
+let binary_eq e = eq (mul e (sub e f1)) f0
+let tnat = TRef (TInt, QExpr (leq z0 nu))
 
 let tmake es = TMake es
 let tget e n = TGet (e, n)
 
 let slet x e = SLet (x, e)
+let qforall i q = QForall (i, q)
+let assert_forall i q = SAssert (qforall [i] q)
 let elet x e1 e2 = LetIn (x, e1, e2)
 let tarr t q e = TArr (t, q, e)
-let sum es ee eb tb = Sum {s=es;e=ee;body=eb;tb=tb}
+let sum es ee eb = Sum {s=es;e=ee;body=eb}
+let rsum s e t = RSum (s, e, t)
 let get xs i = ArrayOp (Get, xs, i)
 let cons x xs = ArrayOp (Cons, x, xs)
 let take n xs = ArrayOp (Take, n, xs)
 let drop n xs = ArrayOp (Drop, n, xs)
-let to_big_int (n: expr) (k: expr) (xs: expr) (tb: tyBase): expr = 
-  sum z0 k (lama "i" tint (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))) tb
+let to_big_int (tb: tyBase) (n: expr) (k: expr) (xs: expr): expr = 
+  rsum z0 k (tfun "i" tint (TRef (tb, QExpr (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))))))
 let z_range l r = TRef (TInt, QExpr (band (leq l nu) (leq nu r)))
 let toSZ e = Fn (ToSZ, e)
 let toUZ e = Fn (ToUZ, e)

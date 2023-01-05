@@ -74,52 +74,34 @@ let (tloop, check_loop) = synthesize [] [] [] (Iter {
   inv = fun i -> fun x -> tfq (QExpr (eq (toUZ x) i))
 })
 
+let n2b_body = lama "i" tint (
+  lama "lc1_e2" (ttuple [tf; tf]) (
+    elet "lc1" (tget (v "lc1_e2") 0) (
+    elet "e2" (tget (v "lc1_e2") 1) (
+    tmake [
+      add (v "lc1") (mul (get (v "out") (v "i")) (v "e2"));
+      add (v "e2") (v "e2")]))))
+
+let n2b_inv = fun i -> fun x -> ttuple [
+  tfe (eq nu (to_big_int TF f1 i (take (v "out") i)));
+  tfe (eq nu (pow f2 i))]
+
 let (tn2bloop, check_n2bloop) = synthesize [] [("out", tarr tf QTrue (zc 5))] [] (
-  (Iter {
-  s=z0; 
-  e=zc 4;
-  body=
-    lama "i" tint (
-    lama "lc1_e2" (ttuple [tf;tf]) (
-      elet "lc1" (tget (v "lc1_e2") 0) (
-      elet "e2" (tget (v "lc1_e2") 1) (
-      tmake [
-        add (v "lc1") (mul (get (v "out") (v "i")) (v "e2"));
-        add (v "e2") (v "e2")]))));
-  init=tmake [f0; f1];
-  inv = fun i -> fun x -> ttuple [
-    tfe (eq nu (to_big_int f1 i (take (v "out") i) TF));
-    tfe (eq nu (pow f2 i))]
-}))
-(* 
+  (Iter { s = z0; e = zc 4; body = n2b_body; init = tmake [f0; f1];
+    inv = n2b_inv}))
+
+let n2b_tout = tarr tf_binary (QExpr (eq (to_big_int TF f1 (v "n") nu) (v "in"))) (v "n")
 
 let num2bits = Circuit {
   name = "Num2Bits";
-inputs = [("n", tint); ("in", tf)];
-outputs = [("out", TArr (tf_binary, QExpr (eq (toBigInt "i" z1 (v "n") nu) (v "in")), v "n"))];
-exists = [];
+  inputs = [("n", tnat); ("in", tf)];
+  outputs = [("out", n2b_tout)];
+  ctype = tfun "n" tnat (tfun "in" tf (n2b_tout));
+  exists = [];
   body = [
-    (* SSkip; *)
-    SLetP (PProd [PStr "_"; PStr "lc1"; PStr "_"; PStr "cons"], None,
-      (Foldl {
-      f=LamP (
-        PProd [PProd [PStr "i"; PStr "lc1"; PStr "e2"; PStr "cons"]; PStr "outi"],
-        TTuple [tint; tf; tf; tbool]),
-        
-          (* i *)
-          add (v "i") z1;
-          (* lc1 *)
-          add (v "lc1") (mul (v "outi") (v "e2"));
-          (* e2 *)
-          add (v "e2") (v "e2");
-          (* cons *)
-          band (v "cons") (eq f0 (mul (v "outi") (sub (v "outi") f1)))
-        ], None));
-      acc=PCons ([f0; f0; f1; btrue], None);
-      xs=(v "out")})) ;
-    SAssert (band (v "cons") (eq (v "lc1") (v "in")))
+    slet "lc1_e2" (Iter {s = z0; e = v "n"; body = n2b_body; init = tmake [f0; f1]; inv = n2b_inv});
+    assert_forall "i" (QExpr (binary_eq (get (v "out") (v "i"))))
   ]
 }
 
-let check_num2bits = typecheck_circuit d_empty num2bits;;
-*)
+let check_n2b = typecheck_circuit d_empty num2bits;;

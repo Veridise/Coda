@@ -59,12 +59,12 @@ and qual =
   | QTrue                    [@printer fun fmt _ -> fprintf fmt "⊤"]
   | QExpr of expr            [@printer fun fmt e -> fprintf fmt "%s" (show_expr e)]
   | QAnd of qual * qual      [@printer fun fmt (q1,q2) -> fprintf fmt "(qand %s %s)" (show_qual q1) (show_qual q2)]
-  | QForall of string * qual [@printer fun fmt (s,q) -> fprintf fmt "∀%s. %s" s (show_qual q)]
+  | QForall of (string list) * qual [@printer fun fmt (xs,q) -> fprintf fmt "∀%s. %s" (String.concat " " xs) (show_qual q)]
   [@@deriving show]
 
 and expr =
   (* const *)
-  | Const of const   [@printer fun fmt c -> fprintf fmt "%s" (show_const c)]    
+  | Const of const   [@printer fun fmt c -> fprintf fmt "%s" (show_const c)]
   (* variable *)
   | Var of string    [@printer fun fmt x -> fprintf fmt "%s" x]
   (* ascription *)
@@ -89,7 +89,9 @@ and expr =
   (* array ops *)
   | ArrayOp of (aop * expr * expr) [@printer fun fmt (op,e1,e2) -> fprintf fmt "(%s %s %s)" (show_aop op) (show_expr e1) (show_expr e2)]
   (* indexed sum: var, start, end, body *) 
-  | Sum of tsum
+  | Sum of {s: expr; e: expr; body: expr}
+  (* this belongs to refinement terms *)
+  | RSum of expr * expr * typ      [@printer fun fmt (s,e,t) -> fprintf fmt "\sum_{%s, %s}(%s)" (show_expr s) (show_expr e) (show_typ t)]
   (* tuple ops *)
   | TMake of expr list [@printer fun fmt es -> fprintf fmt "(%s)" (String.concat ", " (List.map show_expr es))]
   | TGet of expr * int [@printer fun fmt (e,n) -> fprintf fmt "%s.%d" (show_expr e) n]
@@ -119,6 +121,7 @@ and boolop =
 and aop = 
   | Cons  [@printer fun fmt _ -> fprintf fmt "cons"]
   | Get   [@printer fun fmt _ -> fprintf fmt "get"]
+  | Concat [@printer fun fmt _ -> fprintf fmt "@"]
   | Scale [@printer fun fmt _ -> fprintf fmt "scale"]
   | Take [@printer fun fmt _ -> fprintf fmt "take"]
   | Drop [@printer fun fmt _ -> fprintf fmt "drop"]
@@ -141,15 +144,13 @@ and const =
   | CBool of bool [@printer fun fmt b -> fprintf fmt "%s" (Bool.to_string b)]
   [@@deriving show]
 and pattern = PStr of string | PProd of pattern list [@@deriving show]
-and tsum = {s: expr; e: expr; body: expr; tb: tyBase} [@@deriving show]
 
 (* Statements *)
 type stmt =
   | SSkip
   | SLet of string * expr
   | SLetP of pattern * expr
-  | SAssert of expr
-  | SForall of (string list -> expr)
+  | SAssert of qual
   [@@deriving show]
 
 type circuit =  Circuit of {
@@ -186,7 +187,7 @@ let rec vars_typ : typ -> SS.t = function
 
 and vars_qual : qual -> SS.t = function
   | QExpr e -> vars_expr e
-  | QForall (x, q) -> except (vars_qual q) x
+  | QForall (xs, q) -> excepts (vars_qual q) xs
   | _ -> SS.empty
 
 and vars_expr : expr -> SS.t = function
@@ -202,7 +203,7 @@ and vars_expr : expr -> SS.t = function
   | Comp (_, e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)
   | Call (_, es) -> unions (List.map vars_expr es)
   | ArrayOp (_, e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)
-  | Sum {s=s;e=e';body=body;tb=tb} -> unions [vars_expr s; vars_expr e'; vars_expr body]
+  | Sum {s=s;e=e';body=body} -> unions [vars_expr s; vars_expr e'; vars_expr body]
   | DPCons (es, (xs, q)) ->
       let q' = q (List.map (fun x -> Var x) xs) in
       unions ((excepts (vars_qual q') xs) :: (List.map vars_expr es))
@@ -242,9 +243,10 @@ and subst_qual (x: string) (e: expr) (q: qual) : qual =
   | QP -> q
   | QTrue -> q
   | QExpr e' -> QExpr (subst_expr x e e')
-  | QForall (i, q') ->
-    if i = x then q
-    else QForall (i, subst_qual x e q')
+  | QForall (ys, q') ->
+    match (List.find_opt (fun y -> x = y) ys) with
+    | Some _ -> q
+    | None -> QForall (ys, subst_qual x e q')
 
 and subst_expr (x: string) (ef: expr) (e: expr) : expr =
   let f = subst_expr x ef in
@@ -272,7 +274,8 @@ and subst_expr (x: string) (ef: expr) (e: expr) : expr =
       init = f init; 
       inv = (fun ei -> fun ex -> (subst_typ x ef (inv ei ex)))
     }
-  | Sum {s=s;e=e';body=body;tb=tb} -> Sum {s=f s; e=f e'; body=f body; tb=tb}
+  | Sum {s=s;e=e';body=body} -> Sum {s=f s; e=f e'; body=f body}
+  | RSum (s,e,t) -> RSum (f s, f e, subst_typ x ef t)
   | DPCons (es, (xs, q)) -> todos "subst_expr: DPCons"
   | DPDestr (e1, xs, e2) -> todos "subst_expr: DPDestr"
   | DPDestrP (e1, p, e2) -> todos "subst_expr: DPDestrP"

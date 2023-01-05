@@ -118,7 +118,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       (* TODO: rule out invalid cases *)
       let (TRef (tb1, q1), cs1) = f e1 in
       let (TRef (tb2, q2), cs2) = f e2 in
-      let res = (TRef (tb1, QExpr (eq nu e)), cs1 @ cs2) in
+      let res = (TRef (TBool, QExpr (eq nu e)), cs1 @ cs2) in
       (match op with
       | Leq | Lt ->
         (match (tb1, tb2) with 
@@ -141,13 +141,17 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       (match List.assoc_opt c_name d with
       | Some c -> synthesize d g a (dummy_apps c_name (functionalize_circ c) args)
       | None -> failwith ("No such circuit: " ^ c_name))
-    | Sum {s=s; e=e'; body=b; tb=tb} ->
-      let t_sum = 
-        tfun "s" tint (
-          tfun "e" tint (
-            tfun "body" (tfun "i" tint (triv tb)) (triv tb))) in
-      let cs = check d g a (dummy_apps "sum" t_sum [s;e';b]) (triv tb) in
-      (TRef (tb, QExpr (eq nu e)), cs)
+    | Sum {s=s; e=e'; body=b} ->
+      let cs1 = check d g a s tint in
+      let cs2 = check d g a e' tint in
+      let (t_body, cs3) = f b in
+      (match t_body with
+      | TFun (i, TRef (TInt, _), TRef (tb', _)) ->
+        (match tb' with
+        | TInt | TF ->
+          (TRef (tb', QExpr (eq nu (rsum s e' t_body))), cs1 @ cs2 @ cs3)
+        | _ -> failwith (Format.sprintf "Sum: %s is not summable" (show_tyBase tb')))
+      | _ -> failwith (Format.sprintf "Sum: body has type %s" (show_typ t_body)))
     | Iter {s; e; body; init; inv} ->
       let (tx, cx) = f init in
       (* s is int *)
@@ -261,9 +265,10 @@ let typecheck_stmt (d: delta) (g: gamma) (a: alpha) (s: stmt) : (gamma * alpha *
   | SLet(x, e) ->
     let (t', cs) = synthesize d g a e in
     ((x,t')::g, [], cs)
-  | SAssert e ->
-    let _ = check d g a e tbool in
-    (g, [QExpr e], [])
+  | SAssert q ->
+    (* TODO: check q is well-formed and has restricted form *)
+    (g, [q], [])
+  | _ -> todos "typcheck_stmt"
 
 let rec to_base_typ = function
   | TRef (tb, _) -> TRef (tb, QTrue)

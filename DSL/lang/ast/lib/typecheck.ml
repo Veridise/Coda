@@ -48,7 +48,9 @@ let functionalize_circ (Circuit {name; inputs; outputs; exists; ctype; body}) : 
 
 let rec subtype (g: gamma) (a: alpha) (t1: typ) (t2: typ) : cons list =
   match (t1, t2) with
-  | (TRef _, TRef _) -> [Subtype (g, a, t1, t2)]
+  | (TRef (tb1, _), TRef (tb2, _)) ->
+    if tb1 = tb2 then [Subtype (g, a, t1, t2)]
+    else failwith (Format.sprintf "Subtype: different base types for %s and %s" (show_typ t1) (show_typ t2))
   | (TFun (x,t1,t2), TFun (y,t1',t2')) ->
     Subtype (g, a, t1', t1) :: subtype ((x,t1')::g) a t2 (subst_typ y (v x) t2')
   | (TTuple ts1, TTuple ts2) -> List.concat_map (uncurry (subtype g a)) (List.combine ts1 ts2)

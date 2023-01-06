@@ -4,5 +4,5 @@
 
 (library
  (name lib)
- (modules utils ast dsl typecheck)
+ (modules utils ast dsl typecheck coqgen)
  (preprocess (pps ppx_deriving.show ppx_deriving.eq)))

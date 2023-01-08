@@ -84,7 +84,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         | CF _ -> r TF
         | CInt _ -> r TInt
         | CBool _ -> r TBool
-        | _ -> failwith "invalid constant"
+        | _ -> failwith (Format.sprintf "synthesize: invalid constant %s" (show_expr e))
       in (t, [])
     | Var v ->
       let t = match List.assoc_opt v g with
@@ -281,6 +281,7 @@ and synthesize_app (d: delta) (g: gamma) (a: alpha) (t: typ) (es: expr list) : t
 and check (d: delta) (g: gamma) (a: alpha) (e: expr) (t: typ) : cons list =
   print_endline (Format.sprintf "Checking %s has type %s" (show_expr e) (show_typ t));
   match (e, t) with
+  | (Const CNil, TArr (t1, QTrue, e)) -> [CheckCons (g, a, QExpr (eq e z0))]
   | (Lam (x, body), TFun (y, t1, t2)) ->
       check d ((x,t1)::g) a body t2
   | (LamA (x, t, body), TFun (y, t1, t2)) -> 

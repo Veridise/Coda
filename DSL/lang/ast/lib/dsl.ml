@@ -64,6 +64,8 @@ let z1 = zc 1
 let z2 = zc 2
 let add1z e = add e z1
 let add1f e = add e f1
+let sub1z e = sub e z1
+let sub1f e = sub e f1
 let btrue = Const (CBool true)
 let bfalse = Const (CBool false)
 let tf_binary = TRef (TF, QExpr (bor (eq nu f0) (eq nu f1)))
@@ -85,7 +87,8 @@ let cons x xs = ArrayOp (Cons, x, xs)
 let take n xs = ArrayOp (Take, n, xs)
 let drop n xs = ArrayOp (Drop, n, xs)
 let to_big_int (tb: tyBase) (n: expr) (k: expr) (xs: expr): expr = 
-  rsum z0 k (tfun "i" tint (TRef (tb, QExpr (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))))))
+  let sub1 = match tb with TF -> sub1f | TInt -> sub1z in
+  rsum z0 (sub1 k) (tfun "i" tint (TRef (tb, QExpr (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))))))
 let z_range l r = TRef (TInt, QExpr (band (leq l nu) (leq nu r)))
 let toSZ e = Fn (ToSZ, [e])
 let toUZ e = Fn (ToUZ, [e])

@@ -34,10 +34,13 @@ type cons =
 let filter_trivial =
   List.filter (function
     | Subtype (_, _, TRef (t1, _), TRef (t2, QTrue)) -> t1 <> t2
+    (* | Subtype (_, _, t1, t2) -> t1 <> t2 *)
     | _ -> true)
 
 let pc (cs: cons list) : unit =
-  cs |> filter_trivial |> List.map show_cons |> String.concat "\n\n" |> print_endline
+  cs 
+  |> filter_trivial 
+  |> List.map show_cons |> String.concat "\n\n" |> print_endline
 
 let functionalize_circ (Circuit {name; inputs; outputs; exists; ctype; body}) : typ =
   ctype
@@ -105,16 +108,20 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       (* TODO: reflect *)
       let (TRef (tb1, q1), cs1) = f e1 in
       let (TRef (tb2, q2), cs2) = f e2 in
-      (match (tb1, tb2) with
-      | (TF, TF) | (TInt, TInt) -> (re tb1 (eq nu e), cs1 @ cs2)
-      | _ -> failwith ("Binop: Invalid operand type " ^ (show_tyBase tb1) ^ (show_tyBase tb2)))
+      (match op with
+      | Add | Mul | Sub -> (match tb1, tb2 with
+        | (TF, TF) | (TInt, TInt) -> (re tb1 (eq nu e), cs1 @ cs2)
+        | _ -> failwith (Format.sprintf "Binop: Invalid operand type %s and %s in %s" (show_tyBase tb1) (show_tyBase tb2) (show_expr e)))
+      | Pow -> (match tb1, tb2 with
+        | (TF, TInt) | (TInt, TInt) -> (re tb1 (eq nu e), cs1 @ cs2)
+        | _ -> failwith (Format.sprintf "Binop: Invalid operand type %s and %s in %s" (show_tyBase tb1) (show_tyBase tb2) (show_expr e))))
     | Boolop (op, e1, e2) ->
       (* TODO: reflect *)
       let (TRef (tb1, q1), cs1) = f e1 in
       let (TRef (tb2, q2), cs2) = f e2 in
       (match (tb1, tb2) with
       | (TBool, TBool) -> (re tb1 (eq nu e), cs1 @ cs2)
-      | _ -> failwith ("Boolop: Invalid operand type " ^ (show_tyBase tb1) ^ (show_tyBase tb2)))
+      | _ -> failwith (Format.sprintf "Boolop: Invalid operand type %s and %s" (show_tyBase tb1) (show_tyBase tb2)))
     | Comp (op, e1, e2) ->
       (* TODO: reflect *)
       (* TODO: rule out invalid cases *)
@@ -146,7 +153,10 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
     | Sum {s=s; e=e'; body=b} ->
       let cs1 = check d g a s tint in
       let cs2 = check d g a e' tint in
-      let (t_body, cs3) = f b in
+      let b' = match b with
+        | Lam (x, b') -> LamA (x, z_range s e', b')
+        | _ -> failwith "Sum's body must be Lam" in
+      let (t_body, cs3) = f b' in
       (match t_body with
       | TFun (i, TRef (TInt, _), TRef (tb', _)) ->
         (match tb' with
@@ -160,7 +170,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       let t_iter = 
         (* TODO: ensure var freshness *)
         tfun "s" tint
-        (tfun "e" (TRef (TInt, QExpr (leq (v "s") nu)))
+        (tfun "e" tint
         (tfun "body" (
           (* assume s <= i <= e *)
           (tfun "i" (z_range s e)
@@ -191,7 +201,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       (match t1 with
       | TArr (t, q, el) ->
         (* check index in range *)
-        let cs2 = check d g a e2 (z_range z0 el) in
+        let cs2 = check d g a e2 (z_range z0 (sub1z el)) in
         (refine t (QExpr (eq nu e)), cs1 @ cs2)
       | _ -> failwith "Synthesize: get: not an array")
     | ArrayOp (Cons, e1, e2) ->
@@ -217,6 +227,30 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         let cs2 = check d g a e2 (z_range z0 el) in
         (TArr (t, QExpr (eq nu e), sub el e2), cs1 @ cs2)
       | _ -> failwith "Synthesize: drop: not an array")
+    | Map (e1, e2) ->
+      let (t1, cs1) = f e1 in
+      let (t2, cs2) = f e2 in
+      (match t1, t2 with
+      | TFun (x,tx, TRef (tr,q)), TArr (t2', q2, el) ->
+        (* todo: factor out non-dependent part of q *)
+        (* FIXME: q is erased *)
+        let i = "i" in
+        let q2' = q |> subst_qual x (get e2 (v i)) |> subst_qual nu_str (get nu (v i)) in
+        (TArr (
+          TRef (tr, QTrue),
+          qand (qforall [i] q2') (QExpr (eq nu (Map (e1,e2)))),
+          el),
+        cs1 @ cs2 @ subtype g a t2' tx)
+      | _, TArr _ -> failwith "map: not a valid function"
+      | TFun _, _ -> failwith "map: not a valid array")
+    | Zip (e1, e2) ->
+      let (t1, cs1) = f e1 in
+      let (t2, cs2) = f e2 in
+      (match (t1, t2) with
+      | TArr (t1', q1, l1), TArr (t2', q2, l2) ->
+        (* FIXME: q1 and q2 are erased *)
+        (tarr (ttuple [t1';t2']) QTrue l1, cs1 @ cs2 @ [CheckCons (g, a, (QExpr (eq l1 l2)))])
+      | TArr _, _ | _, TArr _ -> failwith "zip: not an array")
     (* | DPCons (es, q_opt) ->
       todos "DPCons"
       (* let (ts, cs_s) = List.map f es |> List.split in
@@ -251,7 +285,6 @@ and check (d: delta) (g: gamma) (a: alpha) (e: expr) (t: typ) : cons list =
       check d ((x,t1)::g) a body t2
   | (LamA (x, t, body), TFun (y, t1, t2)) -> 
       subtype g a t1 t @ check d ((x,t1)::g) a body t2
-
   | (LetIn (x, e1, e2), t2) ->
     let (t1, cs) = synthesize d g a e1 in
     check d ((x,t1)::g) a e2 t2

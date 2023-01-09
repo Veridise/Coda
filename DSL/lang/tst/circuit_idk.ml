@@ -81,51 +81,6 @@ let num2bits =
         ]
     }
 
-let and_tout = TRef (TF, QExpr (eq (v "out") (mul (v "a") (v "b"))))
-
-let gates_and =
-  Circuit {
-      name = "AND";
-      inputs = [("a", tf); ("b", tf)];
-      exists = [];
-      outputs = [("out", and_tout)];
-      (* \a => \b => TF{out | out = a * b} *)
-      ctype = TFun ("a", tf, (TFun ("b", tf, and_tout)));
-      body = [
-          assert_eq (v "out") (mul (v "a") (v "b"))
-        ]
-    }
-
-let or_tout = TRef (TF, QExpr (eq (v "out") (sub (add (v "a") (v "b")) (mul (v "a") (v "b")))))
-
-let gates_or =
-  Circuit {
-      name = "OR";
-      inputs = [("a", tf); ("b", tf)];
-      exists = [];
-      outputs = [("out", or_tout)];
-      (* \a => \b => TF{out | out = a + b - a * b} *)
-      ctype = TFun ("a", tf, (TFun ("b", tf, or_tout)));
-      body = [
-          assert_eq (v "out") (sub (add (v "a") (v "b")) (mul (v "a") (v "b")))
-        ]
-    }
-
-let xor_tout = TRef (TF, QExpr (eq (v "out")
-                                  (sub (add (v "a") (v "b")) (mul f2 (mul (v "a") (v "b"))))))
-
-let gates_xor =
-  Circuit {
-      name = "XOR";
-      inputs = [("a", tf); ("b", tf)];
-      exists = [];
-      outputs = [("out", xor_tout)];
-      (* \a => \b => TF{out | out = a + b - 2 * a * b} *)
-      ctype = TFun ("a", tf, (TFun ("b", tf, xor_tout)));
-      body = [
-          assert_eq (v "out") (sub (add (v "a") (v "b")) (mul f2 (mul (v "a") (v "b"))))
-        ]
-    }
 
 let big_is_zero =
   Circuit {
@@ -202,7 +157,7 @@ let big_add =
                              LetIn ("s",
                                     Call ("ModSumThree", [v "n"; v "a"; v "b"; v "c"]),
                                     TMake [
-                                        ArrayOp (Concat, v "u", ArrayOp (Cons, v "s", Const CNil));
+                                        ArrayOp (Concat, v "u", ArrayOp (Cons, tget (v "s") 0, Const CNil));
                                         TGet (v "s", 1)
                                       ]
                                )

@@ -47,6 +47,8 @@ and expr_to_coq (e: expr) : string =
     spf "~%s" (expr_to_coq e)
   | Opp e ->
     spf "-%s" (expr_to_coq e)
+  | Fn (Unint f, es) ->
+    spf "%s %s" f (String.concat " " (List.map expr_to_coq es))
   | _ -> todos (spf "expr_to_coq: %s" (show_expr e))
 
 
@@ -59,7 +61,7 @@ and qual_to_coq (q: qual) : string =
 let gamma_to_coq (g: gamma) : ((string * string) list * string list) =
   List.rev g
   |> List.map (fun (x,t) ->
-    let (tb_str, q_strs) = typing_to_ccons (v x) t in
+    let (tb_str, q_strs) = typing_to_ccons (v x) (subst_typ nu_str (v x) t) in
     ((x,tb_str), q_strs))
   |> List.split
   |> fun (b,q) -> (b, List.concat q)

@@ -318,7 +318,7 @@ let init_gamma (c: circuit) : gamma =
   let to_base_types = List.map (fun (x,t) -> (x, to_base_typ t)) in
   match c with
   | Circuit {name; inputs; outputs; exists; ctype; body} ->
-    inputs @ to_base_types outputs @ to_base_types exists
+     List.rev (to_base_types outputs) @ List.rev inputs @ List.rev (to_base_types exists)
 
 let typecheck_circuit (d: delta) (c: circuit) : cons list =
   match c with

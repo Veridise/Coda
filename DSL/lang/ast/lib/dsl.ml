@@ -26,7 +26,7 @@ let dummy_apps s f es = apps (dummy s f) es
 (* function type *)
 let tfun x t1 t2 = TFun (x, t1, t2)
 (* dependent product type *)
-let tprod ts q_opt = TDProd (ts, q_opt)
+let tprod ts xs q = TDProd (ts, xs, q)
 (* tuple type *)
 let ttuple ts = TTuple ts
 (* refinement type with base tb refined by expression e *)

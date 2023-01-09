@@ -30,11 +30,11 @@ type typ =
       fprintf fmt "%s" ts_str]
   
   (* Dependent product type: element types, and an aggregate qualifier *)
-  | TDProd of typ list * ((expr, qual) binders)
+  | TDProd of typ list * string list * qual
     
-    (* [@printer fun fmt (ts, (xs, q)) -> 
+    [@printer fun fmt (ts, xs, q) -> 
       let ts_str = String.concat " × " (List.map show_typ ts) in
-      fprintf fmt "(%s)_(λ%s. %s)" ts_str (String.concat " " xs) (show_qual (q (List.map (fun x -> Var x) xs)))] *)
+      fprintf fmt "(%s)_(λ%s. %s)" ts_str (String.concat " " xs) (show_qual q)]
   
   [@@deriving show]
 
@@ -96,7 +96,7 @@ and expr =
   | TMake of expr list [@printer fun fmt es -> fprintf fmt "(%s)" (String.concat ", " (List.map show_expr es))]
   | TGet of expr * int [@printer fun fmt (e,n) -> fprintf fmt "%s.%d" (show_expr e) n]
   (* dependent product ops *)
-  | DPCons of expr list * ((expr, qual) binders)
+  | DPCons of expr list * string list * qual
   | DPDestr of expr * string list * expr
   | DPDestrP of expr * pattern * expr
   (* functional ops *)
@@ -205,9 +205,7 @@ and vars_expr : expr -> SS.t = function
   | Call (_, es) -> unions (List.map vars_expr es)
   | ArrayOp (_, e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)
   | Sum {s=s;e=e';body=body} -> unions [vars_expr s; vars_expr e'; vars_expr body]
-  | DPCons (es, (xs, q)) ->
-      let q' = q (List.map (fun x -> Var x) xs) in
-      unions ((excepts (vars_qual q') xs) :: (List.map vars_expr es))
+  | DPCons (es, xs, q) -> todos "vars_expr: DPCons"
   | TMake es -> unions (List.map vars_expr es)
   | DPDestr (e1, xs, e2) -> SS.union (vars_expr e1) (excepts (vars_expr e2) xs)
   | DPDestrP (e1, p, e2) -> SS.union (vars_expr e1) (SS.diff (vars_expr e2) (vars_pattern p))
@@ -237,7 +235,12 @@ let rec subst_typ (x: string) (e: expr) (t: typ) : typ =
       TFun (y, subst_typ x e t1, subst_typ x e t2) 
   | TArr (t, q, e') -> TArr (f t, subst_qual x e q, subst_expr x e e')
   | TTuple ts -> TTuple (List.map f ts)
-  | TDProd _ -> todo ()
+  | TDProd (ts, ys, q) ->
+    let ts' = List.map f ts in
+    if List.exists ((=)x) ys then
+      TDProd (ts', ys, q)
+    else
+      TDProd (ts', ys, subst_qual x e q)
 
 and subst_qual (x: string) (e: expr) (q: qual) : qual =
   match q with
@@ -277,8 +280,17 @@ and subst_expr (x: string) (ef: expr) (e: expr) : expr =
     }
   | Sum {s=s;e=e';body=body} -> Sum {s=f s; e=f e'; body=f body}
   | RSum (s,e,t) -> RSum (f s, f e, subst_typ x ef t)
-  | DPCons (es, (xs, q)) -> todos "subst_expr: DPCons"
-  | DPDestr (e1, xs, e2) -> todos "subst_expr: DPDestr"
+  | DPCons (es, ys, q) ->
+    let es' = List.map f es in
+    if List.exists ((=)x) ys then
+      DPCons (es', ys, q)
+    else
+      DPCons (es', ys, subst_qual x ef q)
+  | DPDestr (e1, ys, e2) -> 
+    if List.exists ((=)x) ys then
+      DPDestr (f e1, ys, e2)
+    else
+      DPDestr (f e1, ys, f e2)
   | DPDestrP (e1, p, e2) -> todos "subst_expr: DPDestrP"
   | Map (e1, e2) -> todos "subst_expr: Map"
   | Zip (e1, e2) -> todos "subst_expr: Zip"

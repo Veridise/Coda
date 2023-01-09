@@ -190,11 +190,63 @@ let big_add =
           (* (sum0, carry0) = #ModSum n a[0] b[0] *)
           SLetP (PProd [PStr "sum0"; PStr "carry0"],
                  Call ("ModSum", [v "n"; ArrayOp (Get, v "a", zc 0); ArrayOp (Get, v "b", zc 0)]));
-          (* out[0] === sum0 *)
-          assert_eq (ArrayOp (Get, v "out", zc 0)) (v "sum0");
           (* abs = drop 1 (zip a b) *)
           SLet ("abs",
-                ArrayOp (Drop, z1, Zip (v "a", v "b")))
-          (* TODO *)
+                ArrayOp (Drop, z1, Zip (v "a", v "b")));
+          (* (units, _) = foldl (\(u, c) (a, b) =>
+             let (si, ci) = #ModSumThree n a b c in (u ++ [(si, ci)], ci)) ([], carry0) abs *)
+          SLetP (PProd [PStr "units"; PStr "_"],
+                 Foldl {
+                     f = LamP (
+                             PProd [PProd [PStr "u"; PStr "c"]; PProd [PStr "a"; PStr "b"]],
+                             LetIn ("s",
+                                    Call ("ModSumThree", [v "n"; v "a"; v "b"; v "c"]),
+                                    TMake [
+                                        ArrayOp (Concat, v "u", ArrayOp (Cons, v "s", Const CNil));
+                                        TGet (v "s", 1)
+                                      ]
+                               )
+                           );
+                     acc = TMake [Const CNil; v "carry0"];
+                     xs = v "abs"
+                   }
+            );
+          (* uos = zip units (drop 1 (take k out)) *)
+          SLet ("uos",
+                Zip (
+                    v "units",
+                    ArrayOp (Drop, z1, ArrayOp (Take, v "k", v "out"))
+                  )
+            );
+          (* cons = map (\((sumi, _), outi) => outi === sumi) uos *)
+          SLet ("cons",
+                Map (
+                    LamP (
+                        PProd [PProd [PStr "sumi"; PStr "_"]; PStr "outi"],
+                        Comp (Eq, v "outi", v "sumi")
+                      ),
+                    v "ous"
+                  )
+            );
+          (* (foldl (\acc c => acc && c) true cons) && (out[0] = sum0) && (out[k] = units[k - 2].carry *)
+          SAssert (QExpr (
+                       band
+                         (Foldl {
+                              f = LamP (
+                                      PProd [PStr "acc"; PStr "c"],
+                                      band (v "acc") (v "c")
+                                    );
+                              acc = btrue;
+                              xs = v "cons"
+                         })
+                         (band
+                            (eq (ArrayOp (Get, v "out", zc 0)) (v "sum0"))
+                            (eq
+                               (ArrayOp (Get, v "out", v "k"))
+                               (TGet (ArrayOp (Get, v "units", sub (v "k") z2), 1))
+                            )
+                         )
+                     )
+            )
         ]
     }

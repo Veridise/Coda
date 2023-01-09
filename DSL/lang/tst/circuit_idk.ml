@@ -140,68 +140,27 @@ let big_add =
                                      TFun ("a", t_arr_tf (v "k"),
                                            TFun ("b", t_arr_tf (v "k"), t_arr_tf (add (v "k") z1)))));
       body = [
-          (* assert(n <= 252) *)
-          SAssert (QExpr (Comp (Leq, v "n", zc 252)));
-          (* (sum0, carry0) = #ModSum n a[0] b[0] *)
-          SLetP (PProd [PStr "sum0"; PStr "carry0"],
-                 Call ("ModSum", [v "n"; ArrayOp (Get, v "a", zc 0); ArrayOp (Get, v "b", zc 0)]));
-          (* abs = drop 1 (zip a b) *)
-          SLet ("abs",
-                ArrayOp (Drop, z1, Zip (v "a", v "b")));
-          (* (units, _) = foldl (\(u, c) (a, b) =>
-             let (si, ci) = #ModSumThree n a b c in (u ++ [(si, ci)], ci)) ([], carry0) abs *)
-          SLetP (PProd [PStr "units"; PStr "_"],
+          (* abs = zip a b *)
+          SLet ("abs", Zip (v "a", v "b"));
+          (* (sums, carry) = foldl (\(ss, c) (a, b) =>
+             let (si, ci) = ModSumThree n a b c in (ss ++ [si], ci)) ([], 0) abs *)
+          SLetP (PProd [PStr "sums"; PStr "carry"],
                  Foldl {
                      f = LamP (
-                             PProd [PProd [PStr "u"; PStr "c"]; PProd [PStr "a"; PStr "b"]],
-                             LetIn ("s",
+                             PProd [PProd [PStr "ss"; PStr "c"]; PProd [PStr "a"; PStr "b"]],
+                             LetIn ("sci",
                                     Call ("ModSumThree", [v "n"; v "a"; v "b"; v "c"]),
                                     TMake [
-                                        ArrayOp (Concat, v "u", ArrayOp (Cons, tget (v "s") 0, Const CNil));
-                                        TGet (v "s", 1)
+                                        ArrayOp (Concat, v "ss", ArrayOp (Cons, tget (v "sci") 0, Const CNil));
+                                        TGet (v "sci", 1)
                                       ]
                                )
                            );
-                     acc = TMake [Const CNil; v "carry0"];
+                     acc = TMake [Const CNil; f0];
                      xs = v "abs"
                    }
             );
-          (* uos = zip units (drop 1 (take k out)) *)
-          SLet ("uos",
-                Zip (
-                    v "units",
-                    ArrayOp (Drop, z1, ArrayOp (Take, v "k", v "out"))
-                  )
-            );
-          (* cons = map (\((sumi, _), outi) => outi === sumi) uos *)
-          SLet ("cons",
-                Map (
-                    LamP (
-                        PProd [PProd [PStr "sumi"; PStr "_"]; PStr "outi"],
-                        Comp (Eq, v "outi", v "sumi")
-                      ),
-                    v "ous"
-                  )
-            );
-          (* (foldl (\acc c => acc && c) true cons) && (out[0] = sum0) && (out[k] = units[k - 2].carry *)
-          SAssert (QExpr (
-                       band
-                         (Foldl {
-                              f = LamP (
-                                      PProd [PStr "acc"; PStr "c"],
-                                      band (v "acc") (v "c")
-                                    );
-                              acc = btrue;
-                              xs = v "cons"
-                         })
-                         (band
-                            (eq (ArrayOp (Get, v "out", zc 0)) (v "sum0"))
-                            (eq
-                               (ArrayOp (Get, v "out", v "k"))
-                               (TGet (ArrayOp (Get, v "units", sub (v "k") z2), 1))
-                            )
-                         )
-                     )
-            )
+          (* out === sums ++ [carry] *)
+          assert_eq (v "out") (ArrayOp (Concat, v "sums", ArrayOp (Cons, v "carry", Const CNil)))
         ]
     }

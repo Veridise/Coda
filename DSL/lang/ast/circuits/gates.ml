@@ -11,7 +11,7 @@ let out = v "out"
 (* NOT *)
 let tnot = tboole (eq nu (unint "not" [v "a"]))
 let cnot = Circuit {
-  name = "cnot";
+  name = "Not";
   inputs = [("in", tf_binary)];
   outputs = [("out", tnot)];
   exists = [];
@@ -24,9 +24,9 @@ let check_not = typecheck_circuit d_empty cnot
 
 
 (* XOR *)
-let txor = tboole (eq nu (unint "xor" [v "a"; v "b"]))
+let txor = tfq (ind_dec nu (unint "xor" [v "a"; v "b"]))
 let cxor = Circuit {
-  name = "xor";
+  name = "Xor";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", txor)];
   exists = [];
@@ -39,13 +39,13 @@ let check_xor = typecheck_circuit d_empty cxor
 
 
 (* AND *)
-let tand = tboole (eq nu (unint "and" [v "a"; v "b"]))
+let tand = tfq (ind_dec nu (unint "and" [v "a"; v "b"]))
 let cand = Circuit {
-  name = "and";
+  name = "And";
   inputs = [("a", tf_binary); ("b", tf_binary)];
-  outputs = [("out", txor)];
+  outputs = [("out", tand)];
   exists = [];
-  ctype = tfun "a" tf_binary (tfun "b" tf_binary txor);
+  ctype = tfun "a" tf_binary (tfun "b" tf_binary tand);
   body = [
     assert_eq out (sub (add a b) (muls [f2; a; b]))
   ]
@@ -54,9 +54,9 @@ let check_and = typecheck_circuit d_empty cand
 
 
 (* NAND *)
-let tnand = tboole (eq nu (unint "nand" [v "a"; v "b"]))
+let tnand = tfq (ind_dec nu (unint "nand" [v "a"; v "b"]))
 let cnand = Circuit {
-  name = "nand";
+  name = "Nand";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", tnand)];
   exists = [];
@@ -69,10 +69,10 @@ let check_nand = typecheck_circuit d_empty cnand
 
 
 (* OR *)
-let tor = tboole (eq nu (unint "or" [v "a"; v "b"]))
+let tor = tfq (ind_dec nu (unint "or" [v "a"; v "b"]))
 let cor =
   Circuit {
-      name = "or";
+      name = "Or";
       inputs = [("a", tf_binary); ("b", tf_binary)];
       outputs = [("out", tor)];
       exists = [];
@@ -88,7 +88,7 @@ let check_or = typecheck_circuit d_empty cor
 (* NOR *)
 let tnor = tboole (eq nu (unint "nor" [v "a"; v "b"]))
 let cnor = Circuit {
-  name = "nor";
+  name = "Nor";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", tnor)];
   exists = [];

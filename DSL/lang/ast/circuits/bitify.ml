@@ -23,7 +23,7 @@ let (tn2bloop, check_n2bloop) = synthesize [] [("out", tarr tf QTrue (zc 5))] []
   (Iter { s = z0; e = zc 4; body = n2b_body; init = tmake [f0; f1];
     inv = n2b_inv}))
 
-let n2b_tout = tarr tf_binary (QExpr (eq (to_big_int TF f1 n nu) vin)) n
+let n2b_tout = tarr tf_binary (QExpr (eq (to_big_int TF f1 n nu) vin)) (add1z n)
 
 let num2bits = Circuit {
   name = "Num2Bits";
@@ -33,6 +33,7 @@ let num2bits = Circuit {
   exists = [];
   body = [
     slet "lc1_e2" (Iter {s = z0; e = (sub1z n); body = n2b_body; init = tmake [f0; f1]; inv = n2b_inv});
+    slet "lc1" (tget (v "lc1_e2") 0);
     assert_forall "i" (QExpr (binary_eq (get vout i)))
   ]
 }

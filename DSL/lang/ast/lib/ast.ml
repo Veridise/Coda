@@ -55,7 +55,6 @@ and ('a, 'b) binders = string list * ('a list -> 'b)
 and ('a, 'b) binder = string * ('a -> 'b)
 
 and qual =
-  | QP (* field size *)      [@printer fun fmt _ -> fprintf fmt "p"]
   | QTrue                    [@printer fun fmt _ -> fprintf fmt "⊤"]
   | QExpr of expr            [@printer fun fmt e -> fprintf fmt "%s" (show_expr e)]
   | QAnd of qual * qual      [@printer fun fmt (q1,q2) -> fprintf fmt "(qand %s %s)" (show_qual q1) (show_qual q2)]
@@ -65,6 +64,8 @@ and qual =
 and expr =
   (* const *)
   | Const of const   [@printer fun fmt c -> fprintf fmt "%s" (show_const c)]
+  | CPrime           [@printer fun fmt _ -> fprintf fmt "C.q"]
+  | CPLen            [@printer fun fmt _ -> fprintf fmt "C.k"]
   (* variable *)
   | Var of string    [@printer fun fmt x -> fprintf fmt "%s" x]
   (* ascription *)
@@ -131,6 +132,8 @@ and func =
   | Unint of string [@printer fun fmt s -> fprintf fmt "$%s" s]
   | ToUZ [@printer fun fmt _ -> fprintf fmt "toUZ"]
   | ToSZ [@printer fun fmt _ -> fprintf fmt "toSZ"]
+  | ToBigUZ [@printer fun fmt _ -> fprintf fmt "toBigUZ"]
+  | ToBigSZ [@printer fun fmt _ -> fprintf fmt "toBigSZ"]
   [@@deriving show]
 and comp = 
   | Eq  [@printer fun fmt _ -> fprintf fmt "="]
@@ -177,7 +180,7 @@ let unions ss = List.fold_left SS.union SS.empty ss
 let except s x = SS.diff s (SS.singleton x)
 let excepts s xs = SS.diff s (SS.of_list xs)
 let count = ref 0
-let fresh () = let c = !count in count := c+1; "_var_" ^ Int.to_string c
+let fresh x = let c = !count in count := c+1; x ^ Int.to_string c
 
 let rec vars_typ : typ -> SS.t = function
   | TRef (_, q) -> except (vars_qual q) nu_str
@@ -214,7 +217,7 @@ and vars_expr : expr -> SS.t = function
   | Foldl {f; acc; xs} -> unions (List.map vars_expr [f; acc; xs])
   | Iter {s; e; body; init; inv} ->
     let vars_e = unions (List.map vars_expr [s;e;body;init]) in
-    let (x1, x2) = (fresh (), fresh ()) in
+    let (x1, x2) = (fresh "_var", fresh "_var") in
     let vars_inv = excepts (vars_typ (inv (Var x1) (Var x2))) [x1; x2] in
     unions [vars_e; vars_inv]
   | Fn (_, es) -> unions (List.map vars_expr es)
@@ -244,8 +247,8 @@ let rec subst_typ (x: string) (e: expr) (t: typ) : typ =
 
 and subst_qual (x: string) (e: expr) (q: qual) : qual =
   match q with
-  | QP -> q
   | QTrue -> q
+  | QAnd (q1, q2) -> QAnd (subst_qual x e q1, subst_qual x e q2)
   | QExpr e' -> QExpr (subst_expr x e e')
   | QForall (ys, q') ->
     match (List.find_opt (fun y -> x = y) ys) with
@@ -256,6 +259,8 @@ and subst_expr (x: string) (ef: expr) (e: expr) : expr =
   let f = subst_expr x ef in
   match e with
   | Const _ -> e
+  | CPrime -> e
+  | CPLen -> e
   | Var y -> if x = y then ef else e
   | LamA (y, t, body) ->
     if x = y then e else LamA (y, subst_typ x ef t, f body)

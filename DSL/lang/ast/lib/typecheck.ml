@@ -21,6 +21,9 @@ let add_to_delta (d: delta) (c: circuit) : delta =
   match c with
   | Circuit {name; inputs; outputs; exists; ctype; body} -> (name, c) :: d
 
+let add_to_deltas (d: delta) (c: circuit list) =
+  List.fold_left add_to_delta d c
+
 type cons = 
   | Subtype of gamma * alpha * typ * typ
     [@printer fun fmt (g,a,t1,t2) -> fprintf fmt "Gamma:\n%s\nAlpha:\n%s\n---Subtype---\n%s <: %s" (show_gamma g) (show_alpha a) (show_typ t1) (show_typ t2)]
@@ -34,6 +37,8 @@ type cons =
 let filter_trivial =
   List.filter (function
     | Subtype (_, _, TRef (t1, _), TRef (t2, QTrue)) -> t1 <> t2
+    | Subtype (_, _, TRef (t1, QAnd (q1, _)), TRef (t2, q2)) -> q1 <> q2
+    | Subtype (_, _, TRef (t1, QAnd (_, q1)), TRef (t2, q2)) -> q1 <> q2
     (* | Subtype (_, _, t1, t2) -> t1 <> t2 *)
     | _ -> true)
 
@@ -78,6 +83,8 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
     let (t, cs) = f' e in (coerce_psingle t, cs)
   and f' (e: expr) : typ * cons list = 
     match e with
+    | CPrime -> (TRef (TInt, QExpr (eq nu CPrime)), [])
+    | CPLen -> (TRef (TInt, QExpr (eq nu CPLen)), [])
     | Const c -> 
       let r = fun tb -> TRef (tb, QExpr (eq nu e)) in
       let t = match c with
@@ -172,8 +179,8 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         tfun "s" tint
         (tfun "e" tint
         (tfun "body" (
-          (* assume s <= i <= e *)
-          (tfun "i" (z_range s e)
+          (* assume s <= i < e *)
+          (tfun "i" (z_range_co s e)
           (* assume inv(i,x) holds *)
           (tfun "x" (inv (v "i") nu)
           (* prove inv(i+1,output) holds *)

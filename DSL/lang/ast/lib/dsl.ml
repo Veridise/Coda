@@ -29,6 +29,7 @@ let tfun x t1 t2 = TFun (x, t1, t2)
 let tprod ts xs q = TDProd (ts, xs, q)
 (* tuple type *)
 let ttuple ts = TTuple ts
+let tpair t1 t2 = ttuple [t1; t2]
 (* refinement type with base tb refined by expression e *)
 
 (* expressions *)
@@ -45,13 +46,14 @@ let qeq e1 e2 = QExpr (eq e1 e2)
 let leq e1 e2 = Comp (Leq, e1, e2)
 let lt e1 e2 = Comp (Lt, e1, e2)
 let unint s es = Fn (Unint s, es)
+let call f es = Call (f, es)
 
 let bnot e = Not e
 let bor e1 e2 = Boolop (Or, e1, e2)
 let band e1 e2 = Boolop (And, e1, e2)
 let qand q1 q2 = QAnd (q1, q2)
 let imply e1 e2 = Boolop (Imply, e1, e2)
-let ite e1 e2 e3 = band (imply e1 e2) (imply (bnot e1) e3)
+
 let v x = Var x
 let nu = Var "ν"
 let fc n = Const (CF n)
@@ -68,12 +70,19 @@ let sub1z e = sub e z1
 let sub1f e = sub e f1
 let btrue = Const (CBool true)
 let bfalse = Const (CBool false)
-let tf_binary = TRef (TF, QExpr (bor (eq nu f0) (eq nu f1)))
+let is_binary e = bor (eq e f0) (eq e f1)
+let tf_binary = tfe (is_binary nu)
 let binary_eq e = eq (mul e (sub e f1)) f0
+let ite e1 e2 e3 = band (imply e1 e2) (imply (bnot e1) e3)
+let ind e1 e2 e3 = qand (QExpr (is_binary e1)) (QExpr (band (imply (eq e1 f1) e2) (imply (eq e1 f0) e3)))
+let ind_dec e1 e2 = ind e1 e2 (bnot e2)
 let tnat = TRef (TInt, QExpr (leq z0 nu))
 
 let tmake es = TMake es
 let tget e n = TGet (e, n)
+let fst_pair e = tget e 0
+let snd_pair e = tget e 0
+let make_pair e1 e2 = tmake [e1; e2]
 let qforall i q = QForall (i, q)
 let assert_eq e1 e2 = SAssert (qeq e1 e2)
 let slet x e = SLet (x, e)
@@ -89,6 +98,7 @@ let drop n xs = ArrayOp (Drop, n, xs)
 let to_big_int (tb: tyBase) (n: expr) (k: expr) (xs: expr): expr = 
   let sub1 = match tb with TF -> sub1f | TInt -> sub1z in
   rsum z0 (sub1 k) (tfun "i" tint (TRef (tb, QExpr (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))))))
-let z_range l r = TRef (TInt, QExpr (band (leq l nu) (leq nu r)))
+let z_range l r = TRef (TInt, qand (QExpr (leq l nu)) (QExpr (leq nu r)))
+let z_range_co l r = TRef (TInt, qand (QExpr (leq l nu)) (QExpr (lt nu r)))
 let toSZ e = Fn (ToSZ, [e])
 let toUZ e = Fn (ToUZ, [e])

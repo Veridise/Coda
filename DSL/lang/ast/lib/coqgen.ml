@@ -5,6 +5,9 @@ open Utils
 
 let nu_str_coq = "nu"
 let spf = Format.sprintf
+let counter = ref 0
+(* let inc () = (let i = !counter; counter := i + 1; i)
+let fresh x = x ^ inc () *)
 
 let tyBase_to_coq (tb: tyBase) : string =
   match tb with
@@ -12,18 +15,34 @@ let tyBase_to_coq (tb: tyBase) : string =
   | TInt -> "Z"
   | TBool -> "bool"
 
+let get_tyBase (t: typ) : tyBase =
+  match t with
+  | TRef (tb, _) -> tb
+  | _ -> failwith (spf "get_tyBase: %s" (show_typ t))
+
 type ccons = string * string list
 let rec typing_to_ccons (e: expr) (t: typ) : ccons =
+  let is_nat = QExpr (leq z0 nu) in
+  print_endline (spf "typing to ccons: %s :: %s" (show_expr e) (show_typ t));
   match t with
-  | TRef (tb, q) -> (tyBase_to_coq tb, [qual_to_coq q])
+  | TRef (TInt, q) when q = is_nat -> ("nat", [])
+  | TRef (TInt, QAnd (q1, q2)) when q1 = is_nat ->
+    ("nat", [qual_to_coq (subst_qual nu_str e q2)])
+  | TRef (tb, q) -> (tyBase_to_coq tb, [qual_to_coq (subst_qual nu_str e q)])
   | TArr (TRef (tb, q), qa, l) ->
-    (spf "(%s) list" (tyBase_to_coq tb),
+    (* TODO: support nested arrays *)
+    let x = fresh "x" in
+    (spf "list %s" (tyBase_to_coq tb),
      [
       (* TODO: handle q (forall) *)
-      qual_to_coq (subst_qual nu_str_coq e qa);
+      spf "Forall (fun %s => %s) %s" x (qual_to_coq (subst_qual nu_str (v x) q)) (expr_to_coq e);
+      qual_to_coq (subst_qual nu_str e qa);
       spf "length %s = %s" (expr_to_coq e) (expr_to_coq l)
      ])
-  | _ -> todos "xtyp_to_ccons"
+  | TTuple ts -> 
+    let tbs = ts |> List.map get_tyBase |> List.map tyBase_to_coq in
+    (spf "%s" (String.concat " * " tbs), [])
+  | TFun _ -> todos "xtyp_to_ccons: TFun"
 
 and expr_to_coq (e: expr) : string =
   match e with
@@ -32,8 +51,10 @@ and expr_to_coq (e: expr) : string =
     (match c with
       | CF n -> spf "%d%%F" n
       (* TODO: sometimes need to force nat *)
-      | CInt n -> spf "%d%%Z" n
+      | CInt n -> if n >= 0 then spf "%d%%nat" n else spf "%d%%Z" n 
       | _ -> todos "expr_to_coq: Const")
+  | CPrime -> "C.q"
+  | CPLen -> "C.k"
   | Binop (op, e1, e2) ->
     let op_str = show_binop op in
     spf "(%s %s %s)" (expr_to_coq e1) op_str (expr_to_coq e2)
@@ -49,6 +70,18 @@ and expr_to_coq (e: expr) : string =
     spf "-%s" (expr_to_coq e)
   | Fn (Unint f, es) ->
     spf "%s %s" f (String.concat " " (List.map expr_to_coq es))
+  | Fn (ToBigUZ, [n;xs]) -> 
+    spf "[\\ %s \\]" (expr_to_coq xs)
+  | Fn (ToUZ, [e]) ->
+    spf "F.to_Z %s" (expr_to_coq e)
+  | ArrayOp (Take, e1, e2) ->
+    spf "%s[:%s]" (expr_to_coq e1) (expr_to_coq e2)
+  | ArrayOp (Get, e1, e2) ->
+    spf "%s!%s" (expr_to_coq e1) (expr_to_coq e2)
+  | TGet (e1, 0) ->
+    spf "fst (%s)" (expr_to_coq e1)
+  | TGet (e1, 1) ->
+    spf "snd (%s)" (expr_to_coq e1)
   | _ -> todos (spf "expr_to_coq: %s" (show_expr e))
 
 
@@ -56,12 +89,13 @@ and qual_to_coq (q: qual) : string =
   match q with
   | QTrue -> "True"
   | QExpr e -> expr_to_coq e
+  | QAnd (q1, q2) -> spf "(%s /\\ %s)" (qual_to_coq q1) (qual_to_coq q2)
   | _ -> todos "qual_to_coq"
 
 let gamma_to_coq (g: gamma) : ((string * string) list * string list) =
   List.rev g
   |> List.map (fun (x,t) ->
-    let (tb_str, q_strs) = typing_to_ccons (v x) (subst_typ nu_str (v x) t) in
+    let (tb_str, q_strs) = typing_to_ccons (v x) t in
     ((x,tb_str), q_strs))
   |> List.split
   |> fun (b,q) -> (b, List.concat q)
@@ -73,7 +107,10 @@ let cons_to_coq (c: cons) : string =
   let rename_nu subst = subst nu_str (v nu_str_coq) in
   match c with
   | Subtype (g, a, t1, t2) ->
-    let (g_decl, g_ref) = gamma_to_coq g in
+    let (g_decl, g_ref) = g 
+      (* debug *)
+      (* |> List.filter (fun (x,_) -> x = "x")  *)
+      |> gamma_to_coq in
     (match t1, t2 with
     | TRef (tb1, q1), TRef (tb2, q2) ->
       (* may assume tb1 = tb2 *)
@@ -92,7 +129,7 @@ let cons_to_coq (c: cons) : string =
         failwith "cons_to_coq: not a refinement")
     | HasType (g, a, x, t) ->
       let (g_decl, g_ref) = gamma_to_coq g in
-      let (_, qs) = typing_to_ccons (v x) (rename_nu subst_typ t) in
+      let (_, qs) = typing_to_ccons (v x) (subst_typ nu_str (v x) t) in
       spf "forall %s, %s"
         (String.concat " "
           (List.map (fun (x,t) -> spf "(%s : %s)" x t) g_decl))
@@ -101,7 +138,7 @@ let cons_to_coq (c: cons) : string =
           (alpha_to_coq a) @
           qs))
 let to_numbered (l: 'a list) : (int * 'a) list =
-  List.init (List.length l) (fun i -> (i, List.nth l i))
+  List.init (List.length l) (fun i -> (i+1, List.nth l i))
 
 let generate_lemmas (cs: cons list) : string =
   cs |> to_numbered |> List.map (fun (i,c) -> 

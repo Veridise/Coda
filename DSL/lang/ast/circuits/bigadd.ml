@@ -7,7 +7,6 @@ let b = v "b"
 let c = v "c"
 let out = v "out"
 
-let t_mst = tboole (eq nu (unint "xor" [v "a"; v "b"]))
 let cxor = Circuit {
   name = "xor";
   inputs = [("a", tf); ("b", tf_binary)];

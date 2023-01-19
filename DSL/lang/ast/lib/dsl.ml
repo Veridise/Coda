@@ -58,6 +58,7 @@ let v x = Var x
 let nu = Var "ν"
 let fc n = Const (CF n)
 let zc n = Const (CInt n)
+let cnil = Const CNil
 let f0 = fc 0
 let f1 = fc 1
 let f2 = fc 2
@@ -93,6 +94,7 @@ let sum es ee eb = Sum {s=es;e=ee;body=eb}
 let rsum s e t = RSum (s, e, t)
 let get xs i = ArrayOp (Get, xs, i)
 let cons x xs = ArrayOp (Cons, x, xs)
+let concat xs1 xs2 = ArrayOp (Concat, xs1, xs2)
 let take n xs = ArrayOp (Take, n, xs)
 let drop n xs = ArrayOp (Drop, n, xs)
 let to_big_int (tb: tyBase) (n: expr) (k: expr) (xs: expr): expr = 

@@ -147,17 +147,17 @@ let big_add =
                              LetIn ("sci",
                                     Call ("ModSumThree", [v "n"; v "a"; v "b"; v "c"]),
                                     TMake [
-                                        ArrayOp (Concat, v "ss", ArrayOp (Cons, tget (v "sci") 0, Const CNil));
+                                        ArrayOp (Concat, v "ss", ArrayOp (Cons, tget (v "sci") 0, cnil));
                                         TGet (v "sci", 1)
                                       ]
                                )
                            );
-                     acc = TMake [Const CNil; f0];
+                     acc = TMake [cnil; f0];
                      xs = v "abs"
                    }
             );
           (* out === sums ++ [carry] *)
-          assert_eq (v "out") (ArrayOp (Concat, v "sums", ArrayOp (Cons, v "carry", Const CNil)))
+          assert_eq (v "out") (ArrayOp (Concat, v "sums", ArrayOp (Cons, v "carry", cnil)))
         ]
     }
 
@@ -179,7 +179,7 @@ let big_add_mod_p =
           SLet (
               "lt",
               Call ("BigLessThan",
-                    [v "n"; add (v "k") z1; v "add"; ArrayOp (Concat, v "p", ArrayOp (Cons, f0, Const CNil))])
+                    [v "n"; add (v "k") z1; v "add"; ArrayOp (Concat, v "p", ArrayOp (Cons, f0, cnil))])
             );
           (* p0 = map (\x => (1 - lt) * x) p *)
           SLet (
@@ -190,9 +190,111 @@ let big_add_mod_p =
           SLet (
               "sub",
               Call ("BigSub",
-                    [v "n"; add (v "k") z1; v "add"; ArrayOp (Concat, v "p0", ArrayOp (Cons, f0, Const CNil))])
+                    [v "n"; add (v "k") z1; v "add"; ArrayOp (Concat, v "p0", ArrayOp (Cons, f0, cnil))])
             );
           (* out ++ [0] = sub *)
-          assert_eq (ArrayOp (Concat, v "out", ArrayOp (Cons, f0, Const CNil))) (v "sub")
+          assert_eq (ArrayOp (Concat, v "out", ArrayOp (Cons, f0, cnil))) (v "sub")
         ]
     }
+
+let big_mult_short_long =
+  Circuit {
+      name = "BigMultShortLong";
+      inputs = [("n", tint); ("k", tnat); ("m_out", tnat);
+                ("a", t_arr_tf (v "k")); ("b", t_arr_tf (v "k"))];
+      exists = [];
+      outputs = [("out", t_arr_tf (sub (mul z2 (v "k")) z1))];
+      ctype = TFun ("n", tint,
+                    TFun ("k", tnat,
+                          TFun ("m_out", tnat,
+                                TFun ("a", t_arr_tf (v "k"),
+                                      TFun ("b", t_arr_tf (v "k"), t_arr_tf (sub (mul z2 (v "k")) z1))))));
+      (* TODO: Add invariants *)
+      body = [
+          (* k2 = 2 * k - 1 *)
+          slet "k2" (sub (mul f2 (v "k")) f1);
+          (* pow = iter 0 k2
+                        (\i acci =>
+                            let powi = iter 0 k2 (\j accj => let powij = i ** j in accj ++ [powij]) []
+                            in acci ++ [powi])
+                        [] *)
+          slet "pow" (
+              Iter {
+                  s = z0;
+                  e = v "k2";
+                  body = LamP (
+                             PProd [PStr "i"; PStr "acci"],
+                             elet
+                               "powi"
+                               (
+                                 Iter {
+                                     s = z0;
+                                     e = v "k2";
+                                     body = LamP (
+                                                PProd [PStr "j"; PStr "accj"],
+                                                elet
+                                                  "powij"
+                                                  (pow (v "i") (v "j"))
+                                                  (concat (v "accj") (cons (v "powij") cnil))
+                                              );
+                                     init = cnil;
+                                     inv = (fun _ -> fun _ -> tf)
+                                   }
+                               )
+                               (concat (v "acci") (cons (v "powi") cnil))
+                           );
+                  init = cnil;
+                  inv = (fun _ -> fun _ -> tf)
+                }
+            );
+          (* arr_mul = \l0 l1 => let l = zip l0 l1 in map (\(x, y) => x * y) l *)
+          slet "arr_mul" (
+              LamP (PProd [PStr "l0"; PStr "l1"],
+                    elet "l"
+                      (Zip ((v "l0"), (v "l1")))
+                      (Map (LamP (PProd [PStr "x"; PStr "y"], mul (v "x") (v "y")), v "l")))
+            );
+          (* sum = \l => foldl (\acc x => acc + x) 0 l *)
+          slet "sum" (
+              lam "l" (
+                  Foldl {
+                      f = LamP (PProd [PStr "acc"; PStr "x"], add (v "acc") (v "x"));
+                      acc = f0;
+                      xs = v "l"
+                    }
+                )
+            );
+          (* poly = \z => iter 0 k2 (\i acc => acc ++ [sum (arr_mul z pow[i])]) [] *)
+          slet "poly" (
+              lam "z" (
+                  Iter {
+                      s = z0;
+                      e = v "k2";
+                      body = LamP (
+                                 PProd [PStr "i"; PStr "acc"],
+                                 elet
+                                   "powi"
+                                   (get (v "pow") (v "i"))
+                                   (concat
+                                      (v "acc")
+                                      (cons
+                                         (app (v "sum") (app (v "arr_mul") (TMake [v "z"; v "powi"])))
+                                         (cnil)))
+                               );
+                      init = cnil;
+                      inv = (fun _ -> fun _ -> tf)
+                    }
+                )
+            );
+          (* poly out === arr_mul (poly a) (poly b) *)
+          assert_eq
+            (app (v "poly") (v "out"))
+            (app (v "arr_mul") (TMake [app (v "poly") (v "a"); app (v "poly") (v "b")]))
+        ]
+    }
+
+
+
+(* let pow := init(0, k2, lambda i. init(0, k2, lambda j. i**j) in
+ * let poly := lambda x. init(0, k2, lambda i. sum(x * pow[i]) in 
+ * poly out == poly a * poly b. *)

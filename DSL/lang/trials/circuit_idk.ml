@@ -21,10 +21,10 @@ let is_zero =
 let is_equal =
   Circuit {
       name = "IsEqual";
-      inputs = [("in", TArr (tf, QP, f2))];
+      inputs = [("in", TArr (tf, QTrue, f2))];
       exists = [];
       outputs = [("out", tf_binary)];
-      ctype = TFun ("in", TArr (tf, QP, f2), tf_binary);
+      ctype = TFun ("in", TArr (tf, QTrue, f2), tf_binary);
       body = [
           (* isz_in === in[1] - in[0] *)
           assert_eq (v "isz_in") (sub (ArrayOp (Get, v "in", f1)) (ArrayOp (Get, v "in", f0)));
@@ -123,7 +123,7 @@ let mod_sub_three =
         ]
     }
 
-let t_arr_tf k = TArr (tf, QP, k)
+let t_arr_tf k = TArr (tf, QTrue, k)
 
 let big_add =
   Circuit {

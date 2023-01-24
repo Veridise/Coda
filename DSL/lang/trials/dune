@@ -1,3 +1,3 @@
 (library
- (name tst)
+ (name trials)
  (libraries lib))

@@ -9,7 +9,7 @@ let out = v "out"
 
 
 (* NOT *)
-let tnot = tboole (eq nu (unint "not" [v "a"]))
+let tnot = tfq (ind_dec nu (unint "not" [v "in"]))
 let cnot = Circuit {
   name = "Not";
   inputs = [("in", tf_binary)];
@@ -47,7 +47,7 @@ let cand = Circuit {
   exists = [];
   ctype = tfun "a" tf_binary (tfun "b" tf_binary tand);
   body = [
-    assert_eq out (sub (add a b) (muls [f2; a; b]))
+    assert_eq out (mul a b)
   ]
 }
 let check_and = typecheck_circuit d_empty cand
@@ -86,7 +86,7 @@ let check_or = typecheck_circuit d_empty cor
 
 
 (* NOR *)
-let tnor = tboole (eq nu (unint "nor" [v "a"; v "b"]))
+let tnor = tfq (ind_dec nu (unint "or" [v "a"; v "b"]))
 let cnor = Circuit {
   name = "Nor";
   inputs = [("a", tf_binary); ("b", tf_binary)];

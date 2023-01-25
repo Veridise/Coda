@@ -69,7 +69,15 @@ and expr_to_coq (e: expr) : string =
   | Opp e ->
     spf "-%s" (expr_to_coq e)
   | Fn (Unint f, es) ->
-    spf "%s %s" f (String.concat " " (List.map expr_to_coq es))
+    let f' = match f with
+      | "and" -> "f_and"
+      | "or" -> "f_or"
+      | "not" -> "f_not"
+      | "nand" -> "f_nand"
+      | "nor" -> "f_nor"
+      | "xor" -> "f_xor"
+      | _ -> f in
+    spf "(%s %s)" f' (String.concat " " (List.map expr_to_coq es))
   | Fn (ToBigUZ, [n;xs]) -> 
     spf "[\\ %s \\]" (expr_to_coq xs)
   | Fn (ToUZ, [e]) ->

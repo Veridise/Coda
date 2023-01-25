@@ -78,6 +78,7 @@ let ite e1 e2 e3 = band (imply e1 e2) (imply (bnot e1) e3)
 let ind e1 e2 e3 = qand (QExpr (is_binary e1)) (QExpr (band (imply (eq e1 f1) e2) (imply (eq e1 f0) e3)))
 let ind_dec e1 e2 = ind e1 e2 (bnot e2)
 let tnat = TRef (TInt, QExpr (leq z0 nu))
+let tnat_e e = TRef (TInt, QAnd (QExpr (leq z0 nu), QExpr e))
 
 let tmake es = TMake es
 let tget e n = TGet (e, n)

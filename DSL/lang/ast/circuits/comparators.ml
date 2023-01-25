@@ -39,7 +39,7 @@ let c_is_equal = Circuit {
 
 let check_is_equal = typecheck_circuit (add_to_delta d_empty c_is_zero) c_is_equal
 
-let t_lt = tfq (ind_dec nu (lt x y))
+let t_lt = tfq (ind_dec nu (lt (toUZ x) (toUZ y)))
 let c_less_than = Circuit {
   name = "LessThan";
   inputs = [("n", tnat); ("x", tf);  ("y", tf)];

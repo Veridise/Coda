@@ -24,12 +24,16 @@ let y = v "y"
 let to_big xs = Fn (ToBigUZ, [n; xs])
 let big_op op xs ys = tfq (ind_dec nu (op (to_big xs) (to_big ys)))
 let t_out = big_op lt xs ys
-let tf_big_digit = tfe (leq (toUZ nu) (sub1f (pow f2 CPLen)))
+let tf_big_digit = tfe (leq (toUZ nu) (sub1z (pow z2 CPLen)))
 let t_in = tarr tf_big_digit QTrue k
 
 let c_big_lt = Circuit {
   name = "BigLessThan";
-  inputs = [("n", tnat); ("k", tnat); ("xs", t_in); ("ys", t_in)];
+  inputs = [
+    ("n", tnat_e (leq nu (sub1z CPLen)));
+    ("k", tnat_e (leq z2 nu));
+    ("xs", t_in);
+    ("ys", t_in)];
   outputs = [("out", t_out)];
   ctype = tfun "n" tnat (tfun "k" tnat (tfun "xs" t_in (tfun "ys" t_in t_out)));
   exists = [];

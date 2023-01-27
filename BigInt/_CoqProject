@@ -18,9 +18,8 @@ src/CircomLib/Comparators.v
 src/CircomLib/Bitify.v
 src/CircomLib/Gates.v
 src/CircomLib/Multiplexer.v
-src/Benchmarks/IsEqual.v
-src/Benchmarks/IsZero.v
-src/Benchmarks/Xor.v
+src/Benchmarks/Comparators.v
+src/Benchmarks/Gates.v
 src/BigInt/Definition/BigIsZero.v
 src/BigInt/Definition/BigIsEqual.v
 src/BigInt/Definition/ModProd.v

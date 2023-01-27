@@ -1,4 +1,4 @@
-(** * DSL benchmark XOR *)
+(** * DSL benchmark: Gates *)
 
 Require Import Coq.Lists.List.
 Require Import Coq.micromega.Lia.
@@ -22,11 +22,13 @@ Local Coercion Z.of_nat : nat >-> Z.
 
 Local Open Scope F_scope.
 
-(** ** Proof obligations from typechecking *)
-
 Definition f_xor (x: F) (y: F) := x <> y.
+Definition f_and (x: F) (y: F) := x = 1%F /\ y = 1%F.
+Definition f_or (x: F) (y: F) := x = 1%F \/ y = 1%F.
 
-Lemma _obligation1: forall (a : F) (b : F) (out : F),
+(** ** Proof obligations for XOR *)
+
+Lemma xor_obligation1: forall (a : F) (b : F) (out : F),
     ((a = 0%F) \/ (a = 1%F)) ->
     ((b = 0%F) \/ (b = 1%F)) -> True ->
     (out = ((a + b) - ((1 + 1)%F * (a * b)))) ->
@@ -38,4 +40,38 @@ Proof.
   - right. fqsatz.
   - right. fqsatz.
   - left. fqsatz.
+Qed.
+
+(** ** Proof obligations for AND *)
+
+Lemma and_obligation1: forall (a : F) (b : F) (out : F),
+    ((a = 0%F) \/ (a = 1%F)) ->
+    ((b = 0%F) \/ (b = 1%F)) -> True ->
+    (out = (a * b)) ->
+    (((out = 0%F) \/ (out = 1%F)) /\
+       (((out = 1%F) -> (f_and a b)) /\ ((out = 0%F) -> ~(f_and a b)))).
+Proof.
+  unwrap_C. unfold f_and. intros.
+  intuit; try fqsatz.
+  - left. fqsatz.
+  - left. fqsatz.
+  - left. fqsatz.
+  - right. fqsatz.
+Qed.
+
+(** ** Proof obligation for OR *)
+
+Lemma or_obligation1: forall (a : F) (b : F) (out : F),
+    ((a = 0%F) \/ (a = 1%F)) ->
+    ((b = 0%F) \/ (b = 1%F)) -> True ->
+    (out = ((a + b) - (a * b))) ->
+    (((out = 0%F) \/ (out = 1%F)) /\
+       (((out = 1%F) -> (f_or a b)) /\ ((out = 0%F) -> ~(f_or a b)))).
+Proof.
+  unwrap_C. unfold f_or. intros.
+  intuit; try fqsatz.
+  - left. fqsatz.
+  - right. fqsatz.
+  - right. fqsatz.
+  - right. fqsatz.
 Qed.

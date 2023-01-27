@@ -1,4 +1,4 @@
-(** * DSL benchmark IsEqual *)
+(** * DSL benchmark: Comparators *)
 
 Require Import Coq.Lists.List.
 Require Import Coq.micromega.Lia.
@@ -22,15 +22,31 @@ Local Coercion Z.of_nat : nat >-> Z.
 
 Local Open Scope F_scope.
 
-(** ** Proof obligations from typechecking *)
+(** ** Proof obligations for IsZero *)
 
-Lemma _obligation1: forall (nu : F) (x : F) (y : F) (out : F),
+Lemma iszero_obligation1: forall (inv : F) (_in : F) (out : F),
+    True -> True -> True ->
+    (out = (1%F - (_in * inv))) ->
+    ((_in * out) = 0%F) ->
+    (((out = 0%F) \/ (out = 1%F)) /\ (((out = 1%F) -> (_in = 0%F)) /\ ((out = 0%F) -> ~(_in = 0%F)))).
+Proof.
+  unwrap_C. intros. intuition.
+  destruct (dec (_in = 0)).
+  - right. fqsatz.
+  - left. fqsatz.
+  - fqsatz.
+  - fqsatz.
+Qed.
+
+(** ** Proof obligations for IsEqual *)
+
+Lemma isequal_obligation1: forall (nu : F) (x : F) (y : F) (out : F),
     True -> True -> True -> (nu = (x - y)) -> True.
 Proof.
   auto.
 Qed.
 
-Lemma _obligation2: forall (x : F) (y : F) (out : F) (z : F),
+Lemma isequal_obligation2: forall (x : F) (y : F) (out : F) (z : F),
     True -> True -> True ->
     (((z = 0%F) \/ (z = 1%F)) /\
        (((z = 1%F) -> ((x - y) = 0%F)) /\

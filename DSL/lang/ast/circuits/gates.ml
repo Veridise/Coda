@@ -86,7 +86,7 @@ let check_or = typecheck_circuit d_empty cor
 
 
 (* NOR *)
-let tnor = tfq (ind_dec nu (unint "or" [v "a"; v "b"]))
+let tnor = tfq (ind_dec nu (unint "nor" [v "a"; v "b"]))
 let cnor = Circuit {
   name = "Nor";
   inputs = [("a", tf_binary); ("b", tf_binary)];

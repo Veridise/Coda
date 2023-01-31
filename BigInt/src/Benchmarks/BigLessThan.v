@@ -55,9 +55,11 @@ Lemma _obligation1: forall (nu : Z) (n : nat) (k : nat) (xs : list F) (ys : list
     Forall (fun x0 => (F.to_Z x0 <= ((2%nat ^ C.k) - 1%nat))) xs -> True ->
     length xs = k ->
     Forall (fun x1 => (F.to_Z x1 <= ((2%nat ^ C.k) - 1%nat))) ys -> True ->
-    length ys = k -> True -> (nu = 0%nat) -> True.
+    length ys = k -> True -> (nu = 0%nat) ->
+    True.
 Proof.
-Admitted.
+  auto.
+Qed.
 
 Lemma _obligation2: forall (nu : Z) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F),
     (n <= (C.k - 1%nat)) ->
@@ -68,7 +70,8 @@ Lemma _obligation2: forall (nu : Z) (n : nat) (k : nat) (xs : list F) (ys : list
     length ys = k -> True -> ((0%nat <= nu) /\ (2%nat <= nu)) ->
     True.
 Proof.
-Admitted.
+  auto.
+Qed.
 
 Lemma _obligation3: forall (nu : Z) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F),
     (n <= (C.k - 1%nat)) ->
@@ -79,7 +82,8 @@ Lemma _obligation3: forall (nu : Z) (n : nat) (k : nat) (xs : list F) (ys : list
     length ys = k -> True -> ((0%nat <= nu) /\ (nu < k)) ->
     True.
 Proof.
-Admitted.
+  auto.
+Qed.
 
 Lemma _obligation4: forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F) (i : nat),
     (n <= (C.k - 1%nat)) ->
@@ -93,7 +97,8 @@ Lemma _obligation4: forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list
        (((nu = 1%F) -> ([\ xs[:i] \] < [\ ys[:i] \])) /\ ((nu = 0%F) -> ~([\ xs[:i] \] < [\ ys[:i] \])))) ->
     True.
 Proof.
-Admitted.
+  auto.
+Qed.
 
 Lemma _obligation5: forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F) (i : nat),
     (n <= (C.k - 1%nat)) ->
@@ -107,7 +112,8 @@ Lemma _obligation5: forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list
        (((nu = 1%F) -> ([\ xs[:i] \] = [\ ys[:i] \])) /\ ((nu = 0%F) -> ~([\ xs[:i] \] = [\ ys[:i] \])))) ->
     True.
 Proof.
-Admitted.
+  auto.
+Qed.
 
 Lemma _obligation6:
   forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F) (i : nat) (lt_eq : F * F)

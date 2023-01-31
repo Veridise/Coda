@@ -140,7 +140,10 @@ Lemma _obligation6:
        (((nu = 1%F) -> ([\ xs[:i] \] < [\ ys[:i] \])) /\ ((nu = 0%F) -> ~([\ xs[:i] \] < [\ ys[:i] \])))) ->
     ((nu = 0%F) \/ (nu = 1%F)).
 Proof.
-Admitted.
+  intros.
+  destruct H16 as [H16 _].
+  assumption.
+Qed.
 
 Lemma _obligation7:
   forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F) (i : nat) (lt_eq : F * F)
@@ -166,7 +169,10 @@ Lemma _obligation7:
     (((nu = 0%F) \/ (nu = 1%F)) /\ (((nu = 1%F) -> (f_and eq x_lt_y)) /\ ((nu = 0%F) -> ~(f_and eq x_lt_y)))) ->
     ((nu = 0%F) \/ (nu = 1%F)).
 Proof.
-Admitted.
+  intros.
+  destruct H16 as [H16 _].
+  assumption.
+Qed.
 
 Lemma _obligation8:
   forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F) (i : nat) (lt_eq : F * F)
@@ -193,7 +199,10 @@ Lemma _obligation8:
        (((nu = 1%F) -> ([\ xs[:i] \] < [\ ys[:i] \])) /\ ((nu = 0%F) -> ~([\ xs[:i] \] < [\ ys[:i] \])))) ->
     ((nu = 0%F) \/ (nu = 1%F)).
 Proof.
-Admitted.
+  intros.
+  destruct H16 as [H16 _].
+  assumption.
+Qed.
 
 Lemma _obligation9:
   forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F) (i : nat) (lt_eq : F * F)
@@ -219,7 +228,10 @@ Lemma _obligation9:
     (((nu = 0%F) \/ (nu = 1%F)) /\ (((nu = 1%F) -> (x = y)) /\ ((nu = 0%F) -> ~(x = y)))) ->
     ((nu = 0%F) \/ (nu = 1%F)).
 Proof.
-Admitted.
+  intros.
+  destruct H16 as [H16 _].
+  assumption.
+Qed.
 
 Lemma _obligation10:
   forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F) (i : nat) (lt_eq : F * F)

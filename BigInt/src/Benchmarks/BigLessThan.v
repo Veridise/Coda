@@ -341,9 +341,7 @@ Lemma _obligation14: forall (n : nat) (k : nat) (xs : list F) (ys : list F) (out
        (((out = 1%F) -> ([\ xs \] < [\ ys \])) /\ ((out = 0%F) -> ~([\ xs \] < [\ ys \])))).
 Proof.
   intros. subst.
-  rewrite firstn_all in H8.
-  rewrite <- H6 in H8.
-  rewrite firstn_all in H8.
   destruct H8 as [H8 [H8' H8'']].
-  repeat split; assumption.
+  repeat split; try assumption;
+    try (firstn_all; assumption).
 Qed.

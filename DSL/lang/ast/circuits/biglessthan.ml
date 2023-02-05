@@ -36,7 +36,6 @@ let c_big_lt = Circuit {
     ("ys", t_in)];
   outputs = [("out", t_out)];
   ctype = tfun "n" tnat (tfun "k" tnat (tfun "xs" t_in (tfun "ys" t_in t_out)));
-  exists = [];
   body = [
     slet "lt" (tget (Iter {
       s = z0;

@@ -19,7 +19,7 @@ let a_empty = []
 
 let add_to_delta (d: delta) (c: circuit) : delta =
   match c with
-  | Circuit {name; inputs; outputs; exists; ctype; body} -> (name, c) :: d
+  | Circuit {name; inputs; outputs; ctype; body} -> (name, c) :: d
 
 let add_to_deltas (d: delta) (c: circuit list) =
   List.fold_left add_to_delta d c
@@ -47,7 +47,7 @@ let pc (cs: cons list) : unit =
   |> filter_trivial 
   |> List.map show_cons |> String.concat "\n\n" |> print_endline
 
-let functionalize_circ (Circuit {name; inputs; outputs; exists; ctype; body}) : typ =
+let functionalize_circ (Circuit {name; inputs; outputs; ctype; body}) : typ =
   ctype
   (* let get_typ (_,t) = t in
   let get_name (x,_) = x in
@@ -83,6 +83,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
     let (t, cs) = f' e in (coerce_psingle t, cs)
   and f' (e: expr) : typ * cons list = 
     match e with
+    | NonDet -> (tfq QTrue, [])
     | CPrime -> (TRef (TInt, QExpr (eq nu CPrime)), [])
     | CPLen -> (TRef (TInt, QExpr (eq nu CPLen)), [])
     | Const c -> 
@@ -324,12 +325,12 @@ let rec to_base_typ = function
 let init_gamma (c: circuit) : gamma =
   let to_base_types = List.map (fun (x,t) -> (x, to_base_typ t)) in
   match c with
-  | Circuit {name; inputs; outputs; exists; ctype; body} ->
-     List.rev (to_base_types outputs) @ List.rev inputs @ List.rev (to_base_types exists)
+  | Circuit {name; inputs; outputs; ctype; body} ->
+     List.rev (to_base_types outputs) @ List.rev inputs
 
 let typecheck_circuit (d: delta) (c: circuit) : cons list =
   match c with
-  | Circuit {name; inputs; outputs; exists; ctype; body} ->
+  | Circuit {name; inputs; outputs; ctype; body} ->
     let (g, a, cs) = List.fold_left
       (fun ((g, a, cs): gamma * alpha * cons list) (s: stmt) ->
         let (g', a', cs') = typecheck_stmt d g a s in 

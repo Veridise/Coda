@@ -11,7 +11,6 @@ let cxor = Circuit {
   name = "xor";
   inputs = [("a", tf); ("b", tf_binary)];
   outputs = [("out", txor)];
-  exists = [];
   (* TODO *)
   ctype = tfun "_" tf tf;
   body = [
@@ -26,7 +25,6 @@ let cand = Circuit {
   name = "and";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", txor)];
-  exists = [];
   ctype = tfun "a" tf_binary (tfun "b" tf_binary txor);
   body = [
     assert_eq out (sub (add a b) (muls [f2; a; b]))

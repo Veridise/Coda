@@ -47,6 +47,7 @@ let leq e1 e2 = Comp (Leq, e1, e2)
 let lt e1 e2 = Comp (Lt, e1, e2)
 let unint s es = Fn (Unint s, es)
 let call f es = Call (f, es)
+let star = NonDet
 
 let bnot e = Not e
 let bor e1 e2 = Boolop (Or, e1, e2)

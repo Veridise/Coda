@@ -14,7 +14,6 @@ let cnot = Circuit {
   name = "Not";
   inputs = [("in", tf_binary)];
   outputs = [("out", tnot)];
-  exists = [];
   ctype = tfun "in" tf_binary tnot;
   body = [
     assert_eq out (sub (add1f vin) (mul f2 vin))
@@ -29,7 +28,6 @@ let cxor = Circuit {
   name = "Xor";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", txor)];
-  exists = [];
   ctype = tfun "a" tf_binary (tfun "b" tf_binary txor);
   body = [
     assert_eq out (sub (add a b) (muls [f2; a; b]))
@@ -44,7 +42,6 @@ let cand = Circuit {
   name = "And";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", tand)];
-  exists = [];
   ctype = tfun "a" tf_binary (tfun "b" tf_binary tand);
   body = [
     assert_eq out (mul a b)
@@ -59,7 +56,6 @@ let cnand = Circuit {
   name = "Nand";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", tnand)];
-  exists = [];
   ctype = tfun "a" tf_binary (tfun "b" tf_binary tnand);
   body = [
     assert_eq out (sub f1 (mul a b))
@@ -75,7 +71,6 @@ let cor =
       name = "Or";
       inputs = [("a", tf_binary); ("b", tf_binary)];
       outputs = [("out", tor)];
-      exists = [];
       (* \a => \b => TF{out | out = a + b - a * b} *)
       ctype = tfun "a" tf_binary (tfun "b" tf_binary tor);
       body = [
@@ -91,7 +86,6 @@ let cnor = Circuit {
   name = "Nor";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", tnor)];
-  exists = [];
   ctype = tfun "a" tf_binary (tfun "b" tf_binary tnor);
   body = [
     assert_eq out (sub (sub (add1f (mul a b)) a) b)

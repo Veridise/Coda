@@ -8,7 +8,6 @@ let c1 = Circuit {
   name = "c1";
   inputs = [("x", tf)];
   outputs = [("y", ty)];
-  exists = [];
   ctype = tfun "x" tf ty;
   body = []
 }
@@ -21,7 +20,6 @@ let c2 = Circuit {
   name = "c2";
   inputs = [("x", tf)];
   outputs = [("y", ty)];
-  exists = [];
   ctype = tfun "x" tf ty;
   body = [
     slet "y'" (Call ("c1", [v "x"]));

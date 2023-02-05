@@ -30,7 +30,6 @@ let num2bits = Circuit {
   inputs = [("n", tnat); ("in", tf)];
   outputs = [("out", n2b_tout)];
   ctype = tfun "n" tnat (tfun "in" tf (n2b_tout));
-  exists = [];
   body = [
     slet "lc1_e2" (Iter {s = z0; e = (sub1z n); body = n2b_body; init = tmake [f0; f1]; inv = n2b_inv});
     slet "lc1" (tget (v "lc1_e2") 0);
@@ -47,7 +46,6 @@ let bits2num = Circuit {
   name = "Bits2Num";
   inputs = [("n", tnat); ("in", b2n_tin)];
   outputs = [("out", b2n_tout)];
-  exists = [];
   ctype = tfun "n" tnat (tfun "in" b2n_tin b2n_tout);
   body = [
     slet "s" (

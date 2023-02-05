@@ -62,6 +62,7 @@ and qual =
   [@@deriving show]
 
 and expr =
+  | NonDet           [@printer fun fmt _ -> fprintf fmt "✧"]
   (* const *)
   | Const of const   [@printer fun fmt c -> fprintf fmt "%s" (show_const c)]
   | CPrime           [@printer fun fmt _ -> fprintf fmt "C.q"]
@@ -160,7 +161,6 @@ type stmt =
 type circuit =  Circuit of {
   name: string; 
   inputs: signal list;
-  exists: signal list;
   outputs: signal list;
   ctype: typ;
   body: stmt list

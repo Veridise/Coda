@@ -302,7 +302,12 @@ Lemma _obligation12: forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : lis
        (((nu = 1%F) -> ([\ xs[:0%nat] \] < [\ ys[:0%nat] \])) /\
           ((nu = 0%F) -> ~([\ xs[:0%nat] \] < [\ ys[:0%nat] \])))).
 Proof.
-Admitted.
+  unwrap_C.
+  intros. simpl.
+  repeat split; auto.
+  - intro. subst. fqsatz.
+  - lia.
+Qed.
 
 Lemma _obligation13: forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F),
     (n <= (C.k - 1%nat)) ->
@@ -316,7 +321,11 @@ Lemma _obligation13: forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : lis
        (((nu = 1%F) -> ([\ xs[:0%nat] \] = [\ ys[:0%nat] \])) /\
           ((nu = 0%F) -> ~([\ xs[:0%nat] \] = [\ ys[:0%nat] \])))).
 Proof.
-Admitted.
+  unwrap_C.
+  intros. simpl.
+  repeat split; auto.
+  intro. subst. fqsatz.
+Qed.
 
 Lemma _obligation14: forall (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F) (lt : F),
     (n <= (C.k - 1%nat)) ->
@@ -331,4 +340,10 @@ Lemma _obligation14: forall (n : nat) (k : nat) (xs : list F) (ys : list F) (out
     (((out = 0%F) \/ (out = 1%F)) /\
        (((out = 1%F) -> ([\ xs \] < [\ ys \])) /\ ((out = 0%F) -> ~([\ xs \] < [\ ys \])))).
 Proof.
-Admitted.
+  intros. subst.
+  rewrite firstn_all in H8.
+  rewrite <- H6 in H8.
+  rewrite firstn_all in H8.
+  destruct H8 as [H8 [H8' H8'']].
+  repeat split; assumption.
+Qed.

@@ -58,6 +58,7 @@ and qual =
   | QTrue                    [@printer fun fmt _ -> fprintf fmt "⊤"]
   | QExpr of expr            [@printer fun fmt e -> fprintf fmt "%s" (show_expr e)]
   | QAnd of qual * qual      [@printer fun fmt (q1,q2) -> fprintf fmt "(qand %s %s)" (show_qual q1) (show_qual q2)]
+  | QImply of qual * qual    [@printer fun fmt (q1,q2) -> fprintf fmt "(qimply %s %s)" (show_qual q1) (show_qual q2)]
   | QForall of (string list) * qual [@printer fun fmt (xs,q) -> fprintf fmt "∀%s. %s" (String.concat " " xs) (show_qual q)]
   [@@deriving show]
 
@@ -155,14 +156,14 @@ type stmt =
   | SSkip
   | SLet of string * expr
   | SLetP of pattern * expr
-  | SAssert of qual
+  | SAssert of expr * expr
   [@@deriving show]
 
 type circuit =  Circuit of {
   name: string; 
   inputs: signal list;
   outputs: signal list;
-  ctype: typ;
+  dep: qual option;
   body: stmt list
 } [@@deriving show]
 

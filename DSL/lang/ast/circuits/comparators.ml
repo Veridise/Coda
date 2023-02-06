@@ -14,7 +14,7 @@ let c_is_zero = Circuit {
   name = "IsZero";
   inputs = [("in", tf)];
   outputs = [("out", t_is_zero)];
-  ctype = tfun "in" tf t_is_zero;
+  dep = None;
   body = [
     slet "inv" star;
     assert_eq vout (add (opp (mul vin (v "inv"))) f1);
@@ -29,7 +29,7 @@ let c_is_equal = Circuit {
   name = "IsEqual";
   inputs = [("x", tf);  ("y", tf)];
   outputs = [("out", t_is_equal)];
-  ctype = tfun "x" tf (tfun "y" tf t_is_equal);
+  dep = None;
   body = [
     slet "z" (Call ("IsZero", [sub x y]));
     assert_eq vout z
@@ -43,7 +43,7 @@ let c_less_than = Circuit {
   name = "LessThan";
   inputs = [("n", tnat); ("x", tf);  ("y", tf)];
   outputs = [("out", t_lt)];
-  ctype = tfun "x" tf (tfun "y" tf (t_lt));
+  dep = None;
   body = [
     slet "z" (call "Num2Bits" [add1z n; (add (sub x y) (pow f2 n))]);
     slet "b" (sub1f (get z n));

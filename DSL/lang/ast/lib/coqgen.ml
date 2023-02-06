@@ -42,6 +42,19 @@ let rec typing_to_ccons (e: expr) (t: typ) : ccons =
   | TTuple ts -> 
     let tbs = ts |> List.map get_tyBase |> List.map tyBase_to_coq in
     (spf "%s" (String.concat " * " tbs), [])
+  | TDProd (ts, xs, q) ->
+    let tb_str =
+      if List.length ts = 0 then
+        "unit"
+      else ts |> List.map get_tyBase |> List.map tyBase_to_coq |>
+      fun ss -> spf "%s" (String.concat " * " ss) in
+    let xs_str = 
+      if List.length ts = 0 then
+        "_"
+      else 
+        (String.concat "," xs) in
+    let qstr = spf "match %s with (%s) => %s end" (expr_to_coq e) xs_str (qual_to_coq q) in
+    (tb_str, [qstr])
   | TFun _ -> todos "xtyp_to_ccons: TFun"
 
 and expr_to_coq (e: expr) : string =
@@ -98,6 +111,7 @@ and qual_to_coq (q: qual) : string =
   | QTrue -> "True"
   | QExpr e -> expr_to_coq e
   | QAnd (q1, q2) -> spf "(%s /\\ %s)" (qual_to_coq q1) (qual_to_coq q2)
+  | QImply (q1, q2) -> spf "(%s -> %s)" (qual_to_coq q1) (qual_to_coq q2)
   | _ -> todos "qual_to_coq"
 
 let gamma_to_coq (g: gamma) : ((string * string) list * string list) =
@@ -145,6 +159,15 @@ let cons_to_coq (c: cons) : string =
           (g_ref @ 
           (alpha_to_coq a) @
           qs))
+    | CheckCons (g, a, q) -> 
+      let (g_decl, g_ref) = gamma_to_coq g in
+      spf "forall %s, %s"
+        (String.concat " "
+          (List.map (fun (x,t) -> spf "(%s : %s)" x t) g_decl))
+        (String.concat " -> "
+          (g_ref @ 
+          (alpha_to_coq a) @
+          [qual_to_coq q]))
 let to_numbered (l: 'a list) : (int * 'a) list =
   List.init (List.length l) (fun i -> (i+1, List.nth l i))
 

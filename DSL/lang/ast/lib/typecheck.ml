@@ -19,7 +19,7 @@ let a_empty = []
 
 let add_to_delta (d: delta) (c: circuit) : delta =
   match c with
-  | Circuit {name; inputs; outputs; ctype; body} -> (name, c) :: d
+  | Circuit {name; inputs; outputs; dep; body} -> (name, c) :: d
 
 let add_to_deltas (d: delta) (c: circuit list) =
   List.fold_left add_to_delta d c
@@ -47,12 +47,14 @@ let pc (cs: cons list) : unit =
   |> filter_trivial 
   |> List.map show_cons |> String.concat "\n\n" |> print_endline
 
-let functionalize_circ (Circuit {name; inputs; outputs; ctype; body}) : typ =
-  ctype
-  (* let get_typ (_,t) = t in
-  let get_name (x,_) = x in
-  assert (List.length outputs = 1);
-  List.fold_right (uncurry tfun) inputs (get_typ (List.hd outputs)) *)
+let functionalize_circ (Circuit {name; inputs; outputs; dep; body}) : typ =
+  let get_typ = snd in
+  let get_name = fst in
+  let out_types = outputs |> List.map get_typ in
+  let out_type = match dep with
+    | None -> ttuple out_types
+    | Some q -> tdprod out_types (List.map get_name outputs) q in
+  List.fold_right (uncurry tfun) inputs out_type
 
 let rec subtype (g: gamma) (a: alpha) (t1: typ) (t2: typ) : cons list =
   match (t1, t2) with
@@ -62,7 +64,11 @@ let rec subtype (g: gamma) (a: alpha) (t1: typ) (t2: typ) : cons list =
   | (TFun (x,t1,t2), TFun (y,t1',t2')) ->
     Subtype (g, a, t1', t1) :: subtype ((x,t1')::g) a t2 (subst_typ y (v x) t2')
   | (TTuple ts1, TTuple ts2) -> List.concat_map (uncurry (subtype g a)) (List.combine ts1 ts2)
-  | (TDProd _, TDProd _) -> failwith "TODO: product subtyping"
+  | (TDProd (ts1, xs, q1), TDProd (ts2, ys, q2)) ->
+    let q1' = List.fold_right (fun (x,y) q -> subst_qual x (v y) q) (List.combine xs ys) q1 in
+    List.concat_map (uncurry (subtype g a)) (List.combine ts1 ts2) @
+    [CheckCons (g, a, qimply q1' q2)]
+      (* failwith (Format.sprintf "TODO: product subtyping %s <: %s" (show_typ t1) (show_typ t2)) *)
   | (TArr _, TArr _) -> failwith "TODO: array subtyping"
   | _ -> failwith ("Subtype: illegal subtype " ^ (show_typ t1) ^ (show_typ t2))
 
@@ -156,7 +162,9 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       | _ -> failwith ("Opp: Invalid operand type " ^ (show_tyBase tb)))
     | Call (c_name, args) ->
       (match List.assoc_opt c_name d with
-      | Some c -> synthesize d g a (dummy_apps c_name (functionalize_circ c) args)
+      | Some c ->
+          let ctype = functionalize_circ c in
+          synthesize d g a (dummy_apps c_name ctype args)
       | None -> failwith ("No such circuit: " ^ c_name))
     | Sum {s=s; e=e'; body=b} ->
       let cs1 = check d g a s tint in
@@ -198,7 +206,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
     | TGet (e, n) ->
       let (t, cs) = f e in
       (match t with
-      | TTuple ts -> 
+      | TTuple ts | TDProd (ts, _, _) -> 
         if 0 <= n && n < List.length ts then
           (List.nth ts n, cs)
         else
@@ -259,20 +267,13 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         (* FIXME: q1 and q2 are erased *)
         (tarr (ttuple [t1';t2']) QTrue l1, cs1 @ cs2 @ [CheckCons (g, a, (QExpr (eq l1 l2)))])
       | TArr _, _ | _, TArr _ -> failwith "zip: not an array")
-    (* | DPCons (es, q_opt) ->
-      todos "DPCons"
-      (* let (ts, cs_s) = List.map f es |> List.split in
-      let cs_q = Option.(q_opt |> map (fun (_, q) -> CheckCons (g, a, q es)) |> to_list) in
-      (tprod ts q_opt, List.concat cs_s @ cs_q) *)
-    | DPDestr (e1, xs, e2) ->
-      todos "DPDestr"
-      (* let (t1, cs1) = f e1 in
-      (match t1 with
-      | TDProd (ts, q_opt) ->
-        let a' = Option.(q_opt |> map (fun (xs, q) -> q (List.map v xs)) |> to_list) in
-        let (t2, cs2) = typecheck d (List.combine xs ts) (a' @ a) e2 in
-        (t2, cs1 @ cs2)
-      | _ -> failwith "not a product") *) *)
+    | DPCons (es, xs, q) ->
+      let (ts, css) = List.map f es |> List.split in
+      (* TODO: this might be too weak and we need to substitute *)
+      let g' = List.combine xs ts in
+      let t = tdprod ts xs q in
+      (t, List.concat css @ [CheckCons (g' @ g, a, q)])
+    (* | DPDestr (e1, xs, e2) -> *)
     | _ -> failwith (Format.sprintf "Synthesis unavailable for expression %s" (show_expr e))
   in f e
 
@@ -297,6 +298,23 @@ and check (d: delta) (g: gamma) (a: alpha) (e: expr) (t: typ) : cons list =
   | (LetIn (x, e1, e2), t2) ->
     let (t1, cs) = synthesize d g a e1 in
     check d ((x,t1)::g) a e2 t2
+  | (DPDestr (e1, xs, e2), t2) ->
+    let (t1, cs1) = synthesize d g a e1 in
+    let (ts, a') =
+      match t1 with
+      | TDProd (ts, ys, q) ->
+        let q' = List.fold_right (fun (x,y) q -> subst_qual x (v y) q)
+          (List.combine xs ys) q in
+        print_endline (Format.sprintf "check: DPDestr: subst'ed q: %s" (show_qual q'));
+        (ts, [q'])
+      | TTuple ts ->
+        (ts, [])
+      | _ -> failwith "not a product"
+    in if List.length ts = List.length xs then
+      let cs2 = check d (List.combine xs ts) (a @ a') e2 t2 in
+      cs1 @ cs2
+    else
+      failwith (Format.sprintf "DPDestr: xs and ts have different lengths")
   | _ ->
     let (t', cs) = synthesize d g a e in
     cs @ subtype g a t' t
@@ -309,9 +327,9 @@ let typecheck_stmt (d: delta) (g: gamma) (a: alpha) (s: stmt) : (gamma * alpha *
   | SLet(x, e) ->
     let (t', cs) = synthesize d g a e in
     ((x,t')::g, [], cs)
-  | SAssert q ->
+  | SAssert (e1, e2) ->
     (* TODO: check q is well-formed and has restricted form *)
-    (g, [q], [])
+    (g, [qeq e1 e2], [])
   | _ -> todos "typcheck_stmt"
 
 let rec to_base_typ = function
@@ -325,20 +343,20 @@ let rec to_base_typ = function
 let init_gamma (c: circuit) : gamma =
   let to_base_types = List.map (fun (x,t) -> (x, to_base_typ t)) in
   match c with
-  | Circuit {name; inputs; outputs; ctype; body} ->
+  | Circuit {name; inputs; outputs; dep; body} ->
      List.rev (to_base_types outputs) @ List.rev inputs
 
 let typecheck_circuit (d: delta) (c: circuit) : cons list =
   match c with
-  | Circuit {name; inputs; outputs; ctype; body} ->
+  | Circuit {name; inputs; outputs; dep; body} ->
     let (g, a, cs) = List.fold_left
       (fun ((g, a, cs): gamma * alpha * cons list) (s: stmt) ->
         let (g', a', cs') = typecheck_stmt d g a s in 
         (g', a @ a', cs @ cs'))
       (init_gamma c, [], [])
       body in
-    assert (List.length outputs = 1);
     let out_cons = List.map (fun (x,t) -> HasType (g, a, x, t)) outputs in
+    let dep_cons = dep |> Option.map (fun q -> CheckCons (g, a, q)) |> Option.to_list in
     (* let vars_in = inputs |> List.map (fun (x,_) -> x) |> List.map v in *)
     (* let vars_out = outputs |> List.map (fun (x,_) -> x) |> List.map v in *)
-    cs @ out_cons
+    cs @ out_cons @ dep_cons

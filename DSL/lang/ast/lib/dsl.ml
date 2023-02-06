@@ -26,7 +26,7 @@ let dummy_apps s f es = apps (dummy s f) es
 (* function type *)
 let tfun x t1 t2 = TFun (x, t1, t2)
 (* dependent product type *)
-let tprod ts xs q = TDProd (ts, xs, q)
+let tdprod ts xs q = TDProd (ts, xs, q)
 (* tuple type *)
 let ttuple ts = TTuple ts
 let tpair t1 t2 = ttuple [t1; t2]
@@ -53,7 +53,14 @@ let bnot e = Not e
 let bor e1 e2 = Boolop (Or, e1, e2)
 let band e1 e2 = Boolop (And, e1, e2)
 let qand q1 q2 = QAnd (q1, q2)
+let qimply q1 q2 = QImply (q1, q2)
 let imply e1 e2 = Boolop (Imply, e1, e2)
+
+let match_with e1 xs e2 = DPDestr (e1, xs, e2)
+let dpcons es xs q = DPCons (es, xs, q)
+let dpunit q = dpcons [] [] q
+let tdunit q = tdprod [] [] q
+let ttunit = ttuple []
 
 let v x = Var x
 let nu = Var "ν"
@@ -87,9 +94,8 @@ let fst_pair e = tget e 0
 let snd_pair e = tget e 0
 let make_pair e1 e2 = tmake [e1; e2]
 let qforall i q = QForall (i, q)
-let assert_eq e1 e2 = SAssert (qeq e1 e2)
+let assert_eq e1 e2 = SAssert (e1, e2)
 let slet x e = SLet (x, e)
-let assert_forall i q = SAssert (qforall [i] q)
 let elet x e1 e2 = LetIn (x, e1, e2)
 let tarr t q e = TArr (t, q, e)
 let sum es ee eb = Sum {s=es;e=ee;body=eb}

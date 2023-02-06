@@ -58,7 +58,7 @@ let t_x = ttuple [tnat; ttuple [tf; tf]; ttuple [tf; tf]]
 
 (* \_ (s, c) (a, b) => let (si, ci) = #ModSumThree n a b c in (s ++ [si], ci) *)
 let lam_big_add =
-  lama x t_x (elet ms3_i (call "ModSumThree" [n; ta; tb; tc]) (tmake [concat ts (cons ms3_is cnil); ms3_ic]))
+  lama "x" t_x (elet ms3_i (call "ModSumThree" [n; ta; tb; tc]) (tmake [concat ts (cons ms3_is cnil); ms3_ic]))
 
 let inv_big_add _ _ = tf
 
@@ -74,7 +74,7 @@ let big_add =
       body = [
           (* abs = zip a b *)
           slet "abs" (zip a b);
-          (* (sum, carry) = iter 0 k lam_big_add inv_big_add abs*)
+          (* (sum, carry) = iter 0 k lam_big_add inv_big_add abs *)
           slet "x" (app iter_big_add abs);
           (* out === sum ++ [carry] *)
           assert_eq out (concat tsum (cons tcarry cnil))

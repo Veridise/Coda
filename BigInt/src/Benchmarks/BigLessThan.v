@@ -299,7 +299,37 @@ Lemma _obligation10:
        (((nu = 1%F) -> ([\ xs[:(1%nat + i)] \] < [\ ys[:(1%nat + i)] \])) /\
           ((nu = 0%F) -> ~([\ xs[:(1%nat + i)] \] < [\ ys[:(1%nat + i)] \])))).
 Proof.
-Admitted.
+  unfold f_or, f_and. intros.
+  split. intuit. split; intro.
+  (* nu = 1 *)
+  - ind nu. destruct H17.
+    (* lt: prefix < prefix *)
+    ind lt.
+    applys_eq big_lt_step. left. auto.
+    (* prefix = prefix, x < y *)
+    ind xs_lt_ys.
+    destruct H16.
+    ind eq. ind x_lt_y.
+    applys_eq big_lt_step. left. auto.
+  - ind nu.
+    apply Decidable.not_or in H17.
+    destruct H17.
+    ind lt. ind xs_lt_ys.
+    apply Decidable.not_and in H17.
+    destruct H17.
+    (* prefix > prefix *)
+    ind eq. intro.
+    apply big_lt_step in H10.
+    intuit; subst;
+      try (apply H13 in H23; destruct H23).
+    skip. skip.
+    (* prefix >= prefix, x >= y *)
+    ind x_lt_y. intro.
+    apply big_lt_step in H13.
+    intuit; subst;
+      try (apply H9 in H23; destruct H23).
+    unfold Decidable.decidable. intuit.
+Qed.
 
 Lemma _obligation11:
   forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F) (i : nat) (lt_eq : F * F)
@@ -331,12 +361,15 @@ Proof.
   split. intuit. split; intros.
   - ind nu.
     destruct H17.
-    ind eq. ind x_eq_y. skip.
+    ind eq. ind x_eq_y.
+    skip. (* apply big_eq_step *)
   - ind nu.
     apply Decidable.not_and in H17.
     destruct H17.
-    ind eq. skip.
-    ind x_eq_y. skip.
+    ind eq.
+    skip. (* apply big_eq_step *)
+    ind x_eq_y.
+    skip. (* apply big_eq_step *)
     unfold Decidable.decidable. intuit.
 Qed.
 

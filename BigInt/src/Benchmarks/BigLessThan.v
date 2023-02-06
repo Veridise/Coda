@@ -282,10 +282,12 @@ Lemma _obligation10:
     Forall (fun x19 => (F.to_Z x19 <= ((2%nat ^ C.k) - 1%nat))) ys -> True ->
     length ys = k -> True ->
     (i < k) ->
+    (x = xs!i) ->
+    (y = ys!i) ->
     (((lt = 0%F) \/ (lt = 1%F)) /\
        (((lt = 1%F) -> ([\ xs[:i] \] < [\ ys[:i] \])) /\ ((lt = 0%F) -> ~([\ xs[:i] \] < [\ ys[:i] \])))) ->
     (((eq = 0%F) \/ (eq = 1%F)) /\
-       (((eq = 1%F) -> ([\ xs[:i] \] < [\ ys[:i] \])) /\ ((eq = 0%F) -> ~([\ xs[:i] \] < [\ ys[:i] \])))) ->
+       (((eq = 1%F) -> ([\ xs[:i] \] = [\ ys[:i] \])) /\ ((eq = 0%F) -> ~([\ xs[:i] \] = [\ ys[:i] \])))) ->
     ((F.to_Z x <= ((2%nat ^ C.k) - 1%nat)) /\ (x = xs!i)) ->
     ((F.to_Z y <= ((2%nat ^ C.k) - 1%nat)) /\ (y = ys!i)) ->
     (((x_lt_y = 0%F) \/ (x_lt_y = 1%F)) /\
@@ -300,34 +302,29 @@ Lemma _obligation10:
           ((nu = 0%F) -> ~([\ xs[:(1%nat + i)] \] < [\ ys[:(1%nat + i)] \])))).
 Proof.
   unfold f_or, f_and. intros.
+  subst x y.
   split. intuit. split; intro.
   (* nu = 1 *)
-  - ind nu. destruct H17.
+  - ind nu. destruct H9.
     (* lt: prefix < prefix *)
     ind lt.
     applys_eq big_lt_step. left. auto.
     (* prefix = prefix, x < y *)
-    ind xs_lt_ys.
-    destruct H16.
+    ind xs_lt_ys. destruct H9.
     ind eq. ind x_lt_y.
-    applys_eq big_lt_step. left. auto.
+    applys_eq big_lt_step. right. auto.
   - ind nu.
-    apply Decidable.not_or in H17.
-    destruct H17.
+    apply Decidable.not_or in H9.
+    destruct H9.
     ind lt. ind xs_lt_ys.
-    apply Decidable.not_and in H17.
-    destruct H17.
+    apply Decidable.not_and in H10. destruct H10.
     (* prefix > prefix *)
     ind eq. intro.
-    apply big_lt_step in H10.
-    intuit; subst;
-      try (apply H13 in H23; destruct H23).
-    skip. skip.
+    apply big_lt_step in H11. intuit.
     (* prefix >= prefix, x >= y *)
     ind x_lt_y. intro.
-    apply big_lt_step in H13.
-    intuit; subst;
-      try (apply H9 in H23; destruct H23).
+    apply big_lt_step in H11.
+    intuit.
     unfold Decidable.decidable. intuit.
 Qed.
 

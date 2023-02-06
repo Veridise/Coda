@@ -118,17 +118,14 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         let cs2 = check d g a e2 tx in
         (subst_typ x e2 tr, cs1 @ cs2)
       | _ -> failwith (Format.sprintf "App: not a function: %s" (show_typ t1)))
-    | Binop (op, e1, e2) ->
-      (* TODO: reflect *)
-      let (TRef (tb1, q1), cs1) = f e1 in
-      let (TRef (tb2, q2), cs2) = f e2 in
-      (match op with
-      | Add | Mul | Sub -> (match tb1, tb2 with
-        | (TF, TF) | (TInt, TInt) -> (re tb1 (eq nu e), cs1 @ cs2)
-        | _ -> failwith (Format.sprintf "Binop: Invalid operand type %s and %s in %s" (show_tyBase tb1) (show_tyBase tb2) (show_expr e)))
-      | Pow -> (match tb1, tb2 with
-        | (TF, TInt) | (TInt, TInt) -> (re tb1 (eq nu e), cs1 @ cs2)
-        | _ -> failwith (Format.sprintf "Binop: Invalid operand type %s and %s in %s" (show_tyBase tb1) (show_tyBase tb2) (show_expr e))))
+    | Binop (BF, op, e1, e2) ->
+      let cs1 = check d g a e1 tf in 
+      let cs2 = check d g a e1 tf in 
+      (tfe (eq nu e), cs1 @ cs2)
+    | Binop (_, op, e1, e2) ->
+      let cs1 = check d g a e1 tint in 
+      let cs2 = check d g a e1 tint in 
+      (re TInt (eq nu e), cs1 @ cs2)
     | Boolop (op, e1, e2) ->
       (* TODO: reflect *)
       let (TRef (tb1, q1), cs1) = f e1 in
@@ -193,7 +190,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
           (* assume inv(i,x) holds *)
           (tfun "x" (inv (v "i") nu)
           (* prove inv(i+1,output) holds *)
-          (inv (add z1 (v "i")) nu))))
+          (inv (nadd z1 (v "i")) nu))))
         (* prove inv(s,init) holds *)
         (tfun "init" (inv (v "s") nu)
         (* conclude inv(e,output) holds *)
@@ -217,7 +214,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       (match t1 with
       | TArr (t, q, el) ->
         (* check index in range *)
-        let cs2 = check d g a e2 (z_range z0 (sub1z el)) in
+        let cs2 = check d g a e2 (z_range z0 (nsub1 el)) in
         (refine t (QExpr (eq nu e)), cs1 @ cs2)
       | _ -> failwith "Synthesize: get: not an array")
     | ArrayOp (Cons, e1, e2) ->
@@ -225,7 +222,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       (match t2 with
       | TArr (t, q, el) ->
         let cs1 = check d g a e1 t in
-        (TArr (t, QExpr (eq nu e), add1z el), cs1 @ cs2)
+        (TArr (t, QExpr (eq nu e), nadd1 el), cs1 @ cs2)
       | _ -> failwith "Synthesize: cons: not an array")
     | ArrayOp (Take, e1, e2) ->
       let (t1, cs1) = f e1 in
@@ -241,7 +238,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       | TArr (t, q, el) ->
         (* check index in range *)
         let cs2 = check d g a e2 (z_range z0 el) in
-        (TArr (t, QExpr (eq nu e), sub el e2), cs1 @ cs2)
+        (TArr (t, QExpr (eq nu e), zsub el e2), cs1 @ cs2)
       | _ -> failwith "Synthesize: drop: not an array")
     | Map (e1, e2) ->
       let (t1, cs1) = f e1 in

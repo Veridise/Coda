@@ -81,7 +81,7 @@ and expr =
   (* unary operation *)
   | Opp of expr                    [@printer fun fmt e -> fprintf fmt "(- %s)" (show_expr e)]
   (* binary operation *)
-  | Binop of binop * expr * expr   [@printer fun fmt (op,e1,e2) -> fprintf fmt "(%s %s %s)" (show_binop op) (show_expr e1) (show_expr e2)]
+  | Binop of binop_type * binop * expr * expr   [@printer fun fmt (_,op,e1,e2) -> fprintf fmt "(%s %s %s)" (show_binop op) (show_expr e1) (show_expr e2)]
   | Not of expr                    [@printer fun fmt e -> fprintf fmt "(not %s)" (show_expr e)]
   | Boolop of boolop * expr * expr [@printer fun fmt (op,e1,e2) -> fprintf fmt "(%s %s %s)" (show_boolop op) (show_expr e1) (show_expr e2)]
   | Comp of comp * expr * expr     [@printer fun fmt (op,e1,e2) -> fprintf fmt "(%s %s %s)" (show_comp op) (show_expr e1) (show_expr e2)]
@@ -110,6 +110,10 @@ and expr =
   (* Built-in functions *)
   | Fn of func * expr list [@printer fun fmt (f,es) -> fprintf fmt "(%s %s)" (show_func f) (String.concat " " (List.map show_expr es))]
   [@@deriving show]
+and binop_type =
+  | BNat 
+  | BZ
+  | BF 
 and binop = 
   | Add [@printer fun fmt _ -> fprintf fmt "+"]
   | Sub [@printer fun fmt _ -> fprintf fmt "-"]
@@ -202,7 +206,7 @@ and vars_expr : expr -> SS.t = function
   | LamP (p, e) -> SS.diff (vars_expr e) (vars_pattern p) 
   | App (e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)
   | Opp e -> vars_expr e
-  | Binop (_, e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)
+  | Binop (_, _, e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)
   | Not e -> vars_expr e
   | Boolop (_, e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)
   | Comp (_, e1, e2) -> SS.union (vars_expr e1) (vars_expr e2)
@@ -268,7 +272,7 @@ and subst_expr (x: string) (ef: expr) (e: expr) : expr =
   | App (e1, e2) -> App (f e1, f e2)
   | Not e' -> Not (f e')
   | Opp e' -> Opp (f e')
-  | Binop (op, e1, e2) -> Binop (op, f e1, f e2)
+  | Binop (t, op, e1, e2) -> Binop (t, op, f e1, f e2)
   | Boolop (op, e1, e2) -> Boolop (op, f e1, f e2)
   | Comp (op, e1, e2) -> Comp (op, f e1, f e2) 
   | Call (c, es) -> Call (c, List.map f es)

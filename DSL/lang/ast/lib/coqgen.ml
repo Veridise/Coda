@@ -68,9 +68,10 @@ and expr_to_coq (e: expr) : string =
       | _ -> todos "expr_to_coq: Const")
   | CPrime -> "C.q"
   | CPLen -> "C.k"
-  | Binop (op, e1, e2) ->
+  | Binop (t, op, e1, e2) ->
+    let trailer = match t with BF -> "F" | BZ -> "Z" | BNat -> "nat" in
     let op_str = show_binop op in
-    spf "(%s %s %s)" (expr_to_coq e1) op_str (expr_to_coq e2)
+    spf "(%s %s %s)%%%s" (expr_to_coq e1) op_str (expr_to_coq e2) trailer
   | Boolop (op, e1, e2) ->
     let op_str = match op with And -> "/\\" | Or -> "\\/" | Imply -> "->" in
     spf "(%s %s %s)" (expr_to_coq e1) op_str (expr_to_coq e2)

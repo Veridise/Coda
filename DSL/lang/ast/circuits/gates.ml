@@ -14,9 +14,9 @@ let cnot = Circuit {
   name = "Not";
   inputs = [("in", tf_binary)];
   outputs = [("out", tnot)];
-  ctype = tfun "in" tf_binary tnot;
+  dep = None;
   body = [
-    assert_eq out (sub (add1f vin) (mul f2 vin))
+    assert_eq out (fsub (fadd1 vin) (fmul f2 vin))
   ]
 }
 let check_not = typecheck_circuit d_empty cnot
@@ -28,9 +28,9 @@ let cxor = Circuit {
   name = "Xor";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", txor)];
-  ctype = tfun "a" tf_binary (tfun "b" tf_binary txor);
+  dep = None;
   body = [
-    assert_eq out (sub (add a b) (muls [f2; a; b]))
+    assert_eq out (fsub (fadd a b) (fmuls [f2; a; b]))
   ]
 }
 let check_xor = typecheck_circuit d_empty cxor
@@ -42,9 +42,9 @@ let cand = Circuit {
   name = "And";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", tand)];
-  ctype = tfun "a" tf_binary (tfun "b" tf_binary tand);
+  dep = None;
   body = [
-    assert_eq out (mul a b)
+    assert_eq out (fmul a b)
   ]
 }
 let check_and = typecheck_circuit d_empty cand
@@ -56,9 +56,9 @@ let cnand = Circuit {
   name = "Nand";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", tnand)];
-  ctype = tfun "a" tf_binary (tfun "b" tf_binary tnand);
+  dep = None;
   body = [
-    assert_eq out (sub f1 (mul a b))
+    assert_eq out (fsub f1 (fmul a b))
   ]
 }
 let check_nand = typecheck_circuit d_empty cnand
@@ -71,10 +71,9 @@ let cor =
       name = "Or";
       inputs = [("a", tf_binary); ("b", tf_binary)];
       outputs = [("out", tor)];
-      (* \a => \b => TF{out | out = a + b - a * b} *)
-      ctype = tfun "a" tf_binary (tfun "b" tf_binary tor);
+      dep = None;
       body = [
-          assert_eq out (sub (add a b) (mul a b))
+          assert_eq out (fsub (fadd a b) (fmul a b))
         ]
     }
 let check_or = typecheck_circuit d_empty cor
@@ -86,9 +85,9 @@ let cnor = Circuit {
   name = "Nor";
   inputs = [("a", tf_binary); ("b", tf_binary)];
   outputs = [("out", tnor)];
-  ctype = tfun "a" tf_binary (tfun "b" tf_binary tnor);
+  dep = None;
   body = [
-    assert_eq out (sub (sub (add1f (mul a b)) a) b)
+    assert_eq out (fsub (fsub (fadd1 (fmul a b)) a) b)
   ]
 }
 let check_nor = typecheck_circuit d_empty cnor

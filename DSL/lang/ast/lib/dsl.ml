@@ -35,26 +35,54 @@ let tpair t1 t2 = ttuple [t1; t2]
 (* expressions *)
 let re tb e = TRef (tb, QExpr e)
 let opp e = Opp e
-let add e1 e2 = Binop (Add, e1, e2)
-let rec adds es = match es with [e] -> e | e::es -> add e (adds es)
-let sub e1 e2 = Binop (Sub, e1, e2)
-let mul e1 e2 = Binop (Mul, e1, e2)
-let rec muls es = match es with [e] -> e | e::es -> mul e (muls es)
-let pow e1 e2 = Binop (Pow, e1, e2)
+
+let badd b e1 e2 = Binop (b, Add, e1, e2)
+let nadd = badd BNat
+let zadd = badd BZ
+let fadd = badd BF
+let rec badds b es = match es with [e] -> e | e::es -> badd b e (badds b es)
+let nadds = badds BNat
+let zadds = badds BZ
+let fadds = badds BF
+
+let bsub b e1 e2 = Binop (b, Sub, e1, e2)
+let nsub = bsub BNat
+let zsub = bsub BZ
+let fsub = bsub BF
+let rec bsubs b es = match es with [e] -> e | e::es -> bsub b e (bsubs b es)
+let nsubs = bsubs BNat
+let zsubs = bsubs BZ
+let fsubs = bsubs BF
+
+let bmul b e1 e2 = Binop (b, Mul, e1, e2)
+let nmul = bmul BNat
+let zmul = bmul BZ
+let fmul = bmul BF
+let rec bmuls b es = match es with [e] -> e | e::es -> bmul b e (bmuls b es)
+let nmuls = bmuls BNat
+let zmuls = bmuls BZ
+let fmuls = bmuls BF
+
+let bpow b e1 e2 = Binop (b, Pow, e1, e2)
+let npow = bpow BNat
+let zpow = bpow BZ
+let fpow = bpow BF
+
 let eq e1 e2 = Comp (Eq, e1, e2)
 let qeq e1 e2 = QExpr (eq e1 e2)
 let leq e1 e2 = Comp (Leq, e1, e2)
 let lt e1 e2 = Comp (Lt, e1, e2)
+
 let unint s es = Fn (Unint s, es)
 let call f es = Call (f, es)
 let star = NonDet
 
 let bnot e = Not e
 let bor e1 e2 = Boolop (Or, e1, e2)
+let imply e1 e2 = Boolop (Imply, e1, e2)
 let band e1 e2 = Boolop (And, e1, e2)
 let qand q1 q2 = QAnd (q1, q2)
 let qimply q1 q2 = QImply (q1, q2)
-let imply e1 e2 = Boolop (Imply, e1, e2)
 
 let match_with e1 xs e2 = DPDestr (e1, xs, e2)
 let dpcons es xs q = DPCons (es, xs, q)
@@ -73,15 +101,18 @@ let f2 = fc 2
 let z0 = zc 0
 let z1 = zc 1
 let z2 = zc 2
-let add1z e = add e z1
-let add1f e = add e f1
-let sub1z e = sub e z1
-let sub1f e = sub e f1
+let zadd1 e = zadd e z1
+let nadd1 e = nadd e z1
+let fadd1 e = fadd e f1
+let zsub1 e = zsub e z1
+let nsub1 e = nsub e f1
+let fsub1 e = fsub e f1
+
 let btrue = Const (CBool true)
 let bfalse = Const (CBool false)
 let is_binary e = bor (eq e f0) (eq e f1)
 let tf_binary = tfe (is_binary nu)
-let binary_eq e = eq (mul e (sub e f1)) f0
+let binary_eq e = eq (fmul e (zsub1 e)) f0
 let ite e1 e2 e3 = band (imply e1 e2) (imply (bnot e1) e3)
 let ind e1 e2 e3 = qand (QExpr (is_binary e1)) (QExpr (band (imply (eq e1 f1) e2) (imply (eq e1 f0) e3)))
 let ind_dec e1 e2 = ind e1 e2 (bnot e2)
@@ -106,7 +137,9 @@ let concat xs1 xs2 = ArrayOp (Concat, xs1, xs2)
 let take n xs = ArrayOp (Take, n, xs)
 let drop n xs = ArrayOp (Drop, n, xs)
 let to_big_int (tb: tyBase) (n: expr) (k: expr) (xs: expr): expr = 
-  let sub1 = match tb with TF -> sub1f | TInt -> sub1z in
+  let sub1 = match tb with TF -> fsub1 | TInt -> nsub1 in
+  let mul = match tb with TF -> fmul | TInt -> zmul in
+  let pow = match tb with TF -> fpow | TInt -> zpow in
   rsum z0 (sub1 k) (tfun "i" tint (TRef (tb, QExpr (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))))))
 let z_range l r = TRef (TInt, qand (QExpr (leq l nu)) (QExpr (leq nu r)))
 let z_range_co l r = TRef (TInt, qand (QExpr (leq l nu)) (QExpr (lt nu r)))

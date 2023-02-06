@@ -35,7 +35,7 @@ let cs2 = typecheck_circuit d c2
 let (tloop, check_loop) = synthesize [] [] [] (Iter {
   s = z0; 
   e = zc 5; 
-  body = lama "i" tint (lama "x" tf (add x f1));
+  body = lama "i" tint (lama "x" tf (fadd1 x));
   init = f0;
   inv = fun i -> fun x -> tfq (QExpr (eq (toUZ x) i))
 })

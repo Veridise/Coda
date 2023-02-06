@@ -25,6 +25,8 @@ let ta = tget (tget x 2) 0
 let tb = tget (tget x 2) 1
 let ms3_is = tget ms3_i 0
 let ms3_ic = tget ms3_i 1
+let tsum = tget x 0
+let tcarry = tget x 1
 
 let pstr x = PStr x
 let pprod xs = PProd xs
@@ -73,9 +75,9 @@ let big_add =
           (* abs = zip a b *)
           slet "abs" (zip a b);
           (* (sum, carry) = iter 0 k lam_big_add inv_big_add abs*)
-          sletp (pprod [pstr sum; pstr carry]) (app iter_big_add abs);
+          slet "x" (app iter_big_add abs);
           (* out === sum ++ [carry] *)
-          assert_eq out (concat sum (cons carry cnil))
+          assert_eq out (concat tsum (cons tcarry cnil))
         ]
     }
 

@@ -17,8 +17,8 @@ let c_is_zero = Circuit {
   dep = None;
   body = [
     slet "inv" star;
-    assert_eq vout (add (opp (mul vin (v "inv"))) f1);
-    assert_eq (mul vin vout) f0
+    assert_eq vout (fadd1 (opp (fmul vin (v "inv"))));
+    assert_eq (fmul vin vout) f0
   ]
 }
 
@@ -31,7 +31,7 @@ let c_is_equal = Circuit {
   outputs = [("out", t_is_equal)];
   dep = None;
   body = [
-    slet "z" (Call ("IsZero", [sub x y]));
+    slet "z" (Call ("IsZero", [fsub x y]));
     assert_eq vout z
   ]
 }
@@ -45,8 +45,8 @@ let c_less_than = Circuit {
   outputs = [("out", t_lt)];
   dep = None;
   body = [
-    slet "z" (call "Num2Bits" [add1z n; (add (sub x y) (pow f2 n))]);
-    slet "b" (sub1f (get z n));
+    slet "z" (call "Num2Bits" [nadd1 n; (fadd (fsub x y) (fpow f2 n))]);
+    slet "b" (fsub1 (get z n));
     assert_eq vout (v "b")
   ]
 }

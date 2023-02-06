@@ -47,6 +47,45 @@ Local Coercion N.of_nat: nat >-> N.
 Definition f_and (x: F) (y: F) := x = 1%F /\ y = 1%F.
 Definition f_or (x: F) (y: F) := x = 1%F \/ y = 1%F.
 
+(** ** Helpers *)
+
+Lemma binary_not0: forall (x:F), ((x = 0 \/ x = 1) -> x <> 0 -> x = 1)%F.
+Proof. intuit. Qed.
+
+Lemma binary_not1: forall (x:F), ((x = 0 \/ x = 1) -> x <> 1 -> x = 0)%F.
+Proof. intuit. Qed.
+
+Lemma big_lt_step: forall xs ys i,
+  ([\ xs[:i] \] < [\ ys[:i] \] \/
+  [\ xs[:i] \] = [\ ys[:i] \] /\
+  F.to_Z (xs!i) < F.to_Z (ys!i)) <->
+  [\ xs[:1+i] \] < [\ ys[:1+i] \].
+Proof.
+  (* this is an induction proof that we did in last summer *)
+Admitted.
+
+Ltac ind x :=
+  match goal with
+  | [H: (x = 0%F \/ x = 1 %F) /\ (x = 1%F -> ?P) /\ (x = 0%F -> ?Q) |- _ ] =>
+    let H1 := fresh "H" in
+    let H2 := fresh "H" in
+    let H3 := fresh "H" in
+    destruct H as [H1 [H2 H3]];
+    try match goal with
+    | [ Hx: x <> 1%F |- _ ] =>
+      apply binary_not1 in Hx; try apply H1
+    | [ Hx: x <> 0%F |- _ ] =>
+      apply binary_not0 in Hx; try apply H1
+    end;
+    match goal with
+    | [ Hx: x = 1%F |- _] =>
+      apply H2 in Hx
+    | [ Hx: x = 0%F |- _] =>
+      apply H3 in Hx
+    end;
+    clear H1; clear H2; clear H3
+  end.
+
 (** ** Proof obligations *)
 
 Lemma _obligation1: forall (nu : Z) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F),
@@ -288,7 +327,18 @@ Lemma _obligation11:
        (((nu = 1%F) -> ([\ xs[:(1%nat + i)] \] = [\ ys[:(1%nat + i)] \])) /\
           ((nu = 0%F) -> ~([\ xs[:(1%nat + i)] \] = [\ ys[:(1%nat + i)] \])))).
 Proof.
-Admitted.
+  unfold f_and, f_or. intros.
+  split. intuit. split; intros.
+  - ind nu.
+    destruct H17.
+    ind eq. ind x_eq_y. skip.
+  - ind nu.
+    apply Decidable.not_and in H17.
+    destruct H17.
+    ind eq. skip.
+    ind x_eq_y. skip.
+    unfold Decidable.decidable. intuit.
+Qed.
 
 Lemma _obligation12: forall (nu : F) (n : nat) (k : nat) (xs : list F) (ys : list F) (out : F),
     (n <= (C.k - 1%nat)) ->

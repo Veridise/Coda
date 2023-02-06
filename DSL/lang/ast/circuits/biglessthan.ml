@@ -3,7 +3,7 @@ open Lib__Dsl
 open Lib__Typecheck
 
 let k = v "k"
-let n = v "N"
+let n = v "n"
 let i = v "i"
 let xs = v "xs"
 let ys = v "ys"
@@ -24,18 +24,18 @@ let y = v "y"
 let to_big xs = Fn (ToBigUZ, [n; xs])
 let big_op op xs ys = tfq (ind_dec nu (op (to_big xs) (to_big ys)))
 let t_out = big_op lt xs ys
-let tf_big_digit = tfe (leq (toUZ nu) (sub1z (pow z2 CPLen)))
+let tf_big_digit = tfe (leq (toUZ nu) (zsub1 (zpow z2 CPLen)))
 let t_in = tarr tf_big_digit QTrue k
 
 let c_big_lt = Circuit {
   name = "BigLessThan";
   inputs = [
-    ("n", tnat_e (leq nu (sub1z CPLen)));
+    ("n", tnat_e (leq nu (zsub1 CPLen)));
     ("k", tnat_e (leq z2 nu));
     ("xs", t_in);
     ("ys", t_in)];
   outputs = [("out", t_out)];
-  ctype = tfun "n" tnat (tfun "k" tnat (tfun "xs" t_in (tfun "ys" t_in t_out)));
+  dep = None;
   body = [
     slet "lt" (tget (Iter {
       s = z0;
@@ -46,7 +46,7 @@ let c_big_lt = Circuit {
         elet "eq" (snd_pair (v "lt_eq")) (
         elet "x" (get xs i) (
         elet "y" (get ys i) (
-        elet "x_lt_y" (call "LessThan" [x; y]) (
+        elet "x_lt_y" (call "LessThan" [n; x; y]) (
         elet "xs_lt_ys" (call "And" [v "eq"; v "x_lt_y"]) (
         elet "x_eq_y" (call "IsEqual" [x; y]) (
         tmake [

@@ -12,28 +12,28 @@ let n2b_body = lama "i" tint (
     elet "lc1" (tget (v "lc1_e2") 0) (
     elet "e2" (tget (v "lc1_e2") 1) (
     tmake [
-      add (v "lc1") (mul (get vout i) (v "e2"));
-      add (v "e2") (v "e2")]))))
+      fadd (v "lc1") (fmul (get vout i) (v "e2"));
+      fadd (v "e2") (v "e2")]))))
 
 let n2b_inv = fun i -> fun x -> ttuple [
   tfe (eq nu (to_big_int TF f1 i (take vout i)));
-  tfe (eq nu (pow f2 i))]
+  tfe (eq nu (fpow f2 i))]
 
 let (tn2bloop, check_n2bloop) = synthesize [] [("out", tarr tf QTrue (zc 5))] [] (
   (Iter { s = z0; e = zc 4; body = n2b_body; init = tmake [f0; f1];
     inv = n2b_inv}))
 
-let n2b_tout = tarr tf_binary (QExpr (eq (to_big_int TF f1 n nu) vin)) (add1z n)
+let n2b_tout = tarr tf_binary (QExpr (eq (to_big_int TF f1 n nu) vin)) (nadd1 n)
 
 let num2bits = Circuit {
   name = "Num2Bits";
   inputs = [("n", tnat); ("in", tf)];
   outputs = [("out", n2b_tout)];
-  ctype = tfun "n" tnat (tfun "in" tf (n2b_tout));
+  dep = None;
   body = [
-    slet "lc1_e2" (Iter {s = z0; e = (sub1z n); body = n2b_body; init = tmake [f0; f1]; inv = n2b_inv});
+    (* slet "lc1_e2" (Iter {s = z0; e = n; body = n2b_body; init = tmake [f0; f1]; inv = n2b_inv});
     slet "lc1" (tget (v "lc1_e2") 0);
-    assert_forall "i" (QExpr (binary_eq (get vout i)))
+    assert_forall "i" (QExpr (binary_eq (get vout i))) *)
   ]
 }
 
@@ -46,13 +46,13 @@ let bits2num = Circuit {
   name = "Bits2Num";
   inputs = [("n", tnat); ("in", b2n_tin)];
   outputs = [("out", b2n_tout)];
-  ctype = tfun "n" tnat (tfun "in" b2n_tin b2n_tout);
+  dep = None;
   body = [
-    slet "s" (
+    (* slet "s" (
       sum z0 (sub1z n)
         (lam "i"
-          (mul (get vin i) (pow f2 i))));
-    assert_eq (v "s") vout
+          (fmul (get vin i) (fpow f2 i))));
+    assert_eq (v "s") vout *)
   ]
 }
 

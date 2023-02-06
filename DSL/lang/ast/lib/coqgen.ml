@@ -122,6 +122,11 @@ let gamma_to_coq (g: gamma) : ((string * string) list * string list) =
     ((x,tb_str), q_strs))
   |> List.split
   |> fun (b,q) -> (b, List.concat q)
+    (* (b, 
+  let qs = List.concat q in
+  print_endline ("Gamma Q: " ^ (String.concat "/\\" qs));
+  qs
+  ) *)
 
 let alpha_to_coq (a: alpha) : string list = 
   List.map qual_to_coq a

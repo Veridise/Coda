@@ -272,7 +272,10 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       (t, List.concat css @ [CheckCons (g' @ g, a, q)])
     (* | DPDestr (e1, xs, e2) -> *)
     | _ -> failwith (Format.sprintf "Synthesis unavailable for expression %s" (show_expr e))
-  in f e
+  in 
+  let (t, cs) = f e in
+  print_endline (Format.sprintf "Synthesized type for %s: %s" (show_expr e) (show_typ t));
+  (t, cs)
 
 and synthesize_app (d: delta) (g: gamma) (a: alpha) (t: typ) (es: expr list) : typ * cons list =
   match es with

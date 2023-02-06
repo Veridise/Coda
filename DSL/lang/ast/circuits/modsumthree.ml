@@ -10,6 +10,7 @@ let a = v "a"
 let b = v "b"
 let c = v "c"
 let s = v "s"
+let x = v "x"
 
 let n2b = v "n2b"
 let sum = v "sum"
@@ -17,6 +18,13 @@ let carry = v "carry"
 let abs = v "abs"
 let out = v "out"
 let ms3_i = v "ms3_i"
+
+let ts = tget (tget x 1) 0
+let tc = tget (tget x 1) 1
+let ta = tget (tget x 2) 0
+let tb = tget (tget x 2) 1
+let ms3_is = tget ms3_i 0
+let ms3_ic = tget ms3_i 1
 
 let pstr x = PStr x
 let pprod xs = PProd xs
@@ -44,11 +52,11 @@ let deltas_ms3 = add_to_delta d_empty num2bits
 
 let check_mod_sum_three = typecheck_circuit deltas_ms3 mod_sum_three
 
+let t_x = ttuple [tnat; ttuple [tf; tf]; ttuple [tf; tf]]
+
 (* \_ (s, c) (a, b) => let (si, ci) = #ModSumThree n a b c in (s ++ [si], ci) *)
 let lam_big_add =
-  lamp
-    (pprod [pstr "_"; pprod [pstr s; pstr c]; pprod [pstr a; pstr b]])
-    (elet ms3_i (call "ModSumThree" [n; a; b; c]) (tmake [concat s (cons (tget ms3_i 0) cnil); tget ms3_i 1]))
+  lama x t_x (elet ms3_i (call "ModSumThree" [n; ta; tb; tc]) (tmake [concat ts (cons ms3_is cnil); ms3_ic]))
 
 let inv_big_add _ _ = tf
 

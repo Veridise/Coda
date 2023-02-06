@@ -13,10 +13,12 @@ let n2b = v "n2b"
 let sum = v "sum"
 let carry = v "carry"
 
+let t_n = z_range 1 (zsub1 CPLen)
+
 let mod_sum_three =
   Circuit {
       name = "ModSumThree";
-      inputs = [("n", tnat); ("a", tf); ("b", tf); ("c", tf)];
+      inputs = [("n", t_n); ("a", tf); ("b", tf); ("c", tf)];
       outputs = [("sum", tf), ("carry", tf)];
       dep = qeq (fadd sum (fmul carry (fpow f2 n))) (fadd (fadd a b) c);
       body = [

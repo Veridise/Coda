@@ -10,6 +10,8 @@ let tboole e = TRef (TBool, QExpr e)
 
 (* lambda *)
 let lam x e = Lam (x, e)
+(* lambda pattern *)
+let lamp p e = LamP (p, e)
 (* lambda with type-annotated input *)
 let lama x t e = LamA (x, t, e)
 (* type annotation *)
@@ -118,6 +120,7 @@ let ind e1 e2 e3 = qand (QExpr (is_binary e1)) (QExpr (band (imply (eq e1 f1) e2
 let ind_dec e1 e2 = ind e1 e2 (bnot e2)
 let tnat = TRef (TInt, QExpr (leq z0 nu))
 let tnat_e e = TRef (TInt, QAnd (QExpr (leq z0 nu), QExpr e))
+let tpos = TRef (TInt, QExpr (lt z0 nu))
 
 let tmake es = TMake es
 let tget e n = TGet (e, n)
@@ -127,6 +130,7 @@ let make_pair e1 e2 = tmake [e1; e2]
 let qforall i q = QForall (i, q)
 let assert_eq e1 e2 = SAssert (e1, e2)
 let slet x e = SLet (x, e)
+let sletp p e = SLetP (p, e)
 let elet x e1 e2 = LetIn (x, e1, e2)
 let tarr t q e = TArr (t, q, e)
 let sum es ee eb = Sum {s=es;e=ee;body=eb}
@@ -136,6 +140,8 @@ let cons x xs = ArrayOp (Cons, x, xs)
 let concat xs1 xs2 = ArrayOp (Concat, xs1, xs2)
 let take n xs = ArrayOp (Take, n, xs)
 let drop n xs = ArrayOp (Drop, n, xs)
+let zip e1 e2 = Zip(e1, e2)
+let iter s e body init inv = Iter {s = s; e = e; body = body; init = init; inv = inv }
 let to_big_int (tb: tyBase) (n: expr) (k: expr) (xs: expr): expr = 
   let sub1 = match tb with TF -> fsub1 | TInt -> nsub1 in
   let mul = match tb with TF -> fmul | TInt -> zmul in

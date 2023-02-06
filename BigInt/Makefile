@@ -17,11 +17,14 @@ coqprime:
 install-coqprime: coqprime
 	$(MAKE) --no-print-directory -C $(COQPRIME_FOLDER) install
 
-dev:
+coqmake:
+	coq_makefile -f _CoqProject -o Makefile.coq
+
+dev: coqmake
 	cat src/.ConfigDev > src/Config.v
 	$(MAKE) --no-print-directory
 
-audit:
+audit: coqmake
 	cat src/.ConfigAudit > src/Config.v
 	$(MAKE) --no-print-directory
 

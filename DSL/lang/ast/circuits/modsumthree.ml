@@ -31,7 +31,7 @@ let tcarry = tget x 1
 let pstr x = PStr x
 let pprod xs = PProd xs
 
-let t_n = z_range 1 (zsub1 CPLen)
+let t_n = z_range z1 (zsub1 CPLen)
 let t_arr_tf k = tarr tf QTrue k
 
 let mod_sum_three =

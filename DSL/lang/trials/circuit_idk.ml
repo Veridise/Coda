@@ -49,24 +49,6 @@ let num2bits =
         ]
     }
 
-let mod_sub_three =
-  Circuit {
-      name = "ModSubThree";
-      inputs = [("n", tint); ("a", tf); ("b", tf); ("c", tf)];
-      exists = [];
-      outputs = [("out", tf); ("borrow", tf)];
-      ctype = TFun ("n", tint,
-                    TFun ("a", tf, TFun ("b", tf, TFun ("c", tf, TTuple [tf; tf]))));
-      body = [
-          (* b_plus_c === b + c *)
-          assert_eq (v "b_plus_c") (add (v "b") (v "c"));
-          (* borrow === #LessThan (n + 1) a b_plus_c *)
-          assert_eq (v "borrow") (Call ("LessThan", [add (v "n") f1; v "a"; v "b_plus_c"]));
-          (* out === borrow * (1 << n) + a - b_plus_c *)
-          assert_eq (v "out") (add (mul (v "borrow") (pow f2 (v "n"))) (sub (v "a") (v "b_plus_c")));
-        ]
-    }
-
 let t_arr_tf k = TArr (tf, QTrue, k)
 
 let big_add_mod_p =

@@ -3,38 +3,6 @@
 open Lib__Ast
 open Lib__Dsl
 
-let is_zero =
-  Circuit {
-      name = "IsZero";
-      inputs = [("in", tf)];
-      exists = [("inv", tf)];
-      outputs = [("out", tf_binary)];
-      ctype = TFun ("in", tf, tf_binary);
-      body = [
-          (* out === 1 - in * inv *)
-          assert_eq (v "out") (sub f1 (mul (v "in") (v "inv")));
-          (* in * out === 0 *)
-          assert_eq (mul (v "in") (v "out")) f0
-        ]
-    }
-
-let is_equal =
-  Circuit {
-      name = "IsEqual";
-      inputs = [("in", TArr (tf, QTrue, f2))];
-      exists = [];
-      outputs = [("out", tf_binary)];
-      ctype = TFun ("in", TArr (tf, QTrue, f2), tf_binary);
-      body = [
-          (* isz_in === in[1] - in[0] *)
-          assert_eq (v "isz_in") (sub (ArrayOp (Get, v "in", f1)) (ArrayOp (Get, v "in", f0)));
-          (* isz_out === IsZero isz_in *)
-          assert_eq (v "isz_out") (Call ("IsZero", [v "isz_in"]));
-          (* isz_out === out *)
-          assert_eq (v "isz_out") (v "out")
-        ]
-    }
-
 (* Output type for Num2Bits *)
 let n2b_tout = tarr tf_binary (QExpr (eq (to_big_int TF f1 (v "n") nu) (v "in"))) (v "n")
 
@@ -81,30 +49,6 @@ let num2bits =
         ]
     }
 
-
-let big_is_zero =
-  Circuit {
-      name = "BigIsZero";
-      inputs = [("k", tnat); ("in", tarr tf QTrue (v "k"))];
-      exists = [];
-      outputs = [("out", tf_binary)];
-      ctype = TFun ("k", tnat, TFun ("in", tarr tf QTrue (v "k"), tf_binary));
-      body = [
-          (* is_zeros === map (\ini => #IsZero ini) in *)
-          assert_eq (v "is_zeros") (Map (Lam ("ini", Call ("IsZero", [v "ini"])), v "in"));
-          (* total === foldl (\acc iszi => acc - iszi) k is_zeros *)
-          assert_eq
-            (v "total")
-            (Foldl {
-                 f = LamP (PProd [PStr "acc"; PStr "iszi"], sub (v "acc") (v "iszi"));
-                 acc = v "k";
-                 xs = v "is_zeros"
-            });
-          (* out === #IsZero total *)
-          assert_eq (v "out") (Call ("IsZero", [v "total"]))
-        ]
-    }
-
 let mod_sub_three =
   Circuit {
       name = "ModSubThree";
@@ -124,42 +68,6 @@ let mod_sub_three =
     }
 
 let t_arr_tf k = TArr (tf, QTrue, k)
-
-let big_add =
-  Circuit {
-      name = "BigAdd";
-      inputs = [("n", tint); ("k", tnat);
-                ("a", t_arr_tf (v "k")); ("b", t_arr_tf (v "k"))];
-      exists = [];
-      outputs = [("out", t_arr_tf (add (v "k") z1))];
-      ctype = TFun ("n", tint, TFun ("k", tnat,
-                                     TFun ("a", t_arr_tf (v "k"),
-                                           TFun ("b", t_arr_tf (v "k"), t_arr_tf (add (v "k") z1)))));
-      body = [
-          (* abs = zip a b *)
-          SLet ("abs", Zip (v "a", v "b"));
-          (* (sums, carry) = foldl (\(ss, c) (a, b) =>
-             let (si, ci) = ModSumThree n a b c in (ss ++ [si], ci)) ([], 0) abs *)
-          SLetP (PProd [PStr "sums"; PStr "carry"],
-                 Foldl {
-                     f = LamP (
-                             PProd [PProd [PStr "ss"; PStr "c"]; PProd [PStr "a"; PStr "b"]],
-                             LetIn ("sci",
-                                    Call ("ModSumThree", [v "n"; v "a"; v "b"; v "c"]),
-                                    TMake [
-                                        ArrayOp (Concat, v "ss", ArrayOp (Cons, tget (v "sci") 0, cnil));
-                                        TGet (v "sci", 1)
-                                      ]
-                               )
-                           );
-                     acc = TMake [cnil; f0];
-                     xs = v "abs"
-                   }
-            );
-          (* out === sums ++ [carry] *)
-          assert_eq (v "out") (ArrayOp (Concat, v "sums", ArrayOp (Cons, v "carry", cnil)))
-        ]
-    }
 
 let big_add_mod_p =
   Circuit {

@@ -74,6 +74,8 @@ let eq e1 e2 = Comp (Eq, e1, e2)
 let qeq e1 e2 = QExpr (eq e1 e2)
 let leq e1 e2 = Comp (Leq, e1, e2)
 let lt e1 e2 = Comp (Lt, e1, e2)
+let qleq e1 e2 = QExpr (leq e1 e2)
+let qlt e1 e2 = QExpr (lt e1 e2)
 
 let unint s es = Fn (Unint s, es)
 let call f es = Call (f, es)

@@ -73,7 +73,7 @@ let q_biz j = qforall "i" z0 j (qeq (get vin i) f0)
 let t_biz = tfq (q_ind_dec nu (q_biz k))
 let t_biz_lam = ttuple [tnat; tf; tf]
 
-let inv_biz = fun i -> fun v -> tfq (q_ind_dec (eq v (zadd i z1)) (q_biz i))
+let inv_biz = fun i -> fun v -> tfq (q_ind_dec (eq v i) (q_biz i))
 
 let lam_biz = lama "x" t_biz_lam (fadd x1 (call "IsZero" [x2]))
 
@@ -102,7 +102,7 @@ let q_bie j = qforall "i" z0 j (qeq (get a i) (get b i))
 let t_bie = tfq (q_ind_dec nu (q_bie k))
 let t_bie_lam = ttuple [tnat; tf; ttuple [tf; tf]]
 
-let inv_bie = fun i -> fun v -> tfq (q_ind_dec (eq v (zadd i z1)) (q_bie i))
+let inv_bie = fun i -> fun v -> tfq (q_ind_dec (eq v i) (q_bie i))
 
 let lam_bie = lama "x" t_bie_lam (fadd x1 (call "IsEqual" [x20; x21]))
 

@@ -57,6 +57,7 @@ and ('a, 'b) binder = string * ('a -> 'b)
 and qual =
   | QTrue                    [@printer fun fmt _ -> fprintf fmt "⊤"]
   | QExpr of expr            [@printer fun fmt e -> fprintf fmt "%s" (show_expr e)]
+  | QNot of qual             [@printer fun fmt q -> fprintf fmt "(qnot %s)" (show_qual q)]
   | QAnd of qual * qual      [@printer fun fmt (q1,q2) -> fprintf fmt "(qand %s %s)" (show_qual q1) (show_qual q2)]
   | QImply of qual * qual    [@printer fun fmt (q1,q2) -> fprintf fmt "(qimply %s %s)" (show_qual q1) (show_qual q2)]
   | QForall of (string * expr * expr) * qual [@printer fun fmt ((x,s,e),q) -> fprintf fmt "∀%s<=%s<%s. %s" (show_expr s) x (show_expr e) (show_qual q)]
@@ -304,4 +305,3 @@ and subst_expr (x: string) (ef: expr) (e: expr) : expr =
   | Zip (e1, e2) -> todos "subst_expr: Zip"
   | Foldl {f; acc; xs} -> todos "subst_expr: Foldl"
   | _ -> todos "subst_expr"
-  

@@ -111,6 +111,7 @@ let fadd1 e = fadd e f1
 let zsub1 e = zsub e z1
 let nsub1 e = nsub e f1
 let fsub1 e = fsub e f1
+let zsub2 e = zsub e z2
 
 let btrue = Const (CBool true)
 let bfalse = Const (CBool false)

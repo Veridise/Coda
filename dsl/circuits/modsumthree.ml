@@ -31,15 +31,18 @@ let tcarry = tget x 1
 let pstr x = PStr x
 let pprod xs = PProd xs
 
-let t_n = z_range 1 (zsub1 CPLen)
+let t_n = z_range z1 (zsub1 CPLen)
 let t_arr_tf k = tarr tf QTrue k
+
+(* { v : F | toUZ(v) <= 2**n - 1 } *)
+let tf_2n = tfe (leq (toUZ nu) (zsub (zpow z2 n) z1))
 
 let mod_sum_three =
   Circuit {
       name = "ModSumThree";
-      inputs = [("n", t_n); ("a", tf); ("b", tf); ("c", tf)];
-      outputs = [("sum", tf), ("carry", tf)];
-      dep = qeq (fadd sum (fmul carry (fpow f2 n))) (fadd (fadd a b) c);
+      inputs = [("n", t_n); ("a", tf_2n); ("b", tf_2n); ("c", tf_binary)];
+      outputs = [("sum", tf_2n); ("carry", tf_binary)];
+      dep = Some (qeq (fadd sum (fmul carry (fpow f2 n))) (fadd (fadd a b) c));
       body = [
           (* n2b = #Num2Bits (n + 2) (a + b + c) *)
           slet "n2b" (call "Num2Bits" [zadd n z2; fadd (fadd a b) c]);
@@ -56,9 +59,12 @@ let check_mod_sum_three = typecheck_circuit deltas_ms3 mod_sum_three
 
 let t_x = ttuple [tnat; ttuple [tf; tf]; ttuple [tf; tf]]
 
+(* Proper big Ints of length k *)
+let t_big_int k = tarr tf_2n QTrue k
+
 (* \_ (s, c) (a, b) => let (si, ci) = #ModSumThree n a b c in (s ++ [si], ci) *)
 let lam_big_add =
-  lama "x" t_x (elet ms3_i (call "ModSumThree" [n; ta; tb; tc]) (tmake [concat ts (cons ms3_is cnil); ms3_ic]))
+  lama "x" t_x (elet "ms3_i" (call "ModSumThree" [n; ta; tb; tc]) (tmake [concat ts (cons ms3_is cnil); ms3_ic]))
 
 let inv_big_add _ _ = tf
 
@@ -68,8 +74,8 @@ let big_add =
   Circuit {
       name = "BigAdd";
       inputs = [("n", t_n); ("k", tpos);
-                ("a", t_arr_tf k); ("b", t_arr_tf k)];
-      outputs = [("out", t_arr_tf (zadd k z1))];
+                ("a", t_big_int k); ("b", t_big_int k)];
+      outputs = [("out", t_big_int (zadd k z1))];
       dep = None;
       body = [
           (* abs = zip a b *)

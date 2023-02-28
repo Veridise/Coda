@@ -19,7 +19,7 @@ let x2 = tget x 2
 let x20 = tget x2 0
 let x21 = tget x2 1
 
-let t_k = z_range 1 (zsub1 CPLen)
+let t_k = z_range z1 CPLen
 let t_arr_tf k = tarr tf QTrue k
 
 (* IsZero *)
@@ -67,7 +67,7 @@ let c_less_than = Circuit {
   ]
 }
 
-let q_biz = qforall [i] (qimply (qand (qleq z0 i) (qlt i k)) (eq (get vin i) f0))
+let q_biz = qforall ["i"] (qimply (qand (qleq z0 i) (qlt i k)) (qeq (get vin i) f0))
 let t_biz = tfq (ind_dec nu q_biz)
 let t_biz_lam = ttuple [tnat; tf; tf]
 
@@ -95,7 +95,7 @@ let c_big_is_zero =
 
 let check_big_is_zero = typecheck_circuit (add_to_delta d_empty c_is_zero) c_big_is_zero
 
-let q_bie = qforall [i] (qimply (qand (qleq z0 i) (qlt i k)) (eq (get a i) (get b i)))
+let q_bie = qforall ["i"] (qimply (qand (qleq z0 i) (qlt i k)) (qeq (get a i) (get b i)))
 let t_bie = tfq (ind_dec nu q_bie)
 let t_bie_lam = ttuple [tnat; tf; ttuple [tf; tf]]
 

@@ -1,0 +1,8 @@
+(env
+  (dev
+    (flags (:standard -warn-error -A))))
+
+; (executable
+;  (name circuits)
+;  (libraries lib)
+;  (modules circuits))

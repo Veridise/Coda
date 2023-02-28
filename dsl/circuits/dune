@@ -1,0 +1,43 @@
+; (library
+;  (name common)
+;  (wrapped false)
+;  (libraries lib typecheck coqgen))
+
+(library
+ (name trivial)
+ (libraries lib typecheck coqgen)
+ (modules trivial))
+
+; (library
+;  (name cdsl)
+;  (libraries trivial lib typecheck coqgen)
+;  (modules cdsl))
+
+; (library
+;  (name bitify)
+;  (libraries cdsl lib typecheck coqgen)
+;  (modules bitify))
+
+; (library
+;  (name comparators)
+;  (libraries bitify)
+;  (modules comparators))
+
+; (library
+;  (name gates)
+;  (libraries comparators)
+;  (modules gates))
+
+; (library
+;  (name circomlib)
+;  (libraries cdsl bitify comparators gates)
+;  (modules))
+
+; (library
+;  (name biglessthan)
+;  (modules biglessthan))
+
+; (library
+;  (name bigint)
+;  (libraries biglessthan)
+;  (modules))

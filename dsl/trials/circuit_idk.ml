@@ -1,7 +1,7 @@
 (** Circuits for testing *)
 
-open Lib__Ast
-open Lib__Dsl
+(* open Ast
+open Dsl
 
 (* Output type for Num2Bits *)
 let n2b_tout = tarr tf_binary (QExpr (eq (to_big_int TF f1 (v "n") nu) (v "in"))) (v "n")
@@ -205,4 +205,4 @@ let big_mult_short_long =
 
 (* let pow := init(0, k2, lambda i. init(0, k2, lambda j. i**j) in
  * let poly := lambda x. init(0, k2, lambda i. sum(x * pow[i]) in 
- * poly out == poly a * poly b. *)
+ * poly out == poly a * poly b. *) *)

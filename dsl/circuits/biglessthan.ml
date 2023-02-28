@@ -1,6 +1,6 @@
-open Lib__Ast
-open Lib__Dsl
-open Lib__Typecheck
+open Ast
+open Dsl
+open Typecheck
 
 let k = v "k"
 let n = v "n"

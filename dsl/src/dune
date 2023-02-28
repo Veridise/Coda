@@ -1,0 +1,22 @@
+(env
+  (dev
+    (flags (:standard -warn-error -A))))
+
+(library
+ (name lib)
+ (wrapped false)
+ (libraries core)
+ (modules ast dsl utils)
+ (preprocess (pps ppx_deriving.show ppx_deriving.eq)))
+
+(library
+(name typecheck)
+(libraries core lib)
+(modules typecheck)
+(preprocess (pps ppx_deriving.show ppx_deriving.eq)))
+
+(library
+(name coqgen)
+(libraries core lib typecheck)
+(modules coqgen)
+(preprocess (pps ppx_deriving.show ppx_deriving.eq)))

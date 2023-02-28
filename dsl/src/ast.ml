@@ -26,7 +26,7 @@ type typ =
   | TTuple of typ list
 
     [@printer fun fmt (ts) -> 
-      let ts_str = String.concat " × " (List.map show_typ ts) in
+      let ts_str = if List.length ts = 0 then "unit" else String.concat " × " (List.map show_typ ts) in
       fprintf fmt "%s" ts_str]
   
   (* Dependent product type: element types, and an aggregate qualifier *)
@@ -59,7 +59,7 @@ and qual =
   | QExpr of expr            [@printer fun fmt e -> fprintf fmt "%s" (show_expr e)]
   | QAnd of qual * qual      [@printer fun fmt (q1,q2) -> fprintf fmt "(qand %s %s)" (show_qual q1) (show_qual q2)]
   | QImply of qual * qual    [@printer fun fmt (q1,q2) -> fprintf fmt "(qimply %s %s)" (show_qual q1) (show_qual q2)]
-  | QForall of (string list) * qual [@printer fun fmt (xs,q) -> fprintf fmt "∀%s. %s" (String.concat " " xs) (show_qual q)]
+  | QForall of (string * expr * expr) * qual [@printer fun fmt ((x,s,e),q) -> fprintf fmt "∀%s<=%s<%s. %s" (show_expr s) x (show_expr e) (show_qual q)]
   [@@deriving show]
 
 and expr =
@@ -196,7 +196,7 @@ let rec vars_typ : typ -> SS.t = function
 
 and vars_qual : qual -> SS.t = function
   | QExpr e -> vars_expr e
-  | QForall (xs, q) -> excepts (vars_qual q) xs
+  | QForall ((x,s,e), q) -> unions [except (vars_qual q) x; (vars_expr s); (vars_expr e)]
   | _ -> SS.empty
 
 and vars_expr : expr -> SS.t = function
@@ -255,10 +255,8 @@ and subst_qual (x: string) (e: expr) (q: qual) : qual =
   | QTrue -> q
   | QAnd (q1, q2) -> QAnd (subst_qual x e q1, subst_qual x e q2)
   | QExpr e' -> QExpr (subst_expr x e e')
-  | QForall (ys, q') ->
-    match (List.find_opt (fun y -> x = y) ys) with
-    | Some _ -> q
-    | None -> QForall (ys, subst_qual x e q')
+  | QForall ((y,es,ee), q') ->
+      QForall ((y, subst_expr x e es, subst_expr x e ee), if x = y then q' else subst_qual x e q')
 
 and subst_expr (x: string) (ef: expr) (e: expr) : expr =
   let f = subst_expr x ef in

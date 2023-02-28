@@ -1,4 +1,4 @@
-open Lib__Codegen
+open Codegen
 
 #use "circuits/gates.ml"
 let _ = (codegen [] cnot);;

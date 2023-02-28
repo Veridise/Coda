@@ -1,7 +1,6 @@
-open Lib__Ast
-open Lib__Dsl
-open Lib__Typecheck
-open Lib__Codegen
+open Ast
+open Dsl
+open Typecheck
 
 let x = v "x"
 let y = v "y"
@@ -73,4 +72,4 @@ let c_dep_caller = Circuit {
 let d = add_to_delta d_empty c_dep
 let check_c_dep_caller = typecheck_circuit d c_dep_caller
 
-let codegen_c_dep_caller = codegen d c_dep_caller
+(* let codegen_c_dep_caller = codegen d c_dep_caller *)

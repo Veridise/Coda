@@ -70,7 +70,13 @@ let rec subtype (g: gamma) (a: alpha) (t1: typ) (t2: typ) : cons list =
     [CheckCons (g, a, qimply q1' q2)]
       (* failwith (Format.sprintf "TODO: product subtyping %s <: %s" (show_typ t1) (show_typ t2)) *)
   | (TArr _, TArr _) -> failwith "TODO: array subtyping"
-  | _ -> failwith ("Subtype: illegal subtype " ^ (show_typ t1) ^ (show_typ t2))
+  | (TTuple ts1, TDProd (ts2, _, _)) ->
+      List.concat_map (uncurry (subtype g a)) (List.combine ts1 ts2)
+  (* | (TDProd (ts2, xs, q), TTuple ts1) -> *)
+      (* cts = List.concat_map (uncurry (subtype g a)) (List.combine ts1 ts2) in *)
+
+
+  | _ -> failwith (Format.sprintf "Subtype: illegal subtype: t1=%s t2=%s" (show_typ t1) (show_typ t2))
 
 let coerce_psingle : typ -> typ = function
   | TTuple [t] -> t
@@ -251,7 +257,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         let q2' = q |> subst_qual x (get e2 (v i)) |> subst_qual nu_str (get nu (v i)) in
         (TArr (
           TRef (tr, QTrue),
-          qand (qforall [i] q2') (QExpr (eq nu (Map (e1,e2)))),
+          qand (qforall i z0 el q2') (QExpr (eq nu (Map (e1,e2)))),
           el),
         cs1 @ cs2 @ subtype g a t2' tx)
       | _, TArr _ -> failwith "map: not a valid function"

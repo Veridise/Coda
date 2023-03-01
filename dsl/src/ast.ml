@@ -254,7 +254,9 @@ let rec subst_typ (x: string) (e: expr) (t: typ) : typ =
 and subst_qual (x: string) (e: expr) (q: qual) : qual =
   match q with
   | QTrue -> q
+  | QNot q' -> QNot (subst_qual x e q')
   | QAnd (q1, q2) -> QAnd (subst_qual x e q1, subst_qual x e q2)
+  | QImply (q1, q2) -> QImply (subst_qual x e q1, subst_qual x e q2)
   | QExpr e' -> QExpr (subst_expr x e e')
   | QForall ((y,es,ee), q') ->
       QForall ((y, subst_expr x e es, subst_expr x e ee), if x = y then q' else subst_qual x e q')

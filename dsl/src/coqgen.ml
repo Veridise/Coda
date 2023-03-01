@@ -111,6 +111,7 @@ and qual_to_coq (q: qual) : string =
   match q with
   | QTrue -> "True"
   | QExpr e -> expr_to_coq e
+  | QNot q' -> spf "~(%s)" (qual_to_coq q')
   | QAnd (q1, q2) -> spf "(%s /\\ %s)" (qual_to_coq q1) (qual_to_coq q2)
   | QImply (q1, q2) -> spf "(%s -> %s)" (qual_to_coq q1) (qual_to_coq q2)
   | QForall ((x,s,e), q) -> spf "(forall (%s:%s), %s <= %s < %s -> %s)" x "nat" (expr_to_coq s) x (expr_to_coq e) (qual_to_coq q)

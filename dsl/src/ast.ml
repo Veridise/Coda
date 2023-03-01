@@ -24,7 +24,8 @@ type typ =
 
 and qual =
   | QTrue                    
-  | QExpr of expr            
+  | QExpr of expr        
+  | QNot of qual    
   | QAnd of qual * qual      
   | QImply of qual * qual
   | QForall of (string * expr * expr) * qual 

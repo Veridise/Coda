@@ -84,6 +84,7 @@ let bnot e = Not e
 let bor e1 e2 = Boolop (Or, e1, e2)
 let imply e1 e2 = Boolop (Imply, e1, e2)
 let band e1 e2 = Boolop (And, e1, e2)
+let qnot q = QNot q
 let qand q1 q2 = QAnd (q1, q2)
 let qimply q1 q2 = QImply (q1, q2)
 
@@ -122,7 +123,10 @@ let tf_binary = tfe (is_binary nu)
 let binary_eq e = eq (fmul e (zsub1 e)) f0
 let ite e1 e2 e3 = band (imply e1 e2) (imply (bnot e1) e3)
 let ind e1 e2 e3 = qand (QExpr (is_binary e1)) (QExpr (band (imply (eq e1 f1) e2) (imply (eq e1 f0) e3)))
+let q_ind e q1 q2 =
+  qand (QExpr (is_binary e)) (qand (qimply (qeq e f1) q1) (qimply (qeq e f0) q2))
 let ind_dec e1 e2 = ind e1 e2 (bnot e2)
+let q_ind_dec e q = q_ind e q (qnot q)
 let tnat = TRef (TInt, QExpr (leq z0 nu))
 let tnat_e e = TRef (TInt, QAnd (QExpr (leq z0 nu), QExpr e))
 let tpos = TRef (TInt, QExpr (lt z0 nu))

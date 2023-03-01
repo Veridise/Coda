@@ -10,6 +10,8 @@ let z = v "z"
 let n = v "n"
 let k = v "k"
 let i = v "i"
+let a = v "a"
+let b = v "b"
 
 let total = v "total"
 
@@ -67,12 +69,11 @@ let c_less_than = Circuit {
   ]
 }
 
-let q_biz = qforall ["i"] (qimply (qand (qleq z0 i) (qlt i k)) (qeq (get vin i) f0))
-let t_biz = tfq (ind_dec nu q_biz)
+let q_biz j = qforall "i" z0 j (qeq (get vin i) f0)
+let t_biz = tfq (q_ind_dec nu (q_biz k))
 let t_biz_lam = ttuple [tnat; tf; tf]
 
-(* TODO: Add real invariant *)
-let inv_biz _ _ = tf
+let inv_biz = fun i -> fun v -> tfq (q_ind_dec (eq v i) (q_biz i))
 
 let lam_biz = lama "x" t_biz_lam (fadd x1 (call "IsZero" [x2]))
 
@@ -95,12 +96,13 @@ let c_big_is_zero =
 
 let check_big_is_zero = typecheck_circuit (add_to_delta d_empty c_is_zero) c_big_is_zero
 
-let q_bie = qforall ["i"] (qimply (qand (qleq z0 i) (qlt i k)) (qeq (get a i) (get b i)))
-let t_bie = tfq (ind_dec nu q_bie)
+let ab = v "ab"
+
+let q_bie j = qforall "i" z0 j (qeq (get a i) (get b i))
+let t_bie = tfq (q_ind_dec nu (q_bie k))
 let t_bie_lam = ttuple [tnat; tf; ttuple [tf; tf]]
 
-(* TODO: Add real invariant *)
-let inv_bie _ _ = tf
+let inv_bie = fun i -> fun v -> tfq (q_ind_dec (eq v i) (q_bie i))
 
 let lam_bie = lama "x" t_bie_lam (fadd x1 (call "IsEqual" [x20; x21]))
 

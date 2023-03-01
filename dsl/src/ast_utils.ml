@@ -86,6 +86,7 @@ let rec ppf_typ ppf  =  Fmt.(
 and ppf_qual ppf  = Fmt.(function
 | QTrue -> pf ppf "⊤"
 | QExpr e -> ppf_expr ppf e
+| QNot q -> pf ppf "(not %a)" ppf_qual q
 | QAnd (q1,q2) -> pf ppf "(qand %a %a)" ppf_qual q1 ppf_qual q2
 | QImply (q1,q2) -> pf ppf "(qimply %a %a)" ppf_qual q1 ppf_qual q2
 | QForall ((x,s,e),q) -> pf ppf "∀%a<=%s<%a. %a"
@@ -207,6 +208,7 @@ let rec subst_typ (x: string) (e: expr) (t: typ) : typ =
 and subst_qual (x: string) (e: expr) (q: qual) : qual =
   match q with
   | QTrue -> q
+  | QNot q' -> QNot (subst_qual x e q')
   | QAnd (q1, q2) -> QAnd (subst_qual x e q1, subst_qual x e q2)
   | QExpr e' -> QExpr (subst_expr x e e')
   | QForall ((y,es,ee), q') ->

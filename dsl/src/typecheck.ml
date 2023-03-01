@@ -1,15 +1,18 @@
 open Ast
+open Ast_utils
 open Dsl
 open Utils
 
 (* circuit declarations *)
-type delta = (string * circuit) list [@@deriving show]
+type delta = (string * circuit) list
 
 (* typing environment *)
-type gamma = (string * typ) list [@@deriving show]
+type gamma = (string * typ) list
+let show_gamma _ = "TODO: show_gamma"
 
 (* assertion store *)
-type alpha = qual list [@@deriving show]
+type alpha = qual list
+let show_alpha _ = "TODO: show_alpha"
 
 let d_empty = []
 
@@ -153,11 +156,6 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
       | _ -> 
         if tb1 = tb2 then res
         else failwith ("Comp: Unequal types " ^ (show_tyBase tb1) ^ (show_tyBase tb1)))
-    | Opp e' ->
-      let (TRef (tb, q), cs) = f e' in
-      (match tb with
-      | TF | TInt -> (TRef (tb, QExpr (eq nu e)), cs)
-      | _ -> failwith ("Opp: Invalid operand type " ^ (show_tyBase tb)))
     | Not e' ->
       let (TRef (tb, q), cs) = f e' in
       (match tb with
@@ -215,7 +213,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         else
           failwith "Tuple access out of bounds"
       | _ -> failwith "Synthesize: expect tuple type")
-    | ArrayOp (Get, e1, e2) ->
+    | ArrayOp (Get, [e1; e2]) ->
       let (t1, cs1) = f e1 in
       (match t1 with
       | TArr (t, q, el) ->
@@ -223,14 +221,14 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         let cs2 = check d g a e2 (z_range z0 (nsub1 el)) in
         (refine t (QExpr (eq nu e)), cs1 @ cs2)
       | _ -> failwith "Synthesize: get: not an array")
-    | ArrayOp (Cons, e1, e2) ->
+    | ArrayOp (Cons, [e1; e2]) ->
       let (t2, cs2) = f e2 in
       (match t2 with
       | TArr (t, q, el) ->
         let cs1 = check d g a e1 t in
         (TArr (t, QExpr (eq nu e), nadd1 el), cs1 @ cs2)
       | _ -> failwith "Synthesize: cons: not an array")
-    | ArrayOp (Take, e1, e2) ->
+    | ArrayOp (Take, [e1; e2]) ->
       let (t1, cs1) = f e1 in
       (match t1 with
       | TArr (t, q, el) ->
@@ -238,7 +236,7 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         let cs2 = check d g a e2 (z_range z0 el) in
         (TArr (t, QExpr (eq nu e), e2), cs1 @ cs2)
       | _ -> failwith "Synthesize: take: not an array")
-    | ArrayOp (Drop, e1, e2) ->
+    | ArrayOp (Drop, [e1; e2]) ->
       let (t1, cs1) = f e1 in
       (match t1 with
       | TArr (t, q, el) ->
@@ -246,6 +244,16 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         let cs2 = check d g a e2 (z_range z0 el) in
         (TArr (t, QExpr (eq nu e), zsub el e2), cs1 @ cs2)
       | _ -> failwith "Synthesize: drop: not an array")
+    | ArrayOp (Zip, [e1; e2]) ->
+      let (t1, cs1) = f e1 in
+      let (t2, cs2) = f e2 in
+      (match (t1, t2) with
+      | TArr (t1', q1, l1), TArr (t2', q2, l2) ->
+        (* FIXME: q1 and q2 are erased *)
+        (tarr (ttuple [t1';t2']) QTrue l1, cs1 @ cs2 @ [CheckCons (g, a, (QExpr (eq l1 l2)))])
+      | TArr _, _ | _, TArr _ -> failwith "zip: not an array")
+    | ArrayOp (op, _) ->
+      failwith (Format.sprintf "synthesize: ArrayOp: %s not implemented" (show_aop op))
     | Map (e1, e2) ->
       let (t1, cs1) = f e1 in
       let (t2, cs2) = f e2 in
@@ -262,14 +270,6 @@ let rec synthesize (d: delta) (g: gamma) (a: alpha) (e: expr) : (typ * cons list
         cs1 @ cs2 @ subtype g a t2' tx)
       | _, TArr _ -> failwith "map: not a valid function"
       | TFun _, _ -> failwith "map: not a valid array")
-    | Zip (e1, e2) ->
-      let (t1, cs1) = f e1 in
-      let (t2, cs2) = f e2 in
-      (match (t1, t2) with
-      | TArr (t1', q1, l1), TArr (t2', q2, l2) ->
-        (* FIXME: q1 and q2 are erased *)
-        (tarr (ttuple [t1';t2']) QTrue l1, cs1 @ cs2 @ [CheckCons (g, a, (QExpr (eq l1 l2)))])
-      | TArr _, _ | _, TArr _ -> failwith "zip: not an array")
     | DPCons (es, xs, q) ->
       let (ts, css) = List.map f es |> List.split in
       (* TODO: this might be too weak and we need to substitute *)
@@ -344,7 +344,6 @@ let rec to_base_typ = function
   | TFun _ -> todos "to_base_typ: TFun"
   | TTuple _ -> todos "to_base_typ: TTuple"
   | TDProd _ -> todos "to_base_typ: TDProd"
-  [@@deriving show]
   
 let init_gamma (c: circuit) : gamma =
   let to_base_types = List.map (fun (x,t) -> (x, to_base_typ t)) in

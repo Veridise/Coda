@@ -1,4 +1,5 @@
 open Ast
+open Ast_utils
 open Dsl
 open Typecheck
 open Utils
@@ -80,8 +81,6 @@ and expr_to_coq (e: expr) : string =
     spf "(%s %s %s)" (expr_to_coq e1) op_str (expr_to_coq e2)
   | Not e ->
     spf "~%s" (expr_to_coq e)
-  | Opp e ->
-    spf "-%s" (expr_to_coq e)
   | Fn (Unint f, es) ->
     let f' = match f with
       | "and" -> "f_and"
@@ -96,10 +95,16 @@ and expr_to_coq (e: expr) : string =
     spf "[\\ %s \\]" (expr_to_coq xs)
   | Fn (ToUZ, [e]) ->
     spf "F.to_Z %s" (expr_to_coq e)
-  | ArrayOp (Take, e1, e2) ->
-    spf "%s[:%s]" (expr_to_coq e1) (expr_to_coq e2)
-  | ArrayOp (Get, e1, e2) ->
+  | ArrayOp (aop, [e1; e2]) ->
+    (match aop with
+    | Take ->
+      spf "%s[:%s]" (expr_to_coq e1) (expr_to_coq e2)
+    | Get ->
     spf "%s!%s" (expr_to_coq e1) (expr_to_coq e2)
+    | _ -> 
+      failwith (spf "expr_to_coq: %s not implemented" (show_aop aop)))
+  | ArrayOp (aop, _) ->
+    failwith (spf "expr_to_coq: ArrayOp %s wrong arity" (show_aop aop))
   | TGet (e1, 0) ->
     spf "fst (%s)" (expr_to_coq e1)
   | TGet (e1, 1) ->

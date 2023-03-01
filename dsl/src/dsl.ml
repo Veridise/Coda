@@ -36,7 +36,6 @@ let tpair t1 t2 = ttuple [t1; t2]
 
 (* expressions *)
 let re tb e = TRef (tb, QExpr e)
-let opp e = Opp e
 
 let badd b e1 e2 = Binop (b, Add, e1, e2)
 let nadd = badd BNat
@@ -113,6 +112,9 @@ let nsub1 e = nsub e f1
 let fsub1 e = fsub e f1
 let zsub2 e = zsub e z2
 
+let fopp e = fsub f0 e
+let zopp e = zsub z0 e
+
 let btrue = Const (CBool true)
 let bfalse = Const (CBool false)
 let is_binary e = bor (eq e f0) (eq e f1)
@@ -138,12 +140,12 @@ let elet x e1 e2 = LetIn (x, e1, e2)
 let tarr t q e = TArr (t, q, e)
 let sum es ee eb = Sum {s=es;e=ee;body=eb}
 let rsum s e t = RSum (s, e, t)
-let get xs i = ArrayOp (Get, xs, i)
-let cons x xs = ArrayOp (Cons, x, xs)
-let concat xs1 xs2 = ArrayOp (Concat, xs1, xs2)
-let take n xs = ArrayOp (Take, n, xs)
-let drop n xs = ArrayOp (Drop, n, xs)
-let zip e1 e2 = Zip(e1, e2)
+let get xs i = ArrayOp (Get, [xs; i])
+let cons x xs = ArrayOp (Cons, [x; xs])
+let concat xs1 xs2 = ArrayOp (Concat, [xs1; xs2])
+let take n xs = ArrayOp (Take, [n; xs])
+let drop n xs = ArrayOp (Drop, [n; xs])
+let zip e1 e2 = ArrayOp (Zip, [e1; e2])
 let iter s e body init inv = Iter {s = s; e = e; body = body; init = init; inv = inv }
 let to_big_int (tb: tyBase) (n: expr) (k: expr) (xs: expr): expr = 
   let sub1 = match tb with TF -> fsub1 | TInt -> nsub1 in

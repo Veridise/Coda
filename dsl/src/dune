@@ -5,8 +5,8 @@
 (library
  (name lib)
  (wrapped false)
- (libraries core)
- (modules ast dsl utils)
+ (libraries core fmt)
+ (modules ast ast_utils dsl utils)
  (preprocess (pps ppx_deriving.show ppx_deriving.eq)))
 
 (library

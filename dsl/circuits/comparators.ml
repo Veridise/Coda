@@ -28,11 +28,9 @@ let x0 = tget x 0
 
 let x1 = tget x 1
 
-let x2 = tget x 2
+let x10 = tget x1 0
 
-let x20 = tget x2 0
-
-let x21 = tget x2 1
+let x11 = tget x1 1
 
 let t_k = z_range z1 CPLen
 
@@ -49,7 +47,7 @@ let c_is_zero =
     ; dep= None
     ; body=
         [ slet "inv" star
-        ; assert_eq vout (fadd1 (opp (fmul vin (v "inv"))))
+        ; assert_eq vout (fadd1 (fopp (fmul vin (v "inv"))))
         ; assert_eq (fmul vin vout) f0 ] }
 
 let check_is_zero = typecheck_circuit [] c_is_zero
@@ -86,11 +84,11 @@ let q_biz j = qforall "i" z0 j (qeq (get vin i) f0)
 
 let t_biz = tfq (q_ind_dec nu (q_biz k))
 
-let t_biz_lam = ttuple [tnat; tf; tf]
+let t_biz_lam = ttuple [tf; tf]
 
-let inv_biz i v = tfq (q_ind_dec (eq v i) (q_biz i))
+let inv_biz i v = tfq (q_ind_dec (eq (tget v 0) i) (q_biz i))
 
-let lam_biz = lama "x" t_biz_lam (fadd x1 (call "IsZero" [x2]))
+let lam_biz = lama "_i" tint (lama "x" t_biz_lam (fadd x0 (call "IsZero" [x1])))
 
 let iter_biz = iter z0 k lam_biz f0 inv_biz
 
@@ -116,11 +114,12 @@ let q_bie j = qforall "i" z0 j (qeq (get a i) (get b i))
 
 let t_bie = tfq (q_ind_dec nu (q_bie k))
 
-let t_bie_lam = ttuple [tnat; tf; ttuple [tf; tf]]
+let t_bie_lam = ttuple [tf; ttuple [tf; tf]]
 
-let inv_bie i v = tfq (q_ind_dec (eq v i) (q_bie i))
+let inv_bie i v = tfq (q_ind_dec (eq (tget v 0) i) (q_bie i))
 
-let lam_bie = lama "x" t_bie_lam (fadd x1 (call "IsEqual" [x20; x21]))
+let lam_bie =
+  lama "_i" tint (lama "x" t_bie_lam (fadd x0 (call "IsEqual" [x10; x11])))
 
 let iter_bie = iter z0 k lam_bie f0 inv_bie
 

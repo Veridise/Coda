@@ -22,15 +22,9 @@ let a = v "a"
 
 let b = v "b"
 
+let ab = v "ab"
+
 let total = v "total"
-
-let x0 = tget x 0
-
-let x1 = tget x 1
-
-let x10 = tget x1 0
-
-let x11 = tget x1 1
 
 let t_k = z_range z1 CPLen
 
@@ -80,19 +74,15 @@ let c_less_than =
         ; slet "b" (fsub1 (get z n))
         ; assert_eq vout (v "b") ] }
 
+(* BigIsZero *)
 let q_biz j = qforall "i" z0 j (qeq (get vin i) f0)
 
 let t_biz = tfq (q_ind_dec nu (q_biz k))
 
-let t_biz_lam = ttuple [tf; tf]
+let inv_biz i x = tfq (q_ind_dec (eq x i) (q_biz i))
 
-let inv_biz i v = tfq (q_ind_dec (eq (tget v 0) i) (q_biz i))
+let lam_biz = lama "i" tint (lama "x" tf (fadd x (call "IsZero" [get vin i])))
 
-let lam_biz = lama "_i" tint (lama "x" t_biz_lam (fadd x0 (call "IsZero" [x1])))
-
-let iter_biz = iter z0 k lam_biz f0 inv_biz
-
-(* BigIsZero *)
 let c_big_is_zero =
   Circuit
     { name= "BigIsZero"
@@ -100,30 +90,24 @@ let c_big_is_zero =
     ; outputs= [("out", t_biz)]
     ; dep= None
     ; body=
-        [ (* total = (iter 0 k (\_i acc xi => acc + #IsZero xi) 0) in *)
-          slet "total" (app iter_biz vin)
+        [ (* total = (iter 0 k (\i x => x + #IsZero in[i]) 0) *)
+          slet "total" (iter z0 k lam_biz f0 inv_biz)
         ; (* out === #IsZero (k - total) *)
           assert_eq vout (call "IsZero" [fsub k total]) ] }
 
 let check_big_is_zero =
   typecheck_circuit (add_to_delta d_empty c_is_zero) c_big_is_zero
 
-let ab = v "ab"
-
+(* BigIsEqual *)
 let q_bie j = qforall "i" z0 j (qeq (get a i) (get b i))
 
 let t_bie = tfq (q_ind_dec nu (q_bie k))
 
-let t_bie_lam = ttuple [tf; ttuple [tf; tf]]
-
-let inv_bie i v = tfq (q_ind_dec (eq (tget v 0) i) (q_bie i))
+let inv_bie i x = tfq (q_ind_dec (eq x i) (q_bie i))
 
 let lam_bie =
-  lama "_i" tint (lama "x" t_bie_lam (fadd x0 (call "IsEqual" [x10; x11])))
+  lama "i" tint (lama "x" tf (fadd x (call "IsEqual" [tget (get ab i) 0; tget (get ab i) 1])))
 
-let iter_bie = iter z0 k lam_bie f0 inv_bie
-
-(* BigIsEqual *)
 let c_big_is_equal =
   Circuit
     { name= "BigIsEqual"
@@ -133,8 +117,8 @@ let c_big_is_equal =
     ; body=
         [ (* ab = zip a b *)
           slet "ab" (zip a b)
-        ; (* total = (iter 0 k (\_i acc (ai, bi) => acc + #IsEqual ai bi) 0) ab *)
-          slet "total" (app iter_bie ab)
+        ; (* total = (iter 0 k (\i x => x + #IsEqual ab[i].0 ab[i].1) 0) *)
+          slet "total" (iter z0 k lam_bie f0 inv_bie)
         ; (* out === #IsZero (k - total) *)
           assert_eq vout (call "IsZero" [fsub k total]) ] }
 

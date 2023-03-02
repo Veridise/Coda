@@ -106,7 +106,9 @@ let t_bie = tfq (q_ind_dec nu (q_bie k))
 let inv_bie i x = tfq (q_ind_dec (eq x i) (q_bie i))
 
 let lam_bie =
-  lama "i" tint (lama "x" tf (fadd x (call "IsEqual" [tget (get ab i) 0; tget (get ab i) 1])))
+  lama "i" tint
+    (lama "x" tf
+       (fadd x (call "IsEqual" [tget (get ab i) 0; tget (get ab i) 1])) )
 
 let c_big_is_equal =
   Circuit

@@ -7,9 +7,9 @@
  (name lib)
  (wrapped false)
  (libraries core fmt)
- (modules ast ast_utils dsl utils)
+ (modules ast ast_utils dsl utils monad)
  (preprocess
-  (pps ppx_deriving.show ppx_deriving.eq)))
+  (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))
 
 (library
  (name typecheck)

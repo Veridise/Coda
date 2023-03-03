@@ -3,6 +3,12 @@
   (flags
    (:standard -warn-error -A))))
 
+(executable
+ (name test_monad)
+ ;  (public_name test_state)
+ (libraries core lib)
+ (modules test_monad))
+
 ; (executable
 ;  (name circuits)
 ;  (libraries lib)

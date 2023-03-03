@@ -68,7 +68,7 @@ let ppf_const ppf =
 
 let rec ppf_typ ppf =
   Fmt.(
-    let times = Fmt.any " ×@ " in
+    let times = Fmt.any " × " in
     function
     | TRef (tb, q) -> (
       match q with
@@ -86,7 +86,7 @@ let rec ppf_typ ppf =
         pf ppf "Array<%a>[%a](%a)" ppf_typ t ppf_qual q ppf_expr l
     | TTuple ts ->
         if List.length ts = 0 then pf ppf "unit"
-        else pf ppf "%a" (list ~sep:(any " ×@ ") ppf_typ) ts
+        else pf ppf "%a" (list ~sep:(any " × ") ppf_typ) ts
     | TDProd (ts, xs, q) ->
         pf ppf "(%a)_(λ%a. %a)" (list ~sep:times ppf_typ) ts
           (list ~sep:times string) xs ppf_qual q
@@ -292,6 +292,8 @@ and subst_qual (x : string) (e : expr) (q : qual) : qual =
       QNot (subst_qual x e q')
   | QAnd (q1, q2) ->
       QAnd (subst_qual x e q1, subst_qual x e q2)
+  | QImply (q1, q2) ->
+      QImply (subst_qual x e q1, subst_qual x e q2)
   | QExpr e' ->
       QExpr (subst_expr x e e')
   | QForall ((y, es, ee), q') ->

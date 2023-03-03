@@ -18,33 +18,17 @@ let s = v "s"
 
 let x = v "x"
 
+let y = v "y"
+
 let n2b = v "n2b"
 
 let sum = v "sum"
 
 let carry = v "carry"
 
-let abs = v "abs"
+let ab = v "ab"
 
 let out = v "out"
-
-let ms3_i = v "ms3_i"
-
-let ts = tget (tget x 1) 0
-
-let tc = tget (tget x 1) 1
-
-let ta = tget (tget x 2) 0
-
-let tb = tget (tget x 2) 1
-
-let ms3_is = tget ms3_i 0
-
-let ms3_ic = tget ms3_i 1
-
-let tsum = tget x 0
-
-let tcarry = tget x 1
 
 let pstr x = PStr x
 
@@ -80,16 +64,22 @@ let t_x = ttuple [tnat; ttuple [tf; tf]; ttuple [tf; tf]]
 (* Proper big Ints of length k *)
 let t_big_int k = tarr tf_2n QTrue k
 
-(* \_ (s, c) (a, b) => let (si, ci) = #ModSumThree n a b c in (s ++ [si], ci) *)
+(* \i (s, c) => let (si, ci) = #ModSumThree n (ab[i]).0 (ab[i]).1 c in (s ++ si, ci) *)
 let lam_big_add =
-  lama "x" t_x
-    (elet "ms3_i"
-       (call "ModSumThree" [n; ta; tb; tc])
-       (tmake [concat ts (cons ms3_is cnil); ms3_ic]) )
+  lama "i" tint
+    (lama "x"
+       (ttuple [tf; tf])
+       (elet "s" (tget x 0)
+          (elet "c" (tget x 1)
+             (elet "a"
+                (tget (get ab i) 0)
+                (elet "b"
+                   (tget (get ab i) 1)
+                   (elet "y"
+                      (call "ModSumThree" [n; a; b; c])
+                      (tmake [concat s (cons (tget y 0) cnil); tget y 1]) ) ) ) ) ) )
 
-let inv_big_add _ _ = tf
-
-let iter_big_add = iter z0 k lam_big_add (tmake [cnil; f0]) inv_big_add
+let inv_big_add i _ = ttuple [t_big_int i; tf_binary]
 
 let big_add =
   Circuit
@@ -98,12 +88,12 @@ let big_add =
     ; outputs= [("out", t_big_int (zadd k z1))]
     ; dep= None
     ; body=
-        [ (* abs = zip a b *)
-          slet "abs" (zip a b)
-        ; (* (sum, carry) = iter 0 k lam_big_add inv_big_add abs *)
-          slet "x" (app iter_big_add abs)
+        [ (* ab = zip a b *)
+          slet "ab" (zip a b)
+        ; (* (sum, carry) = iter 0 k lam_big_add ([], 0) *)
+          slet "x" (iter z0 k lam_big_add (tmake [cnil; f0]) inv_big_add)
         ; (* out === sum ++ [carry] *)
-          assert_eq out (concat tsum (cons tcarry cnil)) ] }
+          assert_eq out (concat (tget x 0) (cons (tget x 1) cnil)) ] }
 
 let deltas_ba = add_to_delta deltas_ms3 mod_sum_three
 

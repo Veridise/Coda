@@ -3,10 +3,10 @@
 ;  (wrapped false)
 ;  (libraries lib typecheck coqgen))
 
-(library
- (name trivial)
- (libraries lib typecheck coqgen)
- (modules trivial))
+; (library
+;  (name trivial)
+;  (libraries lib typecheck coqgen)
+;  (modules trivial))
 
 ; (library
 ;  (name cdsl)

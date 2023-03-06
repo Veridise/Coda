@@ -408,54 +408,56 @@ and check (e : expr) (t : typ) : unit S.t =
     | Lam (x, body), TFun (y, t1, t2) ->
         with_gamma [(x, t1)] (fun () -> check body t2)
     | LamA (x, t, body), TFun (y, t1, t2) ->
-      get_gamma >>= fun g ->
-        get_alpha >>= fun a ->
-        add_cs (subtype g a t1 t) >>= fun () ->
-          with_gamma [(x, t1)] (fun () -> check body t2)
+        get_gamma
+        >>= fun g ->
+        get_alpha
+        >>= fun a ->
+        add_cs (subtype g a t1 t)
+        >>= fun () -> with_gamma [(x, t1)] (fun () -> check body t2)
     | LetIn (x, e1, e2), t2 ->
-        synthesize e1 >>= fun t1 ->
-          with_gamma [(x, t1)] (fun () -> check e2 t2)
-    (* | DPDestr (e1, xs, e2), t2 -> *)
+        synthesize e1 >>= fun t1 -> with_gamma [(x, t1)] (fun () -> check e2 t2)
+        (* | DPDestr (e1, xs, e2), t2 -> *)
         (* synthesize e1 >>= fun t1 ->
-        let ts, a' =
-          match t1 with
-          | TDProd (ts, ys, q) ->
-              let q' =
-                List.fold_right
-                  (fun (x, y) q -> subst_qual x (v y) q)
-                  (List.combine xs ys) q
-              in
-              print_endline
-                (Format.sprintf "check: DPDestr: subst'ed q: %s" (show_qual q')) ;
-              (ts, [q'])
-          | TTuple ts ->
-              (ts, [])
-          | _ ->
-              failwith "not a product"
-        in
-        if List.length ts = List.length xs then
-        with_gamma (List.combine xs ts) (fun () ->
-          check d (List.combine xs ts) (a @ a') e2 t2 in
-          cs1 @ cs2
-        else
-          failwith (Format.sprintf "DPDestr: xs and ts have different lengths") *)
+           let ts, a' =
+             match t1 with
+             | TDProd (ts, ys, q) ->
+                 let q' =
+                   List.fold_right
+                     (fun (x, y) q -> subst_qual x (v y) q)
+                     (List.combine xs ys) q
+                 in
+                 print_endline
+                   (Format.sprintf "check: DPDestr: subst'ed q: %s" (show_qual q')) ;
+                 (ts, [q'])
+             | TTuple ts ->
+                 (ts, [])
+             | _ ->
+                 failwith "not a product"
+           in
+           if List.length ts = List.length xs then
+           with_gamma (List.combine xs ts) (fun () ->
+             check d (List.combine xs ts) (a @ a') e2 t2 in
+             cs1 @ cs2
+           else
+             failwith (Format.sprintf "DPDestr: xs and ts have different lengths") *)
     | _ ->
-        synthesize e >>= fun t' ->
-          get_gamma >>= fun g ->
-        get_alpha >>= fun a ->
-          add_cs (subtype g a t' t))
+        synthesize e
+        >>= fun t' ->
+        get_gamma >>= fun g -> get_alpha >>= fun a -> add_cs (subtype g a t' t) )
 
-let typecheck_stmt (s : stmt) : unit S.t = S.(
-  match s with
-  | SSkip -> return ()
-  | SLet (x, e) ->
-      synthesize e >>= fun t' ->
-      modify (fun st -> {st with gamma = (x, t')::st.gamma})
-  | SAssert (e1, e2) ->
-      (* TODO: check q is well-formed and has restricted form *)
-      modify (fun st -> {st with alpha = [qeq e1 e2] @ st.alpha})
-  | _ ->
-      todos "typcheck_stmt")
+let typecheck_stmt (s : stmt) : unit S.t =
+  S.(
+    match s with
+    | SSkip ->
+        return ()
+    | SLet (x, e) ->
+        synthesize e
+        >>= fun t' -> modify (fun st -> {st with gamma= (x, t') :: st.gamma})
+    | SAssert (e1, e2) ->
+        (* TODO: check q is well-formed and has restricted form *)
+        modify (fun st -> {st with alpha= [qeq e1 e2] @ st.alpha})
+    | _ ->
+        todos "typcheck_stmt" )
 
 let rec to_base_typ = function
   | TRef (tb, _) ->
@@ -478,11 +480,18 @@ let init_gamma (c : circuit) : gamma =
 let typecheck_circuit (d : delta) (c : circuit) : cons list =
   match c with
   | Circuit {name; inputs; outputs; dep; body} ->
-      let (_, st) = S.run {delta=d; gamma=init_gamma c; alpha=[]; cs=[]} (S.mapM body ~f:typecheck_stmt)
+      let _, st =
+        S.run
+          {delta= d; gamma= init_gamma c; alpha= []; cs= []}
+          (S.mapM body ~f:typecheck_stmt)
       in
-      let out_cons = List.map (fun (x, t) -> HasType (st.gamma, st.alpha, x, t)) outputs in
+      let out_cons =
+        List.map (fun (x, t) -> HasType (st.gamma, st.alpha, x, t)) outputs
+      in
       let dep_cons =
-        dep |> Option.map (fun q -> CheckCons (st.gamma, st.alpha, q)) |> Option.to_list
+        dep
+        |> Option.map (fun q -> CheckCons (st.gamma, st.alpha, q))
+        |> Option.to_list
       in
       (* let vars_in = inputs |> List.map (fun (x,_) -> x) |> List.map v in *)
       (* let vars_out = outputs |> List.map (fun (x,_) -> x) |> List.map v in *)

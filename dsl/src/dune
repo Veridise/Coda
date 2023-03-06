@@ -24,3 +24,10 @@
  (modules coqgen)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.eq)))
+
+(library
+ (name codegen)
+ (libraries core lib fmt)
+ (modules codegen)
+ (preprocess
+  (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))

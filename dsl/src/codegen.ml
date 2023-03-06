@@ -153,7 +153,7 @@ and codegen_circuit (args : expr list) (g : gamma) (b : beta) (d : delta)
 
 (* R1CS assertion *)
 type rexpr =
-  | RConst of const [@printer fun fmt c -> fprintf fmt "%s" (show_const c)]
+  | RConst of int [@printer fun fmt c -> fprintf fmt "%s" (string_of_int c)]
   | RCPrime [@printer fun fmt _ -> fprintf fmt "C.q"]
   | RCPLen [@printer fun fmt _ -> fprintf fmt "C.k"]
   | RVar of string [@printer fun fmt x -> fprintf fmt "%s" x]
@@ -187,8 +187,8 @@ let denote (q : qual) : rexpr option =
     match q with QExpr e -> denote_expr e | _ -> None
   and denote_expr (e : expr) : rexpr option =
     match e with
-    | Const c ->
-        Some (RConst c)
+    | Const (CF i) ->
+        Some (RConst i)
     | CPrime ->
         Some RCPrime
     | CPLen ->
@@ -256,6 +256,68 @@ let denote_alpha (a : alpha) : ralpha option =
   in
   denote_alpha' a
 
+let rec simplify (e : rexpr) : rexpr =
+  match e with
+  | RConst _ ->
+      e
+  | RCPrime ->
+      e
+  | RCPLen ->
+      e
+  | RVar _ ->
+      e
+  | ROpp e' ->
+      ROpp (simplify e')
+  | RBinop (op, e1, e2) -> (
+    match (simplify e1, simplify e2) with
+    | RConst c1, RConst c2 -> (
+      match op with
+      | RAdd ->
+          RConst (c1 + c2)
+      | RSub ->
+          RConst (c1 - c2)
+      | RMul ->
+          RConst (c1 * c2) )
+    | RConst 0, e2' -> (
+      match op with
+      | RAdd ->
+          e2' (* 0 + x -> x *)
+      | RSub ->
+          ROpp e2' (* 0 - x -> -x *)
+      | RMul ->
+          RConst 0 (* 0 * x -> 0 *) )
+    | e1', RConst 0 -> (
+      match op with
+      | RAdd ->
+          e1' (* x + 0 -> x *)
+      | RSub ->
+          e1' (* x - 0 -> x *)
+      | RMul ->
+          RConst 0 (* x * 0 -> 0 *) )
+    | RConst 1, e2' -> (
+      match op with RMul -> e2' (* 1 * x -> x *) | _ -> RBinop (op, e1, e2') )
+    | e1', RConst 1 -> (
+      match op with
+      | RMul ->
+          e1' (* x * 1 -> x *)
+      | _ ->
+          RBinop (op, e1', RConst 1) )
+    | e1', e2' ->
+        if e1' = e2' then
+          match op with
+          | RAdd ->
+              RBinop (RMul, RConst 2, e1') (* x + x -> 2 * x *)
+          | RSub ->
+              RConst 0 (* x - x -> 0 *)
+          | RMul ->
+              RBinop (RMul, e1', e2')
+        else RBinop (op, e1', e2') )
+  | RComp (op, e1, e2) ->
+      RComp (op, simplify e1, simplify e2)
+
+let simplify_alpha (a : ralpha) : ralpha =
+  List.map simplify a
+
 (* transform rexpr into (rexpr1 , rexpr2, rexpr3), which means rexpr = rexpr1 * rexpr2 + rexpr3 *)
 (* let rec transform (e: rexpr) : (rexpr option * rexpr option * rexpr option) =
    match e with
@@ -305,7 +367,7 @@ let show_rexpr (e : rexpr) : string =
   let rec show_rexpr' (e : rexpr) : string =
     match e with
     | RConst c ->
-        show_const c
+        string_of_int c
     | RCPrime ->
         "q"
     | RCPLen ->
@@ -346,12 +408,13 @@ let codegen (d : delta) (c : circuit) : r1cs =
       let g, b, a, out_vars = codegen_circuit args [] [] d [] c in
       match denote_alpha a with
       | Some a' ->
+          let simplify_a = simplify_alpha a' in
           print_endline (Format.sprintf "=============================") ;
           print_endline (Format.sprintf "circuit: %s" name) ;
           print_endline
             (Format.sprintf "variable environment: %s" (show_gamma g)) ;
           print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ;
-          print_endline (Format.sprintf "Rconstraints: %s" (show_ralpha a')) ;
+          print_endline (Format.sprintf "Rconstraints: %s" (show_ralpha simplify_a)) ;
           print_endline (Format.sprintf "=============================") ;
           R1CS ([], [], [])
       | None ->

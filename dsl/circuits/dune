@@ -46,3 +46,8 @@
 ;   (name modsumthree)
 ;   (libraries biglessthan bitify)
 ;   (modules modsumthree))
+
+; (library
+;   (name split)
+;   (libraries bitify)
+;   (modules split))

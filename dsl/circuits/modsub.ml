@@ -77,23 +77,26 @@ let lam_big_sub =
 let inv_big_sub i _ = ttuple [t_big_int i; tf_binary]
 
 let big_sub =
-  Circuit {
-      name = "BigSub";
-      inputs = [("n", t_n); ("k", tpos); ("a", t_big_int k); ("b", t_big_int k)];
-      outputs = [("out", t_big_int k); ("underflow", t_uf)];
-      (* [| out |] = [| a |] - [| b |] + [| underflow |] * 2 ^ (n * k) *)
-      dep = Some (qeq (toUZ out) (zadd (zsub (toUZ a) (toUZ b)) (zmul (toUZ uf) (zpow z2 (zmul n k)))));
-      body = [
-          (* ab = zip a b *)
-          slet "ab" (zip a b);
-          (* (sub, borrow) = iter 0 k lam_big_sub ([], 0) *)
-          slet "x" (iter z0 k lam_big_sub (tmake [cnil; f0]) inv_big_sub);
-          (* out === sub *)
-          assert_eq out (tget x 0);
-          (* underflow === borrow *)
-          assert_eq uf (tget x 1)
-        ]
-    }
+  Circuit
+    { name= "BigSub"
+    ; inputs= [("n", t_n); ("k", tpos); ("a", t_big_int k); ("b", t_big_int k)]
+    ; outputs= [("out", t_big_int k); ("underflow", t_uf)]
+    ; (* [| out |] = [| a |] - [| b |] + [| underflow |] * 2 ^ (n * k) *)
+      dep=
+        Some
+          (qeq (toUZ out)
+             (zadd
+                (zsub (toUZ a) (toUZ b))
+                (zmul (toUZ uf) (zpow z2 (zmul n k))) ) )
+    ; body=
+        [ (* ab = zip a b *)
+          slet "ab" (zip a b)
+        ; (* (sub, borrow) = iter 0 k lam_big_sub ([], 0) *)
+          slet "x" (iter z0 k lam_big_sub (tmake [cnil; f0]) inv_big_sub)
+        ; (* out === sub *)
+          assert_eq out (tget x 0)
+        ; (* underflow === borrow *)
+          assert_eq uf (tget x 1) ] }
 
 let deltas_bs = add_to_delta deltas_ms3 c_mod_sub_three
 

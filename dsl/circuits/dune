@@ -41,3 +41,8 @@
 ;  (name bigint)
 ;  (libraries biglessthan)
 ;  (modules))
+
+; (library
+;   (name modsumthree)
+;   (libraries biglessthan bitify)
+;   (modules modsumthree))

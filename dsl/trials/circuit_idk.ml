@@ -49,44 +49,6 @@ let num2bits =
         ]
     }
 
-let t_arr_tf k = TArr (tf, QTrue, k)
-
-let big_add_mod_p =
-  Circuit {
-      name = "BigAddModP";
-      inputs = [("n", tint); ("k", tnat);
-                ("a", t_arr_tf (v "k")); ("b", t_arr_tf (v "k")); ("p", t_arr_tf (v "k"))];
-      exists = [];
-      outputs = [("out", t_arr_tf (v "k"))];
-      ctype = TFun ("n", tint, TFun ("k", tnat,
-                                     TFun ("a", t_arr_tf (v "k"),
-                                           TFun ("b", t_arr_tf (v "k"),
-                                                 TFun ("c", t_arr_tf (v "k"), t_arr_tf (v "k"))))));
-      body = [
-          (* add = #BigAdd n k a b *)
-          SLet ("add", Call ("BigAdd", [v "n"; v "k"; v "a"; v "b"]));
-          (* lt = #BigLessThan n (k + 1) add (p ++ [0]) *)
-          SLet (
-              "lt",
-              Call ("BigLessThan",
-                    [v "n"; add (v "k") z1; v "add"; ArrayOp (Concat, v "p", ArrayOp (Cons, f0, cnil))])
-            );
-          (* p0 = map (\x => (1 - lt) * x) p *)
-          SLet (
-              "p0",
-              Map (Lam ("x", mul (sub f1 (v "lt")) (v "x")), v "p")
-            );
-          (* sub = #BigSub n (k + 1) add (p0 ++ [0]) *)
-          SLet (
-              "sub",
-              Call ("BigSub",
-                    [v "n"; add (v "k") z1; v "add"; ArrayOp (Concat, v "p0", ArrayOp (Cons, f0, cnil))])
-            );
-          (* out ++ [0] = sub *)
-          assert_eq (ArrayOp (Concat, v "out", ArrayOp (Cons, f0, cnil))) (v "sub")
-        ]
-    }
-
 let big_mult_short_long =
   Circuit {
       name = "BigMultShortLong";

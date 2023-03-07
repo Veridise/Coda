@@ -315,8 +315,7 @@ let rec simplify (e : rexpr) : rexpr =
   | RComp (op, e1, e2) ->
       RComp (op, simplify e1, simplify e2)
 
-let simplify_alpha (a : ralpha) : ralpha =
-  List.map simplify a
+let simplify_alpha (a : ralpha) : ralpha = List.map simplify a
 
 (* transform rexpr into (rexpr1 , rexpr2, rexpr3), which means rexpr = rexpr1 * rexpr2 + rexpr3 *)
 (* let rec transform (e: rexpr) : (rexpr option * rexpr option * rexpr option) =
@@ -414,7 +413,8 @@ let codegen (d : delta) (c : circuit) : r1cs =
           print_endline
             (Format.sprintf "variable environment: %s" (show_gamma g)) ;
           print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ;
-          print_endline (Format.sprintf "Rconstraints: %s" (show_ralpha simplify_a)) ;
+          print_endline
+            (Format.sprintf "Rconstraints: %s" (show_ralpha simplify_a)) ;
           print_endline (Format.sprintf "=============================") ;
           R1CS ([], [], [])
       | None ->

@@ -110,6 +110,14 @@ let zpow = bpow BZ
 
 let fpow = bpow BF
 
+let bmod b e1 e2 = Binop (b, Mod, e1, e2)
+
+let nmod = bmod BNat
+
+let zmod = bmod BZ
+
+let fmod = bmod BF
+
 let eq e1 e2 = Comp (Eq, e1, e2)
 
 let qeq e1 e2 = QExpr (eq e1 e2)
@@ -263,6 +271,8 @@ let drop n xs = ArrayOp (Drop, [n; xs])
 let zip e1 e2 = ArrayOp (Zip, [e1; e2])
 
 let iter s e body init inv = Iter {s; e; body; init; inv}
+
+let map e1 e2 = Map (e1, e2)
 
 let to_big_int (tb : tyBase) (n : expr) (k : expr) (xs : expr) : expr =
   let sub1 = match tb with TF -> fsub1 | TInt -> nsub1 in

@@ -8,6 +8,10 @@ let n = v "n"
 
 let k = v "k"
 
+let p = v "p"
+
+let p' = v "p'"
+
 let a = v "a"
 
 let b = v "b"
@@ -26,6 +30,10 @@ let sum = v "sum"
 
 let carry = v "carry"
 
+let add = v "add"
+
+let lt = v "lt"
+
 let ab = v "ab"
 
 let out = v "out"
@@ -35,6 +43,8 @@ let pstr x = PStr x
 let pprod xs = PProd xs
 
 let t_n = z_range z1 (zsub1 CPLen)
+
+let t_n' = z_range z1 (zsub2 CPLen)
 
 let t_arr_tf k = tarr tf QTrue k
 
@@ -85,7 +95,7 @@ let big_add =
   Circuit
     { name= "BigAdd"
     ; inputs= [("n", t_n); ("k", tpos); ("a", t_big_int k); ("b", t_big_int k)]
-    ; outputs= [("out", t_big_int (zadd k z1))]
+    ; outputs= [("out", t_big_int (zadd1 k))]
     ; dep= None
     ; body=
         [ (* ab = zip a b *)
@@ -98,3 +108,40 @@ let big_add =
 let deltas_ba = add_to_delta deltas_ms3 mod_sum_three
 
 let check_big_add = typecheck_circuit deltas_ba big_add
+
+(* BigAddModP *)
+
+let q_lt_p = QExpr (leq (toUZ nu) (zsub1 (toUZ p)))
+
+let q_add_mod_p = qeq (toUZ nu) (zmod (zadd (toUZ a) (toUZ b)) (toUZ p))
+
+let t_big_int_lt_p k = tarr tf_2n q_lt_p k
+
+let t_big_int_add_mod_p k = tarr tf_2n q_add_mod_p k
+
+let big_add_mod_p =
+  Circuit
+    { name= "BigAddModP"
+    ; inputs=
+        [ ("n", t_n')
+        ; ("k", tpos)
+        ; ("a", t_big_int_lt_p k)
+        ; ("b", t_big_int_lt_p k)
+        ; ("p", t_big_int k) ]
+    ; outputs= [("out", t_big_int_add_mod_p)]
+    ; dep= None
+    ; body=
+        [ (* add = #BigAdd n k a b *)
+          slet "add" (call "BigAdd" [n; k; a; b])
+        ; (* lt = #BigLessThan n (k + 1) add (p ++ [0]) *)
+          slet "lt"
+            (call "BigLessThan" [n; zadd1 k; add; concat p (cons f0 cnil)])
+        ; (* p' = map (\p_i => (1 - lt) * p_i) (p ++ [0]) *)
+          slet "p'"
+            (map (lama "x" tf (fmul (fsub f1 lt) x)) (concat p (cons f0 cnil)))
+        ; (* sub = #BigSub n (k + 1) add p' *)
+          slet "sub" (call "BigSub" [n; zadd1 k; add; p'])
+        ; (* sub[k] === 0 *)
+          assert_eq (get sub k) f0
+        ; (* out === take k sub *)
+          assert_eq out (take k sub) ] }

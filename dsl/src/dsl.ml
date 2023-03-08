@@ -287,3 +287,11 @@ let z_range_co l r = TRef (TInt, qand (QExpr (leq l nu)) (QExpr (lt nu r)))
 let toSZ e = Fn (ToSZ, [e])
 
 let toUZ e = Fn (ToUZ, [e])
+
+let stars k =
+  let i = v "i" in
+  let x = v "x" in
+  let t_arr_tf l = tarr tf QTrue l in
+  let lam_stars = lama "i" tint (lama "x" (t_arr_tf i) (cons star x)) in
+  let inv_stars i _ = t_arr_tf i in
+  iter z0 k lam_stars cnil inv_stars

@@ -101,3 +101,47 @@ let big_sub =
 let deltas_bs = add_to_delta deltas_ms3 c_mod_sub_three
 
 let check_big_sub = typecheck_circuit deltas_bs big_sub
+
+(* BigSubModP *)
+
+(* { F | [| v |] <= [| p |] - 1 } *)
+let q_lt_p = QExpr (leq (toUZ nu) (zsub1 (toUZ p)))
+
+(* { F | [| v |] = [| a |] - [| b |] mod [| p |] *)
+let q_sub_mod_p = qeq (toUZ nu) (zmod (zsub (toUZ a) (toUZ b)) (toUZ p))
+
+(* Proper BigInts of length k with the q_lt_p property *)
+let t_big_int_lt_p k = tarr tf_2n q_lt_p k
+
+(* Proper BigInts of length k with the q_sub_mod_p property *)
+let t_big_int_sub_mod_p k = tarr tf_2n q_sub_mod_p k
+
+let lam_bsmp =
+  lama "x"
+    (ttuple [tf; tf])
+    (fadd (fmul (fsub f1 uf) (tget x 0)) (fmul uf (tget x 1)))
+
+let big_sub_mod_p =
+  Circuit
+    { name= "BigSubModP"
+    ; inputs=
+        [ ("n", t_n)
+        ; ("k", tpos)
+        ; ("a", t_big_int_lt_p k)
+        ; ("b", t_big_int_lt_p k)
+        ; ("p", t_big_int k) ]
+    ; outputs= [("out", t_big_int_sub_mod_p k)]
+    ; dep= None
+    ; body=
+        [ (* (sub, underflow) = #BigSub n k a b *)
+          slet "x" (call "BigSub" [n; k; a; b])
+        ; (* add = #BigAdd n k sub p *)
+          slet "add" (call "BigAdd" [n; k; tget x 0; p])
+        ; (* tmp = zip sub add *)
+          slet "tmp" (zip (tget x 0) add)
+        ; (* out === map (\(s, a) => (1 - underflow) * s + underflow * a) tmp *)
+          assert_eq out (map lam_bsmp tmp) ] }
+
+let deltas_bsmp = add_to_delta deltas_bs big_sub
+
+let check_big_sub_mod_p = typecheck_circuit deltas_bsmp big_sub_mod_p

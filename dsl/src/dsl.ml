@@ -116,8 +116,6 @@ let nmod = bmod BNat
 
 let zmod = bmod BZ
 
-let fmod = bmod BF
-
 let eq e1 e2 = Comp (Eq, e1, e2)
 
 let qeq e1 e2 = QExpr (eq e1 e2)

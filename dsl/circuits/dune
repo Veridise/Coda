@@ -43,11 +43,25 @@
 ;  (modules))
 
 ; (library
-;   (name modsumthree)
-;   (libraries biglessthan bitify)
-;   (modules modsumthree))
+;  (name sum)
+;  (libraries biglessthan bitify)
+;  (modules sum))
 
 ; (library
-;   (name split)
-;   (libraries bitify)
-;   (modules split))
+;  (name sub)
+;  (libraries comparators)
+;  (modules sub))
+
+; (library
+;  (name split)
+;  (libraries bitify)
+;  (modules split))
+
+; (library
+;  (name mul)
+;  (libraries bitify)
+;  (modules mul))
+
+; (library
+;  (name multiplexer)
+;  (modules multiplexer))

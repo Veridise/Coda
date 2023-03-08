@@ -25,7 +25,7 @@ let t_ep k =
   tfq
     (qeq nu
        (sum z0 k
-          (map (lama "x" (ttuple [tf; tf]) (fmul (tget x 0) (tget x 1))) ins) ) )
+          (lama "i" tint (fmul (tget (get ins i) 0) (tget (get ins i) 1))) ) )
 
 (* \i x => x + aux[i] *)
 let lam_ep = lama "i" tint (lama "x" tf (fadd x (get aux i)))

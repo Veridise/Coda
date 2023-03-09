@@ -43,6 +43,12 @@ module type STATE = sig
   val shadow : st -> (unit -> 'a t) -> 'a t
 
   val mapM : 'a list -> f:('a -> 'b t) -> 'b list t
+
+  val iterM : 'a list -> f:('a -> unit t) -> unit t
+
+  val ( >> ) : 'a t -> 'b t -> 'b t
+
+  val ( *> ) : 'a t -> 'b t -> 'b t
 end
 
 module State (T : sig
@@ -74,17 +80,16 @@ end) : STATE with type st := T.t = struct
         return []
     | x :: xs' ->
         f x >>= fun y -> mapM xs' ~f >>| fun ys -> y :: ys
+
+  (* monadic sequencing *)
+  let ( >> ) m f = m >>= fun _ -> f
+
+  let ( *> ) = ( >> )
+
+  let iterM xs ~f = mapM xs ~f >> return ()
 end
 
-(* open Core
-
-   module S = State(struct type t = int end)
-   module SS = Monad.Make(S) *)
-
 (*
-
-   
-
    module type MONOID = sig
      type t
 

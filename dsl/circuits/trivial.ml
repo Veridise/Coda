@@ -1,66 +1,27 @@
 open Ast
 open Dsl
-open Typecheck
+open Notation
 
-let x = v "x"
+let i = v "i"
 
-let y = v "y"
+let j = v "j"
 
-let tx = tf
+let k = v "k"
 
-let ty = re TF (eq nu x)
+let xs = v "xs"
 
-let c1 =
+let xi = get xs i
+
+let xj = get xs j
+
+let c_all_binary =
   Circuit
-    {name= "c1"; inputs= [("x", tf)]; outputs= [("y", ty)]; dep= None; body= []}
-
-let d = add_to_delta [] c1
-
-let ty = re TF (eq nu x)
-
-let c2 =
-  Circuit
-    { name= "c2"
-    ; inputs= [("x", tf)]
-    ; outputs= [("y", ty)]
-    ; dep= None
-    ; body= [slet "y'" (Call ("c1", [x])); assert_eq y (v "y'")] }
-
-let cs2 = typecheck_circuit d c2
-
-let tloop, check_loop =
-  synthesize [] [] []
-    (Iter
-       { s= z0
-       ; e= zc 5
-       ; body= lama "i" tint (lama "x" tf (fadd1 x))
-       ; init= f0
-       ; inv= (fun i x -> tfq (QExpr (eq (toUZ x) i))) } )
-
-let c_dep =
-  Circuit
-    { name= "c_dep"
-    ; inputs= [("x", tf); ("y", tf)]
+    { name= "all_binary"
+    ; inputs= [("k", tnat); ("xs", tarr tf)]
     ; outputs= []
-    ; dep= Some (qeq x y)
-    ; body= [assert_eq x y] }
-
-let check_c_dep = typecheck_circuit [] c_dep
-
-let c_dep_caller =
-  Circuit
-    { name= "c_dep_caller"
-    ; inputs= [("x", tf)]
-    ; outputs= [("y", tfe (eq nu x))]
-    ; dep= None
+    ; dep= Some (qforall_e "i" z0 k (is_binary xi))
     ; body=
-        [ slet "u"
-            (ascribe
-               (match_with (call "c_dep" [x; y]) [] (dpunit (qeq x y)))
-               (tdunit (qeq x y)) ) ] }
-
-let d = add_to_delta d_empty c_dep
-
-let check_c_dep_caller = typecheck_circuit d c_dep_caller
-
-(* let codegen_c_dep_caller = codegen d c_dep_caller *)
+        iter z0 k
+          (lama "i" tint (lama "u" tunit (xi *% (xi -% f1) === f0)))
+          ~init:unit_val
+          ~inv:(fun i -> tunit_dep (qforall_e "j" z0 i (is_binary xj))) }

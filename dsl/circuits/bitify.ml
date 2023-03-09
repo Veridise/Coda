@@ -1,8 +1,10 @@
 open Ast
 open Dsl
-open Typecheck
+open Notation
 
 let i = v "i"
+
+let j = v "j"
 
 let n = v "n"
 
@@ -10,58 +12,56 @@ let vin = v "in"
 
 let vout = v "out"
 
-let n2b_body =
-  lama "i" tint
-    (lama "lc1_e2"
-       (ttuple [tf; tf])
-       (elet "lc1"
-          (tget (v "lc1_e2") 0)
-          (elet "e2"
-             (tget (v "lc1_e2") 1)
-             (tmake
-                [ fadd (v "lc1") (fmul (get vout i) (v "e2"))
-                ; fadd (v "e2") (v "e2") ] ) ) ) )
+let outi = get vout i
 
-let n2b_inv i x =
-  ttuple
-    [tfe (eq nu (to_big_int TF f1 i (take vout i))); tfe (eq nu (fpow f2 i))]
+let outj = get vout j
 
-let tn2bloop, check_n2bloop =
-  synthesize []
-    [("out", tarr tf QTrue (zc 5))]
-    []
-    (Iter {s= z0; e= zc 4; body= n2b_body; init= tmake [f0; f1]; inv= n2b_inv})
+let lc1 = v "lc1"
 
-let n2b_tout = tarr tf_binary (QExpr (eq (to_big_int TF f1 n nu) vin)) (nadd1 n)
+let e2 = v "e2"
 
-let num2bits =
-  Circuit
-    { name= "Num2Bits"
-    ; inputs= [("n", tnat); ("in", tf)]
-    ; outputs= [("out", n2b_tout)]
-    ; dep= None
-    ; body=
-        [ (* slet "lc1_e2" (Iter {s = z0; e = n; body = n2b_body; init = tmake [f0; f1]; inv = n2b_inv});
-             slet "lc1" (tget (v "lc1_e2") 0);
-             assert_forall "i" (QExpr (binary_eq (get vout i))) *) ] }
+let n2b_inv i =
+  ttuple [tfe (nu =. to_big_int TF f1 i (take vout i)); tfe (nu =. f2 ^% i)]
 
-let check_n2b = typecheck_circuit d_empty num2bits
+let n2b_tout = refine (tarr tf_binary) (QExpr (to_big_int TF f1 n nu =. vin))
 
-let b2n_tin = tarr tf_binary QTrue n
+let c_num2bits =
+  circuit ~name:"Num2Bits"
+    ~inputs:[("n", tnat); ("in", tf)]
+    ~outputs:[("out", n2b_tout)]
+    ~dep:None
+    ~body:
+      (elet_p ["lc1"; "e2"]
+         (iter z0 n
+            (lama "i" tint
+               (lama_p
+                  [("lc1", tf); ("e2", tf)]
+                  (pair (lc1 +% (outi *% e2)) (e2 *% e2)) ) )
+            ~init:(pair f0 f1) ~inv:n2b_inv )
+         (elets
+            [ ("u0", vin === lc1)
+            ; ( "u"
+              , iter z0 n
+                  (lama "i" tint
+                     (lama "u" tunit (outi *% (outi -% f1) === f0)) )
+                  ~init:unit_val
+                  ~inv:(fun i -> tunit_dep (qforall_e "j" z0 i (is_binary outj)))
+              ) ]
+            (push vout) ) )
 
-let b2n_tout = tfe (eq nu (to_big_int TF f1 n vin))
+(* let b2n_tin = tarr tf_binary QTrue n
 
-let bits2num =
-  Circuit
-    { name= "Bits2Num"
-    ; inputs= [("n", tnat); ("in", b2n_tin)]
-    ; outputs= [("out", b2n_tout)]
-    ; dep= None
-    ; body=
-        [ (* slet "s" (
-               sum z0 (sub1z n)
-                 (lam "i"
-                   (fmul (get vin i) (fpow f2 i))));
-             assert_eq (v "s") vout *) ] }
+   let b2n_tout = tfe (eq nu (to_big_int TF f1 n vin))
 
-let check_b2n = typecheck_circuit d_empty bits2num
+   let bits2num =
+     Circuit
+       { name= "Bits2Num"
+       ; inputs= [("n", tnat); ("in", b2n_tin)]
+       ; outputs= [("out", b2n_tout)]
+       ; dep= None
+       ; body=
+           [ (* slet "s" (
+                  sum z0 (sub1z n)
+                    (lam "i"
+                      (fmul (get vin i) (fpow f2 i))));
+                assert_eq (v "s") vout *) ] } *)

@@ -98,7 +98,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
         let g', b', a', out_vars = codegen_circuit args g b d a c in
         match out_vars with
         | [out_var] ->
-            (g, b', a', Var out_var) (* use original gamma *)
+            (g, b', a', Var out_var (* use original gamma *))
         | _ ->
             failwith "Multiple outputs not supported" )
     | None ->

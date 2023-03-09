@@ -1,28 +1,28 @@
 open Ast
+open Core
 
 (* common basic types *)
-let triv tb = TRef (tb, QTrue)
+let base tb = TBase tb
 
-let tf = triv TF
+let tf = base TF
 
-let tfq q = TRef (TF, q)
+let tfq q = TRef (tf, q)
 
-let tfe e = TRef (TF, QExpr e)
+let tfe e = TRef (tf, QExpr e)
 
-let tint = triv TInt
+let tint = base TInt
 
-let tbool = triv TBool
+let tbool = base TBool
 
-let tboole e = TRef (TBool, QExpr e)
+let tboole e = TRef (tbool, QExpr e)
 
 (* lambda *)
 let lam x e = Lam (x, e)
 
-(* lambda pattern *)
-let lamp p e = LamP (p, e)
-
 (* lambda with type-annotated input *)
 let lama x t e = LamA (x, t, e)
+
+let lamas x_t e = List.fold_right ~f:(Utils.uncurry lama) x_t ~init:e
 
 (* type annotation *)
 let ascribe e t = Ascribe (e, t)
@@ -42,9 +42,6 @@ let dummy_apps s f es = apps (dummy s f) es
 (* function type *)
 let tfun x t1 t2 = TFun (x, t1, t2)
 
-(* dependent product type *)
-let tdprod ts xs q = TDProd (ts, xs, q)
-
 (* tuple type *)
 let ttuple ts = TTuple ts
 
@@ -52,7 +49,25 @@ let tpair t1 t2 = ttuple [t1; t2]
 (* refinement type with base tb refined by expression e *)
 
 (* expressions *)
-let re tb e = TRef (tb, QExpr e)
+let refine t q = TRef (t, q)
+
+let triv t = refine t QTrue
+
+let refine_expr t e = TRef (t, QExpr e)
+
+let attach q = function
+  | TRef (t, q') ->
+      TRef (t, QAnd (q', q))
+  | t ->
+      TRef (t, q)
+
+let get_tq t = match t with TRef (t, q) -> (t, q) | _ -> (t, QTrue)
+
+let as_tref t =
+  let t', q = get_tq t in
+  TRef (t', q)
+
+let attaches qs t = List.fold_right qs ~f:attach ~init:t
 
 let badd b e1 e2 = Binop (b, Add, e1, e2)
 
@@ -62,7 +77,14 @@ let zadd = badd BZ
 
 let fadd = badd BF
 
-let rec badds b es = match es with [e] -> e | e :: es -> badd b e (badds b es)
+let rec badds b es =
+  match es with
+  | [e] ->
+      e
+  | e :: es ->
+      badd b e (badds b es)
+  | [] ->
+      failwith "badds: []"
 
 let nadds = badds BNat
 
@@ -78,7 +100,14 @@ let zsub = bsub BZ
 
 let fsub = bsub BF
 
-let rec bsubs b es = match es with [e] -> e | e :: es -> bsub b e (bsubs b es)
+let rec bsubs b es =
+  match es with
+  | [e] ->
+      e
+  | e :: es ->
+      bsub b e (bsubs b es)
+  | [] ->
+      failwith "bsubs: []"
 
 let nsubs = bsubs BNat
 
@@ -94,7 +123,14 @@ let zmul = bmul BZ
 
 let fmul = bmul BF
 
-let rec bmuls b es = match es with [e] -> e | e :: es -> bmul b e (bmuls b es)
+let rec bmuls b es =
+  match es with
+  | [e] ->
+      e
+  | e :: es ->
+      bmul b e (bmuls b es)
+  | [] ->
+      failwith "bmuls: []"
 
 let nmuls = bmuls BNat
 
@@ -112,11 +148,11 @@ let fpow = bpow BF
 
 let eq e1 e2 = Comp (Eq, e1, e2)
 
-let qeq e1 e2 = QExpr (eq e1 e2)
-
 let leq e1 e2 = Comp (Leq, e1, e2)
 
 let lt e1 e2 = Comp (Lt, e1, e2)
+
+let qeq e1 e2 = QExpr (eq e1 e2)
 
 let qleq e1 e2 = QExpr (leq e1 e2)
 
@@ -142,15 +178,13 @@ let qand q1 q2 = QAnd (q1, q2)
 
 let qimply q1 q2 = QImply (q1, q2)
 
-let match_with e1 xs e2 = DPDestr (e1, xs, e2)
+let match_with e1 xs e2 = DMatch (e1, xs, e2)
 
-let dpcons es xs q = DPCons (es, xs, q)
+let dmake es q = DMake (es, q)
 
-let dpunit q = dpcons [] [] q
+let tunit = ttuple []
 
-let tdunit q = tdprod [] [] q
-
-let ttunit = ttuple []
+let tunit_dep q = refine tunit q
 
 let v x = Var x
 
@@ -218,13 +252,15 @@ let ind_dec e1 e2 = ind e1 e2 (bnot e2)
 
 let q_ind_dec e q = q_ind e q (qnot q)
 
-let tnat = TRef (TInt, QExpr (leq z0 nu))
+let tnat = TRef (tint, QExpr (leq z0 nu))
 
-let tnat_e e = TRef (TInt, QAnd (QExpr (leq z0 nu), QExpr e))
+let tnat_e e = TRef (tint, QAnd (QExpr (leq z0 nu), QExpr e))
 
-let tpos = TRef (TInt, QExpr (lt z0 nu))
+let tpos = TRef (tint, QExpr (lt z0 nu))
 
-let tmake es = TMake es
+let make es = TMake es
+
+let unit_val = make []
 
 let tget e n = TGet (e, n)
 
@@ -232,25 +268,38 @@ let fst_pair e = tget e 0
 
 let snd_pair e = tget e 1
 
-let make_pair e1 e2 = tmake [e1; e2]
+let pair e1 e2 = make [e1; e2]
 
 let qforall i i0 i1 q = QForall ((i, i0, i1), q)
 
-let assert_eq e1 e2 = SAssert (e1, e2)
+let qforall_e i i0 i1 e = QForall ((i, i0, i1), QExpr e)
 
-let slet x e = SLet (x, e)
-
-let sletp p e = SLetP (p, e)
+let assert_eq e1 e2 = Assert (e1, e2)
 
 let elet x e1 e2 = LetIn (x, e1, e2)
 
-let tarr t q e = TArr (t, q, e)
+let elets x_r e = List.fold_right x_r ~f:(Utils.uncurry elet) ~init:e
+
+let elet_p xs e1 e2 =
+  let jumble = String.concat ~sep:"_" xs in
+  elet jumble e1
+    (elets (List.mapi xs ~f:(fun i x -> (x, tget (v jumble) i))) e2)
+
+let lama_p x_t e =
+  let xs, ts = List.unzip x_t in
+  let jumble = String.concat ~sep:"_" xs in
+  lama jumble (ttuple ts)
+    (elets (List.mapi xs ~f:(fun i x -> (x, tget (v jumble) i))) e)
+
+let tarr t = TArr t
 
 let sum es ee eb = Sum {s= es; e= ee; body= eb}
 
 let rsum s e t = RSum (s, e, t)
 
 let get xs i = ArrayOp (Get, [xs; i])
+
+let len xs = ArrayOp (Length, [xs])
 
 let cons x xs = ArrayOp (Cons, [x; xs])
 
@@ -262,20 +311,53 @@ let drop n xs = ArrayOp (Drop, [n; xs])
 
 let zip e1 e2 = ArrayOp (Zip, [e1; e2])
 
-let iter s e body init inv = Iter {s; e; body; init; inv}
+let iter s e body ~init ~inv = Iter {s; e; body; init; inv}
 
-let to_big_int (tb : tyBase) (n : expr) (k : expr) (xs : expr) : expr =
-  let sub1 = match tb with TF -> fsub1 | TInt -> nsub1 in
-  let mul = match tb with TF -> fmul | TInt -> zmul in
-  let pow = match tb with TF -> fpow | TInt -> zpow in
+let to_big_int (tb : base) (n : expr) (k : expr) (xs : expr) : expr =
+  let sub1 =
+    match tb with
+    | TF ->
+        fsub1
+    | TInt ->
+        nsub1
+    | TBool ->
+        failwith "to_big_int: TBool"
+  in
+  let mul =
+    match tb with
+    | TF ->
+        fmul
+    | TInt ->
+        zmul
+    | TBool ->
+        failwith "to_big_int: TBool"
+  in
+  let pow =
+    match tb with
+    | TF ->
+        fpow
+    | TInt ->
+        zpow
+    | TBool ->
+        failwith "to_big_int: TBool"
+  in
   rsum z0 (sub1 k)
     (tfun "i" tint
-       (TRef (tb, QExpr (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))))) )
+       (TRef
+          ( base tb
+          , QExpr (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))) ) ) )
 
-let z_range l r = TRef (TInt, qand (QExpr (leq l nu)) (QExpr (leq nu r)))
+let z_range l r = TRef (tint, qand (QExpr (leq l nu)) (QExpr (leq nu r)))
 
-let z_range_co l r = TRef (TInt, qand (QExpr (leq l nu)) (QExpr (lt nu r)))
+let z_range_co l r = TRef (tint, qand (QExpr (leq l nu)) (QExpr (lt nu r)))
 
 let toSZ e = Fn (ToSZ, [e])
 
 let toUZ e = Fn (ToUZ, [e])
+
+let push e = Push e
+
+let pull e = Pull e
+
+let circuit ?(dep = None) ~name ~inputs ~outputs ~body =
+  Circuit {name; inputs; outputs; dep; body}

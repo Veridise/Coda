@@ -2,7 +2,7 @@ open Ast
 open Core
 open Utils
 
-let show_tyBase = function TF -> "F" | TInt -> "Z" | TBool -> "Bool"
+let show_base = function TF -> "F" | TInt -> "Z" | TBool -> "Bool"
 
 let show_binop = function Add -> "+" | Sub -> "-" | Mul -> "*" | Pow -> "^"
 
@@ -25,6 +25,8 @@ let show_func = function
       "toBigSZ"
 
 let show_aop = function
+  | Length ->
+      "length"
   | Cons ->
       "cons"
   | Get ->
@@ -40,7 +42,7 @@ let show_aop = function
   | Zip ->
       "zip"
 
-let ppf_tyBase ppf tb = Fmt.string ppf (show_tyBase tb)
+let ppf_base ppf tb = Fmt.string ppf (show_base tb)
 
 let ppf_binop ppf op = Fmt.string ppf (show_binop op)
 
@@ -70,28 +72,25 @@ let rec ppf_typ ppf =
   Fmt.(
     let times = Fmt.any " × " in
     function
-    | TRef (tb, q) -> (
-      match q with
-      | QTrue ->
-          ppf_tyBase ppf tb
-      | _ ->
-          pf ppf "{%a | %a}" ppf_tyBase tb ppf_qual q )
+    | TBase tb ->
+        ppf_base ppf tb (* pf ppf "Base<%a>" ppf_base tb *)
     | TFun (x, t1, t2) -> (
       match t1 with
       | TFun _ ->
           pf ppf "%s: (%a) -> %a" x ppf_typ t1 ppf_typ t2
       | _ ->
           pf ppf "%s: %a -> %a" x ppf_typ t1 ppf_typ t2 )
-    | TArr (t, q, l) ->
-        pf ppf "Array<%a>[%a](%a)" ppf_typ t ppf_qual q ppf_expr l
+    | TArr t ->
+        pf ppf "Array<%a>" ppf_typ t
     | TTuple ts ->
         if List.length ts = 0 then pf ppf "unit"
-        else pf ppf "%a" (list ~sep:(any " × ") ppf_typ) ts
-    | TDProd (ts, xs, q) ->
-        pf ppf "(%a)_(λ%a. %a)" (list ~sep:times ppf_typ) ts
-          (list ~sep:times string) xs ppf_qual q
-    | _ ->
-        pf ppf "TODO: ppf_typ" )
+        else pf ppf "[%a]" (list ~sep:(any " × ") ppf_typ) ts
+    | TRef (t, q) ->
+        (* match q with
+           | QTrue ->
+               ppf_typ ppf t
+           | _ -> *)
+        pf ppf "{%a | %a}" ppf_typ t ppf_qual q )
 
 and ppf_qual ppf =
   Fmt.(
@@ -107,13 +106,15 @@ and ppf_qual ppf =
     | QImply (q1, q2) ->
         pf ppf "(qimply %a %a)" ppf_qual q1 ppf_qual q2
     | QForall ((x, s, e), q) ->
-        pf ppf "∀%a<=%s<%a. %a" ppf_expr s x ppf_expr e ppf_qual q )
+        pf ppf "(∀%a<=%s<%a. %a)" ppf_expr s x ppf_expr e ppf_qual q )
 
 and ppf_expr ppf : expr -> unit =
   Fmt.(
     function
     | NonDet ->
         string ppf "✧"
+    | Assert (e1, e2) ->
+        pf ppf "(assert (%a = %a))" ppf_expr e1 ppf_expr e2
     | Const c ->
         ppf_const ppf c
     | CPrime ->
@@ -130,9 +131,6 @@ and ppf_expr ppf : expr -> unit =
         pf ppf "λ%s: %a. %a" x ppf_typ t ppf_expr e
     | Lam (x, e) ->
         pf ppf "λ%s. %a" x ppf_expr e
-    | LamP _ ->
-        string ppf "TODO: ppf_expr: LamP"
-    (* | LamP (p, e) -> pf ppf "λ%a. %a" ppf_pattern p ppf_expr e *)
     | App (e1, e2) ->
         pf ppf "%a %a" ppf_expr e1 ppf_expr e2
     | Binop (_, op, e1, e2) ->
@@ -148,21 +146,19 @@ and ppf_expr ppf : expr -> unit =
     | LetIn (x, e1, e2) ->
         pf ppf "let %s = %a in %a" x ppf_expr e1 ppf_expr e2
     | ArrayOp (op, es) ->
-        pf ppf "(%a %a)" ppf_aop op (list ppf_expr) es
+        pf ppf "(%a %a)" ppf_aop op (list ~sep:(Fmt.any " ") ppf_expr) es
     | RSum (s, e, t) ->
         pf ppf "\\sum_{%a, %a}(%a)" ppf_expr s ppf_expr e ppf_typ t
     | Sum {s; e; body} ->
         pf ppf "\\sum_{%a, %a}(%a)" ppf_expr s ppf_expr e ppf_expr body
     | TMake es ->
         pf ppf "%a" (parens (list ~sep:comma ppf_expr)) es
-    | TGet (e, n) ->
-        pf ppf "%a.%d" ppf_expr e n
-    | DPCons _ ->
+    | TGet (e, i) ->
+        pf ppf "%a.%d" ppf_expr e i
+    | DMake _ ->
         string ppf "TODO: ppf_expr: DPCons"
-    | DPDestr _ ->
+    | DMatch _ ->
         string ppf "TODO: ppf_expr: DPDestr"
-    | DPDestrP _ ->
-        string ppf "TODO: ppf_expr: DPDestrP"
     | Map _ ->
         string ppf "TODO: ppf_expr: Map"
     | Foldl _ ->
@@ -170,7 +166,11 @@ and ppf_expr ppf : expr -> unit =
     | Iter _ ->
         string ppf "TODO: ppf_expr: Iter"
     | Fn (f, es) ->
-        pf ppf "(%a %a)" ppf_func f (list ppf_expr) es )
+        pf ppf "(%a %a)" ppf_func f (list ppf_expr) es
+    | Push e ->
+        pf ppf "(push %a)" ppf_expr e
+    | Pull e ->
+        pf ppf "(push %a)" ppf_expr e )
 
 let show_typ (t : typ) = Fmt.str "%a" ppf_typ t
 
@@ -196,16 +196,16 @@ let fresh x =
   x ^ Int.to_string c
 
 let rec vars_typ : typ -> SS.t = function
+  | TBase _ ->
+      SS.empty
   | TRef (_, q) ->
       except (vars_qual q) nu_str
   | TFun (x, t1, t2) ->
       SS.union (vars_typ t1) (except (vars_typ t2) x)
-  | TTuple _ ->
-      todo ()
-  | TDProd _ ->
-      todo ()
-  | TArr (t, q, e) ->
-      unions [vars_typ t; except (vars_qual q) nu_str; vars_expr e]
+  | TTuple ts ->
+      unions (List.map ts ~f:vars_typ)
+  | TArr t ->
+      vars_typ t
 
 and vars_qual : qual -> SS.t = function
   | QExpr e ->
@@ -218,12 +218,24 @@ and vars_qual : qual -> SS.t = function
 and vars_expr : expr -> SS.t = function
   | Const _ ->
       SS.empty
+  | NonDet ->
+      SS.empty
+  | CPLen | CPrime ->
+      SS.empty
+  | Ascribe (e, t) ->
+      SS.union (vars_expr e) (vars_typ t)
+  | AscribeUnsafe (e, t) ->
+      SS.union (vars_expr e) (vars_typ t)
+  | LetIn (x, e1, e2) ->
+      SS.union (vars_expr e1) (except (vars_expr e2) x)
+  | Assert (e1, e2) ->
+      SS.union (vars_expr e1) (vars_expr e2)
   | Var x ->
       SS.singleton x
   | Lam (x, e) ->
       except (vars_expr e) x
-  | LamP (p, e) ->
-      SS.diff (vars_expr e) (vars_pattern p)
+  | LamA (x, t, e) ->
+      except (vars_expr e) x
   | App (e1, e2) ->
       SS.union (vars_expr e1) (vars_expr e2)
   | Binop (_, _, e1, e2) ->
@@ -240,49 +252,54 @@ and vars_expr : expr -> SS.t = function
       unions (List.map ~f:vars_expr es)
   | Sum {s; e= e'; body} ->
       unions [vars_expr s; vars_expr e'; vars_expr body]
-  | DPCons (es, xs, q) ->
-      todos "vars_expr: DPCons"
   | TMake es ->
       unions (List.map ~f:vars_expr es)
-  | DPDestr (e1, xs, e2) ->
+  | TGet (e, i) ->
+      vars_expr e
+  | DMake (es, q) ->
+      SS.union (unions (List.map es ~f:vars_expr)) (vars_qual q)
+  | DMatch (e1, xs, e2) ->
       SS.union (vars_expr e1) (excepts (vars_expr e2) xs)
-  | DPDestrP (e1, p, e2) ->
-      SS.union (vars_expr e1) (SS.diff (vars_expr e2) (vars_pattern p))
   | Map (e1, e2) ->
       SS.union (vars_expr e1) (vars_expr e2)
   | Foldl {f; acc; xs} ->
       unions (List.map ~f:vars_expr [f; acc; xs])
   | Iter {s; e; body; init; inv} ->
       let vars_e = unions (List.map ~f:vars_expr [s; e; body; init]) in
-      let x1, x2 = (fresh "_var", fresh "_var") in
-      let vars_inv = excepts (vars_typ (inv (Var x1) (Var x2))) [x1; x2] in
+      let x1 = fresh "_var" in
+      let vars_inv = except (vars_typ (inv (Var x1))) x1 in
       unions [vars_e; vars_inv]
   | Fn (_, es) ->
       unions (List.map ~f:vars_expr es)
+  | RSum (s, e, f) ->
+      SS.union (unions (List.map ~f:vars_expr [s; e])) (vars_typ f)
+  | Push e ->
+      vars_expr e
+  | Pull e ->
+      vars_expr e
 
-and vars_pattern : pattern -> SS.t = function
-  | PStr x ->
-      SS.singleton x
-  | PProd pp ->
-      unions (List.map ~f:vars_pattern pp)
+(*
+   and vars_pattern : pattern -> SS.t = function
+     | PStr x ->
+         SS.singleton x
+     | PProd pp ->
+         unions (List.map ~f:vars_pattern pp) *)
 
 let rec subst_typ (x : string) (e : expr) (t : typ) : typ =
   let f = subst_typ x e in
   match t with
-  | TRef (tb, q) ->
-      TRef (tb, subst_qual x e q)
+  | TBase _ ->
+      t
+  | TRef (t, q) ->
+      TRef (t, subst_qual x e q)
   | TFun (y, t1, t2) ->
       if String.(x = y) then t
       else (* TODO: alpha-rename *)
         TFun (y, subst_typ x e t1, subst_typ x e t2)
-  | TArr (t, q, e') ->
-      TArr (f t, subst_qual x e q, subst_expr x e e')
+  | TArr t ->
+      TArr (f t)
   | TTuple ts ->
       TTuple (List.map ~f ts)
-  | TDProd (ts, ys, q) ->
-      let ts' = List.map ~f ts in
-      if List.exists ~f:(String.( = ) x) ys then TDProd (ts', ys, q)
-      else TDProd (ts', ys, subst_qual x e q)
 
 and subst_qual (x : string) (e : expr) (q : qual) : qual =
   match q with
@@ -340,23 +357,37 @@ and subst_expr (x : string) (ef : expr) (e : expr) : expr =
         ; e= f e
         ; body= f body
         ; init= f init
-        ; inv= (fun ei ex -> subst_typ x ef (inv ei ex)) }
+        ; inv= (fun ei -> subst_typ x ef (inv ei)) }
   | Sum {s; e= e'; body} ->
       Sum {s= f s; e= f e'; body= f body}
   | RSum (s, e, t) ->
       RSum (f s, f e, subst_typ x ef t)
-  | DPCons (es, ys, q) ->
-      let es' = List.map ~f es in
-      if List.exists ~f:(String.( = ) x) ys then DPCons (es', ys, q)
-      else DPCons (es', ys, subst_qual x ef q)
-  | DPDestr (e1, ys, e2) ->
-      if List.exists ~f:(String.( = ) x) ys then DPDestr (f e1, ys, e2)
-      else DPDestr (f e1, ys, f e2)
-  | DPDestrP (e1, p, e2) ->
-      todos "subst_expr: DPDestrP"
+  | DMake (es, q) ->
+      DMake (List.map ~f es, subst_qual x ef q)
+  | DMatch (e1, ys, e2) ->
+      if List.exists ~f:(String.( = ) x) ys then DMatch (f e1, ys, e2)
+      else DMatch (f e1, ys, f e2)
   | Map (e1, e2) ->
       todos "subst_expr: Map"
   | Foldl {f; acc; xs} ->
       todos "subst_expr: Foldl"
+  | Push e ->
+      Push (f e)
+  | Pull e ->
+      Pull (f e)
   | _ ->
       todos "subst_expr"
+
+let rec skeleton = function
+  | TBase tb ->
+      TBase tb
+  | TFun (x, tx, tr) ->
+      TFun (x, skeleton tx, skeleton tr)
+  | TArr t ->
+      TArr (skeleton t)
+  | TTuple ts ->
+      TTuple (List.map ts ~f:skeleton)
+  | TRef (t, _) ->
+      skeleton t
+
+let rec descale = function TRef (t, _) -> descale t | t -> t

@@ -14,7 +14,7 @@
    print_endline "";;
    print_endline (String.concat " " s);; *)
 
-module S = Monad.State (struct
+module S = Monads.State (struct
   type t = int
 end)
 

@@ -7,7 +7,7 @@
  (name lib)
  (wrapped false)
  (libraries core fmt)
- (modules ast ast_utils dsl utils monad)
+ (modules ast ast_utils dsl notation utils monads)
  (preprocess
   (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))
 
@@ -16,7 +16,7 @@
  (libraries core lib)
  (modules typecheck)
  (preprocess
-  (pps ppx_deriving.show ppx_deriving.eq)))
+  (pps ppx_jane ppx_let ppx_deriving.show ppx_deriving.eq)))
 
 (library
  (name coqgen)

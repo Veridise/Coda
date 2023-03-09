@@ -12,15 +12,15 @@ let counter = ref 0
 (* let inc () = (let i = !counter; counter := i + 1; i)
    let fresh x = x ^ inc () *)
 
-let tyBase_to_coq (tb : tyBase) : string =
+let base_to_coq (tb : base) : string =
   match tb with TF -> "F" | TInt -> "Z" | TBool -> "bool"
 
-let get_tyBase (t : typ) : tyBase =
-  match t with
-  | TRef (tb, _) ->
+let get_base (t : typ) : base =
+  match skeleton t with
+  | TBase tb ->
       tb
   | _ ->
-      failwith (spf "get_tyBase: %s" (show_typ t))
+      failwith (spf "get_base: %s" (show_typ t))
 
 type ccons = string * string list
 
@@ -33,11 +33,11 @@ let rec typing_to_ccons (e : expr) (t : typ) : ccons =
   | TRef (TInt, QAnd (q1, q2)) when q1 = is_nat ->
       ("nat", [qual_to_coq (subst_qual nu_str e q2)])
   | TRef (tb, q) ->
-      (tyBase_to_coq tb, [qual_to_coq (subst_qual nu_str e q)])
+      (base_to_coq tb, [qual_to_coq (subst_qual nu_str e q)])
   | TArr (TRef (tb, q), qa, l) ->
       (* TODO: support nested arrays *)
       let x = fresh "x" in
-      ( spf "list %s" (tyBase_to_coq tb)
+      ( spf "list %s" (base_to_coq tb)
       , [ (* TODO: handle q (forall) *)
           spf "Forall (fun %s => %s) %s" x
             (qual_to_coq (subst_qual nu_str (v x) q))
@@ -45,13 +45,13 @@ let rec typing_to_ccons (e : expr) (t : typ) : ccons =
         ; qual_to_coq (subst_qual nu_str e qa)
         ; spf "length %s = %s" (expr_to_coq e) (expr_to_coq l) ] )
   | TTuple ts ->
-      let tbs = ts |> List.map get_tyBase |> List.map tyBase_to_coq in
+      let tbs = ts |> List.map get_base |> List.map base_to_coq in
       (spf "%s" (String.concat " * " tbs), [])
   | TDProd (ts, xs, q) ->
       let tb_str =
         if List.length ts = 0 then "unit"
         else
-          ts |> List.map get_tyBase |> List.map tyBase_to_coq
+          ts |> List.map get_base |> List.map base_to_coq
           |> fun ss -> spf "%s" (String.concat " * " ss)
       in
       let xs_str = if List.length ts = 0 then "_" else String.concat "," xs in
@@ -157,6 +157,7 @@ let gamma_to_coq (g : gamma) : (string * string) list * string list =
          ((x, tb_str), q_strs) )
   |> List.split
   |> fun (b, q) -> (b, List.concat q)
+
 (* (b,
    let qs = List.concat q in
    print_endline ("Gamma Q: " ^ (String.concat "/\\" qs));
@@ -183,7 +184,7 @@ let cons_to_coq (c : cons) : string =
               (String.concat " "
                  (List.map
                     (fun (x, t) -> spf "(%s : %s)" x t)
-                    ((nu_str_coq, tyBase_to_coq tb1) :: g_decl) ) )
+                    ((nu_str_coq, base_to_coq tb1) :: g_decl) ) )
               (String.concat " -> "
                  ( g_ref @ alpha_to_coq a
                  @ [ qual_to_coq (rename_nu subst_qual q1)
@@ -202,9 +203,6 @@ let cons_to_coq (c : cons) : string =
         (String.concat " "
            (List.map (fun (x, t) -> spf "(%s : %s)" x t) g_decl) )
         (String.concat " -> " (g_ref @ alpha_to_coq a @ [qual_to_coq q]))
-
-let to_numbered (l : 'a list) : (int * 'a) list =
-  List.init (List.length l) (fun i -> (i + 1, List.nth l i))
 
 let generate_lemmas (cs : cons list) : string =
   cs |> to_numbered

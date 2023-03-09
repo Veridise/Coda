@@ -4,7 +4,17 @@ open Utils
 
 let show_base = function TF -> "F" | TInt -> "Z" | TBool -> "Bool"
 
-let show_binop = function Add -> "+" | Sub -> "-" | Mul -> "*" | Pow -> "^"
+let show_binop = function
+  | Add ->
+      "+"
+  | Sub ->
+      "-"
+  | Mul ->
+      "*"
+  | Pow ->
+      "^"
+  | Mod ->
+      "mod"
 
 let show_boolop = function And -> "/\\" | Or -> "\\/" | Imply -> "->"
 

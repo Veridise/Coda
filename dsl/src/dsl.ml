@@ -146,6 +146,12 @@ let zpow = bpow BZ
 
 let fpow = bpow BF
 
+let bmod b e1 e2 = Binop (b, Mod, e1, e2)
+
+let nmod = bmod BNat
+
+let zmod = bmod BZ
+
 let eq e1 e2 = Comp (Eq, e1, e2)
 
 let leq e1 e2 = Comp (Leq, e1, e2)
@@ -313,34 +319,12 @@ let zip e1 e2 = ArrayOp (Zip, [e1; e2])
 
 let iter s e body ~init ~inv = Iter {s; e; body; init; inv}
 
+let map e1 e2 = Map (e1, e2)
+
 let to_big_int (tb : base) (n : expr) (k : expr) (xs : expr) : expr =
-  let sub1 =
-    match tb with
-    | TF ->
-        fsub1
-    | TInt ->
-        nsub1
-    | TBool ->
-        failwith "to_big_int: TBool"
-  in
-  let mul =
-    match tb with
-    | TF ->
-        fmul
-    | TInt ->
-        zmul
-    | TBool ->
-        failwith "to_big_int: TBool"
-  in
-  let pow =
-    match tb with
-    | TF ->
-        fpow
-    | TInt ->
-        zpow
-    | TBool ->
-        failwith "to_big_int: TBool"
-  in
+  let sub1 = match tb with TF -> fsub1 | TInt -> nsub1 in
+  let mul = match tb with TF -> fmul | TInt -> zmul in
+  let pow = match tb with TF -> fpow | TInt -> zpow in
   rsum z0 (sub1 k)
     (tfun "i" tint
        (TRef
@@ -361,3 +345,10 @@ let pull e = Pull e
 
 let circuit ?(dep = None) ~name ~inputs ~outputs ~body =
   Circuit {name; inputs; outputs; dep; body}
+let stars k =
+  let i = v "i" in
+  let x = v "x" in
+  let t_arr_tf l = tarr tf QTrue l in
+  let lam_stars = lama "i" tint (lama "x" (t_arr_tf i) (cons star x)) in
+  let inv_stars i _ = t_arr_tf i in
+  iter z0 k lam_stars cnil inv_stars

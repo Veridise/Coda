@@ -2,6 +2,8 @@ open Codegen ;;
 
 #use "circuits/gates.ml"
 
+#use "circuits/comparators.ml"
+
 let _ = codegen [] cnot
 
 let _ = codegen [] cxor
@@ -12,9 +14,7 @@ let _ = codegen [] cnand
 
 let _ = codegen [] cor
 
-let _ = codegen [] cxor ;;
-
-#use "circuits/comparators.ml"
+let _ = codegen [] cxor
 
 let _ = codegen [] c_is_zero
 

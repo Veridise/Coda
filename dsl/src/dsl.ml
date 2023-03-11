@@ -321,6 +321,9 @@ let iter s e body ~init ~inv = Iter {s; e; body; init; inv}
 
 let map e1 e2 = Map (e1, e2)
 
+(* { Array<t> | length v = k } *)
+let tarr_t_k t k = TRef (tarr t, qeq (len nu) k)
+
 let to_big_int (tb : base) (n : expr) (k : expr) (xs : expr) : expr =
   let sub1 = match tb with TF -> fsub1 | TInt -> nsub1 in
   let mul = match tb with TF -> fmul | TInt -> zmul in
@@ -345,10 +348,10 @@ let pull e = Pull e
 
 let circuit ?(dep = None) ~name ~inputs ~outputs ~body =
   Circuit {name; inputs; outputs; dep; body}
+
 let stars k =
   let i = v "i" in
   let x = v "x" in
-  let t_arr_tf l = tarr tf QTrue l in
-  let lam_stars = lama "i" tint (lama "x" (t_arr_tf i) (cons star x)) in
-  let inv_stars i _ = t_arr_tf i in
+  let lam_stars = lama "i" tint (lama "x" (tarr_t_k tf i) (cons star x)) in
+  let inv_stars i = tarr_t_k tf i in
   iter z0 k lam_stars cnil inv_stars

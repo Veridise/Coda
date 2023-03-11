@@ -55,3 +55,8 @@
 ; (library
 ;  (name multiplexer)
 ;  (modules multiplexer))
+
+; (library
+;  (name semaphore)
+;  (libraries lib typecheck)
+;  (modules semaphore))

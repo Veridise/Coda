@@ -10,11 +10,25 @@ let b = v "b"
 
 let c = v "c"
 
+let i = v "i"
+
+let j = v "j"
+
 let s = v "s"
 
 let x = v "x"
 
+let z = v "z"
+
 let out = v "out"
+
+let nLevels = v "nLevels"
+
+let pathIndices = v "pathIndices"
+
+let siblings = v "siblings"
+
+let root = v "root"
 
 (* { Array<F> | length v = 2 } *)
 let tarr_tf_2 = tarr_t_k tf z2
@@ -40,3 +54,39 @@ let multi_mux_1 =
         assert_eq out (map lam_mm1 c) }
 
 let check_multi_mux_1 = typecheck_circuit d_empty multi_mux_1
+
+(* TODO: Add real type of root *)
+let t_r = tf
+
+let lam_mtip =
+  lama "i" tint
+    (lama "x" tf
+       (elet "j"
+          (tget (get z i) 0)
+          (elet "s"
+             (tget (get z i) 1)
+             (elet "u0"
+                (* pathIndices[i] binary *)
+                (assert_eq (fmul j (fsub f1 j)) f0)
+                (elet "c"
+                   (cons
+                      (cons x (cons s cnil))
+                      (cons (cons s (cons x cnil)) cnil) )
+                   (call "Poseidon" [z2; call "MultiMux1" [z2; c; j]]) ) ) ) ) )
+
+(* TODO: Add real invariant *)
+let inv_mtip _ = tf
+
+let mrkl_tree_incl_pf =
+  Circuit
+    { name= "MerkleTreeInclusionProof"
+    ; inputs=
+        [ ("nLevels", tnat)
+        ; ("leaf", tf)
+        ; ("pathIndices", tarr_tf nLevels)
+        ; ("siblings", tarr_tf nLevels) ]
+    ; outputs= [("root", t_r)]
+    ; dep= None
+    ; body=
+        elet "z" (zip pathIndices siblings)
+          (assert_eq root (iter z0 nLevels lam_mtip leaf inv_mtip)) }

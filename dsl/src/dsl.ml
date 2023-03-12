@@ -324,6 +324,8 @@ let map e1 e2 = Map (e1, e2)
 (* { Array<t> | length v = k } *)
 let tarr_t_k t k = TRef (tarr t, qeq (len nu) k)
 
+let tarr_tf = tarr_t_k tf
+
 let to_big_int (tb : base) (n : expr) (k : expr) (xs : expr) : expr =
   let sub1 = match tb with TF -> fsub1 | TInt -> nsub1 in
   let mul = match tb with TF -> fmul | TInt -> zmul in

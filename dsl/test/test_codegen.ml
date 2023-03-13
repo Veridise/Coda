@@ -1,8 +1,8 @@
 open Codegen ;;
 
-#use "circuits/gates.ml"
+open Gates;;
 
-#use "circuits/comparators.ml"
+open Comparators;;
 
 let _ = codegen [] cnot
 

@@ -88,12 +88,12 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       (g, b, a, t)
   | LetIn (x, e1, e2) ->
       let g', b', a', e1' = reify_expr prefix g b d a e1 in
-      let g'', b'', a'', e2' = reify_expr prefix ((x, e1') :: g') b' d a e2 in
+      let g'', b'', a'', e2' = reify_expr prefix ((x, e1') :: g') b' d a' e2 in
       (g'', b'', a'', e2')
   | Call (c_name, args) -> (
     match List.assoc_opt c_name d with
     | Some c -> (
-        let g', b', a', out_vars = codegen_circuit args g b d a c in
+        let _, b', a', out_vars = codegen_circuit args g b d a c in
         match out_vars with
         | [out_var] ->
             (g, b', a', Var out_var) (* use original gamma *)
@@ -101,25 +101,13 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
             failwith "Multiple outputs not supported" )
     | None ->
         failwith ("No such circuit: " ^ c_name) )
+  | Assert (e1, e2) ->
+      let g', b', a', e1' = reify_expr prefix g b d a e1 in
+      let g'', b'', a'', e2' = reify_expr prefix g' b' d a' e2 in
+      (g'', b'', a'' @ [qeq e1' e2'], e1')
   | _ ->
       failwith
         (Format.sprintf "Codegen unavailable for expression %s" (show_expr e))
-
-and codegen_stmt prefix (g : gamma) (b : beta) (d : delta) (a : alpha) (s : stmt)
-    : gamma * beta * alpha =
-  (* print_endline (Format.sprintf "Codegen for %s" (show_stmt s)) ; *)
-  match s with
-  | SSkip ->
-      (g, b, a)
-  | SLet (x, e) ->
-      let g', b', a', e' = reify_expr prefix g b d a e in
-      ((x, e') :: g', b', a')
-  | SAssert (e1, e2) ->
-      let g', b', a', e1' = reify_expr prefix g b d a e1 in
-      let g'', b'', a'', e2' = reify_expr prefix g' b' d a' e2 in
-      (g'', b'', a'' @ [qeq e1' e2'])
-  | _ ->
-      todos "codegen_stmt"
 
 and codegen_circuit (args : expr list) (g : gamma) (b : beta) (d : delta)
     (a : alpha) (c : circuit) : gamma * beta * alpha * string list =
@@ -143,11 +131,8 @@ and codegen_circuit (args : expr list) (g : gamma) (b : beta) (d : delta)
             ((x, Var x') :: g, x' :: b, a) )
           (g1, b', a') (List.rev outputs)
       in
-      let g''', b''', a''' =
-        List.fold_left
-          (fun ((g, b, a) : gamma * beta * alpha) (s : stmt) ->
-            codegen_stmt name g b d a s )
-          (g'', b'', a'') body
+      let g''', b''', a''', _ =
+          reify_expr name g'' b'' d a'' body
       in
       (g''', b''', a''', !out_vars)
 

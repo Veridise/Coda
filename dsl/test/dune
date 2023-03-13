@@ -23,3 +23,8 @@
  (name test_bitify)
  (libraries lib typecheck bitify)
  (modules test_bitify))
+
+(executable
+ (name test_codegen)
+ (libraries lib codegen comparators gates)
+ (modules test_codegen))

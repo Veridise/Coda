@@ -1,0 +1,4 @@
+; (library
+;  (name semaphore)
+;  (libraries lib typecheck)
+;  (modules semaphore))

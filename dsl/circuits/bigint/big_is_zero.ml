@@ -48,4 +48,4 @@ let c_big_is_zero =
         elet "total"
           (iter z0 k lam_biz ~init:f0 ~inv:inv_biz)
           (* out === #IsZero (k - total) *)
-          (assert_eq vout (call "IsZero" [fsub k total])) }
+          (vout === call "IsZero" [fsub k total]) }

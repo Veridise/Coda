@@ -29,7 +29,7 @@ open Core
      |> filter_trivial
 
    let _ = check_big_lt  |> generate_lemmas |> print_endline;; *)
-open Comparators
+open Circomlib.Comparators
 
 let check_is_zero = Typecheck.typecheck_circuit [] c_is_zero
 

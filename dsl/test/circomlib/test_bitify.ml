@@ -1,5 +1,5 @@
 open Core
-open Bitify
+open Circomlib.Bitify
 
 let check_all_binary = Typecheck.typecheck_circuit [] c_num2bits
 

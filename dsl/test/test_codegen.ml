@@ -1,6 +1,6 @@
 open Codegen
-open Gates
-open Comparators
+open Circomlib.Gates
+open Circomlib.Comparators
 
 let _ = codegen [] cnot
 

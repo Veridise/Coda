@@ -10,21 +10,12 @@
  (modules test_monad))
 
 (executable
- (name test_comparators)
- (libraries lib typecheck comparators)
- (modules test_comparators))
-
-(executable
  (name test_trivial)
  (libraries lib typecheck trivial)
  (modules test_trivial))
 
-(executable
- (name test_bitify)
- (libraries lib typecheck bitify)
- (modules test_bitify))
 
 (executable
  (name test_codegen)
- (libraries lib codegen comparators gates)
+ (libraries lib codegen circomlib)
  (modules test_codegen))

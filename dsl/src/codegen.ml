@@ -361,7 +361,30 @@ let show_ralpha (a : ralpha) : string =
   in
   show_ralpha' a
 
-let codegen (d : delta) (c : circuit) : r1cs =
+(* transform rexpr into r1cs arithmetic_expression *)
+let rec transform (e: rexpr) : arithmetic_expression =
+  match e with
+  | RConst c -> Number (Big_int.big_int_of_int c)
+  | RCPrime -> failwith "transform: RCPrime"
+  | RCPLen -> failwith "transform: RCPLen"
+  | RVar x -> Signal x
+  | ROpp e' -> opp (transform e')
+  | RBinop (op, e1, e2) -> (
+    match op with
+    | RAdd -> add (transform e1) (transform e2)
+    | RSub -> sub (transform e1) (transform e2)
+    | RMul -> mul (transform e1) (transform e2) )
+  | RComp (REq, e1, e2) -> 
+    let e1' = transform e1 in
+    let e2' = transform e2 in
+    sub e1' e2'
+
+let rec show_list_arithmetic_expression (e: arithmetic_expression list) : string =
+  match e with
+  | [] -> ""
+  | e' :: e'' -> Format.sprintf "%s, %s" (show_list_arithmetic_expression e'') (show_arithmetic_expression e')
+
+let codegen (d : delta) (c : circuit) : unit =
   match c with
   | Circuit {name; inputs; outputs; dep; body} -> (
       let args = List.map (fun (x, _) -> NonDet) inputs in
@@ -369,14 +392,14 @@ let codegen (d : delta) (c : circuit) : r1cs =
       match denote_alpha a with
       | Some a' ->
           let simplify_a = simplify_alpha a' in
+          let transform_a = List.map transform simplify_a in
           print_endline (Format.sprintf "=============================") ;
           print_endline (Format.sprintf "circuit: %s" name) ;
           print_endline
             (Format.sprintf "variable environment: %s" (show_gamma g)) ;
           print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ;
           print_endline
-            (Format.sprintf "Rconstraints: %s" (show_ralpha simplify_a)) ;
+            (Format.sprintf "R1CS: %s" (show_list_arithmetic_expression transform_a)) ;
           print_endline (Format.sprintf "=============================") ;
-          R1CS ([], [], [])
       | None ->
           failwith "codegen: failed to codegen circuit" )

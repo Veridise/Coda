@@ -129,6 +129,9 @@ let mul (expr_0: arithmetic_expression) (expr_1: arithmetic_expression) : arithm
 let sub (expr_0: arithmetic_expression) (expr_1: arithmetic_expression) : arithmetic_expression =
     add expr_0 (mul expr_1 (Number (Big_int.minus_big_int Big_int.unit_big_int)))
 
+let opp (expr: arithmetic_expression) : arithmetic_expression =
+    mul (Number (Big_int.minus_big_int Big_int.unit_big_int)) expr
+
 let div (expr_0: arithmetic_expression) (expr_1: arithmetic_expression) : arithmetic_expression =
     match expr_0, expr_1 with
     | Number value_0, Number value_1 -> Number (Big_int.div_big_int value_0 value_1)

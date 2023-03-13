@@ -1,8 +1,6 @@
-open Codegen ;;
-
-open Gates;;
-
-open Comparators;;
+open Codegen
+open Gates
+open Comparators
 
 let _ = codegen [] cnot
 

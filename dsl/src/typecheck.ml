@@ -440,68 +440,69 @@ and check (e : expr) (t : typ) : unit S.t =
     Let_syntax.(
       print_endline
         (spf "check: Checking %s has type %s" (show_expr e) (show_typ t)) ;
-    let rec f e t = 
-      match (e, t) with
-      | Const CNil, _ -> (
-        match skeleton t with
-        | TArr _ as t' ->
-            subtype t t'
+      let rec f e t =
+        match (e, t) with
+        | Const CNil, _ -> (
+          match skeleton t with
+          | TArr _ as t' ->
+              subtype t t'
+          | _ ->
+              failwith (spf "Expect CNil <= %s to be an array" (show_typ t)) )
+        | Lam (x, body), TFun (y, t1, t2) ->
+            with_binding (x, t1) (check body (subst_typ y (v x) t2))
+        | LamA (x, t, body), TFun (y, t1, t2) ->
+            subtype t1 t
+            >> with_binding (x, t1) (check body (subst_typ y (v x) t2))
+        | LetIn (x, e1, e2), t2 ->
+            let%bind t1 = synthesize e1 in
+            with_binding (x, t1) (check e2 t2)
+            (* | DPDestr (e1, xs, e2), t2 -> *)
+            (* synthesize e1 >>= fun t1 ->
+               let ts, a' =
+                 match t1 with
+                 | TDProd (ts, ys, q) ->
+                     let q' =
+                       List.fold_right
+                         (fun (x, y) q -> subst_qual x (v y) q)
+                         (List.combine xs ys) q
+                     in
+                     print_endline
+                       (spf "check: DPDestr: subst'ed q: %s" (show_qual q')) ;
+                     (ts, [q'])
+                 | TTuple ts ->
+                     (ts, [])
+                 | _ ->
+                     failwith "not a product"
+               in
+               if List.length ts = List.length xs then
+               with_bindings (List.combine xs ts) (
+                 check d (List.combine xs ts) (a @ a') e2 t2 in
+                 cs1 @ cs2
+               else
+                 failwith (spf "DPDestr: xs and ts have different lengths") *)
+        | Push e, _ -> (
+            let t', q = get_tq t in
+            match t' with
+            | TArr te ->
+                (* push e <== Array<{ te | qe(v) }> if *)
+                (* e <== {Array<te> | forall 0<= i0 < length nu. qe(v[i]) *)
+                let te', qe = get_tq te in
+                check e
+                  (refine (tarr te')
+                     (qand q
+                        (qforall "i0" z0 (len nu)
+                           (subst_qual nu_str (Dsl.get nu (v "i0")) qe) ) ) )
+            | _ ->
+                failwith "check: Push: expect array type" )
         | _ ->
-            failwith (spf "Expect CNil <= %s to be an array" (show_typ t)) )
-      | Lam (x, body), TFun (y, t1, t2) ->
-          with_binding (x, t1) (check body (subst_typ y (v x) t2))
-      | LamA (x, t, body), TFun (y, t1, t2) ->
-          subtype t1 t
-          >> with_binding (x, t1) (check body (subst_typ y (v x) t2))
-      | LetIn (x, e1, e2), t2 ->
-          let%bind t1 = synthesize e1 in
-          with_binding (x, t1) (check e2 t2)
-          (* | DPDestr (e1, xs, e2), t2 -> *)
-          (* synthesize e1 >>= fun t1 ->
-             let ts, a' =
-               match t1 with
-               | TDProd (ts, ys, q) ->
-                   let q' =
-                     List.fold_right
-                       (fun (x, y) q -> subst_qual x (v y) q)
-                       (List.combine xs ys) q
-                   in
-                   print_endline
-                     (spf "check: DPDestr: subst'ed q: %s" (show_qual q')) ;
-                   (ts, [q'])
-               | TTuple ts ->
-                   (ts, [])
-               | _ ->
-                   failwith "not a product"
-             in
-             if List.length ts = List.length xs then
-             with_bindings (List.combine xs ts) (
-               check d (List.combine xs ts) (a @ a') e2 t2 in
-               cs1 @ cs2
-             else
-               failwith (spf "DPDestr: xs and ts have different lengths") *)
-      | Push e, _ ->
-        let (t', q) = get_tq t in
-        (match t' with
-        | TArr te ->
-        (* push e <== Array<{ te | qe(v) }> if *)
-        (* e <== {Array<te> | forall 0<= i0 < length nu. qe(v[i]) *)
-          let te', qe = get_tq te in
-          check e
-            (refine (tarr te')
-               (qand q (qforall "i0" z0 (len nu)
-                  (subst_qual nu_str (Dsl.get nu (v "i0")) qe) ) ))
-        | _ -> failwith "check: Push: expect array type")
-      | _ ->
-          let%bind t' = synthesize e in
-          subtype t' t in
+            let%bind t' = synthesize e in
+            subtype t' t
+      in
       match t with
-      | TTuple [t'] ->
-        (try check e t'
-        with
-        | _ -> f e t)
-      | _ -> f e t
-       ))
+      | TTuple [t'] -> (
+        try check e t' with _ -> f e t )
+      | _ ->
+          f e t ) )
 
 let init_gamma (c : circuit) : gamma =
   let to_base_types = List.map ~f:(fun (x, t) -> (x, skeleton t)) in

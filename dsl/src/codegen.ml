@@ -132,9 +132,7 @@ and codegen_circuit (args : expr list) (g : gamma) (b : beta) (d : delta)
             ((x, Var x') :: g, x' :: b, a) )
           (g1, b', a') (List.rev outputs)
       in
-      let g''', b''', a''', _ =
-          reify_expr name g'' b'' d a'' body
-      in
+      let g''', b''', a''', _ = reify_expr name g'' b'' d a'' body in
       (g''', b''', a''', !out_vars)
 
 (* R1CS assertion *)
@@ -362,27 +360,46 @@ let show_ralpha (a : ralpha) : string =
   show_ralpha' a
 
 (* transform rexpr into r1cs arithmetic_expression *)
-let rec transform (e: rexpr) : arithmetic_expression =
+let rec transform (e : rexpr) : arithmetic_expression =
   match e with
-  | RConst c -> Number (Big_int.big_int_of_int c)
-  | RCPrime -> failwith "transform: RCPrime"
-  | RCPLen -> failwith "transform: RCPLen"
-  | RVar x -> Signal x
-  | ROpp e' -> opp (transform e')
+  | RConst c ->
+      Number (Big_int.big_int_of_int c)
+  | RCPrime ->
+      failwith "transform: RCPrime"
+  | RCPLen ->
+      failwith "transform: RCPLen"
+  | RVar x ->
+      Signal x
+  | ROpp e' ->
+      R1cs_utils.simplify (opp (transform e'))
   | RBinop (op, e1, e2) -> (
     match op with
-    | RAdd -> add (transform e1) (transform e2)
-    | RSub -> sub (transform e1) (transform e2)
-    | RMul -> mul (transform e1) (transform e2) )
-  | RComp (REq, e1, e2) -> 
-    let e1' = transform e1 in
-    let e2' = transform e2 in
-    sub e1' e2'
+    | RAdd ->
+        let e1' = transform e1 in
+        let e2' = transform e2 in
+        R1cs_utils.simplify (add e1' e2')
+    | RSub ->
+        let e1' = transform e1 in
+        let e2' = transform e2 in
+        R1cs_utils.simplify (sub e1' e2')
+    | RMul ->
+        let e1' = transform e1 in
+        let e2' = transform e2 in
+        R1cs_utils.simplify (mul e1' e2') )
+  | RComp (REq, e1, e2) ->
+      let e1' = transform e1 in
+      let e2' = transform e2 in
+      R1cs_utils.simplify (sub e1' e2')
 
-let rec show_list_arithmetic_expression (e: arithmetic_expression list) : string =
+let rec show_list_arithmetic_expression (e : arithmetic_expression list) :
+    string =
   match e with
-  | [] -> ""
-  | e' :: e'' -> Format.sprintf "%s, %s" (show_list_arithmetic_expression e'') (show_arithmetic_expression e')
+  | [] ->
+      ""
+  | e' :: e'' ->
+      Format.sprintf "%s, %s"
+        (show_list_arithmetic_expression e'')
+        (show_arithmetic_expression e')
 
 let codegen (d : delta) (c : circuit) : unit =
   match c with
@@ -399,7 +416,10 @@ let codegen (d : delta) (c : circuit) : unit =
             (Format.sprintf "variable environment: %s" (show_gamma g)) ;
           print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ;
           print_endline
-            (Format.sprintf "R1CS: %s" (show_list_arithmetic_expression transform_a)) ;
-          print_endline (Format.sprintf "=============================") ;
+            (Format.sprintf "R1CS constraints: %s" (show_ralpha simplify_a)) ;
+          print_endline
+            (Format.sprintf "R1CS: %s"
+               (show_list_arithmetic_expression transform_a) ) ;
+          print_endline (Format.sprintf "=============================")
       | None ->
           failwith "codegen: failed to codegen circuit" )

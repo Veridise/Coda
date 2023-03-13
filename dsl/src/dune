@@ -27,7 +27,7 @@
 
 (library
  (name codegen)
- (libraries core lib fmt)
- (modules codegen)
+ (libraries core lib fmt num)
+ (modules r1cs_utils codegen)
  (preprocess
   (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))

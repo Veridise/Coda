@@ -2,6 +2,7 @@ open Ast
 open Dsl
 open Utils
 open Ast_utils
+open R1cs_utils
 
 (* circuit declarations *)
 type delta = (string * circuit) list
@@ -301,31 +302,6 @@ let rec simplify (e : rexpr) : rexpr =
       RComp (op, simplify e1, simplify e2)
 
 let simplify_alpha (a : ralpha) : ralpha = List.map simplify a
-
-(* transform rexpr into (rexpr1 , rexpr2, rexpr3), which means rexpr = rexpr1 * rexpr2 + rexpr3 *)
-(* let rec transform (e: rexpr) : (rexpr option * rexpr option * rexpr option) =
-   match e with
-   | RConst _ -> (None, None, Some e)
-   | RCPrime -> (None, None, Some e)
-   | RCPLen -> (None, None, Some e)
-   | RVar _ -> (None, None, Some e)
-   | ROpp e' -> (match transform e' with
-     | (Some e1, Some e2, Some e3) -> (Some (ROpp e1), Some e2, Some (ROpp e3))
-     | _ -> (None, None, None))
-   | RBinop (op, e1, e2) -> (match op with
-     | RAdd -> (match transform e1, transform e2 with
-       | (Some e1', Some e2', Some e3'), (Some e1'', Some e2'', Some e3'') ->
-         (Some (RBinop (RAdd, e1', e1'')), Some (RBinop (RAdd, e2', e2'')), Some (RBinop (RAdd, e3', e3'')))
-       | _ -> (None, None, None))
-     | RSub -> (match transform e1, transform e2 with
-       | (Some e1', Some e2', Some e3'), (Some e1'', Some e2'', Some e3'') ->
-         (Some (RBinop (RAdd, e1', e1'')), Some (RBinop (RAdd, e2', e2'')), Some (RBinop (RSub, e3', e3'')))
-       | _ -> (None, None, None))
-     | RMul -> (match transform e1, transform e2 with
-       | (Some e1', Some e2', Some e3'), (Some e1'', Some e2'', Some e3'') ->
-         (Some (RBinop (RAdd, e1', e1'')), Some (RBinop (RAdd, e2', e2'')), Some (RBinop (RAdd, e3', e3'')))
-       | _ -> (None, None, None)))
-   | RComp (op, e1, e2) -> (None, None, Some e) *)
 
 let show_gamma (g : gamma) : string =
   let rec show_gamma' (g : gamma) : string =

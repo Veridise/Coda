@@ -324,6 +324,9 @@ let map e1 e2 = Map (e1, e2)
 (* { Array<t> | length v = k } *)
 let tarr_t_k t k = TRef (tarr t, qeq (len nu) k)
 
+(* { Array<t> | length v = k /\ q } *)
+let tarr_t_q_k t q k = TRef (tarr t, qand q (qeq (len nu) k))
+
 let tarr_tf = tarr_t_k tf
 
 let to_big_int (tb : base) (n : expr) (k : expr) (xs : expr) : expr =

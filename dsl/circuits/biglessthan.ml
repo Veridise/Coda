@@ -1,6 +1,5 @@
 open Ast
 open Dsl
-open Typecheck
 
 let k = v "k"
 
@@ -35,7 +34,29 @@ let t_out = big_op lt xs ys
 
 let tf_big_digit = tfe (leq (toUZ nu) (zsub1 (zpow z2 CPLen)))
 
-let t_in = tarr tf_big_digit QTrue k
+let t_in = tarr_t_k tf_big_digit k
+
+let lam_big_lt =
+  lama "i" tint
+    (lama "lt_eq" (tpair tf tf)
+       (elet "lt"
+          (fst_pair (v "lt_eq"))
+          (elet "eq"
+             (snd_pair (v "lt_eq"))
+             (elet "x" (get xs i)
+                (elet "y" (get ys i)
+                   (elet "x_lt_y"
+                      (call "LessThan" [n; x; y])
+                      (elet "xs_lt_ys"
+                         (call "And" [v "eq"; v "x_lt_y"])
+                         (elet "x_eq_y"
+                            (call "IsEqual" [x; y])
+                            (make
+                               [ call "Or" [v "lt"; v "xs_lt_ys"]
+                               ; call "And" [v "eq"; v "x_eq_y"] ] ) ) ) ) ) ) ) ) )
+
+let inv_big_lt i =
+  tpair (big_op lt (take xs i) (take ys i)) (big_op eq (take xs i) (take ys i))
 
 let c_big_lt =
   Circuit
@@ -48,36 +69,6 @@ let c_big_lt =
     ; outputs= [("out", t_out)]
     ; dep= None
     ; body=
-        [ slet "lt"
-            (tget
-               (Iter
-                  { s= z0
-                  ; e= k
-                  ; init= make_pair f0 f1
-                  ; body=
-                      lama "i" tint
-                        (lama "lt_eq" (tpair tf tf)
-                           (elet "lt"
-                              (fst_pair (v "lt_eq"))
-                              (elet "eq"
-                                 (snd_pair (v "lt_eq"))
-                                 (elet "x" (get xs i)
-                                    (elet "y" (get ys i)
-                                       (elet "x_lt_y"
-                                          (call "LessThan" [n; x; y])
-                                          (elet "xs_lt_ys"
-                                             (call "And" [v "eq"; v "x_lt_y"])
-                                             (elet "x_eq_y"
-                                                (call "IsEqual" [x; y])
-                                                (tmake
-                                                   [ call "Or"
-                                                       [v "lt"; v "xs_lt_ys"]
-                                                   ; call "And"
-                                                       [v "eq"; v "x_eq_y"] ] ) ) ) ) ) ) ) ) )
-                  ; inv=
-                      (fun i lt_eq ->
-                        tpair
-                          (big_op lt (take xs i) (take ys i))
-                          (big_op eq (take xs i) (take ys i)) ) } )
-               0 )
-        ; assert_eq (v "out") (v "lt") ] }
+        elet "lt"
+          (tget (iter z0 k lam_big_lt ~init:(pair f0 f1) ~inv:inv_big_lt) 0)
+          (assert_eq (v "out") (v "lt")) }

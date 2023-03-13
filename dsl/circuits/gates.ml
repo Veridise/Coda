@@ -1,6 +1,5 @@
 open Ast
 open Dsl
-open Typecheck
 
 let a = v "a"
 
@@ -19,9 +18,7 @@ let cnot =
     ; inputs= [("in", tf_binary)]
     ; outputs= [("out", tnot)]
     ; dep= None
-    ; body= [assert_eq out (fsub (fadd1 vin) (fmul f2 vin))] }
-
-let check_not = typecheck_circuit d_empty cnot
+    ; body= assert_eq out (fsub (fadd1 vin) (fmul f2 vin)) }
 
 (* XOR *)
 let txor = tfq (ind_dec nu (unint "xor" [v "a"; v "b"]))
@@ -32,9 +29,7 @@ let cxor =
     ; inputs= [("a", tf_binary); ("b", tf_binary)]
     ; outputs= [("out", txor)]
     ; dep= None
-    ; body= [assert_eq out (fsub (fadd a b) (fmuls [f2; a; b]))] }
-
-let check_xor = typecheck_circuit d_empty cxor
+    ; body= assert_eq out (fsub (fadd a b) (fmuls [f2; a; b])) }
 
 (* AND *)
 let tand = tfq (ind_dec nu (unint "and" [v "a"; v "b"]))
@@ -45,9 +40,7 @@ let cand =
     ; inputs= [("a", tf_binary); ("b", tf_binary)]
     ; outputs= [("out", tand)]
     ; dep= None
-    ; body= [assert_eq out (fmul a b)] }
-
-let check_and = typecheck_circuit d_empty cand
+    ; body= assert_eq out (fmul a b) }
 
 (* NAND *)
 let tnand = tfq (ind_dec nu (unint "nand" [v "a"; v "b"]))
@@ -58,9 +51,7 @@ let cnand =
     ; inputs= [("a", tf_binary); ("b", tf_binary)]
     ; outputs= [("out", tnand)]
     ; dep= None
-    ; body= [assert_eq out (fsub f1 (fmul a b))] }
-
-let check_nand = typecheck_circuit d_empty cnand
+    ; body= assert_eq out (fsub f1 (fmul a b)) }
 
 (* OR *)
 let tor = tfq (ind_dec nu (unint "or" [v "a"; v "b"]))
@@ -71,9 +62,7 @@ let cor =
     ; inputs= [("a", tf_binary); ("b", tf_binary)]
     ; outputs= [("out", tor)]
     ; dep= None
-    ; body= [assert_eq out (fsub (fadd a b) (fmul a b))] }
-
-let check_or = typecheck_circuit d_empty cor
+    ; body= assert_eq out (fsub (fadd a b) (fmul a b)) }
 
 (* NOR *)
 let tnor = tfq (ind_dec nu (unint "nor" [v "a"; v "b"]))
@@ -84,6 +73,4 @@ let cnor =
     ; inputs= [("a", tf_binary); ("b", tf_binary)]
     ; outputs= [("out", tnor)]
     ; dep= None
-    ; body= [assert_eq out (fsub (fsub (fadd1 (fmul a b)) a) b)] }
-
-let check_nor = typecheck_circuit d_empty cnor
+    ; body= assert_eq out (fsub (fsub (fadd1 (fmul a b)) a) b) }

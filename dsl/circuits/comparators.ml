@@ -42,20 +42,17 @@ let c_is_equal =
     ; outputs= [("out", t_is_equal)]
     ; dep= None
     ; body= call "IsZero" [fsub x y] }
-(*
-    let check_is_equal =
-      typecheck_circuit (add_to_delta d_empty c_is_zero) c_is_equal *)
-(*
-    (* LessThan *)
-    let t_lt = tfq (ind_dec nu (lt (toUZ x) (toUZ y)))
 
-    let c_less_than =
-      Circuit
-        { name= "LessThan"
-        ; inputs= [("n", tnat); ("x", tf); ("y", tf)]
-        ; outputs= [("out", t_lt)]
-        ; dep= None
-        ; body=
-            [ slet "z" (call "Num2Bits" [nadd1 n; fadd (fsub x y) (fpow f2 n)])
-            ; slet "b" (fsub1 (get z n))
-            ; assert_eq vout (v "b") ] } *)
+(* LessThan *)
+let t_lt = tfq (ind_dec nu (lt (toUZ x) (toUZ y)))
+
+let c_less_than =
+  Circuit
+    { name= "LessThan"
+    ; inputs= [("n", tnat); ("x", tf); ("y", tf)]
+    ; outputs= [("out", t_lt)]
+    ; dep= None
+    ; body=
+        elet "z"
+          (call "Num2Bits" [nadd1 n; fadd (fsub x y) (fpow f2 n)])
+          (elet "b" (fsub1 (get z n)) (assert_eq vout (v "b"))) }

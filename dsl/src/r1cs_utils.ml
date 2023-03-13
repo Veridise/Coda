@@ -56,7 +56,7 @@ and show_quadratic_expression (a : (symbol * bigint) list)
   let a = show_coefficients a in
   let b = show_coefficients b in
   let c = show_coefficients c in
-  "(" ^ a ^ ") * (" ^ b ^ ") + (" ^ c ^ ")"
+  "(" ^ a ^ ")    *    (" ^ b ^ ")    +    (" ^ c ^ ")"
 
 let default_arithmetic_expression : arithmetic_expression = NonQuadratic
 
@@ -233,3 +233,56 @@ let simplify (expr : arithmetic_expression) : arithmetic_expression =
               not (Big_int.eq_big_int value Big_int.zero_big_int) ) )
   | NonQuadratic ->
       NonQuadratic
+
+let subst_var (e : arithmetic_expression) (x : string) (v : string) :
+    arithmetic_expression =
+  match e with
+  | Number _ ->
+      e
+  | Signal y ->
+      if String.equal x y then Signal v else e
+  | Linear coefficients ->
+      Linear
+        (List.map coefficients ~f:(fun (y, value) ->
+             if String.equal x y then (v, value) else (y, value) ) )
+  | Quadratic (a, b, c) ->
+      Quadratic
+        ( List.map a ~f:(fun (y, value) ->
+              if String.equal x y then (v, value) else (y, value) )
+        , List.map b ~f:(fun (y, value) ->
+              if String.equal x y then (v, value) else (y, value) )
+        , List.map c ~f:(fun (y, value) ->
+              if String.equal x y then (v, value) else (y, value) ) )
+  | NonQuadratic ->
+      NonQuadratic
+
+(* Represents a constraint of the form: A*B - C = 0
+   where A,B and C are linear expression. *)
+type r1cs =
+  (symbol * bigint) list * (symbol * bigint) list * (symbol * bigint) list
+
+let r1cs_of_arithmetic_expression (expr : arithmetic_expression) : r1cs =
+  match expr with
+  | Number n ->
+      ([], [], [("1", n)])
+  | Signal x ->
+      ([], [], [(x, Big_int.unit_big_int)])
+  | Linear l ->
+      ([], [], l)
+  | Quadratic (a, b, c) ->
+      ( a
+      , b
+      , multiply_coefficients_by_constant c
+          (Big_int.minus_big_int Big_int.unit_big_int) )
+  | NonQuadratic ->
+      failwith "NonQuadratic expression cannot be converted to R1CS"
+
+let show_r1cs (r1cs : r1cs) : string =
+  let a, b, c = r1cs in
+  let show_coefficients (coefficients : (symbol * bigint) list) : string =
+    List.map coefficients ~f:(fun (x, n) ->
+        Printf.sprintf "%s * %s" (Big_int.string_of_big_int n) x )
+    |> String.concat ~sep:" + "
+  in
+  Printf.sprintf "( %s )    *    ( %s )    -    ( %s ) = 0"
+    (show_coefficients a) (show_coefficients b) (show_coefficients c)

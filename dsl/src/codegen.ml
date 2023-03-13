@@ -16,6 +16,9 @@ type gamma = (string * expr) list
 (* assertion store *)
 type alpha = qual list
 
+(* r1cs *)
+type r1cs_algebra = arithmetic_expression list
+
 let d_empty = []
 
 let a_empty = []
@@ -33,18 +36,6 @@ let add_to_delta (d : delta) (c : circuit) : delta =
 
 let add_to_deltas (d : delta) (c : circuit list) =
   List.fold_left add_to_delta d c
-
-(* R1CS format:
-   (coeffa_1*vara_1+...+coeffa_n*vara_n) *
-   (coeffb_1*varb_1+...+coeffb_n*varb_n) -
-   (coeffc_1*varc_1+...+coeffc_n*varc_n) = 0
-   , where coeff \in F *)
-type coeff = int [@@deriving show]
-
-type r1cs =
-  | R1CS of
-      (string * coeff) list * (string * coeff) list * (string * coeff) list
-[@@deriving show]
 
 let init_gamma_no_val (c : circuit) : string list =
   let get_str = List.map (fun (x, t) -> x) in
@@ -359,6 +350,18 @@ let show_ralpha (a : ralpha) : string =
   in
   show_ralpha' a
 
+let show_list_signal (l : signal list) : string =
+  let rec show_list_signal' (l : signal list) : string =
+    match l with
+    | [] ->
+        ""
+    | x :: [] ->
+        Format.sprintf "%s" (fst x)
+    | x :: l' ->
+        Format.sprintf "%s , %s" (fst x) (show_list_signal' l')
+  in
+  show_list_signal' l
+
 (* transform rexpr into r1cs arithmetic_expression *)
 let rec transform (e : rexpr) : arithmetic_expression =
   match e with
@@ -391,15 +394,29 @@ let rec transform (e : rexpr) : arithmetic_expression =
       let e2' = transform e2 in
       R1cs_utils.simplify (sub e1' e2')
 
-let rec show_list_arithmetic_expression (e : arithmetic_expression list) :
-    string =
+let rec show_list_r1cs (e : r1cs list) : string =
   match e with
   | [] ->
       ""
   | e' :: e'' ->
-      Format.sprintf "%s, %s"
-        (show_list_arithmetic_expression e'')
-        (show_arithmetic_expression e')
+      Format.sprintf "%s\n%s" (show_r1cs e') (show_list_r1cs e'')
+
+let find_in_gamma (x : symbol) (g : gamma) : symbol =
+  match List.assoc_opt x g with Some (Var v) -> v | _ -> x
+
+let humanify_arithmetic_expression (e : arithmetic_expression)
+    (signals : signal list) (g : gamma) : arithmetic_expression =
+  let tasks : (symbol * symbol) list =
+    List.map (fun (x, _) -> (find_in_gamma x g, x)) signals
+  in
+  List.fold_left (fun e (x, v) -> subst_var e x v) e tasks
+
+let humanify (a : r1cs_algebra) (signals : signal list) (g : gamma) :
+    r1cs_algebra =
+  List.map
+    (fun (e : arithmetic_expression) ->
+      humanify_arithmetic_expression e signals g )
+    a
 
 let codegen (d : delta) (c : circuit) : unit =
   match c with
@@ -410,16 +427,17 @@ let codegen (d : delta) (c : circuit) : unit =
       | Some a' ->
           let simplify_a = simplify_alpha a' in
           let transform_a = List.map transform simplify_a in
+          let humanify_a = humanify transform_a (inputs @ outputs) g in
+          let r1cs_a = List.map r1cs_of_arithmetic_expression humanify_a in
           print_endline (Format.sprintf "=============================") ;
-          print_endline (Format.sprintf "circuit: %s" name) ;
           print_endline
-            (Format.sprintf "variable environment: %s" (show_gamma g)) ;
-          print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ;
-          print_endline
-            (Format.sprintf "R1CS constraints: %s" (show_ralpha simplify_a)) ;
-          print_endline
-            (Format.sprintf "R1CS: %s"
-               (show_list_arithmetic_expression transform_a) ) ;
-          print_endline (Format.sprintf "=============================")
+            (Format.sprintf "Circuit: %s   Input: %s   Output: %s" name
+               (show_list_signal inputs) (show_list_signal outputs) ) ;
+          (* print_endline
+               (Format.sprintf "variable environment: %s" (show_gamma g)) ;
+             print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ; *)
+          print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ;
+          print_endline (Format.sprintf "=============================") ;
+          ref_counter := 0
       | None ->
           failwith "codegen: failed to codegen circuit" )

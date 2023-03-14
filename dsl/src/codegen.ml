@@ -32,22 +32,20 @@ let fresh_var prefix () =
   v
 
 let add_to_delta (d : delta) (c : circuit) : delta =
-  match c with Circuit {name; inputs; outputs; dep; body} -> (name, c) :: d
+  match c with Circuit {name; _} -> (name, c) :: d
 
 let add_to_deltas (d : delta) (c : circuit list) =
   List.fold_left add_to_delta d c
 
 let init_gamma_no_val (c : circuit) : string list =
-  let get_str = List.map (fun (x, t) -> x) in
+  let get_str = List.map (fun (x, _) -> x) in
   match c with
-  | Circuit {name; inputs; outputs; dep; body} ->
+  | Circuit {inputs; outputs; _} ->
       List.rev (get_str outputs) @ List.rev (get_str inputs)
 
 let init_gamma (c : circuit) (args : expr list) : (string * expr) list =
   let init_inputs = List.map2 (fun (x, _) e -> (x, e)) in
-  match c with
-  | Circuit {name; inputs; outputs; dep; body} ->
-      List.rev (init_inputs inputs args)
+  match c with Circuit {inputs; _} -> List.rev (init_inputs inputs args)
 
 let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
     (a : alpha) (e : expr) : gamma * beta * alpha * expr =
@@ -104,7 +102,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
 and codegen_circuit (args : expr list) (g : gamma) (b : beta) (d : delta)
     (a : alpha) (c : circuit) : gamma * beta * alpha * string list =
   match c with
-  | Circuit {name; inputs; outputs; dep; body} ->
+  | Circuit {name; outputs; body; _} ->
       let g', b', a', args' =
         List.fold_left
           (fun (g, b, a, args) e ->
@@ -420,9 +418,9 @@ let humanify (a : r1cs_algebra) (signals : signal list) (g : gamma) :
 
 let codegen (d : delta) (c : circuit) : unit =
   match c with
-  | Circuit {name; inputs; outputs; dep; body} -> (
-      let args = List.map (fun (x, _) -> NonDet) inputs in
-      let g, b, a, out_vars = codegen_circuit args [] [] d [] c in
+  | Circuit {name; inputs; outputs; _} -> (
+      let args = List.map (fun (_, _) -> NonDet) inputs in
+      let g, _, a, _ = codegen_circuit args [] [] d [] c in
       match denote_alpha a with
       | Some a' ->
           let simplify_a = simplify_alpha a' in

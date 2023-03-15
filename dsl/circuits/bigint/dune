@@ -1,41 +1,42 @@
-(library
- (name big_is_zero)
- (libraries lib)
- (modules big_is_zero))
+; (library
+;  (name big_is_zero)
+;  (libraries lib)
+;  (modules big_is_zero))
 
-(library
- (name big_is_equal)
- (libraries lib)
- (modules big_is_equal))
+; (library
+;  (name big_is_equal)
+;  (libraries lib)
+;  (modules big_is_equal))
 
-(library
- (name big_less_than)
- (libraries lib)
- (modules big_less_than))
+; (library
+;  (name big_less_than)
+;  (libraries lib)
+;  (modules big_less_than))
 
-(library
- (name big_add)
- (libraries lib)
- (modules big_add))
+; (library
+;  (name big_add)
+;  (libraries lib)
+;  (modules big_add))
 
-(library
- (name big_sub)
- (libraries lib)
- (modules big_sub))
+; (library
+;  (name big_sub)
+;  (libraries lib)
+;  (modules big_sub))
 
-(library
- (name split)
- (libraries lib)
- (modules split))
+; (library
+;  (name split)
+;  (libraries lib)
+;  (modules split))
 
-(library
- (name big_mult)
- (libraries lib)
- (modules big_mult))
+; (library
+;  (name big_mult)
+;  (libraries lib)
+;  (modules big_mult))
 
 (library
  (name bigint)
- (libraries
+ (libraries lib)
+ (modules
   big_is_zero
   big_is_equal
   big_less_than
@@ -43,4 +44,5 @@
   big_sub
   split
   big_mult)
- (modules))
+ ; (modules)
+ )

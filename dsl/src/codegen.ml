@@ -225,67 +225,12 @@ let rec simplify (e : rexpr) : rexpr =
 
 let simplify_ralpha (a : ralpha) : ralpha = List.map simplify a
 
-let rec simplify_expr (e : expr) : expr =
-  match e with
-  | Binop (ty, op, e1, e2) -> (
-    match (simplify_expr e1, simplify_expr e2) with
-    | Const (CF c1), Const (CF c2) -> (
-      match op with
-      | Add ->
-          Const (CF (c1 + c2))
-      | Sub ->
-          Const (CF (c1 - c2))
-      | Mul ->
-          Const (CF (c1 * c2))
-      | _ ->
-          Binop (ty, op, e1, e2) )
-    | Const (CF 0), e2' -> (
-      match op with
-      | Add ->
-          e2' (* 0 + x -> x *)
-      | Mul ->
-          Const (CF 0) (* 0 * x -> 0 *)
-      | _ ->
-          Binop (ty, op, e1, e2') )
-    | e1', Const (CF 0) -> (
-      match op with
-      | Add ->
-          e1' (* x + 0 -> x *)
-      | Sub ->
-          e1' (* x - 0 -> x *)
-      | Mul ->
-          Const (CF 0) (* x * 0 -> 0 *)
-      | _ ->
-          Binop (ty, op, e1', Const (CF 0)) )
-    | Const (CF 1), e2' -> (
-      match op with Mul -> e2' (* 1 * x -> x *) | _ -> Binop (ty, op, e1, e2') )
-    | e1', Const (CF 1) -> (
-      match op with
-      | Mul ->
-          e1' (* x * 1 -> x *)
-      | _ ->
-          Binop (ty, op, e1', Const (CF 1)) )
-    | e1', e2' ->
-        if e1' = e2' then
-          match op with
-          | Add ->
-              Binop (ty, Mul, Const (CF 2), e1') (* x + x -> 2 * x *)
-          | Sub ->
-              Const (CF 0) (* x - x -> 0 *)
-          | Mul ->
-              Binop (ty, Mul, e1', e2')
-          | _ ->
-              Binop (ty, op, e1', e2')
-        else Binop (ty, op, e1', e2') )
-  | _ ->
-      e
-
 (* codegen *)
 
 let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
     (a : ralpha) (config : configuration) (e : expr) :
     gamma * beta * ralpha * expr =
-  (* debug: print_endline ("Reify: " ^ show_expr e) ; *)
+  (* print_endline ("Reify: " ^ show_expr e) ; *)
   match e with
   | NonDet ->
       (* generate a fresh var for it *)
@@ -305,7 +250,14 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       let g', b', a', e1' = reify_expr prefix g b d a config e1 in
       (g', b', a', Not e1')
   | Var v ->
-      let t = match List.assoc_opt v g with Some t -> t | None -> e in
+      let t =
+        match List.assoc_opt v g with
+        | Some t ->
+            t
+        | None -> (
+          (* try ... catch *)
+          try Const (CF (eval_int e config)) with _ -> e )
+      in
       (g, b, a, t)
   | LetIn (x, e1, e2) ->
       let g', b', a', e1' = reify_expr prefix g b d a config e1 in
@@ -315,8 +267,12 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       (g'', b'', a'', e2')
   | Call (c_name, args) -> (
     match List.assoc_opt c_name d with
-    | Some c -> (
-        let _, b', a', out_vars, _ = codegen_circuit args g b d a config c in
+    | Some (Circuit {name; inputs; outputs; dep; body}) -> (
+        let config', args', inputs' = calc_inputs config args inputs in
+        let _, b', a', out_vars, _ =
+          codegen_circuit args' g b d a config'
+            (Circuit {name; inputs= inputs'; outputs; dep; body})
+        in
         match out_vars with
         | [out_var] ->
             (g, b', a', Var out_var) (* use original gamma *)
@@ -328,21 +284,24 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
   | Assert (e1, e2) -> (
       let g', b', a', e1' = reify_expr prefix g b d a config e1 in
       let g'', b'', a'', e2' = reify_expr prefix g' b' d a' config e2 in
-      match denote_expr e1' with
+      match denote_expr (simplify_expr e1') with
+      (* pow is handled in simplify_expr *)
       | Some e1'' -> (
-        match denote_expr e2' with
+        match denote_expr (simplify_expr e2') with
         | Some e2'' ->
             ( g''
             , b''
             , a'' @ [RComp (REq, simplify e1'', simplify e2'')]
             , Const CUnit )
         | None ->
-            failwith ("Assert: second argument is invalid" ^ show_expr e) )
+            failwith ("Assert: second argument is invalid" ^ show_expr e2') )
       | None ->
-          failwith ("Assert: first argument is invalid" ^ show_expr e) )
+          failwith
+            ("Assert: first argument is invalid" ^ show_expr (simplify_expr e1'))
+      )
   | Lam (_, _) ->
       (g, b, a, e)
-  | LamA (x, ty, e) ->
+  | LamA (x, _, e) ->
       (g, b, a, Lam (x, e)) (* type is erased *)
   | App (e1, e2) -> (
       let g', b', a', e1' = reify_expr prefix g b d a config e1 in
@@ -393,15 +352,16 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
   | Pull e ->
       let g', b', a', e' = reify_expr prefix g b d a config e in
       (g', b', a', e')
-  | ArrayOp (Get, [l; i]) -> (
-    (* l must be a var *)
-    match l with
-    | Var l' ->
-        let g', b', a', i' = reify_expr prefix g b d a config i in
-        let i'' = eval_int i' config in
-        (g', b', a', Var (l' ^ "[" ^ string_of_int i'' ^ "]"))
-    | _ ->
-        failwith ("Not a var" ^ show_expr e) )
+  | ArrayOp (Get, [e; i]) -> (
+      (* l must be a var *)
+      let g, b, a, l = reify_expr prefix g b d a config e in
+      match l with
+      | Var l' ->
+          let g', b', a', i' = reify_expr prefix g b d a config i in
+          let i'' = eval_int i' config in
+          (g', b', a', Var (l' ^ "[" ^ string_of_int i'' ^ "]"))
+      | _ ->
+          failwith ("Not a var" ^ show_expr e) )
   | Iter {s; e; body; init; _} ->
       (* s: start; e: end;  *)
       (*  it's like a for loop *)
@@ -435,6 +395,8 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
 
 and eval_int (e : expr) (config : configuration) : int =
   match e with
+  | Const (CF f) ->
+      f
   | Const (CInt i) ->
       i
   | Const (CBool b) ->
@@ -446,8 +408,102 @@ and eval_int (e : expr) (config : configuration) : int =
     | _ ->
         failwith
           ("No such var as loop bound in the configuration: " ^ show_expr e) )
+  | Binop (_, op, e1, e2) -> (
+      let i1 = eval_int e1 config in
+      let i2 = eval_int e2 config in
+      match op with
+      | Add ->
+          i1 + i2
+      | Sub ->
+          i1 - i2
+      | Mul ->
+          i1 * i2
+      | Mod ->
+          i1 mod i2
+      | Pow ->
+          int_of_float (float_of_int i1 ** float_of_int i2) )
   | _ ->
       failwith ("Not a constant integer as loop bound: " ^ show_expr e)
+
+and simplify_expr (e : expr) : expr =
+  match e with
+  | Binop (ty, op, e1, e2) -> (
+    match (simplify_expr e1, simplify_expr e2) with
+    | Const c1, Const c2 -> (
+        let c1 = eval_int (Const c1) [] in
+        let c2 = eval_int (Const c2) [] in
+        match op with
+        | Add ->
+            Const (CF (c1 + c2))
+        | Sub ->
+            Const (CF (c1 - c2))
+        | Mul ->
+            Const (CF (c1 * c2))
+        | Pow ->
+            Const (CF (int_of_float (float_of_int c1 ** float_of_int c2)))
+        | Mod ->
+            Const (CF (c1 mod c2)) )
+    | Const (CF 0), e2' -> (
+      match op with
+      | Add ->
+          e2' (* 0 + x -> x *)
+      | Mul ->
+          Const (CF 0) (* 0 * x -> 0 *)
+      | _ ->
+          Binop (ty, op, e1, e2') )
+    | e1', Const (CF 0) -> (
+      match op with
+      | Add ->
+          e1' (* x + 0 -> x *)
+      | Sub ->
+          e1' (* x - 0 -> x *)
+      | Mul ->
+          Const (CF 0) (* x * 0 -> 0 *)
+      | _ ->
+          Binop (ty, op, e1', Const (CF 0)) )
+    | Const (CF 1), e2' -> (
+      match op with Mul -> e2' (* 1 * x -> x *) | _ -> Binop (ty, op, e1, e2') )
+    | e1', Const (CF 1) -> (
+      match op with
+      | Mul ->
+          e1' (* x * 1 -> x *)
+      | _ ->
+          Binop (ty, op, e1', Const (CF 1)) )
+    | e1', e2' ->
+        if e1' = e2' then
+          match op with
+          | Add ->
+              Binop (ty, Mul, Const (CF 2), e1') (* x + x -> 2 * x *)
+          | Sub ->
+              Const (CF 0) (* x - x -> 0 *)
+          | Mul ->
+              Binop (ty, Mul, e1', e2')
+          | _ ->
+              Binop (ty, op, e1', e2')
+        else Binop (ty, op, e1', e2') )
+  | _ ->
+      e
+
+and calc_inputs (config : configuration) (args : expr list)
+    (inputs : signal list) : configuration * expr list * signal list =
+  (* iterate the args with index *)
+  if List.length args <> List.length inputs then
+    failwith "calc_inputs: args and inputs have different length" ;
+  let out_args = ref [] in
+  let out_inputs = ref [] in
+  let out_config = ref config in
+  for i = 0 to List.length args - 1 do
+    let arg = List.nth args i in
+    let input = List.nth inputs i in
+    match snd input with
+    | TBase TInt ->
+        let i = eval_int arg config in
+        out_config := (fst input, i) :: !out_config
+    | _ ->
+        out_args := List.append !out_args [arg] ;
+        out_inputs := List.append !out_inputs [input]
+  done ;
+  (!out_config, !out_args, !out_inputs)
 
 and codegen_circuit (args : expr list) (g : gamma) (b : beta) (d : delta)
     (a : ralpha) (config : configuration) (c : circuit) :
@@ -655,6 +711,9 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ; *)
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_alpha a)) ; *)
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_ralpha simplify_a)) ; *)
-      print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ;
+      (* print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ; *)
+      print_endline
+        (Format.sprintf "Number of R1CS constraints: %s"
+           (string_of_int (List.length r1cs_a)) ) ;
       print_endline (Format.sprintf "=============================") ;
       ref_counter := 0

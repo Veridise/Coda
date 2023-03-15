@@ -16,5 +16,5 @@
 
 (executable
  (name test_codegen)
- (libraries lib codegen circomlib)
+ (libraries lib codegen circomlib trivial bigint)
  (modules test_codegen))

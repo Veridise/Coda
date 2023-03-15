@@ -1,0 +1,4 @@
+(library
+ (name hydra)
+ (libraries lib typecheck)
+ (modules hydra))

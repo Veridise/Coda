@@ -13,6 +13,9 @@ type beta = string list
 (* variable environment *)
 type gamma = (string * expr) list
 
+(* circuit environment *)
+type interp = (string * int) list
+
 (* assertion store *)
 type alpha = qual list
 
@@ -53,6 +56,7 @@ let init_gamma (c : circuit) (args : expr list) : (string * expr) list =
 let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
     (a : alpha) (config : configuration) (e : expr) :
     gamma * beta * alpha * expr =
+  (* debug: print_endline ("Reify: " ^ show_expr e) ; *)
   match e with
   | NonDet ->
       (* generate a fresh var for it *)
@@ -72,13 +76,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       let g', b', a', e1' = reify_expr prefix g b d a config e1 in
       (g', b', a', Not e1')
   | Var v ->
-      let t =
-        match List.assoc_opt v g with
-        | Some t ->
-            t
-        | None ->
-            failwith ("No such variable: " ^ v)
-      in
+      let t = match List.assoc_opt v g with Some t -> t | None -> e in
       (g, b, a, t)
   | LetIn (x, e1, e2) ->
       let g', b', a', e1' = reify_expr prefix g b d a config e1 in
@@ -101,10 +99,111 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
   | Assert (e1, e2) ->
       let g', b', a', e1' = reify_expr prefix g b d a config e1 in
       let g'', b'', a'', e2' = reify_expr prefix g' b' d a' config e2 in
-      (g'', b'', a'' @ [qeq e1' e2'], NonDet)
+      (g'', b'', a'' @ [qeq e1' e2'], Const CUnit)
+  | Lam (_, _) ->
+      (g, b, a, e)
+  | LamA (x, ty, e) ->
+      (g, b, a, Lam (x, e)) (* type is erased *)
+  | App (e1, e2) -> (
+      let g', b', a', e1' = reify_expr prefix g b d a config e1 in
+      match e1' with
+      | Lam (x, e) ->
+          let g'', b'', a'', e2' = reify_expr prefix g' b' d a' config e2 in
+          (* evaluate e2 *)
+          let g''' = (x, e2') :: g'' in
+          (* add x -> e2 to gamma *)
+          let g'''', b'''', a'''', e''' =
+            reify_expr prefix g''' b'' d a'' config e
+          in
+          (* evaluate e *)
+          (g'''', b'''', a'''', e''')
+      | _ ->
+          failwith ("Not a lambda" ^ show_expr e1') )
+  | TMake liste ->
+      ( g
+      , b
+      , a
+      , TMake
+          (List.map
+             (fun x ->
+               match reify_expr prefix g b d a config x with _, _, _, e' -> e'
+               )
+             liste ) )
+  | TGet (e1, e2) -> (
+      let g', b', a', e1' = reify_expr prefix g b d a config e1 in
+      match e1' with
+      | TMake liste -> (
+          let x = List.nth_opt liste e2 in
+          match x with
+          | Some x' ->
+              (g', b', a', x')
+          | None ->
+              failwith
+                ("Index out of bounds" ^ show_expr e1' ^ "." ^ string_of_int e2)
+          )
+      | _ ->
+          failwith ("Not a tuple" ^ show_expr e1') )
+  | Push e ->
+      let g', b', a', e' = reify_expr prefix g b d a config e in
+      (g', b', a', e')
+  | Pull e ->
+      let g', b', a', e' = reify_expr prefix g b d a config e in
+      (g', b', a', e')
+  | ArrayOp (Get, [l; i]) -> (
+    (* l must be a var *)
+    match l with
+    | Var l' ->
+        let g', b', a', i' = reify_expr prefix g b d a config i in
+        let i'' = eval_int i' config in
+        (g', b', a', Var (l' ^ "[" ^ string_of_int i'' ^ "]"))
+    | _ ->
+        failwith ("Not a var" ^ show_expr e) )
+  | Iter {s; e; body; init; _} ->
+      (* s: start; e: end;  *)
+      (*  it's like a for loop *)
+      (* t := init;
+         for i:= start to end do begin
+           t := body i t;
+         end
+      *)
+      let g', b', a', starte = reify_expr prefix g b d a config s in
+      let start = eval_int starte config in
+      let g'', b'', a'', ende = reify_expr prefix g' b' d a' config e in
+      let end_ = eval_int ende config in
+      let temp = ref init in
+      let g''' = ref g'' in
+      let b''' = ref b'' in
+      let a''' = ref a'' in
+      for i = start to end_ do
+        let g', b', a', bodye =
+          reify_expr prefix !g''' !b''' d !a''' config
+            (App (App (body, Const (CInt i)), !temp))
+        in
+        g''' := g' ;
+        b''' := b' ;
+        a''' := a' ;
+        temp := bodye
+      done ;
+      (!g''', !b''', !a''', !temp)
   | _ ->
       failwith
         (Format.sprintf "Codegen unavailable for expression %s" (show_expr e))
+
+and eval_int (e : expr) (config : configuration) : int =
+  match e with
+  | Const (CInt i) ->
+      i
+  | Const (CBool b) ->
+      if b then 1 else 0
+  | Var v -> (
+    match List.assoc_opt v config with
+    | Some i ->
+        i
+    | _ ->
+        failwith
+          ("No such var as loop bound in the configuration: " ^ show_expr e) )
+  | _ ->
+      failwith ("Not a constant integer as loop bound: " ^ show_expr e)
 
 and codegen_circuit (args : expr list) (g : gamma) (b : beta) (d : delta)
     (a : alpha) (config : configuration) (c : circuit) :
@@ -361,6 +460,16 @@ let show_ralpha (a : ralpha) : string =
   in
   show_ralpha' a
 
+let show_alpha (a : alpha) =
+  let rec show_alpha' (a : alpha) =
+    match a with
+    | [] ->
+        ""
+    | q :: a' ->
+        Format.sprintf "%s, %s" (show_alpha' a') (show_qual q)
+  in
+  show_alpha' a
+
 let show_list_signal (l : signal list) : string =
   let rec show_list_signal' (l : signal list) : string =
     match l with
@@ -412,6 +521,13 @@ let rec show_list_r1cs (e : r1cs list) : string =
   | e' :: e'' ->
       Format.sprintf "%s\n%s" (show_r1cs e') (show_list_r1cs e'')
 
+let rec show_config (c : configuration) : string =
+  match c with
+  | [] ->
+      ""
+  | (x, e) :: c' ->
+      Format.sprintf "(%s = %s) %s" x (string_of_int e) (show_config c')
+
 let find_in_gamma (x : symbol) (g : gamma) : symbol =
   match List.assoc_opt x g with Some (Var v) -> v | _ -> x
 
@@ -436,22 +552,36 @@ let circuit_io_list (c : circuit) : signal list * signal list =
 (* generate r1cs from circuit *)
 let codegen (d : delta) (config : configuration) (c : circuit) : unit =
   match c with
-  | Circuit {name; inputs; outputs; _} -> (
-      let args = List.map (fun (_, _) -> NonDet) inputs in
-      let g, _, a, _, _ = codegen_circuit args [] [] d [] config c in
+  | Circuit {name; inputs; outputs; dep; body} -> (
+      let inputs_without_config =
+        List.filter
+          (fun x -> not (List.mem (fst x) (List.map fst config)))
+          inputs
+      in
+      let args = List.map (fun (_, _) -> NonDet) inputs_without_config in
+      let g, _, a, _, _ =
+        codegen_circuit args [] [] d [] config
+          (Circuit {name; inputs= inputs_without_config; outputs; dep; body})
+      in
       match denote_alpha a with
       | Some a' ->
           let simplify_a = simplify_alpha a' in
           let transform_a = List.map transform simplify_a in
-          let humanify_a = humanify transform_a (inputs @ outputs) g in
+          let humanify_a =
+            humanify transform_a (inputs_without_config @ outputs) g
+          in
           let r1cs_a = List.map r1cs_of_arithmetic_expression humanify_a in
           print_endline (Format.sprintf "=============================") ;
           print_endline
-            (Format.sprintf "Circuit: %s   Input: %s   Output: %s" name
-               (show_list_signal inputs) (show_list_signal outputs) ) ;
+            (Format.sprintf "Circuit: %s   Config: %s   Input: %s   Output: %s"
+               name
+               (match config with [] -> "None" | _ -> show_config config)
+               (show_list_signal inputs_without_config)
+               (show_list_signal outputs) ) ;
           (* print_endline
-               (Format.sprintf "variable environment: %s" (show_gamma g)) ;
-             print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ; *)
+               (Format.sprintf "variable environment: %s" (show_gamma g)) ; *)
+          (* print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ; *)
+          (* print_endline (Format.sprintf "R1CS variables: %s" (show_alpha a)) ; *)
           print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ;
           print_endline (Format.sprintf "=============================") ;
           ref_counter := 0

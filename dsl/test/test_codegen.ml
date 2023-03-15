@@ -19,4 +19,4 @@ let _ = codegen [] [] c_is_zero
 
 let _ = codegen (add_to_delta [] c_is_zero) [] c_is_equal
 
-let _ = codegen [] [("n", 20)] c_num2bits
+let _ = codegen [] [("n", 50)] c_num2bits

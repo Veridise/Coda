@@ -36,7 +36,7 @@ let c_num2bits =
             (lama "i" tint
                (lama_p
                   [("lc1", tf); ("e2", tf)]
-                  (pair (lc1 +% (outi *% e2)) (e2 *% e2)) ) )
+                  (pair (lc1 +% (outi *% e2)) (e2 +% e2)) ) )
             ~init:(pair f0 f1) ~inv:n2b_inv )
          (elets
             [ ("u0", vin === lc1)
@@ -48,7 +48,7 @@ let c_num2bits =
                   ~inv:(fun i -> tunit_dep (qforall_e "j" z0 i (is_binary outj)))
               ) ]
             (push vout) ) )
-
+(* to constrain output signals (use output signals in the body), we need to create a new variable *)
 (* let b2n_tin = tarr tf_binary QTrue n
 
    let b2n_tout = tfe (eq nu (to_big_int TF f1 n vin))

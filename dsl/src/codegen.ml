@@ -19,6 +19,9 @@ type alpha = qual list
 (* r1cs *)
 type r1cs_algebra = arithmetic_expression list
 
+(* circuit configuration *)
+type configuration = (string * int) list
+
 let d_empty = []
 
 let a_empty = []
@@ -48,7 +51,8 @@ let init_gamma (c : circuit) (args : expr list) : (string * expr) list =
   match c with Circuit {inputs; _} -> List.rev (init_inputs inputs args)
 
 let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
-    (a : alpha) (e : expr) : gamma * beta * alpha * expr =
+    (a : alpha) (config : configuration) (e : expr) :
+    gamma * beta * alpha * expr =
   match e with
   | NonDet ->
       (* generate a fresh var for it *)
@@ -57,15 +61,15 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
   | CPrime | CPLen | Const _ ->
       (g, b, a, e)
   | Binop (ty, op, e1, e2) ->
-      let g', b', a', e1' = reify_expr prefix g b d a e1 in
-      let g'', b'', a'', e2' = reify_expr prefix g' b' d a' e2 in
+      let g', b', a', e1' = reify_expr prefix g b d a config e1 in
+      let g'', b'', a'', e2' = reify_expr prefix g' b' d a' config e2 in
       (g'', b'', a'', Binop (ty, op, e1', e2'))
   | Boolop (op, e1, e2) ->
-      let g', b', a', e1' = reify_expr prefix g b d a e1 in
-      let g'', b'', a'', e2' = reify_expr prefix g' b' d a' e2 in
+      let g', b', a', e1' = reify_expr prefix g b d a config e1 in
+      let g'', b'', a'', e2' = reify_expr prefix g' b' d a' config e2 in
       (g'', b'', a'', Boolop (op, e1', e2'))
   | Not e1 ->
-      let g', b', a', e1' = reify_expr prefix g b d a e1 in
+      let g', b', a', e1' = reify_expr prefix g b d a config e1 in
       (g', b', a', Not e1')
   | Var v ->
       let t =
@@ -77,36 +81,40 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       in
       (g, b, a, t)
   | LetIn (x, e1, e2) ->
-      let g', b', a', e1' = reify_expr prefix g b d a e1 in
-      let g'', b'', a'', e2' = reify_expr prefix ((x, e1') :: g') b' d a' e2 in
+      let g', b', a', e1' = reify_expr prefix g b d a config e1 in
+      let g'', b'', a'', e2' =
+        reify_expr prefix ((x, e1') :: g') b' d a' config e2
+      in
       (g'', b'', a'', e2')
   | Call (c_name, args) -> (
     match List.assoc_opt c_name d with
     | Some c -> (
-        let _, b', a', out_vars = codegen_circuit args g b d a c in
+        let _, b', a', out_vars, _ = codegen_circuit args g b d a config c in
         match out_vars with
         | [out_var] ->
             (g, b', a', Var out_var) (* use original gamma *)
         | _ ->
-            failwith "Multiple outputs not supported" )
+            failwith "Multiple outputs not supported"
+        (* TODO: add support for multiple outputs (tuple) *) )
     | None ->
         failwith ("No such circuit: " ^ c_name) )
   | Assert (e1, e2) ->
-      let g', b', a', e1' = reify_expr prefix g b d a e1 in
-      let g'', b'', a'', e2' = reify_expr prefix g' b' d a' e2 in
-      (g'', b'', a'' @ [qeq e1' e2'], e1')
+      let g', b', a', e1' = reify_expr prefix g b d a config e1 in
+      let g'', b'', a'', e2' = reify_expr prefix g' b' d a' config e2 in
+      (g'', b'', a'' @ [qeq e1' e2'], NonDet)
   | _ ->
       failwith
         (Format.sprintf "Codegen unavailable for expression %s" (show_expr e))
 
 and codegen_circuit (args : expr list) (g : gamma) (b : beta) (d : delta)
-    (a : alpha) (c : circuit) : gamma * beta * alpha * string list =
+    (a : alpha) (config : configuration) (c : circuit) :
+    gamma * beta * alpha * string list * expr =
   match c with
   | Circuit {name; outputs; body; _} ->
       let g', b', a', args' =
         List.fold_left
           (fun (g, b, a, args) e ->
-            let g', b', a', e' = reify_expr name g b d a e in
+            let g', b', a', e' = reify_expr name g b d a config e in
             (g', b', a', args @ [e']) )
           (g, b, a, []) args
       in
@@ -121,10 +129,14 @@ and codegen_circuit (args : expr list) (g : gamma) (b : beta) (d : delta)
             ((x, Var x') :: g, x' :: b, a) )
           (g1, b', a') (List.rev outputs)
       in
-      let g''', b''', a''', _ = reify_expr name g'' b'' d a'' body in
-      (g''', b''', a''', !out_vars)
+      let g''', b''', a''', final_e =
+        reify_expr name g'' b'' d a'' config body
+      in
+      (g''', b''', a''', !out_vars, final_e)
 
 (* R1CS assertion *)
+(* Note: this is not a general R1CS assertion, but a special one that
+   is used in the codegen i.e. R1CS middle level IR *)
 type rexpr =
   | RConst of int [@printer fun fmt c -> fprintf fmt "%s" (string_of_int c)]
   | RCPrime [@printer fun fmt _ -> fprintf fmt "C.q"]
@@ -154,7 +166,7 @@ and rcomp = REq [@printer fun fmt _ -> fprintf fmt "="] [@@deriving show]
 
 type ralpha = rexpr list [@@deriving show]
 
-(* transformation *)
+(* transformation from qual to rexpr (R1CS assertion) *)
 let denote (q : qual) : rexpr option =
   let rec denote_qual (q : qual) : rexpr option =
     match q with QExpr e -> denote_expr e | _ -> None
@@ -229,6 +241,7 @@ let denote_alpha (a : alpha) : ralpha option =
   in
   denote_alpha' a
 
+(* simplification of R1CS assertions *)
 let rec simplify (e : rexpr) : rexpr =
   match e with
   | RConst _ ->
@@ -409,6 +422,7 @@ let humanify_arithmetic_expression (e : arithmetic_expression)
   in
   List.fold_left (fun e (x, v) -> subst_var e x v) e tasks
 
+(* bind the i/o signals to their corresponding readable names *)
 let humanify (a : r1cs_algebra) (signals : signal list) (g : gamma) :
     r1cs_algebra =
   List.map
@@ -416,11 +430,15 @@ let humanify (a : r1cs_algebra) (signals : signal list) (g : gamma) :
       humanify_arithmetic_expression e signals g )
     a
 
-let codegen (d : delta) (c : circuit) : unit =
+let circuit_io_list (c : circuit) : signal list * signal list =
+  match c with Circuit {inputs; outputs; _} -> (inputs, outputs)
+
+(* generate r1cs from circuit *)
+let codegen (d : delta) (config : configuration) (c : circuit) : unit =
   match c with
   | Circuit {name; inputs; outputs; _} -> (
       let args = List.map (fun (_, _) -> NonDet) inputs in
-      let g, _, a, _ = codegen_circuit args [] [] d [] c in
+      let g, _, a, _, _ = codegen_circuit args [] [] d [] config c in
       match denote_alpha a with
       | Some a' ->
           let simplify_a = simplify_alpha a' in

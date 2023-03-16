@@ -1,7 +1,8 @@
 open Core
 open Fmt
+open Big_int_Z
 
-type bigint = Big_int.big_int
+type bigint = big_int
 
 type symbol = string
 
@@ -24,7 +25,7 @@ type arithmetic_expression =
 let rec show_arithmetic_expression (expr : arithmetic_expression) : string =
   match expr with
   | Number value ->
-      Big_int.string_of_big_int value
+      Z.to_string value
   | Signal symbol ->
       symbol
   | NonQuadratic ->
@@ -35,8 +36,8 @@ let rec show_arithmetic_expression (expr : arithmetic_expression) : string =
       show_quadratic_expression a b c
 
 and show_coefficient (symbol : symbol) (value : bigint) : string =
-  let value' = Big_int.string_of_big_int value in
-  if Big_int.eq_big_int value Big_int.unit_big_int then symbol
+  let value' = Z.to_string value in
+  if Z.equal value Z.one then symbol
   else "(" ^ value' ^ ")" ^ "*" ^ symbol
 
 and show_coefficients (coefficients : (symbol * bigint) list) : string =
@@ -77,7 +78,7 @@ let add_symbol_to_coefficients (coefficients : (symbol * bigint) list)
     | [] ->
         [(symbol, coefficient)]
     | [(c, value')] ->
-        [(c, Big_int.add_big_int value' coefficient)]
+        [(c, Z.add value' coefficient)]
     | _ ->
         failwith "add_symbol_to_coefficients: impossible"
   in
@@ -92,7 +93,7 @@ let add_constant_to_coefficients (coefficients : (symbol * bigint) list)
 let remove_zero_value_coefficients (coefficients : (symbol * bigint) list) :
     (symbol * bigint) list =
   List.filter coefficients ~f:(fun (_, value) ->
-      not (Big_int.eq_big_int value Big_int.zero_big_int) )
+      not (eq_big_int value zero_big_int) )
 
 let add_coefficients_to_coefficients (coefficients_0 : (symbol * bigint) list)
     (coefficients_1 : (symbol * bigint) list) : (symbol * bigint) list =
@@ -105,34 +106,34 @@ let add_coefficients_to_coefficients (coefficients_0 : (symbol * bigint) list)
 let multiply_coefficients_by_constant (coefficients : (symbol * bigint) list)
     (value : bigint) : (symbol * bigint) list =
   List.map coefficients ~f:(fun (symbol, value') ->
-      (symbol, Big_int.mult_big_int value value') )
+      (symbol, mult_big_int value value') )
 
 let divide_coefficients_by_constant (coefficients : (symbol * bigint) list)
     (value : bigint) : (symbol * bigint) list =
   List.map coefficients ~f:(fun (symbol, value') ->
-      (symbol, Big_int.div_big_int value' value) )
+      (symbol, div_big_int value' value) )
 
 let add (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
     arithmetic_expression =
   match (expr_0, expr_1) with
   | Number value_0, Number value_1 ->
-      Number (Big_int.add_big_int value_0 value_1)
+      Number (add_big_int value_0 value_1)
   | Number value_0, Signal symbol_1 ->
-      Linear [(symbol_1, Big_int.unit_big_int); (constant_coefficient, value_0)]
+      Linear [(symbol_1, unit_big_int); (constant_coefficient, value_0)]
   | Signal symbol_0, Number value_1 ->
-      Linear [(symbol_0, Big_int.unit_big_int); (constant_coefficient, value_1)]
+      Linear [(symbol_0, unit_big_int); (constant_coefficient, value_1)]
   | Signal symbol_0, Signal symbol_1 ->
-      Linear [(symbol_0, Big_int.unit_big_int); (symbol_1, Big_int.unit_big_int)]
+      Linear [(symbol_0, unit_big_int); (symbol_1, unit_big_int)]
   | Number value_0, Linear coefficients_1 ->
       Linear (add_constant_to_coefficients coefficients_1 value_0)
   | Linear coefficients_0, Number value_1 ->
       Linear (add_constant_to_coefficients coefficients_0 value_1)
   | Signal symbol_0, Linear coefficients_1 ->
       Linear
-        (add_symbol_to_coefficients coefficients_1 Big_int.unit_big_int symbol_0)
+        (add_symbol_to_coefficients coefficients_1 unit_big_int symbol_0)
   | Linear coefficients_0, Signal symbol_1 ->
       Linear
-        (add_symbol_to_coefficients coefficients_0 Big_int.unit_big_int symbol_1)
+        (add_symbol_to_coefficients coefficients_0 unit_big_int symbol_1)
   | Linear coefficients_0, Linear coefficients_1 ->
       Linear (add_coefficients_to_coefficients coefficients_0 coefficients_1)
   | Number value_0, Quadratic (a_1, b_1, c_1) ->
@@ -141,10 +142,10 @@ let add (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
       Quadratic (a_0, b_0, add_constant_to_coefficients c_0 value_1)
   | Signal symbol_0, Quadratic (a_1, b_1, c_1) ->
       Quadratic
-        (a_1, b_1, add_symbol_to_coefficients c_1 Big_int.unit_big_int symbol_0)
+        (a_1, b_1, add_symbol_to_coefficients c_1 unit_big_int symbol_0)
   | Quadratic (a_0, b_0, c_0), Signal symbol_1 ->
       Quadratic
-        (a_0, b_0, add_symbol_to_coefficients c_0 Big_int.unit_big_int symbol_1)
+        (a_0, b_0, add_symbol_to_coefficients c_0 unit_big_int symbol_1)
   | Linear coefficients_0, Quadratic (a_1, b_1, c_1) ->
       Quadratic (a_1, b_1, add_coefficients_to_coefficients c_1 coefficients_0)
   | Quadratic (a_0, b_0, c_0), Linear coefficients_1 ->
@@ -156,24 +157,24 @@ let mul (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
     arithmetic_expression =
   match (expr_0, expr_1) with
   | Number value_0, Number value_1 ->
-      Number (Big_int.mult_big_int value_0 value_1)
+      Number (mult_big_int value_0 value_1)
   | Number value_0, Signal symbol_1 ->
       Linear [(symbol_1, value_0)]
   | Signal symbol_0, Number value_1 ->
       Linear [(symbol_0, value_1)]
   | Signal symbol_0, Signal symbol_1 ->
       Quadratic
-        ( [(symbol_0, Big_int.unit_big_int)]
-        , [(symbol_1, Big_int.unit_big_int)]
+        ( [(symbol_0, unit_big_int)]
+        , [(symbol_1, unit_big_int)]
         , [] )
   | Number value_0, Linear coefficients_1 ->
       Linear (multiply_coefficients_by_constant coefficients_1 value_0)
   | Linear coefficients_0, Number value_1 ->
       Linear (multiply_coefficients_by_constant coefficients_0 value_1)
   | Signal symbol_0, Linear coefficients_1 ->
-      Quadratic (coefficients_1, [(symbol_0, Big_int.unit_big_int)], [])
+      Quadratic (coefficients_1, [(symbol_0, unit_big_int)], [])
   | Linear coefficients_0, Signal symbol_1 ->
-      Quadratic (coefficients_0, [(symbol_1, Big_int.unit_big_int)], [])
+      Quadratic (coefficients_0, [(symbol_1, unit_big_int)], [])
   | Linear coefficients_0, Linear coefficients_1 ->
       Quadratic (coefficients_0, coefficients_1, [])
   | Number value_0, Quadratic (a_1, b_1, c_1) ->
@@ -191,18 +192,18 @@ let mul (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
 
 let sub (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
     arithmetic_expression =
-  add expr_0 (mul expr_1 (Number (Big_int.minus_big_int Big_int.unit_big_int)))
+  add expr_0 (mul expr_1 (Number (minus_big_int unit_big_int)))
 
 let opp (expr : arithmetic_expression) : arithmetic_expression =
-  mul (Number (Big_int.minus_big_int Big_int.unit_big_int)) expr
+  mul (Number (minus_big_int unit_big_int)) expr
 
 let div (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
     arithmetic_expression =
   match (expr_0, expr_1) with
   | Number value_0, Number value_1 ->
-      Number (Big_int.div_big_int value_0 value_1)
+      Number (div_big_int value_0 value_1)
   | Signal symbol_0, Number value_1 ->
-      Linear [(symbol_0, Big_int.div_big_int Big_int.unit_big_int value_1)]
+      Linear [(symbol_0, div_big_int unit_big_int value_1)]
   | Linear coefficients_0, Number value_1 ->
       Linear (divide_coefficients_by_constant coefficients_0 value_1)
   | Quadratic (a_0, b_0, c_0), Number value_1 ->
@@ -222,15 +223,15 @@ let simplify (expr : arithmetic_expression) : arithmetic_expression =
   | Linear coefficients ->
       Linear
         (List.filter coefficients ~f:(fun (_, value) ->
-             not (Big_int.eq_big_int value Big_int.zero_big_int) ) )
+             not (eq_big_int value zero_big_int) ) )
   | Quadratic (a, b, c) ->
       Quadratic
         ( List.filter a ~f:(fun (_, value) ->
-              not (Big_int.eq_big_int value Big_int.zero_big_int) )
+              not (eq_big_int value zero_big_int) )
         , List.filter b ~f:(fun (_, value) ->
-              not (Big_int.eq_big_int value Big_int.zero_big_int) )
+              not (eq_big_int value zero_big_int) )
         , List.filter c ~f:(fun (_, value) ->
-              not (Big_int.eq_big_int value Big_int.zero_big_int) ) )
+              not (eq_big_int value zero_big_int) ) )
   | NonQuadratic ->
       NonQuadratic
 
@@ -266,14 +267,14 @@ let r1cs_of_arithmetic_expression (expr : arithmetic_expression) : r1cs =
   | Number n ->
       ([], [], [("1", n)])
   | Signal x ->
-      ([], [], [(x, Big_int.unit_big_int)])
+      ([], [], [(x, unit_big_int)])
   | Linear l ->
       ([], [], l)
   | Quadratic (a, b, c) ->
       ( a
       , b
       , multiply_coefficients_by_constant c
-          (Big_int.minus_big_int Big_int.unit_big_int) )
+          (minus_big_int unit_big_int) )
   | NonQuadratic ->
       failwith "NonQuadratic expression cannot be converted to R1CS"
 
@@ -281,7 +282,7 @@ let show_r1cs (r1cs : r1cs) : string =
   let a, b, c = r1cs in
   let show_coefficients (coefficients : (symbol * bigint) list) : string =
     List.map coefficients ~f:(fun (x, n) ->
-        Printf.sprintf "%s * %s" (Big_int.string_of_big_int n) x )
+        Printf.sprintf "%s * %s" (string_of_big_int n) x )
     |> String.concat ~sep:" + "
   in
   Printf.sprintf "( %s )    *    ( %s )    -    ( %s ) = 0"

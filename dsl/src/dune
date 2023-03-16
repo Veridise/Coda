@@ -6,7 +6,7 @@
 (library
  (name lib)
  (wrapped false)
- (libraries core fmt)
+ (libraries core fmt zarith)
  (modules ast ast_utils dsl notation utils monads)
  (preprocess
   (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))
@@ -27,7 +27,7 @@
 
 (library
  (name codegen)
- (libraries core lib fmt num)
+ (libraries core lib fmt zarith)
  (modules r1cs_utils codegen)
  (preprocess
   (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))

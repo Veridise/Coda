@@ -11,10 +11,10 @@
 
 (executable
  (name test_trivial)
- (libraries num lib typecheck trivial)
+ (libraries zarith lib typecheck trivial)
  (modules test_trivial))
 
 (executable
  (name test_codegen)
- (libraries num lib codegen circomlib trivial bigint)
+ (libraries zarith lib codegen circomlib trivial bigint)
  (modules test_codegen))

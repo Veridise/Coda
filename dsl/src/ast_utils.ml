@@ -1,7 +1,7 @@
 open Ast
 open Core
 open Utils
-open Big_int
+open Big_int_Z
 
 let show_base = function TF -> "F" | TInt -> "Z" | TBool -> "Bool"
 
@@ -73,9 +73,9 @@ let ppf_const ppf =
     | CUnit ->
         string ppf "()"
     | CInt n ->
-        string_of_big_int n |> string ppf
+        Z.to_string n |> string ppf
     | CF n ->
-        string_of_big_int n |> string ppf
+        Z.to_string n |> string ppf
     | CBool b ->
         bool ppf b )
 

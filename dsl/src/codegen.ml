@@ -3,7 +3,7 @@ open Dsl
 open Utils
 open Ast_utils
 open R1cs_utils
-open Big_int
+open Big_int_Z
 
 (* circuit declarations *)
 type delta = (string * circuit) list

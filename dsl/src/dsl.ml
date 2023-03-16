@@ -1,6 +1,6 @@
 open Ast
 open Core
-open Big_int
+open Big_int_Z
 
 (* common basic types *)
 let base tb = TBase tb

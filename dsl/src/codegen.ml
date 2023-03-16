@@ -3,6 +3,7 @@ open Dsl
 open Utils
 open Ast_utils
 open R1cs_utils
+open Big_int
 
 (* circuit declarations *)
 type delta = (string * circuit) list
@@ -57,7 +58,8 @@ let init_gamma (c : circuit) (args : expr list) : (string * expr) list =
 (* Note: this is not a general R1CS assertion, but a special one that
    is used in the codegen i.e. R1CS middle level IR *)
 type rexpr =
-  | RConst of int [@printer fun fmt c -> fprintf fmt "%s" (string_of_int c)]
+  | RConst of big_int
+      [@printer fun fmt c -> fprintf fmt "%s" (string_of_big_int c)]
   | RCPrime [@printer fun fmt _ -> fprintf fmt "C.q"]
   | RCPLen [@printer fun fmt _ -> fprintf fmt "C.k"]
   | RVar of string [@printer fun fmt x -> fprintf fmt "%s" x]
@@ -181,42 +183,50 @@ let rec simplify (e : rexpr) : rexpr =
     | RConst c1, RConst c2 -> (
       match op with
       | RAdd ->
-          RConst (c1 + c2)
+          RConst (add_big_int c1 c2)
       | RSub ->
-          RConst (c1 - c2)
+          RConst (sub_big_int c1 c2)
       | RMul ->
-          RConst (c1 * c2) )
-    | RConst 0, e2' -> (
-      match op with
-      | RAdd ->
-          e2' (* 0 + x -> x *)
-      | RSub ->
-          ROpp e2' (* 0 - x -> -x *)
-      | RMul ->
-          RConst 0 (* 0 * x -> 0 *) )
-    | e1', RConst 0 -> (
-      match op with
-      | RAdd ->
-          e1' (* x + 0 -> x *)
-      | RSub ->
-          e1' (* x - 0 -> x *)
-      | RMul ->
-          RConst 0 (* x * 0 -> 0 *) )
-    | RConst 1, e2' -> (
-      match op with RMul -> e2' (* 1 * x -> x *) | _ -> RBinop (op, e1, e2') )
-    | e1', RConst 1 -> (
-      match op with
-      | RMul ->
-          e1' (* x * 1 -> x *)
-      | _ ->
-          RBinop (op, e1', RConst 1) )
+          RConst (mult_big_int c1 c2) )
+    | RConst c, e2' ->
+        if eq_big_int zero_big_int c then
+          match op with
+          | RAdd ->
+              e2' (* 0 + x -> x *)
+          | RSub ->
+              ROpp e2' (* 0 - x -> -x *)
+          | RMul ->
+              RConst zero_big_int (* 0 * x -> 0 *)
+        else if eq_big_int unit_big_int c then
+          match op with
+          | RMul ->
+              e2' (* 1 * x -> x *)
+          | _ ->
+              RBinop (op, e1, e2')
+        else RBinop (op, RConst c, e2')
+    | e1', RConst z ->
+        if eq_big_int zero_big_int z then
+          match op with
+          | RAdd ->
+              e1' (* x + 0 -> x *)
+          | RSub ->
+              e1' (* x - 0 -> x *)
+          | RMul ->
+              RConst zero_big_int (* x * 0 -> 0 *)
+        else if eq_big_int unit_big_int z then
+          match op with
+          | RMul ->
+              e1' (* x * 1 -> x *)
+          | _ ->
+              RBinop (op, e1', RConst unit_big_int)
+        else RBinop (op, e1', RConst z)
     | e1', e2' ->
         if e1' = e2' then
           match op with
           | RAdd ->
-              RBinop (RMul, RConst 2, e1') (* x + x -> 2 * x *)
+              RBinop (RMul, RConst (big_int_of_int 2), e1') (* x + x -> 2 * x *)
           | RSub ->
-              RConst 0 (* x - x -> 0 *)
+              RConst zero_big_int (* x - x -> 0 *)
           | RMul ->
               RBinop (RMul, e1', e2')
         else RBinop (op, e1', e2') )
@@ -359,7 +369,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       | Var l' ->
           let g', b', a', i' = reify_expr prefix g b d a config i in
           let i'' = eval_int i' config in
-          (g', b', a', Var (l' ^ "[" ^ string_of_int i'' ^ "]"))
+          (g', b', a', Var (l' ^ "[" ^ string_of_big_int i'' ^ "]"))
       | _ ->
           failwith ("Not a var" ^ show_expr e) )
   | Iter {s; e; body; init; _} ->
@@ -378,10 +388,10 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       let g''' = ref g'' in
       let b''' = ref b'' in
       let a''' = ref a'' in
-      for i = start to end_ do
+      for i = int_of_big_int start to int_of_big_int end_ do
         let _, _, a', bodye =
           reify_expr prefix !g''' !b''' d !a''' config
-            (App (App (body, Const (CInt i)), !temp))
+            (App (App (body, Const (CInt (big_int_of_int i))), !temp))
         in
         (* g''' := g' ;
            b''' := b' ; *)
@@ -393,18 +403,18 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       failwith
         (Format.sprintf "Codegen unavailable for expression %s" (show_expr e))
 
-and eval_int (e : expr) (config : configuration) : int =
+and eval_int (e : expr) (config : configuration) : big_int =
   match e with
   | Const (CF f) ->
       f
   | Const (CInt i) ->
       i
   | Const (CBool b) ->
-      if b then 1 else 0
+      if b then unit_big_int else zero_big_int
   | Var v -> (
     match List.assoc_opt v config with
     | Some i ->
-        i
+        big_int_of_int i
     | _ ->
         failwith
           ("No such var as loop bound in the configuration: " ^ show_expr e) )
@@ -413,15 +423,15 @@ and eval_int (e : expr) (config : configuration) : int =
       let i2 = eval_int e2 config in
       match op with
       | Add ->
-          i1 + i2
+          add_big_int i1 i2
       | Sub ->
-          i1 - i2
+          sub_big_int i1 i2
       | Mul ->
-          i1 * i2
+          mult_big_int i1 i2
       | Mod ->
-          i1 mod i2
+          mod_big_int i1 i2
       | Pow ->
-          int_of_float (float_of_int i1 ** float_of_int i2) )
+          power_big_int_positive_int i1 (int_of_big_int i2) )
   | _ ->
       failwith ("Not a constant integer as loop bound: " ^ show_expr e)
 
@@ -434,48 +444,57 @@ and simplify_expr (e : expr) : expr =
         let c2 = eval_int (Const c2) [] in
         match op with
         | Add ->
-            Const (CF (c1 + c2))
+            Const (CF (add_big_int c1 c2))
         | Sub ->
-            Const (CF (c1 - c2))
+            Const (CF (sub_big_int c1 c2))
         | Mul ->
-            Const (CF (c1 * c2))
+            Const (CF (mult_big_int c1 c2))
         | Pow ->
-            Const (CF (int_of_float (float_of_int c1 ** float_of_int c2)))
+            Const (CF (power_big_int_positive_int c1 (int_of_big_int c2)))
         | Mod ->
-            Const (CF (c1 mod c2)) )
-    | Const (CF 0), e2' -> (
-      match op with
-      | Add ->
-          e2' (* 0 + x -> x *)
-      | Mul ->
-          Const (CF 0) (* 0 * x -> 0 *)
-      | _ ->
-          Binop (ty, op, e1, e2') )
-    | e1', Const (CF 0) -> (
-      match op with
-      | Add ->
-          e1' (* x + 0 -> x *)
-      | Sub ->
-          e1' (* x - 0 -> x *)
-      | Mul ->
-          Const (CF 0) (* x * 0 -> 0 *)
-      | _ ->
-          Binop (ty, op, e1', Const (CF 0)) )
-    | Const (CF 1), e2' -> (
-      match op with Mul -> e2' (* 1 * x -> x *) | _ -> Binop (ty, op, e1, e2') )
-    | e1', Const (CF 1) -> (
-      match op with
-      | Mul ->
-          e1' (* x * 1 -> x *)
-      | _ ->
-          Binop (ty, op, e1', Const (CF 1)) )
+            Const (CF (mod_big_int c1 c2)) )
+    | Const (CF c), e2' ->
+        if eq_big_int c zero_big_int then
+          match op with
+          | Add ->
+              e2' (* 0 + x -> x *)
+          | Mul ->
+              Const (CF zero_big_int) (* 0 * x -> 0 *)
+          | _ ->
+              Binop (ty, op, Const (CF c), e2')
+        else if eq_big_int c unit_big_int then
+          match op with
+          | Mul ->
+              e2' (* 1 * x -> x *)
+          | _ ->
+              Binop (ty, op, Const (CF c), e2')
+        else Binop (ty, op, Const (CF c), e2')
+    | e1', Const (CF c) ->
+        if eq_big_int c zero_big_int then
+          match op with
+          | Add ->
+              e1' (* x + 0 -> x *)
+          | Sub ->
+              e1' (* x - 0 -> x *)
+          | Mul ->
+              Const (CF zero_big_int) (* x * 0 -> 0 *)
+          | _ ->
+              Binop (ty, op, e1', Const (CF c))
+        else if eq_big_int c unit_big_int then
+          match op with
+          | Mul ->
+              e1' (* x * 1 -> x *)
+          | _ ->
+              Binop (ty, op, e1', Const (CF c))
+        else Binop (ty, op, e1', Const (CF c))
     | e1', e2' ->
         if e1' = e2' then
           match op with
           | Add ->
-              Binop (ty, Mul, Const (CF 2), e1') (* x + x -> 2 * x *)
+              Binop (ty, Mul, Const (CF (big_int_of_int 2)), e1')
+              (* x + x -> 2 * x *)
           | Sub ->
-              Const (CF 0) (* x - x -> 0 *)
+              Const (CF (big_int_of_int 0)) (* x - x -> 0 *)
           | Mul ->
               Binop (ty, Mul, e1', e2')
           | _ ->
@@ -498,7 +517,7 @@ and calc_inputs (config : configuration) (args : expr list)
     match snd input with
     | TBase TInt ->
         let i = eval_int arg config in
-        out_config := (fst input, i) :: !out_config
+        out_config := (fst input, int_of_big_int i) :: !out_config
     | _ ->
         out_args := List.append !out_args [arg] ;
         out_inputs := List.append !out_inputs [input]
@@ -557,7 +576,7 @@ let show_rexpr (e : rexpr) : string =
   let rec show_rexpr' (e : rexpr) : string =
     match e with
     | RConst c ->
-        string_of_int c
+        string_of_big_int c
     | RCPrime ->
         "q"
     | RCPLen ->
@@ -617,7 +636,7 @@ let show_list_signal (l : signal list) : string =
 let rec transform (e : rexpr) : arithmetic_expression =
   match e with
   | RConst c ->
-      Number (Big_int.big_int_of_int c)
+      Number c
   | RCPrime ->
       failwith "transform: RCPrime"
   | RCPLen ->

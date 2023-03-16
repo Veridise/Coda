@@ -27,35 +27,35 @@ let _ = codegen [] [] c_is_zero
 
 let _ = codegen (add_to_delta [] c_is_zero) [] c_is_equal
 
-let _ = codegen [] [("n", 50)] c_num2bits
+let _ = codegen [] [("n", 500)] c_num2bits
 
-let _ = codegen (add_to_delta [] c_num2bits) [("n", 50)] c_less_than
+let _ = codegen (add_to_delta [] c_num2bits) [("n", 200)] c_less_than
 
-let _ = codegen [] [("k", 50)] c_all_binary
+let _ = codegen [] [("k", 500)] c_all_binary
 
-let _ = codegen (add_to_delta [] c_is_zero) [("k", 50)] c_big_is_zero
+let _ = codegen (add_to_delta [] c_is_zero) [("k", 500)] c_big_is_zero
 
 let _ =
   codegen
     (add_to_deltas []
        [cor; c_is_zero; cand; c_num2bits; c_less_than; c_is_equal] )
-    [("n", 10); ("k", 50)]
+    [("n", 100); ("k", 50)]
     c_big_lt
 
-let _ = codegen (add_to_delta [] c_num2bits) [("n", 10)] mod_sum_three
+let _ = codegen (add_to_delta [] c_num2bits) [("n", 100)] mod_sum_three
 
 let _ =
   codegen
     (add_to_deltas [] [c_num2bits; c_less_than])
-    [("n", 10)]
+    [("n", 100)]
     c_mod_sub_three
 
-let _ = codegen (add_to_delta [] c_num2bits) [("n", 10); ("m", 10)] split
+let _ = codegen (add_to_delta [] c_num2bits) [("n", 100); ("m", 100)] split
 
 let _ =
   codegen
     (add_to_deltas [] [c_num2bits; split])
-    [("n", 10); ("m", 10); ("k", 10)]
+    [("n", 100); ("m", 100); ("k", 100)]
     split_three
 
 (* TODO *)

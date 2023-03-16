@@ -1,3 +1,5 @@
+open Big_int
+
 (** DSL AST *)
 
 let nu_str = "ν"
@@ -88,7 +90,7 @@ and func = Id | Unint of string | ToUZ | ToSZ | ToBigUZ | ToBigSZ
 
 and comp = Eq | Leq | Lt
 
-and const = CNil | CUnit | CInt of int | CF of int | CBool of bool
+and const = CNil | CUnit | CInt of big_int | CF of big_int | CBool of bool
 
 (* and pattern = PStr of string | PProd of pattern list *)
 

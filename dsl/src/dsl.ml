@@ -1,5 +1,6 @@
 open Ast
 open Core
+open Big_int
 
 (* common basic types *)
 let base tb = TBase tb
@@ -202,17 +203,17 @@ let zc n = Const (CInt n)
 
 let cnil = Const CNil
 
-let f0 = fc 0
+let f0 = fc (big_int_of_int 0)
 
-let f1 = fc 1
+let f1 = fc (big_int_of_int 1)
 
-let f2 = fc 2
+let f2 = fc (big_int_of_int 2)
 
-let z0 = zc 0
+let z0 = zc (big_int_of_int 0)
 
-let z1 = zc 1
+let z1 = zc (big_int_of_int 1)
 
-let z2 = zc 2
+let z2 = zc (big_int_of_int 2)
 
 let zadd1 e = zadd e z1
 

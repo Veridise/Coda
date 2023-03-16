@@ -1,4 +1,4 @@
-; (library
-;  (name semaphore)
-;  (libraries lib typecheck)
-;  (modules semaphore))
+(library
+ (name semaphore)
+ (libraries lib typecheck)
+ (modules semaphore))

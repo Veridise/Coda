@@ -215,6 +215,10 @@ let z1 = zc (big_int_of_int 1)
 
 let z2 = zc (big_int_of_int 2)
 
+let z3 = zc (big_int_of_int 3)
+
+let zn n = zc (big_int_of_int n)
+
 let zadd1 e = zadd e z1
 
 let nadd1 e = nadd e z1

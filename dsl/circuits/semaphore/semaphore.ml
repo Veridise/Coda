@@ -30,14 +30,23 @@ let siblings = v "siblings"
 
 let root = v "root"
 
+let leaf = v "leaf"
+
 (* { Array<F> | length v = 2 } *)
 let tarr_tf_2 = tarr_t_k tf z2
 
 (* { Array<{ Array<F> | length nu = 2 }> | length nu = n } *)
 let t_c = tarr_t_k tarr_tf_2 n
 
-(* TODO: Add correct type *)
-let t_out = tarr_t_k tf n
+let q_out =
+  qforall "i" z0 (len out)
+    (qeq (get out i)
+       (fadd
+          (fmul (fsub (tget (get c i) 1) (tget (get c i) 0)) s)
+          (tget (get c i) 0) ) )
+
+(* { Array<F> | q_out nu /\ length nu = n } *)
+let t_out = tarr_t_q_k tf q_out n
 
 let lam_mm1 =
   lama "x" tarr_tf_2
@@ -55,10 +64,9 @@ let multi_mux_1 =
 
 let check_multi_mux_1 = typecheck_circuit d_empty multi_mux_1
 
-(* TODO: Add real type of root *)
-let t_r = tf
+(* MerkleTreeInclusionProof *)
 
-let lam_mtip =
+let lam_mtip z =
   lama "i" tint
     (lama "x" tf
        (elet "j"
@@ -74,8 +82,11 @@ let lam_mtip =
                       (cons (cons s (cons x cnil)) cnil) )
                    (call "Poseidon" [z2; call "MultiMux1" [z2; c; j]]) ) ) ) ) )
 
-(* TODO: Add real invariant *)
-let inv_mtip _ = tf
+let rec hasher z init =
+  iter z0 (len z) (lam_mtip z) ~init ~inv:(fun i ->
+      tfq (qeq nu (hasher (take i z) init)) )
+
+let t_r = tfq (qeq nu (hasher (zip pathIndices siblings) leaf))
 
 let mrkl_tree_incl_pf =
   Circuit
@@ -87,6 +98,5 @@ let mrkl_tree_incl_pf =
         ; ("siblings", tarr_tf nLevels) ]
     ; outputs= [("root", t_r)]
     ; dep= None
-    ; body=
-        elet "z" (zip pathIndices siblings)
-          (assert_eq root (iter z0 nLevels lam_mtip leaf inv_mtip)) }
+    ; body= elet "z" (zip pathIndices siblings) (assert_eq root (hasher z leaf))
+    }

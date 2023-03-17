@@ -2,7 +2,17 @@ open Ast
 open Dsl
 open Typecheck
 
+let f4 = fn 4
+
+let f8 = fn 8
+
 let z4 = zn 4
+
+let z15 = zn 15
+
+let z32 = zn 32
+
+let z254 = zn 254
 
 let i = v "i"
 
@@ -15,6 +25,10 @@ let z = v "z"
 let vin = v "in"
 
 let out = v "out"
+
+let key = v "KEY"
+
+let n2b = v "n2b"
 
 let rng = v "rng"
 
@@ -71,3 +85,41 @@ let quin_selector =
                 (map (lama "x" tf (call "IsEqual" [x; index])) rng)
                 (elet "z" (zip vin eqs)
                    (call "CalculateTotal" [choices; pair_mul z]) ) ) ) }
+
+(* IsNegative *)
+
+(* TODO: Need integer division to specify this correctly *)
+let t_is_neg = tf
+
+let is_neg =
+  Circuit
+    { name= "IsNegative"
+    ; inputs= [("in", tf)]
+    ; outputs= [("out", t_is_neg)]
+    ; dep= None
+    ; body= call "Sign" [call "Num2Bits" [z254; vin]] }
+
+(* Random *)
+
+let q_lt_232 x = qlt (toUZ x) (zpow z2 z32)
+
+let q_lt_232_arr xs = qforall "i" z0 (len xs) (q_lt_232 (get xs i))
+
+let t_rand = tfq (qand (qleq z0 (toUZ nu)) (qleq (toUZ nu) z15))
+
+let random =
+  Circuit
+    { name= "Random"
+    ; inputs=
+        [("in", tarr_t_q_k tf (q_lt_232_arr nu) z3); ("KEY", tfq (q_lt_232 nu))]
+    ; outputs= [("out", t_rand)]
+    ; dep= None
+    ; body=
+        elet "n2b"
+          (call "Num2Bits" [z254; call "MiMCSponge" [z3; z4; z1; vin; key]])
+          (* 8 * n2b[3] + 4 * n2b[2] + 2 * n2b[1] + n2b[0] *)
+          (fadd
+             (fmul f8 (get n2b z3))
+             (fadd
+                (fmul f4 (get n2b z2))
+                (fadd (fmul f2 (get n2b z1)) (get n2b z0)) ) ) }

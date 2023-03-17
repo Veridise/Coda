@@ -203,11 +203,13 @@ let zc n = Const (CInt n)
 
 let cnil = Const CNil
 
-let f0 = fc (big_int_of_int 0)
+let fn n = fc (big_int_of_int n)
 
-let f1 = fc (big_int_of_int 1)
+let f0 = fn 0
 
-let f2 = fc (big_int_of_int 2)
+let f1 = fn 1
+
+let f2 = fn 2
 
 let zn n = zc (big_int_of_int n)
 

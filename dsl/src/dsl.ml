@@ -328,6 +328,9 @@ let iter s e body ~init ~inv = Iter {s; e; body; init; inv}
 
 let map e1 e2 = Map (e1, e2)
 
+(* { Array<t> | q v } *)
+let tarr_t_q t q = TRef (tarr t, q)
+
 (* { Array<t> | length v = k } *)
 let tarr_t_k t k = TRef (tarr t, qeq (len nu) k)
 

@@ -56,3 +56,15 @@ let c_less_than =
         elet "z"
           (call "Num2Bits" [nadd1 n; fadd (fsub x y) (fpow f2 n)])
           (elet "b" (fsub1 (get z n)) (assert_eq vout (v "b"))) }
+
+(* GreaterThan *)
+
+let t_gt = tfq (ind_dec nu (lt (get vin z1) (get vin z0)))
+
+let c_greater_than =
+  Circuit
+    { name= "GreaterThan"
+    ; inputs= [("n", tnat); ("in", tarr_tf z2)]
+    ; outputs= [("out", t_gt)]
+    ; dep= None
+    ; body= call "LessThan" [n; get vin z1; get vin z0] }

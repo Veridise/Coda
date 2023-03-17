@@ -209,15 +209,17 @@ let f1 = fc (big_int_of_int 1)
 
 let f2 = fc (big_int_of_int 2)
 
-let z0 = zc (big_int_of_int 0)
-
-let z1 = zc (big_int_of_int 1)
-
-let z2 = zc (big_int_of_int 2)
-
-let z3 = zc (big_int_of_int 3)
-
 let zn n = zc (big_int_of_int n)
+
+let z0 = zn 0
+
+let z1 = zn 1
+
+let z2 = zn 2
+
+let z3 = zn 3
+
+let z252 = zn 252
 
 let zadd1 e = zadd e z1
 

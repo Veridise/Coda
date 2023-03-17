@@ -2,8 +2,6 @@ open Ast
 open Dsl
 open Typecheck
 
-let z252 = zn 252
-
 let c = v "c"
 
 let i = v "i"

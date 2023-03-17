@@ -141,10 +141,11 @@ let get_val_by_idx =
 
 (* cutId *)
 
-(* [| v |] = ([| in |] >> 16) mod 2^216 *)
 let t_cut_id =
   tfq
-    (qeq (toUZ nu) (zmod (zmul (toUZ vin) (zpow z2 (zopp z16))) (zpow z2 z216)))
+    (qeq nu
+       (call "Bits2Num"
+          [z216; take z216 (drop z16 (call "Num2Bits" [z256; vin]))] ) )
 
 let cut_id =
   Circuit
@@ -159,8 +160,8 @@ let cut_id =
 
 (* cutState *)
 
-(* [| v |] = ([| in |] >> 40) *)
-let t_cut_st = tfq (qeq (toUZ nu) (zmul (toUZ vin) (zpow z2 (zopp z40))))
+let t_cut_st =
+  tfq (qeq nu (call "Bits2Num" [z216; drop z40 (call "Num2Bits" [z256; vin])]))
 
 let cut_st =
   Circuit

@@ -235,6 +235,13 @@ let rec simplify (e : rexpr) : rexpr =
 
 let simplify_ralpha (a : ralpha) : ralpha = List.map simplify a
 
+let rec get_nth_array (l : expr) (n : int) : expr =
+  match l with
+  | ArrayOp (Cons, [e1; e2]) ->
+      if n = 0 then e1 else get_nth_array e2 (n - 1)
+  | _ ->
+      failwith ("get_nth_array: not an array :" ^ show_expr l)
+
 (* codegen *)
 
 let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
@@ -277,18 +284,13 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       (g'', b'', a'', e2')
   | Call (c_name, args) -> (
     match List.assoc_opt c_name d with
-    | Some (Circuit {name; inputs; outputs; dep; body}) -> (
+    | Some (Circuit {name; inputs; outputs; dep; body}) ->
         let config', args', inputs' = calc_inputs config args inputs in
-        let _, b', a', out_vars, _ =
+        let _, b', a', _, return_e =
           codegen_circuit args' g b d a config'
             (Circuit {name; inputs= inputs'; outputs; dep; body})
         in
-        match out_vars with
-        | [out_var] ->
-            (g, b', a', Var out_var) (* use original gamma *)
-        | _ ->
-            failwith "Multiple outputs not supported"
-        (* TODO: add support for multiple outputs (tuple) *) )
+        (g, b', a', return_e)
     | None ->
         failwith ("No such circuit: " ^ c_name) )
   | Assert (e1, e2) -> (
@@ -304,7 +306,9 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
             , a'' @ [RComp (REq, simplify e1'', simplify e2'')]
             , Const CUnit )
         | None ->
-            failwith ("Assert: second argument is invalid" ^ show_expr e2') )
+            failwith
+              ( "Assert: second argument is invalid"
+              ^ show_expr (simplify_expr e2') ) )
       | None ->
           failwith
             ("Assert: first argument is invalid" ^ show_expr (simplify_expr e1'))
@@ -362,21 +366,28 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
   | Pull e ->
       let g', b', a', e' = reify_expr prefix g b d a config e in
       (g', b', a', e')
-  | ArrayOp (Get, [e; i]) -> (
-      (* l must be a var *)
+  | ArrayOp (Get, [e; i]) ->
       let g, b, a, l = reify_expr prefix g b d a config e in
-      match l with
-      | Var l' ->
-          let g', b', a', i' = reify_expr prefix g b d a config i in
-          let i'' = eval_int i' config in
-          (g', b', a', Var (l' ^ "[" ^ string_of_big_int i'' ^ "]"))
-      | _ ->
-          failwith ("Not a var" ^ show_expr e) )
+      (* get i''-th element of l *)
+      let g', b', a', i' = reify_expr prefix g b d a config i in
+      let i'' = eval_int i' config in
+      (g', b', a', get_nth_array l (int_of_big_int i''))
+  | ArrayOp (Cons, [e1; e2]) ->
+      let g, b, a, e1' = reify_expr prefix g b d a config e1 in
+      let g', b', a', e2' = reify_expr prefix g b d a config e2 in
+      (g', b', a', ArrayOp (Cons, [e1'; e2']))
+  | ArrayOp (Zip, [e1; e2]) ->
+      let g, b, a, e1' = reify_expr prefix g b d a config e1 in
+      let g', b', a', e2' = reify_expr prefix g b d a config e2 in
+      let g'', b'', a'', ziped_expr =
+        expr_array_zip prefix g' b' d a' config e1' e2'
+      in
+      (g'', b'', a'', ziped_expr)
   | Iter {s; e; body; init; _} ->
-      (* s: start; e: end;  *)
+      (* s: start; e: end;  [start, end) *)
       (*  it's like a for loop *)
       (* t := init;
-         for i:= start to end do begin
+         for i:= start to end-1 do begin
            t := body i t;
          end
       *)
@@ -388,7 +399,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       let g''' = ref g'' in
       let b''' = ref b'' in
       let a''' = ref a'' in
-      for i = int_of_big_int start to int_of_big_int end_ do
+      for i = int_of_big_int start to int_of_big_int end_ - 1 do
         let _, _, a', bodye =
           reify_expr prefix !g''' !b''' d !a''' config
             (App (App (body, Const (CInt (big_int_of_int i))), !temp))
@@ -434,6 +445,18 @@ and eval_int (e : expr) (config : configuration) : big_int =
           power_big_int_positive_int i1 (int_of_big_int i2) )
   | _ ->
       failwith ("Not a constant integer as loop bound: " ^ show_expr e)
+
+and expr_array_zip prefix g b d a config e1 e2 =
+  match (e1, e2) with
+  | ArrayOp (Cons, [e1; e2]), ArrayOp (Cons, [e1'; e2']) ->
+      let g', b', a', e1'' = reify_expr prefix g b d a config e1 in
+      let g'', b'', a'', e1''' = reify_expr prefix g' b' d a' config e1' in
+      let g''', b''', a''', e2'' =
+        expr_array_zip prefix g'' b'' d a'' config e2 e2'
+      in
+      (g''', b''', a''', ArrayOp (Cons, [TMake [e1''; e1''']; e2'']))
+  | _ ->
+      (g, b, a, TMake [e1; e2])
 
 and simplify_expr (e : expr) : expr =
   match e with
@@ -536,21 +559,20 @@ and codegen_circuit (args : expr list) (g : gamma) (b : beta) (d : delta)
             (g', b', a', args @ [e']) )
           (g, b, a, []) args
       in
-      (* output: NonDet *)
+      (* inputs: NonDet *)
       let g1 = init_gamma c args' @ g' in
-      let out_vars = ref [] in
-      let g'', b'', a'' =
-        List.fold_left
-          (fun (g, b, a) (x, _) ->
-            let x' = fresh_var name () in
-            out_vars := !out_vars @ [x'] ;
-            ((x, Var x') :: g, x' :: b, a) )
-          (g1, b', a') (List.rev outputs)
-      in
-      let g''', b''', a''', final_e =
-        reify_expr name g'' b'' d a'' config body
-      in
-      (g''', b''', a''', !out_vars, final_e)
+      (* let out_vars = ref [] in
+         let g'', b'', a'' =
+           List.fold_left
+             (fun (g, b, a) (x, _) ->
+               let x' = fresh_var name () in
+               out_vars := !out_vars @ [x'] ;
+               ((x, Var x') :: g, x' :: b, a) )
+             (g1, b', a') (List.rev outputs)
+         in *)
+      let g''', b''', a''', final_e = reify_expr name g1 b' d a' config body in
+      (g''', b''', a''', List.map (fun (x, _) -> x) outputs, final_e)
+(* get name of outputs *)
 
 let show_gamma (g : gamma) : string =
   let rec show_gamma' (g : gamma) : string =
@@ -678,13 +700,29 @@ let rec show_config (c : configuration) : string =
   | (x, e) :: c' ->
       Format.sprintf "(%s = %s) %s" x (string_of_int e) (show_config c')
 
-let find_in_gamma (x : symbol) (g : gamma) : symbol =
-  match List.assoc_opt x g with Some (Var v) -> v | _ -> x
+let rec parse_array (l : expr) (x : symbol) (n : int) : (symbol * symbol) list =
+  match l with
+  | Const CNil ->
+      []
+  | ArrayOp (Cons, [Var v; xs]) ->
+      let l = parse_array xs x (n + 1) in
+      (v, x ^ "[" ^ string_of_int n ^ "]") :: l
+  | _ ->
+      failwith "parse_array: not an array"
+
+let rec find_in_gamma (x : symbol) (g : gamma) : (symbol * symbol) list =
+  match List.assoc_opt x g with
+  | Some (Var v) ->
+      [(v, x)]
+  | Some (ArrayOp e) ->
+      parse_array (ArrayOp e) x 0
+  | _ ->
+      []
 
 let humanify_arithmetic_expression (e : arithmetic_expression)
     (signals : signal list) (g : gamma) : arithmetic_expression =
   let tasks : (symbol * symbol) list =
-    List.map (fun (x, _) -> (find_in_gamma x g, x)) signals
+    List.concat (List.map (fun (x, _) -> find_in_gamma x g) signals)
   in
   List.fold_left (fun e (x, v) -> subst_var e x v) e tasks
 
@@ -699,6 +737,73 @@ let humanify (a : r1cs_algebra) (signals : signal list) (g : gamma) :
 let circuit_io_list (c : circuit) : signal list * signal list =
   match c with Circuit {inputs; outputs; _} -> (inputs, outputs)
 
+let rec get_length_from_qual (q : qual) config : int option =
+  match q with
+  | QTrue ->
+      None
+  | QNot q' ->
+      get_length_from_qual q' config
+  | QAnd (q1, q2) -> (
+    match (get_length_from_qual q1 config, get_length_from_qual q2 config) with
+    | Some _, Some _ ->
+        failwith "get_length_from_qual: QAnd"
+    | Some n, None ->
+        Some n
+    | None, Some m ->
+        Some m
+    | None, None ->
+        None )
+  | QImply (q1, q2) -> (
+    match (get_length_from_qual q1 config, get_length_from_qual q2 config) with
+    | Some _, Some _ ->
+        failwith "get_length_from_qual: QImply"
+    | Some n, None ->
+        Some n
+    | None, Some m ->
+        Some m
+    | None, None ->
+        None )
+  | QForall (_, q') ->
+      get_length_from_qual q' config
+  | QExpr (Comp (Eq, e1, e2)) -> (
+    match e1 with
+    | ArrayOp (Length, [Var "ν"]) ->
+        Some (int_of_big_int (eval_int e2 config))
+    | _ ->
+        None )
+  | _ ->
+      None
+
+let rec type_refine (config : configuration) (t : typ) : expr =
+  match t with
+  | TBase _ ->
+      NonDet
+  | TTuple ts ->
+      TMake (List.map (type_refine config) ts)
+  | TRef (tarr, q) -> (
+    match tarr with
+    | TArr ty -> (
+        let e = type_refine config ty in
+        match get_length_from_qual q config with
+        | Some n ->
+            List.fold_left
+              (fun e x -> ArrayOp (Cons, [x; e]))
+              (Const CNil)
+              (List.init n (fun _ -> e))
+        | None ->
+            failwith "type_refine: TRef" )
+    | _ ->
+        type_refine config tarr )
+  | _ ->
+      failwith "type_refine: not implemented"
+
+let rec initial_args_list config (inputs : signal list) : expr list =
+  match inputs with
+  | [] ->
+      []
+  | (_, ty) :: inputs' ->
+      type_refine config ty :: initial_args_list config inputs'
+
 (* generate r1cs from circuit *)
 let codegen (d : delta) (config : configuration) (c : circuit) : unit =
   match c with
@@ -708,7 +813,7 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
           (fun x -> not (List.mem (fst x) (List.map fst config)))
           inputs
       in
-      let args = List.map (fun (_, _) -> NonDet) inputs_without_config in
+      let args = initial_args_list config inputs_without_config in
       let g, _, a, _, _ =
         codegen_circuit args [] [] d [] config
           (Circuit {name; inputs= inputs_without_config; outputs; dep; body})
@@ -725,12 +830,11 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
            (match config with [] -> "None" | _ -> show_config config)
            (show_list_signal inputs_without_config)
            (show_list_signal outputs) ) ;
-      (* print_endline
-           (Format.sprintf "variable environment: %s" (show_gamma g)) ; *)
+      (* print_endline (Format.sprintf "variable environment: %s" (show_gamma g)) ; *)
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ; *)
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_alpha a)) ; *)
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_ralpha simplify_a)) ; *)
-      (* print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ; *)
+      print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ;
       print_endline
         (Format.sprintf "Number of R1CS constraints: %s"
            (string_of_int (List.length r1cs_a)) ) ;

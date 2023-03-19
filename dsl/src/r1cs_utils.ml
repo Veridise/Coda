@@ -37,8 +37,7 @@ let rec show_arithmetic_expression (expr : arithmetic_expression) : string =
 
 and show_coefficient (symbol : symbol) (value : bigint) : string =
   let value' = Z.to_string value in
-  if Z.equal value Z.one then symbol
-  else "(" ^ value' ^ ")" ^ "*" ^ symbol
+  if Z.equal value Z.one then symbol else "(" ^ value' ^ ")" ^ "*" ^ symbol
 
 and show_coefficients (coefficients : (symbol * bigint) list) : string =
   match coefficients with
@@ -129,11 +128,9 @@ let add (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
   | Linear coefficients_0, Number value_1 ->
       Linear (add_constant_to_coefficients coefficients_0 value_1)
   | Signal symbol_0, Linear coefficients_1 ->
-      Linear
-        (add_symbol_to_coefficients coefficients_1 unit_big_int symbol_0)
+      Linear (add_symbol_to_coefficients coefficients_1 unit_big_int symbol_0)
   | Linear coefficients_0, Signal symbol_1 ->
-      Linear
-        (add_symbol_to_coefficients coefficients_0 unit_big_int symbol_1)
+      Linear (add_symbol_to_coefficients coefficients_0 unit_big_int symbol_1)
   | Linear coefficients_0, Linear coefficients_1 ->
       Linear (add_coefficients_to_coefficients coefficients_0 coefficients_1)
   | Number value_0, Quadratic (a_1, b_1, c_1) ->
@@ -141,11 +138,9 @@ let add (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
   | Quadratic (a_0, b_0, c_0), Number value_1 ->
       Quadratic (a_0, b_0, add_constant_to_coefficients c_0 value_1)
   | Signal symbol_0, Quadratic (a_1, b_1, c_1) ->
-      Quadratic
-        (a_1, b_1, add_symbol_to_coefficients c_1 unit_big_int symbol_0)
+      Quadratic (a_1, b_1, add_symbol_to_coefficients c_1 unit_big_int symbol_0)
   | Quadratic (a_0, b_0, c_0), Signal symbol_1 ->
-      Quadratic
-        (a_0, b_0, add_symbol_to_coefficients c_0 unit_big_int symbol_1)
+      Quadratic (a_0, b_0, add_symbol_to_coefficients c_0 unit_big_int symbol_1)
   | Linear coefficients_0, Quadratic (a_1, b_1, c_1) ->
       Quadratic (a_1, b_1, add_coefficients_to_coefficients c_1 coefficients_0)
   | Quadratic (a_0, b_0, c_0), Linear coefficients_1 ->
@@ -163,10 +158,7 @@ let mul (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
   | Signal symbol_0, Number value_1 ->
       Linear [(symbol_0, value_1)]
   | Signal symbol_0, Signal symbol_1 ->
-      Quadratic
-        ( [(symbol_0, unit_big_int)]
-        , [(symbol_1, unit_big_int)]
-        , [] )
+      Quadratic ([(symbol_0, unit_big_int)], [(symbol_1, unit_big_int)], [])
   | Number value_0, Linear coefficients_1 ->
       Linear (multiply_coefficients_by_constant coefficients_1 value_0)
   | Linear coefficients_0, Number value_1 ->
@@ -271,10 +263,7 @@ let r1cs_of_arithmetic_expression (expr : arithmetic_expression) : r1cs =
   | Linear l ->
       ([], [], l)
   | Quadratic (a, b, c) ->
-      ( a
-      , b
-      , multiply_coefficients_by_constant c
-          (minus_big_int unit_big_int) )
+      (a, b, multiply_coefficients_by_constant c (minus_big_int unit_big_int))
   | NonQuadratic ->
       failwith "NonQuadratic expression cannot be converted to R1CS"
 

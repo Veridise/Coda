@@ -35,16 +35,6 @@ let add_to_deltas (d : delta) (c : circuit list) =
   List.fold_left ~f:add_to_delta ~init:d c
 
 type cons =
-  | Subtype of gamma * alpha * typ * typ
-      [@printer
-        fun fmt (g, a, t1, t2) ->
-          fprintf fmt "Gamma:\n%s\nAlpha:\n%s\n---Subtype---\n%s <: %s"
-            (show_gamma g) (show_alpha a) (show_typ t1) (show_typ t2)]
-  | HasType of gamma * alpha * string * typ
-      [@printer
-        fun fmt (g, a, x, t) ->
-          fprintf fmt "Gamma:\n%s\nAlpha:\n%s\n---Type---\n%s : %s"
-            (show_gamma g) (show_alpha a) x (show_typ t)]
   | CheckCons of gamma * alpha * qual
       [@printer
         fun fmt (g, a, q) ->

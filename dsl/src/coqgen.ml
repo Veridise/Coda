@@ -50,6 +50,9 @@ let rec typ_to_coq (t : typ) : typing =
       (* let tbs = ts |> List.map get_base |> List.map base_to_coq in
          (spf "%s" (String.concat " * " tbs), []) *)
   | TRef (TTuple ts, q) ->
+    if List.length ts = 0 then
+        {coq_typ="unit"; ref=[lift_qual q]}
+    else
       let l = List.length ts in
       let cs = List.map typ_to_coq ts in
       let tup_str =

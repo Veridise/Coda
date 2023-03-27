@@ -385,7 +385,8 @@ and subst_expr (x : string) (ef : expr) (e : expr) : expr =
 let rec subst_typ' (e : expr) (e' : expr) (t : typ) : typ =
   let f = subst_typ' e e' in
   match t with
-  | TBase _ -> t
+  | TBase _ ->
+      t
   | TRef (t, q) ->
       TRef (t, subst_qual' e e' q)
   | TFun (y, t1, t2) ->
@@ -395,7 +396,7 @@ let rec subst_typ' (e : expr) (e' : expr) (t : typ) : typ =
   | TTuple ts ->
       TTuple (List.map ~f ts)
 
-and subst_qual' (e : expr)  (e' : expr) (q : qual) : qual =
+and subst_qual' (e : expr) (e' : expr) (q : qual) : qual =
   let f = subst_qual' e e' in
   match q with
   | QTrue ->
@@ -409,68 +410,68 @@ and subst_qual' (e : expr)  (e' : expr) (q : qual) : qual =
   | QExpr e0 ->
       QExpr (subst_expr' e e' e0)
   | QForall ((y, es, ee), q') ->
-      QForall
-        ( (y, subst_expr' e e' es, subst_expr' e e' ee)
-        , f q' )
+      QForall ((y, subst_expr' e e' es, subst_expr' e e' ee), f q')
 
-and subst_expr' (eo: expr) (en : expr) (e : expr) : expr =
+and subst_expr' (eo : expr) (en : expr) (e : expr) : expr =
   let f = subst_expr' eo en in
-  if Poly.(eo = e) then en else
-  match e with
-  | Const _ ->
-      e
-  | CPrime ->
-      e
-  | CPLen ->
-      e
-  | Var y -> e
-  | LamA (y, t, body) ->
-      LamA (y, subst_typ' eo en t, f body)
-  | App (e1, e2) ->
-      App (f e1, f e2)
-  | Not e' ->
-      Not (f e')
-  | Binop (t, op, e1, e2) ->
-      Binop (t, op, f e1, f e2)
-  | Boolop (op, e1, e2) ->
-      Boolop (op, f e1, f e2)
-  | Comp (op, e1, e2) ->
-      Comp (op, f e1, f e2)
-  | Call (c, es) ->
-      Call (c, List.map ~f es)
-  | ArrayOp (op, es) ->
-      ArrayOp (op, List.map ~f es)
-  | TMake es ->
-      TMake (List.map ~f es)
-  | TGet (e, n) ->
-      TGet (f e, n)
-  | Fn (fn, es) ->
-      Fn (fn, List.map ~f es)
-  | Iter {s; e; body; init; inv} ->
-      Iter
-        { s= f s
-        ; e= f e
-        ; body= f body
-        ; init= f init
-        ; inv= (fun ei -> subst_typ' eo en (inv ei)) }
-  | Sum {s; e= e'; body} ->
-      Sum {s= f s; e= f e'; body= f body}
-  | RSum (s, e, t) ->
-      RSum (f s, f e, subst_typ' eo en t)
-  | DMake (es, q) ->
-      DMake (List.map ~f es, subst_qual' eo en q)
-  | DMatch (e1, ys, e2) ->
-    DMatch (f e1, ys, f e2)
-  | Map (e1, e2) ->
-      todos "subst_expr: Map"
-  | Foldl {f; acc; xs} ->
-      todos "subst_expr: Foldl"
-  | Push e ->
-      Push (f e)
-  | Pull e ->
-      Pull (f e)
-  | _ ->
-      todos "subst_expr"
+  if Poly.(eo = e) then en
+  else
+    match e with
+    | Const _ ->
+        e
+    | CPrime ->
+        e
+    | CPLen ->
+        e
+    | Var y ->
+        e
+    | LamA (y, t, body) ->
+        LamA (y, subst_typ' eo en t, f body)
+    | App (e1, e2) ->
+        App (f e1, f e2)
+    | Not e' ->
+        Not (f e')
+    | Binop (t, op, e1, e2) ->
+        Binop (t, op, f e1, f e2)
+    | Boolop (op, e1, e2) ->
+        Boolop (op, f e1, f e2)
+    | Comp (op, e1, e2) ->
+        Comp (op, f e1, f e2)
+    | Call (c, es) ->
+        Call (c, List.map ~f es)
+    | ArrayOp (op, es) ->
+        ArrayOp (op, List.map ~f es)
+    | TMake es ->
+        TMake (List.map ~f es)
+    | TGet (e, n) ->
+        TGet (f e, n)
+    | Fn (fn, es) ->
+        Fn (fn, List.map ~f es)
+    | Iter {s; e; body; init; inv} ->
+        Iter
+          { s= f s
+          ; e= f e
+          ; body= f body
+          ; init= f init
+          ; inv= (fun ei -> subst_typ' eo en (inv ei)) }
+    | Sum {s; e= e'; body} ->
+        Sum {s= f s; e= f e'; body= f body}
+    | RSum (s, e, t) ->
+        RSum (f s, f e, subst_typ' eo en t)
+    | DMake (es, q) ->
+        DMake (List.map ~f es, subst_qual' eo en q)
+    | DMatch (e1, ys, e2) ->
+        DMatch (f e1, ys, f e2)
+    | Map (e1, e2) ->
+        todos "subst_expr: Map"
+    | Foldl {f; acc; xs} ->
+        todos "subst_expr: Foldl"
+    | Push e ->
+        Push (f e)
+    | Pull e ->
+        Pull (f e)
+    | _ ->
+        todos "subst_expr"
 
 let rec skeleton = function
   | TBase tb ->
@@ -486,14 +487,21 @@ let rec skeleton = function
 
 let rec descale = function TRef (t, _) -> descale t | t -> t
 
-let rec normalize (t: typ) = 
+let rec normalize (t : typ) =
   match t with
-  | TBase tb -> TRef (TBase tb, QTrue)
-  | TFun _ -> t
-  | TArr t -> TRef (TArr (normalize t), QTrue)
-  | TTuple ts -> TRef (TTuple (List.map ts ~f:normalize), QTrue)
-  | TRef (t, q) -> 
-    (match normalize t with
-    | TRef (t, QTrue) -> TRef (t, q)
-    | TRef (t, q') -> TRef (t, QAnd (q', q))
-    | t' -> TRef (t', q))
+  | TBase tb ->
+      TRef (TBase tb, QTrue)
+  | TFun _ ->
+      t
+  | TArr t ->
+      TRef (TArr (normalize t), QTrue)
+  | TTuple ts ->
+      TRef (TTuple (List.map ts ~f:normalize), QTrue)
+  | TRef (t, q) -> (
+    match normalize t with
+    | TRef (t, QTrue) ->
+        TRef (t, q)
+    | TRef (t, q') ->
+        TRef (t, QAnd (q', q))
+    | t' ->
+        TRef (t', q) )

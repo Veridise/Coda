@@ -18,7 +18,9 @@ let cnot =
     ; inputs= [("in", tf_binary)]
     ; outputs= [("out", tnot)]
     ; dep= None
-    ; body= assert_eq out (fsub (fadd1 vin) (fmul f2 vin)) }
+    ; body=
+        fsub (fadd1 vin) (fmul f2 vin)
+    }
 
 (* XOR *)
 let txor = tfq (ind_dec nu (unint "xor" [v "a"; v "b"]))

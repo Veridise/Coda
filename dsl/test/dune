@@ -19,12 +19,15 @@
  (libraries zarith lib codegen circomlib trivial bigint)
  (modules test_codegen))
 
-
 (executable
  (name test_ast_utils)
  (libraries zarith lib codegen)
  (modules test_ast_utils))
 
+(executable
+ (name test_gates)
+ (libraries zarith lib coqgen circomlib)
+ (modules test_gates))
 
 (executable
  (name test_coqgen)

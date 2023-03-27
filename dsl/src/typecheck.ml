@@ -113,9 +113,9 @@ let add_cons cons =
 let add_assertion q = S.(modify (fun st -> {st with alpha= st.alpha @ q}))
 
 let rec subtype (t1 : typ) (t2 : typ) : unit S.t =
-  print_endline (spf "subtype: Checking %s <: %s" (show_typ t1) (show_typ t2)) ;
+  print_endline (spf "[subtype] Checking %s <: %s" (show_typ t1) (show_typ t2)) ;
   let incomp =
-    spf "subtype: incompatible types: t1 = %s   t2 = %s" (show_typ t1)
+    spf "[subtype] incompatible types: t1 = %s   t2 = %s" (show_typ t1)
       (show_typ t2)
   in
   S.(
@@ -126,7 +126,7 @@ let rec subtype (t1 : typ) (t2 : typ) : unit S.t =
           if equal_base tb1 tb2 then return ()
           else
             failwith
-              (spf "subtype: unequal base types: t1 = %s   t2 = %s"
+              (spf "[subtype] unequal base types: t1 = %s   t2 = %s"
                  (show_base tb1) (show_base tb2) )
       | TRef (t1', q1), TRef (t2', q2) ->
           let cons = CheckCons ((nu_str, t1') :: g, a, qimply q1 q2) in
@@ -141,7 +141,7 @@ let rec subtype (t1 : typ) (t2 : typ) : unit S.t =
       | TTuple ts1, TTuple ts2 ->
           if List.length ts1 = List.length ts2 then
             iterM ~f:(uncurry subtype) (List.zip_exn ts1 ts2)
-          else failwith "subtype: tuples of unequal lengths"
+          else failwith "[subtype] tuples of unequal lengths"
       | TArr t1', TArr t2' ->
           subtype t1' t2'
       | _, TTuple [t2'] -> (
@@ -152,7 +152,7 @@ let rec subtype (t1 : typ) (t2 : typ) : unit S.t =
 let rec synthesize (e : expr) : typ S.t =
   S.(
     Let_syntax.(
-      print_endline (spf "synthesize: Synthesizing type for %s" (show_expr e)) ;
+      print_endline (spf "[synthesize] Synthesizing type for %s" (show_expr e)) ;
       let f = function
         | NonDet ->
             return tf
@@ -177,13 +177,14 @@ let rec synthesize (e : expr) : typ S.t =
               | CBool _ ->
                   r tbool
               | _ ->
-                  failwith (spf "synthesize: invalid constant %s" (show_expr e))
+                  failwith
+                    (spf "[synthesize] invalid constant %s" (show_expr e))
             in
             return t
         | Var x -> (
             if String.(x = "_") then
               failwith
-                "synthesize: cannot synthesize type for ignored variable _"
+                "[synthesize] cannot synthesize type for ignored variable _"
             else
               let%bind g = get_gamma in
               match List.Assoc.find g x ~equal:String.equal with
@@ -196,7 +197,7 @@ let rec synthesize (e : expr) : typ S.t =
                         | _ ->
                             false )
                   in
-                  print_endline (spf "synthesize: Var: witnesses for %s:" x) ;
+                  print_endline (spf "[synthesize] Var: witnesses for %s:" x) ;
                   print_endline
                     (String.concat ~sep:"\n"
                        (List.map ws ~f:(fun (y, t) ->
@@ -211,7 +212,7 @@ let rec synthesize (e : expr) : typ S.t =
                   in
                   return (attaches qs t)
               | None ->
-                  failwith ("synthesize: No such variable: " ^ x) )
+                  failwith ("[synthesize] No such variable: " ^ x) )
         | Ascribe (e, t) ->
             check e t >>| fun () -> t
         | AscribeUnsafe (_, t) ->
@@ -225,7 +226,7 @@ let rec synthesize (e : expr) : typ S.t =
                 check e2 tx >> return (subst_typ x e2 tr)
             | t1 ->
                 failwith
-                  (spf "synthesize: App: not a function: %s" (show_typ t1)) )
+                  (spf "[synthesize] App: not a function: %s" (show_typ t1)) )
         | Binop (BF, _, e1, e2) ->
             check e1 tf >> check e2 tf >> return (refine_expr tf (nu =. e))
         | Binop (BZ, _, e1, e2) ->
@@ -245,7 +246,7 @@ let rec synthesize (e : expr) : typ S.t =
                     return res
                 | s1, s2 ->
                     failwith
-                      ( "synthesize: Comp: Unequal types " ^ show_typ s1
+                      ( "[synthesize] Comp: Unequal types " ^ show_typ s1
                       ^ show_typ s2 ) ) )
         | Not e' ->
             check e' tbool >> return (refine_expr tbool (nu =. e))
@@ -256,12 +257,12 @@ let rec synthesize (e : expr) : typ S.t =
                 let ctype = functionalize_circ c in
                 synthesize (dummy_apps c_name ctype args)
             | None ->
-                failwith ("synthesize: No such circuit: " ^ c_name) )
+                failwith ("[synthesize] No such circuit: " ^ c_name) )
         | Sum {s; e= e'; body= b} ->
             ignore s ;
             ignore e' ;
             ignore b ;
-            failwith "TODO: synthesize: Sum"
+            failwith "TODO: [synthesize] Sum"
             (* check s tint >>
                  check e' tint >>
                  let b' =
@@ -311,10 +312,10 @@ let rec synthesize (e : expr) : typ S.t =
             match descale t with
             | TTuple ts ->
                 if 0 <= n && n < List.length ts then return (List.nth_exn ts n)
-                else failwith "synthesize: Tuple access out of bounds"
+                else failwith "[synthesize] Tuple access out of bounds"
             | t ->
                 failwith
-                  (spf "synthesize: TGet: expect a tuple, but got: %s"
+                  (spf "[synthesize] TGet: expect a tuple, but got: %s"
                      (show_typ t) ) )
         | ArrayOp (Get, [e1; e2]) -> (
             let%bind t1 = synthesize e1 in
@@ -324,7 +325,7 @@ let rec synthesize (e : expr) : typ S.t =
                 ignore e2 ;
                 return (refine t (QExpr (nu =. e)))
             | _ ->
-                failwith "synthesize: get: not an array" )
+                failwith "[synthesize] get: not an array" )
         | ArrayOp (Cons, [e1; e2]) -> (
             let%bind t1 = synthesize e1 and t2 = synthesize e2 in
             match descale t2 with
@@ -332,12 +333,12 @@ let rec synthesize (e : expr) : typ S.t =
                 subtype t1 t2 >> return (tarr t2')
             | t2' ->
                 failwith
-                  (spf "synthesize: Cons: expect an array, but got: %s"
+                  (spf "[synthesize] Cons: expect an array, but got: %s"
                      (show_typ t2') ) )
         | ArrayOp (Take, [e1; e2]) ->
             ignore e1 ;
             ignore e2 ;
-            failwith (spf "TODO synthesize: ArrayOp (%s)" (show_aop Take))
+            failwith (spf "TODO [synthesize] ArrayOp (%s)" (show_aop Take))
             (* let t1, cs1 = f e1 in
                  match t1 with
                  | TArr (t, q, el) ->
@@ -345,11 +346,11 @@ let rec synthesize (e : expr) : typ S.t =
                      let cs2 = check d g a e2 (z_range z0 el) in
                      (TArr (t, QExpr (nu =. e), e2), cs1 @ cs2)
                  | _ ->
-                     failwith "Synthesize: take: not an array" ) *)
+                     failwith "[synthesize] take: not an array" ) *)
         | ArrayOp (Drop, [e1; e2]) ->
             ignore e1 ;
             ignore e2 ;
-            failwith (spf "TODO synthesize: ArrayOp (%s)" (show_aop Drop))
+            failwith (spf "TODO [synthesize] ArrayOp (%s)" (show_aop Drop))
             (* let t1, cs1 = f e1 in
                  match t1 with
                  | TArr (t, q, el) ->
@@ -357,11 +358,11 @@ let rec synthesize (e : expr) : typ S.t =
                      let cs2 = check d g a e2 (z_range z0 el) in
                      (TArr (t, QExpr (nu =. e), zsub el e2), cs1 @ cs2)
                  | _ ->
-                     failwith "Synthesize: drop: not an array" ) *)
+                     failwith "[synthesize] drop: not an array" ) *)
         | ArrayOp (Zip, [e1; e2]) ->
             ignore e1 ;
             ignore e2 ;
-            failwith (spf "TODO synthesize: ArrayOp (%s)" (show_aop Zip))
+            failwith (spf "TODO [synthesize] ArrayOp (%s)" (show_aop Zip))
             (* let t1, cs1 = f e1 in
                  let t2, cs2 = f e2 in
                  match (t1, t2) with
@@ -373,7 +374,7 @@ let rec synthesize (e : expr) : typ S.t =
                      failwith "zip: not an array" ) *)
         | ArrayOp (op, _) ->
             failwith
-              (spf "synthesize: ArrayOp: %s not implemented" (show_aop op))
+              (spf "[synthesize] ArrayOp: %s not implemented" (show_aop op))
             (*
     | Map (e1, e2) -> (
         let t1, cs1 = f e1 in
@@ -410,7 +411,7 @@ let rec synthesize (e : expr) : typ S.t =
       f e
       >>| fun t ->
       print_endline
-        (spf "synthesize: type for %s >>> %s\n" (show_expr e) (show_typ t)) ;
+        (spf "[synthesize] type for %s >>> %s\n" (show_expr e) (show_typ t)) ;
       t ) )
 
 and synthesize_app (t : typ) (es : expr list) : typ S.t =
@@ -429,7 +430,7 @@ and check (e : expr) (t : typ) : unit S.t =
   S.(
     Let_syntax.(
       print_endline
-        (spf "check: Checking %s has type %s" (show_expr e) (show_typ t)) ;
+        (spf "[check] Checking %s has type %s" (show_expr e) (show_typ t)) ;
       let rec f e t =
         match (e, t) with
         | Const CNil, _ -> (
@@ -457,7 +458,7 @@ and check (e : expr) (t : typ) : unit S.t =
                          (List.combine xs ys) q
                      in
                      print_endline
-                       (spf "check: DPDestr: subst'ed q: %s" (show_qual q')) ;
+                       (spf "[check] DPDestr: subst'ed q: %s" (show_qual q')) ;
                      (ts, [q'])
                  | TTuple ts ->
                      (ts, [])
@@ -483,7 +484,7 @@ and check (e : expr) (t : typ) : unit S.t =
                         (qforall "i0" z0 (len nu)
                            (subst_qual nu_str (Dsl.get nu (v "i0")) qe) ) ) )
             | _ ->
-                failwith "check: Push: expect array type" )
+                failwith "[check] Push: expect array type" )
         | _ ->
             let%bind t' = synthesize e in
             subtype t' t

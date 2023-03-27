@@ -29,52 +29,61 @@ let rec typ_to_coq (t : typ) : typing =
   let t' = normalize t in
   let subst_nu = subst_qual nu_str in
   let lift_qual q x = qual_to_coq (subst_nu (v x) q) in
-  let lift_true = fun _ -> qual_to_coq QTrue in
+  let lift_true _ = qual_to_coq QTrue in
   print_endline (spf "[typ_to_coq] %s" (show_typ t)) ;
   print_endline (spf "[typ_to_coq] Normalized: %s" (show_typ t')) ;
   match t' with
   | TRef (TBase TInt, q) when q = is_nat ->
-      {coq_typ="nat"; ref=[]}
+      {coq_typ= "nat"; ref= []}
   | TRef (TBase TInt, QAnd (q1, q2)) when q1 = is_nat ->
-      {coq_typ="nat"; ref=[lift_qual q2]}
+      {coq_typ= "nat"; ref= [lift_qual q2]}
   | TRef (TBase tb, q) ->
-      {coq_typ=base_to_coq tb; ref=[lift_qual q]}
+      {coq_typ= base_to_coq tb; ref= [lift_qual q]}
   | TRef (TArr t_elem, q) ->
-    let c = typ_to_coq t_elem in
+      let c = typ_to_coq t_elem in
       (* TODO: support nested arrays *)
       let x = fresh "x" in
-      {coq_typ = spf "(list %s)" c.coq_typ;
-      ref=
-        List.map (fun r xs -> 
-          spf "Forall (fun %s => %s) %s"
-            x
-            (r x)
-            xs) c.ref @
-            [lift_qual q]}
+      { coq_typ= spf "(list %s)" c.coq_typ
+      ; ref=
+          List.map (fun r xs -> spf "Forall (fun %s => %s) %s" x (r x) xs) c.ref
+          @ [lift_qual q] }
       (* let tbs = ts |> List.map get_base |> List.map base_to_coq in
-      (spf "%s" (String.concat " * " tbs), []) *)
+         (spf "%s" (String.concat " * " tbs), []) *)
   | TRef (TTuple ts, q) ->
-    let l = List.length ts in
-    let cs = List.map typ_to_coq ts in
+      let l = List.length ts in
+      let cs = List.map typ_to_coq ts in
       let tup_str =
         if l = 0 then "unit"
         else
-          cs |> List.map (fun (c: typing) -> c.coq_typ) 
+          cs
+          |> List.map (fun (c : typing) -> c.coq_typ)
           |> fun ss -> spf "%s" (String.concat " * " ss)
       in
       let xs_str = List.init l (fun _ -> fresh "x") in
       let xs_pat = if l = 0 then "_" else String.concat "," xs_str in
-      let xs_ref = cs |> List.mapi (fun i (c: typing) -> 
-        let x = List.nth xs_str i in
-        List.map (fun r -> r x) c.ref) |> List.concat in
-      let ref_match body tup = spf "match %s with (%s) => %s end" tup xs_pat body in
-      let ref_q = ref_match
-          (List.fold_right (fun (i,xi) -> subst_qual' (tget nu i) (v xi)) (to_numbered xs_str) q |> qual_to_coq) in
+      let xs_ref =
+        cs
+        |> List.mapi (fun i (c : typing) ->
+               let x = List.nth xs_str i in
+               List.map (fun r -> r x) c.ref )
+        |> List.concat
+      in
+      let ref_match body tup =
+        spf "match %s with (%s) => %s end" tup xs_pat body
+      in
+      let ref_q =
+        ref_match
+          ( List.fold_right
+              (fun (i, xi) -> subst_qual' (tget nu i) (v xi))
+              (to_numbered xs_str) q
+          |> qual_to_coq )
+      in
       let xs_ref_match = List.map (fun xi_ref -> ref_match xi_ref) xs_ref in
-      {coq_typ=tup_str; ref=xs_ref_match @ [ref_q]}
+      {coq_typ= tup_str; ref= xs_ref_match @ [ref_q]}
   | TFun _ ->
       todos "typ_to_coq: TFun"
-  | _ -> todos "typ_to_coq: TODO"
+  | _ ->
+      todos "typ_to_coq: TODO"
 
 and expr_to_coq (e : expr) : string =
   match e with
@@ -86,7 +95,8 @@ and expr_to_coq (e : expr) : string =
         spf "%s%%F" (Z.to_string n)
     (* TODO: sometimes need to force nat *)
     | CInt n ->
-        if Z.(n >= zero) then spf "%s%%nat" (Z.to_string n) else spf "%s%%Z" (Z.to_string n)
+        if Z.(n >= zero) then spf "%s%%nat" (Z.to_string n)
+        else spf "%s%%Z" (Z.to_string n)
     | _ ->
         todos "expr_to_coq: Const" )
   | CPrime ->

@@ -31,7 +31,7 @@ let cxor =
     ; inputs= [("a", tf_binary); ("b", tf_binary)]
     ; outputs= [("out", txor)]
     ; dep= None
-    ; body= assert_eq out (fsub (fadd a b) (fmuls [f2; a; b])) }
+    ; body= fsub (fadd a b) (fmuls [f2; a; b]) }
 
 (* AND *)
 let tand = tfq (ind_dec nu (unint "and" [v "a"; v "b"]))
@@ -42,7 +42,7 @@ let cand =
     ; inputs= [("a", tf_binary); ("b", tf_binary)]
     ; outputs= [("out", tand)]
     ; dep= None
-    ; body= assert_eq out (fmul a b) }
+    ; body= fmul a b }
 
 (* NAND *)
 let tnand = tfq (ind_dec nu (unint "nand" [v "a"; v "b"]))
@@ -53,7 +53,7 @@ let cnand =
     ; inputs= [("a", tf_binary); ("b", tf_binary)]
     ; outputs= [("out", tnand)]
     ; dep= None
-    ; body= assert_eq out (fsub f1 (fmul a b)) }
+    ; body= fsub f1 (fmul a b) }
 
 (* OR *)
 let tor = tfq (ind_dec nu (unint "or" [v "a"; v "b"]))
@@ -64,7 +64,7 @@ let cor =
     ; inputs= [("a", tf_binary); ("b", tf_binary)]
     ; outputs= [("out", tor)]
     ; dep= None
-    ; body= assert_eq out (fsub (fadd a b) (fmul a b)) }
+    ; body= fsub (fadd a b) (fmul a b) }
 
 (* NOR *)
 let tnor = tfq (ind_dec nu (unint "nor" [v "a"; v "b"]))
@@ -75,4 +75,4 @@ let cnor =
     ; inputs= [("a", tf_binary); ("b", tf_binary)]
     ; outputs= [("out", tnor)]
     ; dep= None
-    ; body= assert_eq out (fsub (fsub (fadd1 (fmul a b)) a) b) }
+    ; body= fsub (fsub (fadd1 (fmul a b)) a) b }

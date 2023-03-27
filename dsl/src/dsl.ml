@@ -169,6 +169,12 @@ let unint s es = Fn (Unint s, es)
 
 let call f es = Call (f, es)
 
+let call1 f e = call f [e]
+
+let call2 f e1 e2 = call f [e1; e2]
+
+let call3 f e1 e2 e3 = call f [e1; e2; e3]
+
 let star = NonDet
 
 let bnot e = Not e

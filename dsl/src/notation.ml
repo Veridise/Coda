@@ -32,6 +32,8 @@ let ( =. ) = eq
 
 let ( <. ) = lt
 
+let ( >. ) a b = b <. a
+
 let ( <=. ) = leq
 
 let ( @! ) = bnot

@@ -50,39 +50,38 @@ let rec typ_to_coq (t : typ) : typing =
       (* let tbs = ts |> List.map get_base |> List.map base_to_coq in
          (spf "%s" (String.concat " * " tbs), []) *)
   | TRef (TTuple ts, q) ->
-    if List.length ts = 0 then
-        {coq_typ="unit"; ref=[lift_qual q]}
-    else
-      let l = List.length ts in
-      let cs = List.map typ_to_coq ts in
-      let tup_str =
-        if l = 0 then "unit"
-        else
+      if List.length ts = 0 then {coq_typ= "unit"; ref= [lift_qual q]}
+      else
+        let l = List.length ts in
+        let cs = List.map typ_to_coq ts in
+        let tup_str =
+          if l = 0 then "unit"
+          else
+            cs
+            |> List.map (fun (c : typing) -> c.coq_typ)
+            |> fun ss -> spf "%s" (String.concat " * " ss)
+        in
+        let xs_str = List.init l (fun _ -> fresh "x") in
+        let xs_pat = if l = 0 then "_" else String.concat "," xs_str in
+        let xs_ref =
           cs
-          |> List.map (fun (c : typing) -> c.coq_typ)
-          |> fun ss -> spf "%s" (String.concat " * " ss)
-      in
-      let xs_str = List.init l (fun _ -> fresh "x") in
-      let xs_pat = if l = 0 then "_" else String.concat "," xs_str in
-      let xs_ref =
-        cs
-        |> List.mapi (fun i (c : typing) ->
-               let x = List.nth xs_str i in
-               List.map (fun r -> r x) c.ref )
-        |> List.concat
-      in
-      let ref_match body tup =
-        spf "match %s with (%s) => %s end" tup xs_pat body
-      in
-      let ref_q =
-        ref_match
-          ( List.fold_right
-              (fun (i, xi) -> subst_qual' (tget nu i) (v xi))
-              (to_numbered xs_str) q
-          |> qual_to_coq )
-      in
-      let xs_ref_match = List.map (fun xi_ref -> ref_match xi_ref) xs_ref in
-      {coq_typ= tup_str; ref= xs_ref_match @ [ref_q]}
+          |> List.mapi (fun i (c : typing) ->
+                 let x = List.nth xs_str i in
+                 List.map (fun r -> r x) c.ref )
+          |> List.concat
+        in
+        let ref_match body tup =
+          spf "match %s with (%s) => %s end" tup xs_pat body
+        in
+        let ref_q =
+          ref_match
+            ( List.fold_right
+                (fun (i, xi) -> subst_qual' (tget nu i) (v xi))
+                (to_numbered xs_str) q
+            |> qual_to_coq )
+        in
+        let xs_ref_match = List.map (fun xi_ref -> ref_match xi_ref) xs_ref in
+        {coq_typ= tup_str; ref= xs_ref_match @ [ref_q]}
   | TFun _ ->
       todos "typ_to_coq: TFun"
   | _ ->
@@ -141,6 +140,8 @@ and expr_to_coq (e : expr) : string =
       spf "[\\ %s \\]" (expr_to_coq xs)
   | Fn (ToUZ, [e]) ->
       spf "F.to_Z %s" (expr_to_coq e)
+  | Fn (ToSZ, [e]) ->
+      spf "Signed.to_Z %s" (expr_to_coq e)
   | ArrayOp (aop, [e1; e2]) -> (
     match aop with
     | Take ->
@@ -180,6 +181,7 @@ let gamma_to_coq (g : gamma) : (string * string) list * string list =
   List.rev g
   |> List.map (fun (x, t) ->
          let {coq_typ; ref} = typ_to_coq t in
+         let x = if x = "in" then "_in" else x in
          ((x, coq_typ), List.map (fun r -> r x) ref) )
   |> List.split
   |> fun (b, q) -> (b, List.concat q)

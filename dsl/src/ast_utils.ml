@@ -495,6 +495,8 @@ let rec normalize (t : typ) =
       t
   | TArr t ->
       TRef (TArr (normalize t), QTrue)
+  | TTuple [t] ->
+      normalize t
   | TTuple ts ->
       TRef (TTuple (List.map ts ~f:normalize), QTrue)
   | TRef (t, q) -> (

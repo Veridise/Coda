@@ -50,11 +50,11 @@ let is_non_trivial = function
   | _ ->
       true
 
-let filter_trivial cs = List.filter cs ~f:is_non_trivial
+let filter_nontrivial cs = List.filter cs ~f:is_non_trivial
 
 let pc (cs : cons list) ?(filter = false) : unit =
   cs
-  |> (if filter then filter_trivial else Fn.id)
+  |> (if filter then filter_nontrivial else Fn.id)
   |> List.map ~f:show_cons |> String.concat ~sep:"\n\n" |> print_endline
 
 let substs_qual (q : qual) (xe : (string * expr) list) : qual =
@@ -106,7 +106,7 @@ let get_alpha = S.(get >>| fun st -> st.alpha)
 
 let add_cons cons =
   if is_non_trivial cons then
-    print_endline (spf "New constraint\n%s\n" (show_cons cons))
+    print_endline (spf "[add_cons] New constraint\n%s\n" (show_cons cons))
   else () ;
   S.(modify (fun st -> {st with cs= st.cs @ [cons]}))
 

@@ -144,6 +144,8 @@ let rec subtype (t1 : typ) (t2 : typ) : unit S.t =
           else failwith "[subtype] tuples of unequal lengths"
       | TArr t1', TArr t2' ->
           subtype t1' t2'
+      | TTuple [t1'], _ -> (
+        try subtype t1' t2 with _ -> failwith incomp )
       | _, TTuple [t2'] -> (
         try subtype t1 t2' with _ -> failwith incomp )
       | _, _ ->

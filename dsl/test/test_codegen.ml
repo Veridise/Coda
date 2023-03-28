@@ -10,6 +10,11 @@ open Bigint.Big_less_than
 open Bigint.Big_add
 open Bigint.Big_sub
 open Bigint.Split
+open Bigint.Big_mult
+open Semaphore
+open Hydra
+open Darkforest
+open Zk_sbt
 
 let g =
   add_to_deltas []
@@ -28,7 +33,8 @@ let g =
     ; big_sub
     ; big_add_mod_p
     ; big_sub_mod_p
-    ; escalar_product ]
+    ; escalar_product
+    ; mod_prod ]
 
 let test_circuit config c =
   try codegen g config c
@@ -64,7 +70,7 @@ let _ = test_circuit [("n", 500)] c_num2bits
 
 let _ = test_circuit [("n", 200)] c_less_than
 
-(* let _ = test_circuit [("k", 500)] c_all_binary *)
+let _ = test_circuit [("n", 200)] c_greater_than
 
 let _ = test_circuit [("k", 10)] c_big_is_zero
 
@@ -91,3 +97,31 @@ let _ = test_circuit [("n", 10); ("k", 50)] big_add_mod_p
 let _ = test_circuit [("n", 10); ("k", 50)] big_sub
 
 let _ = test_circuit [("n", 10); ("k", 50)] big_sub_mod_p
+
+let _ = test_circuit [("n", 10)] mod_prod
+
+let _ = test_circuit [("n", 10); ("k", 20); ("m_out", 20)] big_mult_short_long
+
+let _ = test_circuit [("n", 10)] multi_mux_1
+
+let _ = test_circuit [("nLevels", 10)] mrkl_tree_incl_pf
+
+let _ = test_circuit [] position_switcher
+
+let _ = test_circuit [("choices", 10)] quin_selector
+
+let _ = test_circuit [] is_neg
+
+let _ = test_circuit [("n", 10)] calc_total
+
+let _ = test_circuit [("n", 10)] random
+
+let _ = test_circuit [("valueArraySize", 10)] c_in
+
+let _ = test_circuit [("valueArraySize", 10)] query
+
+let _ = test_circuit [] get_val_by_idx
+
+let _ = test_circuit [] cut_id
+
+let _ = test_circuit [] cut_st

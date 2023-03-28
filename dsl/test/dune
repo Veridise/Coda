@@ -16,7 +16,17 @@
 
 (executable
  (name test_codegen)
- (libraries zarith lib codegen circomlib trivial bigint)
+ (libraries
+  zarith
+  lib
+  codegen
+  circomlib
+  trivial
+  bigint
+  semaphore
+  hydra
+  darkforest
+  zk_sbt)
  (modules test_codegen))
 
 (executable

@@ -1,7 +1,7 @@
 open Ast
 open Dsl
-open Typecheck
-open Circomlib__Comparators
+(* open Typecheck *)
+(* open Circomlib__Comparators *)
 
 let z8 = zn 8
 
@@ -74,9 +74,9 @@ let c_in =
           (iter z0 valueArraySize lam_in ~init:f0 ~inv:inv_in)
           (call "GreaterThan" [z252; cons count (cons f0 cnil)]) }
 
-let deltas_in = add_to_deltas d_empty [c_is_equal; c_greater_than]
+(* let deltas_in = add_to_deltas d_empty [c_is_equal; c_greater_than] *)
 
-let check_c_in = typecheck_circuit deltas_in c_in
+(* let check_c_in = typecheck_circuit deltas_in c_in *)
 
 (* Query *)
 

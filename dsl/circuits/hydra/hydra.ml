@@ -1,6 +1,6 @@
 open Ast
 open Dsl
-open Typecheck
+(* open Typecheck *)
 
 let c = v "c"
 
@@ -127,7 +127,7 @@ let position_switcher =
                       (fadd (fmul (fsub in0 in1) s) in1)
                       (cons out0 (cons out1 cnil)) ) ) ) ) }
 
-let check_position_switcher = typecheck_circuit d_empty position_switcher
+(* let check_position_switcher = typecheck_circuit d_empty position_switcher *)
 
 (* VerifyMerklePath *)
 

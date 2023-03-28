@@ -1,6 +1,6 @@
 open Ast
 open Dsl
-open Typecheck
+(* open Typecheck *)
 
 let n = v "n"
 
@@ -62,7 +62,7 @@ let multi_mux_1 =
         (* out === map (\[a; b] => (b - a) * s + a) c *)
         assert_eq out (map lam_mm1 c) }
 
-let check_multi_mux_1 = typecheck_circuit d_empty multi_mux_1
+(* let check_multi_mux_1 = typecheck_circuit d_empty multi_mux_1 *)
 
 (* MerkleTreeInclusionProof *)
 

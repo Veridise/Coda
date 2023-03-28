@@ -60,8 +60,6 @@ let init_gamma (c : circuit) (args : expr list) : (string * expr) list =
 type rexpr =
   | RConst of big_int
       [@printer fun fmt c -> fprintf fmt "%s" (string_of_big_int c)]
-  | RCPrime [@printer fun fmt _ -> fprintf fmt "C.q"]
-  | RCPLen [@printer fun fmt _ -> fprintf fmt "C.k"]
   | RVar of string [@printer fun fmt x -> fprintf fmt "%s" x]
   (* unary operation *)
   | ROpp of rexpr [@printer fun fmt e -> fprintf fmt "(- %s)" (show_rexpr e)]
@@ -93,9 +91,9 @@ let rec denote_expr (e : expr) : rexpr option =
   | Const (CF i) ->
       Some (RConst i)
   | CPrime ->
-      Some RCPrime
+      None
   | CPLen ->
-      Some RCPLen
+      None
   | Var x ->
       Some (RVar x)
   | Binop (BF, op, e1, e2) -> (
@@ -170,10 +168,6 @@ let rec simplify (e : rexpr) : rexpr =
   match e with
   | RConst _ ->
       e
-  | RCPrime ->
-      e
-  | RCPLen ->
-      e
   | RVar _ ->
       e
   | ROpp e' ->
@@ -242,6 +236,8 @@ let rec get_nth_array (l : expr) (n : int) : expr =
   | _ ->
       failwith ("get_nth_array: not an array :" ^ show_expr l)
 
+let rec length_of (l : expr) : int =
+  match l with ArrayOp (Cons, [_; e2]) -> 1 + length_of e2 | _ -> 0
 (* codegen *)
 
 let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
@@ -383,6 +379,21 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
         expr_array_zip prefix g' b' d a' config e1' e2'
       in
       (g'', b'', a'', ziped_expr)
+  | ArrayOp (Length, [e]) ->
+      let g, b, a, e' = reify_expr prefix g b d a config e in
+      (g, b, a, Const (CInt (big_int_of_int (length_of e'))))
+  (* | Map (e1, e2) ->
+      let g, b, a, e2' = reify_expr prefix g b d a config e2 in
+        (* e2' is an array *)
+      let e2_out = ref [] in
+      for i = 0 to Array.length e2' - 1 do
+        let g', b', a', e1' = reify_expr prefix g b d a config e1 in
+        let g'', b'', a'', e2'' = reify_expr prefix g' b' d a' config e2'.(i) in
+        let g''', b''', a''', e1'' =
+          reify_expr prefix g'' b'' d a'' config e1'
+        in
+        e2_out := !e2_out @ [e1'']
+      done; *)
   | Iter {s; e; body; init; _} ->
       (* s: start; e: end;  [start, end) *)
       (*  it's like a for loop *)
@@ -599,10 +610,6 @@ let show_rexpr (e : rexpr) : string =
     match e with
     | RConst c ->
         string_of_big_int c
-    | RCPrime ->
-        "q"
-    | RCPLen ->
-        "k"
     | RVar x ->
         x
     | ROpp e' ->
@@ -659,10 +666,6 @@ let rec transform (e : rexpr) : arithmetic_expression =
   match e with
   | RConst c ->
       Number c
-  | RCPrime ->
-      failwith "transform: RCPrime"
-  | RCPLen ->
-      failwith "transform: RCPLen"
   | RVar x ->
       Signal x
   | ROpp e' ->
@@ -804,6 +807,11 @@ let rec initial_args_list config (inputs : signal list) : expr list =
   | (_, ty) :: inputs' ->
       type_refine config ty :: initial_args_list config inputs'
 
+(* let add_output_constraint (a : ralpha) (e: expr) (out: signal list) : ralpha =
+    for i = 0 to List.length out - 1 do
+        let (x, t) = List.nth out i in
+    done; *)
+
 (* generate r1cs from circuit *)
 let codegen (d : delta) (config : configuration) (c : circuit) : unit =
   match c with
@@ -814,9 +822,10 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
           inputs
       in
       let args = initial_args_list config inputs_without_config in
-      let g, _, a, _, _ =
+      let g, _, a, _, output_e =
         codegen_circuit args [] [] d [] config
           (Circuit {name; inputs= inputs_without_config; outputs; dep; body})
+        (* add assertion for outputs = output_e *)
       in
       let simplify_a = simplify_ralpha a in
       let transform_a = List.map transform simplify_a in
@@ -834,7 +843,7 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ; *)
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_alpha a)) ; *)
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_ralpha simplify_a)) ; *)
-      print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ;
+      (* print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ; *)
       print_endline
         (Format.sprintf "Number of R1CS constraints: %s"
            (string_of_int (List.length r1cs_a)) ) ;

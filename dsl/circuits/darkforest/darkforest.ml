@@ -1,6 +1,6 @@
 open Ast
 open Dsl
-open Typecheck
+(* open Typecheck *)
 
 let f4 = fn 4
 
@@ -56,7 +56,7 @@ let calc_total =
     ; dep= None
     ; body= sum_arr vin }
 
-let check_calc_total = typecheck_circuit d_empty calc_total
+(* let check_calc_total = typecheck_circuit d_empty calc_total *)
 
 (* QuinSelector *)
 

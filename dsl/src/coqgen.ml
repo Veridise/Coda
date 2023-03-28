@@ -4,7 +4,7 @@ open Dsl
 open Typecheck
 open Utils
 
-let nu_str_coq = "nu"
+let nu_str_coq = "v"
 
 let spf = Format.sprintf
 
@@ -83,11 +83,12 @@ let rec typ_to_coq (t : typ) : typing =
         let xs_ref_match = List.map (fun xi_ref -> ref_match xi_ref) xs_ref in
         {coq_typ= tup_str; ref= xs_ref_match @ [ref_q]}
   | TFun _ ->
-      todos "typ_to_coq: TFun"
+      todos "[typ_to_coq] TFun"
   | _ ->
-      todos "typ_to_coq: TODO"
+      todos "[typ_to_coq] TODO"
 
 and expr_to_coq (e : expr) : string =
+  print_endline (spf "[expr_to_coq] %s" (show_expr e)) ;
   match e with
   | Var x ->
       if x = "in" then "_in" else x
@@ -95,12 +96,11 @@ and expr_to_coq (e : expr) : string =
     match c with
     | CF n ->
         spf "%s%%F" (Z.to_string n)
-    (* TODO: sometimes need to force nat *)
     | CInt n ->
         if Z.(n >= zero) then spf "%s%%nat" (Z.to_string n)
         else spf "%s%%Z" (Z.to_string n)
     | _ ->
-        todos "expr_to_coq: Const" )
+        todos "[expr_to_coq] Const" )
   | CPrime ->
       "C.q"
   | CPLen ->
@@ -141,23 +141,28 @@ and expr_to_coq (e : expr) : string =
   | Fn (ToUZ, [e]) ->
       spf "F.to_Z %s" (expr_to_coq e)
   | Fn (ToSZ, [e]) ->
-      spf "Signed.to_Z %s" (expr_to_coq e)
+      spf "(Signed.to_Z %s)" (expr_to_coq e)
   | ArrayOp (aop, [e1; e2]) -> (
     match aop with
     | Take ->
-        spf "%s[:%s]" (expr_to_coq e1) (expr_to_coq e2)
+        spf "(%s[:%s])" (expr_to_coq e1) (expr_to_coq e2)
     | Get ->
-        spf "%s!%s" (expr_to_coq e1) (expr_to_coq e2)
+        spf "(%s!%s)" (expr_to_coq e1) (expr_to_coq e2)
+    | Cons ->
+        spf "(%s :: %s)" (expr_to_coq e1) (expr_to_coq e2)
     | _ ->
-        failwith (spf "expr_to_coq: %s not implemented" (show_aop aop)) )
+        failwith (spf "[expr_to_coq] ArrayOp %s not implemented" (show_aop aop))
+    )
+  | ArrayOp (Length, [e]) ->
+      spf "(length %s)" (expr_to_coq e)
   | ArrayOp (aop, _) ->
-      failwith (spf "expr_to_coq: ArrayOp %s wrong arity" (show_aop aop))
+      failwith (spf "[expr_to_coq] ArrayOp %s wrong arity" (show_aop aop))
   | TGet (e1, 0) ->
       spf "fst (%s)" (expr_to_coq e1)
   | TGet (e1, 1) ->
       spf "snd (%s)" (expr_to_coq e1)
   | _ ->
-      todos (spf "expr_to_coq: %s" (show_expr e))
+      todos (spf "[expr_to_coq] %s" (show_expr e))
 
 and qual_to_coq (q : qual) : string =
   match q with
@@ -195,7 +200,10 @@ let gamma_to_coq (g : gamma) : (string * string) list * string list =
 let alpha_to_coq (a : alpha) : string list = List.map qual_to_coq a
 
 let cons_to_coq (c : cons) : string =
-  let rename_nu subst = subst nu_str (v nu_str_coq) in
+  let rename_nu s =
+    Core.String.Search_pattern.(
+      replace_all (create nu_str) ~with_:nu_str_coq ~in_:s )
+  in
   match c with
   | CheckCons (g, a, q) ->
       let g_decl, g_ref = gamma_to_coq g in
@@ -203,9 +211,11 @@ let cons_to_coq (c : cons) : string =
         (String.concat " "
            (List.map (fun (x, t) -> spf "(%s : %s)" x t) g_decl) )
         (String.concat " -> " (g_ref @ alpha_to_coq a @ [qual_to_coq q]))
+      |> rename_nu
 
-let generate_lemmas (cs : cons list) : string =
+let generate_lemmas (Circuit c : circuit) (cs : cons list) : string =
   cs |> to_numbered
-  |> List.map (fun (i, c) ->
-         spf "Lemma _obligation%d: %s.\nProof. Admitted." i (cons_to_coq c) )
+  |> List.map (fun (i, cons) ->
+         spf "Lemma %s_obligation%d: %s.\nProof. Admitted." c.name i
+           (cons_to_coq cons) )
   |> String.concat "\n\n"

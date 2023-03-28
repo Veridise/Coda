@@ -95,7 +95,7 @@ let big_mult_short_long =
         elet "k2"
           (zsub1 (zmul z2 k))
           (* out = [*; *; ...; *] *)
-          (elet "out" (stars k2)
+          (elet "out" (Liblam.stars k2)
              (* pts = iter 0 k2 (\i v => v ++ [i]) [] *)
              (elet "pts"
                 (iter z0 k2 lam_pts ~init:cnil ~inv:inv_pts)

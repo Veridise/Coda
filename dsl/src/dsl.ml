@@ -167,6 +167,8 @@ let qlt e1 e2 = QExpr (lt e1 e2)
 
 let unint s es = Fn (Unint s, es)
 
+let zmax e1 e2 = unint "Z.max" [e1; e2]
+
 let call f es = Call (f, es)
 
 let call1 f e = call f [e]
@@ -340,22 +342,34 @@ let map e1 e2 = Map (e1, e2)
 let tarr_t_q t q = TRef (tarr t, q)
 
 (* { Array<t> | length v = k } *)
-let tarr_t_k t k = TRef (tarr t, qeq (len nu) k)
+let tarr_t_k t k = refine_expr (tarr t) (eq (len nu) k)
 
 (* { Array<t> | length v = k /\ q } *)
 let tarr_t_q_k t q k = TRef (tarr t, qand q (qeq (len nu) k))
 
 let tarr_tf = tarr_t_k tf
 
-let to_big_int (tb : base) (n : expr) (k : expr) (xs : expr) : expr =
-  let sub1 = match tb with TF -> fsub1 | TInt -> nsub1 in
-  let mul = match tb with TF -> fmul | TInt -> zmul in
-  let pow = match tb with TF -> fpow | TInt -> zpow in
-  rsum z0 (sub1 k)
-    (tfun "i" tint
-       (TRef
-          ( base tb
-          , QExpr (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))) ) ) )
+let as_le (base : expr) (xs : expr) : expr = unint "as_le" [base; xs]
+
+let as_be (base : expr) (xs : expr) : expr = unint "as_be" [base; xs]
+
+let as_le_signed (base : expr) (xs : expr) : expr =
+  unint "as_le_signed" [base; xs]
+
+let as_be_signed (base : expr) (xs : expr) : expr =
+  unint "as_be_signed" [base; xs]
+
+let as_le_f (xs : expr) : expr = unint "as_le_f" [xs]
+
+let as_be_f (xs : expr) : expr = unint "as_be_f" [xs]
+(* let sub1 = match tb with TF -> fsub1 | TInt -> nsub1 in
+   let mul = match tb with TF -> fmul | TInt -> zmul in
+   let pow = match tb with TF -> fpow | TInt -> zpow in
+   rsum z0 (sub1 k)
+     (tfun "i" tint
+        (TRef
+           ( base tb
+           , QExpr (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))) ) ) ) *)
 
 let z_range l r = TRef (tint, qand (QExpr (leq l nu)) (QExpr (leq nu r)))
 
@@ -371,10 +385,3 @@ let pull e = Pull e
 
 let circuit ?(dep = None) ~name ~inputs ~outputs ~body =
   Circuit {name; inputs; outputs; dep; body}
-
-let stars k =
-  let i = v "i" in
-  let x = v "x" in
-  let lam_stars = lama "i" tint (lama "x" (tarr_t_k tf i) (cons star x)) in
-  let inv_stars i = tarr_t_k tf i in
-  iter z0 k lam_stars cnil inv_stars

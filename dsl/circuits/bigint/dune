@@ -35,7 +35,7 @@
 
 (library
  (name bigint)
- (libraries lib)
+ (libraries lib liblam)
  (modules
   big_is_zero
   big_is_equal

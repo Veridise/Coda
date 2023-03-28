@@ -19,6 +19,13 @@
   (pps ppx_jane ppx_let ppx_deriving.show ppx_deriving.eq)))
 
 (library
+ (name liblam)
+ (libraries core lib typecheck)
+ (modules liblam)
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.eq)))
+
+(library
  (name coqgen)
  (libraries core lib typecheck)
  (modules coqgen)

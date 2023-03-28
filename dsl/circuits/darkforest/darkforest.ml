@@ -79,7 +79,7 @@ let quin_selector =
     ; dep= None
     ; body=
         elet "u0"
-          (assert_eq (call "LessThan" [z4; cons index (cons choices cnil)]) f1)
+          (assert_eq (call "LessThan" [z4; index; choices]) f1)
           (elet "rng" (gen_rng choices)
              (elet "eqs"
                 (map (lama "x" tf (call "IsEqual" [x; index])) rng)

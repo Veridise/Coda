@@ -1,6 +1,6 @@
 ; (library
 ;  (name bitify)
-;  (libraries lib)
+;  (libraries lib liblam)
 ;  (modules bitify))
 
 ; (library
@@ -20,7 +20,7 @@
 
 (library
  (name circomlib)
- (libraries lib)
+ (libraries lib liblam)
  (modules bitify comparators gates multiplexer)
  ; (modules)
  )

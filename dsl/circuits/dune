@@ -1,4 +1,4 @@
 (library
  (name trivial)
- (libraries lib)
+ (libraries lib liblam)
  (modules trivial))

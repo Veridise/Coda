@@ -33,3 +33,13 @@
  (name test_coqgen)
  (libraries zarith lib coqgen)
  (modules test_coqgen))
+
+(executable
+ (name test_zk_ml)
+ (libraries zarith lib coqgen circomlib zk_ml)
+ (modules test_zk_ml))
+
+(executable
+ (name test_zk_sql)
+ (libraries zarith lib coqgen circomlib zk_sql)
+ (modules test_zk_sql))

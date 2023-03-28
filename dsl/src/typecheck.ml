@@ -47,6 +47,8 @@ let is_non_trivial = function
       false
   | CheckCons (_, _, QImply (_, QTrue)) ->
       false
+  | CheckCons (_, _, QImply (q1, q2)) when Poly.(q1 = q2) ->
+      false
   | _ ->
       true
 
@@ -82,6 +84,8 @@ let functionalize_circ (Circuit {inputs; _} as c) : typ =
 (* type checking states: delta, gamma, and alpha are read-only, while cs is write-only *)
 type state = {delta: delta; gamma: gamma; alpha: alpha; cs: cons list}
 
+let empty : state = {delta= d_empty; gamma= g_empty; alpha= a_empty; cs= []}
+
 module S = Monads.State (struct
   type t = state
 end)
@@ -111,6 +115,12 @@ let add_cons cons =
   S.(modify (fun st -> {st with cs= st.cs @ [cons]}))
 
 let add_assertion q = S.(modify (fun st -> {st with alpha= st.alpha @ q}))
+
+let check_cons q : unit S.t =
+  S.(
+    get_gamma
+    >>= fun gamma ->
+    get_alpha >>= fun alpha -> add_cons (CheckCons (gamma, alpha, q)) )
 
 let rec subtype (t1 : typ) (t2 : typ) : unit S.t =
   print_endline (spf "[subtype] Checking %s <: %s" (show_typ t1) (show_typ t2)) ;
@@ -191,30 +201,36 @@ let rec synthesize (e : expr) : typ S.t =
               let%bind g = get_gamma in
               match List.Assoc.find g x ~equal:String.equal with
               | Some t ->
-                  let ws =
-                    List.filter g ~f:(fun (_, t) ->
-                        match t with
-                        | TRef (_, q) ->
-                            SS.mem (vars_qual q) x
-                        | _ ->
-                            false )
-                  in
-                  print_endline (spf "[synthesize] Var: witnesses for %s:" x) ;
-                  print_endline
-                    (String.concat ~sep:"\n"
-                       (List.map ws ~f:(fun (y, t) ->
-                            spf "%s : %s" y (show_typ t) ) ) ) ;
-                  let qs =
-                    List.map ws ~f:(fun (y, t) ->
-                        match t with
-                        | TRef (_, q) ->
-                            substs_qual q [(x, nu); (nu_str, v y)]
-                        | _ ->
-                            failwith "impossible" )
-                  in
-                  return (attaches qs t)
+                  return (attaches [QExpr (nu =. v x)] t)
               | None ->
-                  failwith ("[synthesize] No such variable: " ^ x) )
+                  failwith ("[synthesize] No such variable: " ^ x)
+              (* let%bind g = get_gamma in
+                 match List.Assoc.find g x ~equal:String.equal with
+                 | Some t ->
+                     let ws =
+                       List.filter g ~f:(fun (_, t) ->
+                           match t with
+                           | TRef (_, q) ->
+                               SS.mem (vars_qual q) x
+                           | _ ->
+                               false )
+                     in
+                     print_endline (spf "[synthesize] Var: witnesses for %s:" x) ;
+                     print_endline
+                       (String.concat ~sep:"\n"
+                          (List.map ws ~f:(fun (y, t) ->
+                               spf "%s : %s" y (show_typ t) ) ) ) ;
+                     let qs =
+                       List.map ws ~f:(fun (y, t) ->
+                           match t with
+                           | TRef (_, q) ->
+                               substs_qual q [(x, nu); (nu_str, v y)]
+                           | _ ->
+                               failwith "impossible" )
+                     in
+                     return (attaches qs t)
+                 | None ->
+                     failwith ("[synthesize] No such variable: " ^ x) ) *) )
         | Ascribe (e, t) ->
             check e t >>| fun () -> t
         | AscribeUnsafe (_, t) ->
@@ -328,15 +344,6 @@ let rec synthesize (e : expr) : typ S.t =
                 return (refine t (QExpr (nu =. e)))
             | _ ->
                 failwith "[synthesize] get: not an array" )
-        | ArrayOp (Cons, [e1; e2]) -> (
-            let%bind t1 = synthesize e1 and t2 = synthesize e2 in
-            match descale t2 with
-            | TArr t2' ->
-                subtype t1 t2 >> return (tarr t2')
-            | t2' ->
-                failwith
-                  (spf "[synthesize] Cons: expect an array, but got: %s"
-                     (show_typ t2') ) )
         | ArrayOp (Take, [e1; e2]) ->
             ignore e1 ;
             ignore e2 ;
@@ -434,13 +441,17 @@ and check (e : expr) (t : typ) : unit S.t =
       print_endline
         (spf "[check] Checking %s has type %s" (show_expr e) (show_typ t)) ;
       let rec f e t =
-        match (e, t) with
-        | Const CNil, _ -> (
-          match skeleton t with
-          | TArr _ as t' ->
-              subtype t t'
+        let nt = normalize t in
+        match (e, nt) with
+        | Const CNil, nt -> (
+          match nt with
+          | TRef (TArr _, q) ->
+              check_cons (qimply (QExpr (len nu =. z0)) q)
           | _ ->
               failwith (spf "Expect CNil <= %s to be an array" (show_typ t)) )
+        | ArrayOp (Cons, [e1; e2]), TRef (TArr te, q) ->
+            let%bind () = check e1 te and () = check e2 (tarr te) in
+            subtype (refine_expr (tarr te) (nu =. e)) nt
         | Lam (x, body), TFun (y, t1, t2) ->
             with_binding (x, t1) (check body (subst_typ y (v x) t2))
         | LamA (x, t, body), TFun (y, t1, t2) ->
@@ -498,10 +509,8 @@ and check (e : expr) (t : typ) : unit S.t =
           f e t ) )
 
 let init_gamma (c : circuit) : gamma =
-  let to_base_types = List.map ~f:(fun (x, t) -> (x, skeleton t)) in
-  match c with
-  | Circuit {inputs; outputs; _} ->
-      List.rev (to_base_types outputs) @ List.rev inputs
+  (* let to_base_types = List.map ~f:(fun (x, t) -> (x, skeleton t)) in *)
+  match c with Circuit {inputs; _} -> List.rev inputs
 
 let typecheck_circuit (d : delta) (c : circuit) : cons list =
   match c with

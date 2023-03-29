@@ -32,6 +32,70 @@ let root = v "root"
 
 let leaf = v "leaf"
 
+let secret = v "secret"
+
+let identityNullifier = v "identityNullifier"
+
+let identityTrapdoor = v "identityTrapdoor"
+
+let treePathIndices = v "treePathIndices"
+
+let treeSiblings = v "treeSiblings"
+
+let signalHash = v "signalHash"
+
+let externalNullifier = v "externalNullifier"
+
+let nullifierHash = v "nullifierHash"
+
+(* CalculateSecret *)
+
+let t_calc_secret =
+  tfq
+    (qeq nu
+       (call "Poseidon"
+          [z2; cons identityNullifier (cons identityTrapdoor cnil)] ) )
+
+let calc_secret =
+  Circuit
+    { name= "CalculateSecret"
+    ; inputs= [("identityNullfier", tf); ("identityTrapdoor", tf)]
+    ; outputs= [("out", t_calc_secret)]
+    ; dep= None
+    ; body=
+        call "Poseidon" [z2; cons identityNullifier (cons identityTrapdoor cnil)]
+    }
+
+(* CalculateIdentityCommitment *)
+
+let t_calc_id_commit = tfq (qeq nu (call "Poseidon" [z1; cons secret cnil]))
+
+let calc_id_commit =
+  Circuit
+    { name= "CalculateIdentityCommitment"
+    ; inputs= [("secret", tf)]
+    ; outputs= [("out", t_calc_id_commit)]
+    ; dep= None
+    ; body= call "Poseidon" [z1; cons secret cnil] }
+
+(* CalculateNullifierHash *)
+
+let t_calc_null_hash =
+  tfq
+    (qeq nu
+       (call "Poseidon"
+          [z2; cons externalNullifier (cons identityNullifier cnil)] ) )
+
+let calc_null_hash =
+  Circuit
+    { name= "CalculateNullifierHash"
+    ; inputs= [("externalNullifier", tf); ("identityNullifier", tf)]
+    ; outputs= [("out", t_calc_null_hash)]
+    ; dep= None
+    ; body=
+        call "Poseidon"
+          [z2; cons externalNullifier (cons identityNullifier cnil)] }
+
 (* { Array<F> | length v = 2 } *)
 let tarr_tf_2 = tarr_t_k tf z2
 
@@ -100,3 +164,50 @@ let mrkl_tree_incl_pf =
     ; dep= None
     ; body= elet "z" (zip pathIndices siblings) (assert_eq root (hasher z leaf))
     }
+
+(* Semaphore *)
+
+let t_semaphore_root =
+  tfq
+    (qeq nu
+       (call "MerkleTreeInclusionProof"
+          [ nLevels
+          ; call "CalculateIdentityCommitment"
+              [call "CalculateSecret" [identityNullifier; identityTrapdoor]]
+          ; treePathIndices
+          ; treeSiblings ] ) )
+
+let t_semaphore_null_hash =
+  tfq
+    (qeq nu
+       (call "CalculateNullifierHash" [externalNullifier; identityNullifier]) )
+
+let semaphore =
+  Circuit
+    { name= "Semaphore"
+    ; inputs=
+        [ ("nLevels", tnat)
+        ; ("identityNullifier", tf)
+        ; ("identityTrapdoor", tf)
+        ; ("treePathIndices", tarr_tf nLevels)
+        ; ("treeSiblings", tarr_tf nLevels)
+        ; ("signalHash", tf)
+        ; ("externalNullifier", tf) ]
+    ; outputs=
+        [("root", t_semaphore_root); ("nullifierHash", t_semaphore_null_hash)]
+    ; dep= None
+    ; body=
+        elet "secret"
+          (call "CalculateSecret" [identityNullifier; identityTrapdoor])
+          (elet "id_commit"
+             (call "CalculateIdentityCommitment" [secret])
+             (elet "u0"
+                (assert_eq nullifierHash
+                   (call "CalculateNullifierHash"
+                      [externalNullifier; identityNullifier] ) )
+                (elet "u1"
+                   (assert_eq root
+                      (call "MerkleTreeInclusionProof"
+                         [nLevels; v "id_commit"; treePathIndices; treeSiblings] ) )
+                   (assert_eq (v "signalHashSquared")
+                      (fmul signalHash signalHash) ) ) ) ) }

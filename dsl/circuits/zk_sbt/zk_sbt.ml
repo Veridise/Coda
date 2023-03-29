@@ -1,7 +1,5 @@
 open Ast
 open Dsl
-(* open Typecheck *)
-(* open Circomlib__Comparators *)
 
 let z8 = zn 8
 
@@ -46,6 +44,12 @@ let claim = v "claim"
 let valueArraySize = v "valueArraySize"
 
 let operator = v "operator"
+
+let claimsTreeRoot = v "claimsTreeRoot"
+
+let revTreeRoot = v "revTreeRoot"
+
+let rootsTreeRoot = v "rootsTreeRoot"
 
 (* IN *)
 
@@ -138,6 +142,26 @@ let get_val_by_idx =
         elet "n2b"
           (call "Num2Bits" [z8; index])
           (call "Mux3" [claim; take z3 n2b]) }
+
+(* getIdenState *)
+
+let t_get_iden_state =
+  tfq
+    (qeq nu
+       (call "Poseidon"
+          [z3; cons claimsTreeRoot (cons revTreeRoot (cons rootsTreeRoot cnil))] ) )
+
+let get_iden_state =
+  Circuit
+    { name= "getIdenState"
+    ; inputs=
+        [("claimsTreeRoot", tf); ("revTreeRoot", tf); ("rootsTreeRoot", tf)]
+    ; outputs= [("idenState", t_get_iden_state)]
+    ; dep= None
+    ; body=
+        call "Poseidon"
+          [z3; cons claimsTreeRoot (cons revTreeRoot (cons rootsTreeRoot cnil))]
+    }
 
 (* cutId *)
 

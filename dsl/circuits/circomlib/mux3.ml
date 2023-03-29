@@ -15,10 +15,9 @@ let out = v "out"
 let t_out = tfq (qeq nu (get c (toUZ (call "Bits2Num" [z3; s]))))
 
 let mux3 =
-  Circuit {
-      name = "Mux3";
-      inputs = [("c", tarr_tf z8); ("s", tarr_t_k tf_binary z3)];
-      outputs = [("out", t_out)];
-      dep = None;
-      body = star
-    }
+  Circuit
+    { name= "Mux3"
+    ; inputs= [("c", tarr_tf z8); ("s", tarr_t_k tf_binary z3)]
+    ; outputs= [("out", t_out)]
+    ; dep= None
+    ; body= star }

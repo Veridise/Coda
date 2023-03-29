@@ -1,6 +1,5 @@
 open Ast
 open Dsl
-(* open Typecheck *)
 
 let c = v "c"
 
@@ -31,6 +30,16 @@ let leaf = v "leaf"
 let root = v "root"
 
 let elem = v "elem"
+
+let secret = v "secret"
+
+let address = v "address"
+
+let message = v "message"
+
+let commitment = v "commitment"
+
+let commitmentReceipt = v "commitmentReceipt"
 
 let pathElements = v "pathElements"
 
@@ -166,6 +175,32 @@ let vrfy_mrkl_path =
           (zip pathElements pathIndices)
           (* root === hasher z leaf *)
           (assert_eq root (hasher z leaf)) }
+
+(** VerifyHydraCommitment *)
+
+let vrfy_hydra_commit =
+  Circuit
+    { name= "VerifyHydraCommitment"
+    ; inputs=
+        [ ("address", tf)
+        ; ("secret", tf)
+        ; ("commitmentMapperPubKey", tarr_tf z2)
+        ; ("commitmentReceipt", tarr_tf z3) ]
+    ; outputs= []
+    ; dep= None
+    ; body=
+        elet "commitment"
+          (call "Poseidon" [z1; cons secret cnil])
+          (elet "message"
+             (call "Poseidon" [z2; cons address (cons commitment cnil)])
+             (call "EdDSAPoseidonVerifier"
+                [ f1
+                ; get commitmentMapperPubKey z0
+                ; get commitmentMapperPubKey z1
+                ; get commitmentReceipt z2
+                ; get commitmentReceipt z0
+                ; get commitmentReceipt z1
+                ; message ] ) ) }
 
 (* hydraS1 *)
 

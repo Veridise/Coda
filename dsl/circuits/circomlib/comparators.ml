@@ -59,7 +59,7 @@ let c_less_than =
 
 (* GreaterThan *)
 
-let t_gt = tfq (ind_dec nu (lt (get vin z1) (get vin z0)))
+let t_gt = tfq (ind_dec nu (lt (toUZ (get vin z1)) (toUZ (get vin z0))))
 
 let c_greater_than =
   Circuit
@@ -68,3 +68,15 @@ let c_greater_than =
     ; outputs= [("out", t_gt)]
     ; dep= None
     ; body= call "LessThan" [n; get vin z1; get vin z0] }
+
+(* LessEqThan *)
+
+let t_leq = tfq (ind_dec nu (leq (toUZ (get vin z0)) (toUZ (get vin z1))))
+
+let c_less_eq_than =
+  Circuit
+    { name= "LessEqThan"
+    ; inputs= [("n", tnat); ("in", tarr_tf z2)]
+    ; outputs= [("out", t_leq)]
+    ; dep= None
+    ; body= call "LessThan" [n; get vin z0; fadd1 (get vin z1)] }

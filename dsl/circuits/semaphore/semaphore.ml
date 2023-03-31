@@ -59,7 +59,7 @@ let t_calc_secret =
 let calc_secret =
   Circuit
     { name= "CalculateSecret"
-    ; inputs= [("identityNullfier", tf); ("identityTrapdoor", tf)]
+    ; inputs= [("identityNullifier", tf); ("identityTrapdoor", tf)]
     ; outputs= [("out", t_calc_secret)]
     ; dep= None
     ; body=
@@ -201,13 +201,13 @@ let semaphore =
           (call "CalculateSecret" [identityNullifier; identityTrapdoor])
           (elet "id_commit"
              (call "CalculateIdentityCommitment" [secret])
-             (elet "u0"
-                (assert_eq nullifierHash
-                   (call "CalculateNullifierHash"
-                      [externalNullifier; identityNullifier] ) )
-                (elet "u1"
-                   (assert_eq root
-                      (call "MerkleTreeInclusionProof"
-                         [nLevels; v "id_commit"; treePathIndices; treeSiblings] ) )
+             (elet "signalHashSquared"
+                (fmul signalHash signalHash)
+                (elet "u"
                    (assert_eq (v "signalHashSquared")
-                      (fmul signalHash signalHash) ) ) ) ) }
+                      (fmul signalHash signalHash) )
+                   (pair
+                      (call "MerkleTreeInclusionProof"
+                         [nLevels; v "id_commit"; treePathIndices; treeSiblings] )
+                      (call "CalculateNullifierHash"
+                         [externalNullifier; identityNullifier] ) ) ) ) ) }

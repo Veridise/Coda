@@ -59,9 +59,7 @@ let q_out = qnot (qforall "i" z0 (len value) (qnot (qeq (get value i) vin)))
 let t_out = tfq (q_ind_dec nu q_out)
 
 let lam_in =
-  lama "i" tint
-    (lama "x" tf
-       (fadd x (call "IsEqual" [cons vin (cons (get value i) cnil)])) )
+  lama "i" tint (lama "x" tf (fadd x (call "IsEqual" [vin; get value i])))
 
 let inv_in i =
   tfq (qimply (qeq nu f0) (qforall "j" z0 i (qnot (qeq (get value j) vin))))
@@ -78,15 +76,11 @@ let c_in =
           (iter z0 valueArraySize lam_in ~init:f0 ~inv:inv_in)
           (call "GreaterThan" [z252; cons count (cons f0 cnil)]) }
 
-(* let deltas_in = add_to_deltas d_empty [c_is_equal; c_greater_than] *)
-
-(* let check_c_in = typecheck_circuit deltas_in c_in *)
-
 (* Query *)
 
-let is_eq x y = call "IsEqual" [cons x (cons y cnil)]
+let is_eq x y = call "IsEqual" [x; y]
 
-let is_lt x y = call "LessThan" [z252; cons x (cons y cnil)]
+let is_lt x y = call "LessThan" [z252; x; y]
 
 let is_gt x y = call "GreaterThan" [z252; cons x (cons y cnil)]
 

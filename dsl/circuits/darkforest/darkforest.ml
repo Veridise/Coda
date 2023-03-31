@@ -1,6 +1,5 @@
 open Ast
 open Dsl
-(* open Typecheck *)
 
 let f4 = fn 4
 
@@ -56,8 +55,6 @@ let calc_total =
     ; dep= None
     ; body= sum_arr vin }
 
-(* let check_calc_total = typecheck_circuit d_empty calc_total *)
-
 (* QuinSelector *)
 
 let t_qs = tfq (qimply (qlt index choices) (qeq nu (get vin index)))
@@ -74,17 +71,18 @@ let pair_mul z = map (lama "x" (tpair tf tf) (fmul (tget x 0) (tget x 1))) z
 let quin_selector =
   Circuit
     { name= "QuinSelector"
-    ; inputs= [("choices", tnat); ("in", tarr_tf choices); ("index", tf)]
+    ; inputs= [("choices", tf); ("in", tarr_tf (toUZ choices)); ("index", tf)]
     ; outputs= [("out", t_qs)]
     ; dep= None
     ; body=
         elet "u0"
           (assert_eq (call "LessThan" [z4; index; choices]) f1)
-          (elet "rng" (gen_rng choices)
+          (elet "rng"
+             (gen_rng (toUZ choices))
              (elet "eqs"
                 (map (lama "x" tf (call "IsEqual" [x; index])) rng)
                 (elet "z" (zip vin eqs)
-                   (call "CalculateTotal" [choices; pair_mul z]) ) ) ) }
+                   (call "CalculateTotal" [toUZ choices; pair_mul z]) ) ) ) }
 
 (* IsNegative *)
 
@@ -116,7 +114,8 @@ let random =
     ; dep= None
     ; body=
         elet "n2b"
-          (call "Num2Bits" [z254; call "MiMCSponge" [z3; z4; z1; vin; key]])
+          (call "Num2Bits"
+             [z254; get (call "MiMCSponge" [z3; z4; z1; vin; key]) z0] )
           (* 8 * n2b[3] + 4 * n2b[2] + 2 * n2b[1] + n2b[0] *)
           (fadd
              (fmul f8 (get n2b z3))

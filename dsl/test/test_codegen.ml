@@ -18,7 +18,7 @@ open Zk_sbt
 
 let g =
   add_to_deltas []
-    [ c_is_zero
+    [ is_zero
     ; c_is_equal
     ; c_less_than
     ; c_num2bits
@@ -62,7 +62,7 @@ let _ = test_circuit [] cor
 
 let _ = test_circuit [] cxor
 
-let _ = test_circuit [] c_is_zero
+let _ = test_circuit [] is_zero
 
 let _ = test_circuit [] c_is_equal
 

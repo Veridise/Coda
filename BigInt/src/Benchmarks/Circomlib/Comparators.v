@@ -24,7 +24,31 @@ Local Open Scope F_scope.
 
 (** ** IsZero *)
 
-Lemma IsZero_obligation0: forall (_in : F) (inv : F) (out : F) (u1 : unit) (u2 : unit) (v : F), True -> True -> True -> (out = (1%F + (0%F - (_in * inv)%F)%F)%F) -> ((_in * out)%F = 0%F) -> True -> ((v = out) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (_in = 0%F)) /\ ((v = 0%F) -> ~(_in = 0%F))))).
+Lemma IsZero_obligation0_trivial: forall (_in : F) (inv : F) (out : F) (v : F), True -> True -> True -> True -> ((v = 1%F) -> True).
+Proof. trivial. Qed.
+
+Lemma IsZero_obligation1_trivial: forall (_in : F) (inv : F) (out : F) (v : F), True -> True -> True -> True -> ((v = 0%F) -> True).
+Proof. trivial. Qed.
+
+Lemma IsZero_obligation2_trivial: forall (_in : F) (inv : F) (out : F) (v : F), True -> True -> True -> True -> ((v = _in) -> True).
+Proof. trivial. Qed.
+
+Lemma IsZero_obligation3_trivial: forall (_in : F) (inv : F) (out : F) (v : F), True -> True -> True -> True -> ((v = inv) -> True).
+Proof. trivial. Qed.
+
+Lemma IsZero_obligation4_trivial: forall (_in : F) (inv : F) (out : F) (v : F), True -> True -> True -> True -> ((v = (_in * inv)%F) -> True).
+Proof. trivial. Qed.
+
+Lemma IsZero_obligation5_trivial: forall (_in : F) (inv : F) (out : F) (v : F), True -> True -> True -> True -> ((v = (0%F - (_in * inv)%F)%F) -> True).
+Proof. trivial. Qed.
+
+Lemma IsZero_obligation6_trivial: forall (_in : F) (inv : F) (out : F) (u1 : unit) (v : F), True -> True -> True -> (out = (1%F + (0%F - (_in * inv)%F)%F)%F) -> True -> ((v = _in) -> True).
+Proof. trivial. Qed.
+
+Lemma IsZero_obligation7_trivial: forall (_in : F) (inv : F) (out : F) (u1 : unit) (v : F), True -> True -> True -> (out = (1%F + (0%F - (_in * inv)%F)%F)%F) -> True -> ((v = out) -> True).
+Proof. trivial. Qed.
+
+Lemma IsZero_obligation8: forall (_in : F) (inv : F) (out : F) (u1 : unit) (u2 : unit) (v : F), True -> True -> True -> (out = (1%F + (0%F - (_in * inv)%F)%F)%F) -> ((_in * out)%F = 0%F) -> True -> ((v = out) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (_in = 0%F)) /\ ((v = 0%F) -> ~(_in = 0%F))))).
 Proof.
   unwrap_C. intros.
   destruct (dec (_in = 0%F)).

@@ -2,7 +2,7 @@ open Core
 open Typecheck
 open Coqgen
 
-let d = add_to_deltas [] [Zk_ml.sign; Circomlib.Comparators.c_is_zero]
+let d = add_to_deltas [] [Zk_ml.sign; Circomlib.Comparators.is_zero]
 
 let d' = add_to_deltas [] [Zk_ml.is_positive]
 

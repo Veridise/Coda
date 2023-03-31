@@ -2,7 +2,7 @@ open Core
 open Typecheck
 open Coqgen
 
-let d = add_to_deltas [] Circomlib.[Comparators.c_is_zero; Gates.cnot]
+let d = add_to_deltas [] Circomlib.[Comparators.is_zero; Gates.cnot]
 
 let check_is_not_zero = Typecheck.typecheck_circuit d Zk_sql.is_not_zero
 

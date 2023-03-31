@@ -13,7 +13,7 @@ let _ =
 
 
 let _ =
-  check_is_zero |> Typecheck.filter_nontrivial |> Coqgen.generate_lemmas is_zero
+  check_is_zero |> Coqgen.generate_lemmas is_zero
   |> print_endline
       
 (* 

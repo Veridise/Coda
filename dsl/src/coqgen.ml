@@ -216,6 +216,10 @@ let cons_to_coq (c : cons) : string =
 let generate_lemmas (Circuit c : circuit) (cs : cons list) : string =
   cs |> to_numbered
   |> List.map (fun (i, cons) ->
-         spf "Lemma %s_obligation%d: %s.\nProof. Admitted." c.name i
-           (cons_to_coq cons) )
+        if Typecheck.is_non_trivial cons then
+            spf "Lemma %s_obligation%d: %s.\nProof. Admitted." c.name i
+            (cons_to_coq cons)
+        else 
+            spf "Lemma %s_obligation%d_trivial: %s.\nProof. Admitted." c.name i
+            (cons_to_coq cons) )
   |> String.concat "\n\n"

@@ -32,19 +32,25 @@ Local Open Scope F_scope.
 (add_to_delta d_empty c_is_zero) c_is_equal));; *)
 
 Lemma IsEqual_obligation0: forall (x : F) (y : F) (v : F), True -> True -> True -> ((v = x) -> True).
-Proof. Admitted.
+Proof. intuition. Qed.
 
 Lemma IsEqual_obligation1: forall (x : F) (y : F) (v : F), True -> True -> True -> ((v = y) -> True).
-Proof. Admitted.
+Proof. intuition. Qed.
 
 Lemma IsEqual_obligation2: forall (x : F) (y : F) (v : F), True -> True -> True -> ((v = (x - y)%F) -> True).
-Proof. Admitted.
+Proof. intuition. Qed.
 
 Lemma IsEqual_obligation3: forall (x : F) (y : F) (v : F), True -> True -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((x - y)%F = 0%F)) /\ ((v = 0%F) -> ~((x - y)%F = 0%F)))) -> (True -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (x = y)) /\ ((v = 0%F) -> ~(x = y))))).
-Proof. Admitted.
+Proof.
+  unwrap_C. intros. subst.
+  destruct H1 as [H1 [H1' H1'']].
+  intuit.
+  - subst. apply H1. fqsatz.
+  - fqsatz.
+Qed.
 
 Lemma IsEqual_obligation4: forall (x : F) (y : F) (v : F), True -> True -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((x - y)%F = 0%F)) /\ ((v = 0%F) -> ~((x - y)%F = 0%F)))) -> True).
-Proof. Admitted.
+Proof. intuition. Qed.
 
 (** ** LessThan *)
 

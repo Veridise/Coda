@@ -379,6 +379,9 @@ let toSZ e = Fn (ToSZ, [e])
 
 let toUZ e = Fn (ToUZ, [e])
 
+let f_range_co l r =
+  TRef (tf, qand (QExpr (leq l (toUZ nu))) (QExpr (lt (toUZ nu) r)))
+
 let push e = Push e
 
 let pull e = Pull e

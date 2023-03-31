@@ -1,7 +1,10 @@
 open Ast
 open Dsl
+open Notation
 
 let vin = v "in"
+
+let vinv = v "inv"
 
 let vout = v "out"
 
@@ -20,17 +23,19 @@ let i = v "i"
 (* IsZero *)
 let t_is_zero = tfq (ind_dec nu (eq vin f0))
 
-let c_is_zero =
+let is_zero =
   Circuit
     { name= "IsZero"
     ; inputs= [("in", tf)]
     ; outputs= [("out", t_is_zero)]
     ; dep= None
     ; body=
-        elet "inv" star
-          (elet "u1"
-             (assert_eq vout (fadd1 (fopp (fmul vin (v "inv")))))
-             (elet "u2" (assert_eq (fmul vin vout) f0) vout) ) }
+        elets
+          [ ("inv", star)
+          ; ("out", star)
+          ; ("u1", vout === f1 +% (f0 -% (vin *% vinv)))
+          ; ("u2", vin *% vout === f0) ]
+          vout }
 
 (* IsEqual *)
 let t_is_equal = tfq (ind_dec nu (eq x y))

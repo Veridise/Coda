@@ -24,6 +24,16 @@ Local Open Scope F_scope.
 
 (** ** IsZero *)
 
+Lemma IsZero_obligation0: forall (_in : F) (inv : F) (out : F) (u1 : unit) (u2 : unit) (v : F), True -> True -> True -> (out = (1%F + (0%F - (_in * inv)%F)%F)%F) -> ((_in * out)%F = 0%F) -> True -> ((v = out) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (_in = 0%F)) /\ ((v = 0%F) -> ~(_in = 0%F))))).
+Proof.
+  unwrap_C. intros.
+  destruct (dec (_in = 0%F)).
+  - subst. simplify; intuit. fqsatz.
+  - subst v. simplify; intuit. left. 
+  assert (_in <> 0) by intuit. fqsatz.
+  fqsatz.
+Qed.
+
 (* TODO *)
 
 (** ** IsEqual *)

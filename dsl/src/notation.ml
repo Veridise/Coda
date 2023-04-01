@@ -36,6 +36,8 @@ let ( >. ) a b = b <. a
 
 let ( <=. ) = leq
 
+let ( >=. ) a b = b <=. a
+
 let ( @! ) = bnot
 
 let ( @&& ) = band

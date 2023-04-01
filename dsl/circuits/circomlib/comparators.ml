@@ -12,6 +12,9 @@ let x = v "x"
 
 let y = v "y"
 
+let a = v "a"
+let b = v "b"
+
 let z = v "z"
 
 let n = v "n"
@@ -53,15 +56,15 @@ let t_lt = tfq (ind_dec nu (lt (toUZ x) (toUZ y)))
 
 let lt_n_t = attach (QExpr (nu <. CPLen -! z1)) tnat
 
-let lt_xy_t = attach (QExpr (toUZ nu <. z2 ^! n)) tf
+let input_t = attach (QExpr (toUZ nu <. z2 ^! n)) tf
 
 let less_than =
   Circuit
     { name= "LessThan"
     ; inputs=
         [ ("n", attach (QExpr (nu <. CPLen -! z1)) tnat)
-        ; ("x", lt_xy_t)
-        ; ("y", lt_xy_t) ]
+        ; ("x", input_t)
+        ; ("y", input_t) ]
     ; outputs= [("out", t_lt)]
     ; dep= None
     ; body=
@@ -71,24 +74,38 @@ let less_than =
 
 (* GreaterThan *)
 
-let t_gt = tfq (ind_dec nu (lt (toUZ (get vin z1)) (toUZ (get vin z0))))
+let t_gt = tfq (ind_dec nu ((toUZ a) >. (toUZ b)))
 
-let c_greater_than =
+let greater_than =
   Circuit
     { name= "GreaterThan"
-    ; inputs= [("n", tnat); ("in", tarr_tf z2)]
+    ; inputs= [("n", lt_n_t); ("a", input_t); ("b", input_t)]
     ; outputs= [("out", t_gt)]
     ; dep= None
-    ; body= call "LessThan" [n; get vin z1; get vin z0] }
+    ; body= call "LessThan" [n; b; a] }
 
 (* LessEqThan *)
+let t_leq = tfq (ind_dec nu ((toUZ a) <=. (toUZ b)))
 
-let t_leq = tfq (ind_dec nu (leq (toUZ (get vin z0)) (toUZ (get vin z1))))
+let input_t' = attach (QExpr (toUZ nu +! z1 <. z2 ^! n)) tf
 
-let c_less_eq_than =
+let leq =
   Circuit
     { name= "LessEqThan"
-    ; inputs= [("n", tnat); ("in", tarr_tf z2)]
+    ; inputs= [("n", lt_n_t); ("a", input_t); ("b", input_t')]
     ; outputs= [("out", t_leq)]
     ; dep= None
-    ; body= call "LessThan" [n; get vin z0; fadd1 (get vin z1)] }
+    ; body= call "LessThan" [n; a; b +% f1] }
+
+
+let t_geq = tfq (ind_dec nu ((toUZ x) >=. (toUZ y)))
+
+let input_t' = attach (QExpr (toUZ nu +! z1 <. z2 ^! n)) tf
+
+let geq =
+  Circuit
+    { name= "GreaterEqThan"
+    ; inputs= [("n", lt_n_t); ("x", input_t'); ("y", input_t)]
+    ; outputs= [("out", t_geq)]
+    ; dep= None
+    ; body= call "LessEqThan" [n; y; x] }

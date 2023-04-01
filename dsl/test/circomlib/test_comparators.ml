@@ -1,28 +1,11 @@
 open Core
+open Typecheck
 open Circomlib.Comparators
 
-let check_is_zero = Typecheck.typecheck_circuit [] is_zero
-
-let _ =
-  print_endline
-    (Format.sprintf "Number of constraints: %d\n" (List.length check_is_zero))
-
-let _ =
-  List.iter check_is_zero ~f:(fun c ->
-      print_endline @@ Typecheck.show_cons @@ c )
-
-let _ = check_is_zero |> Coqgen.generate_lemmas is_zero |> print_endline
-
-let check_lt =
-  Typecheck.typecheck_circuit
-    (Typecheck.add_to_deltas [] Circomlib.[Bitify.num2bits; Gates.cnot])
-    less_than
-
-let _ =
-  print_endline
-    (Format.sprintf "Number of constraints: %d\n" (List.length check_lt))
-
-let _ =
-  List.iter check_lt ~f:(fun c -> print_endline @@ Typecheck.show_cons @@ c)
-
-let _ = check_lt |> Coqgen.generate_lemmas less_than |> print_endline
+let test c lib = typecheck_circuit (add_to_deltas [] lib) c |> Coqgen.generate_lemmas c |> print_endline
+let _ = test is_zero []
+let _ = test is_equal [is_zero]
+let _ = test less_than Circomlib.[Bitify.num2bits; Gates.cnot]
+let _ = test greater_than [less_than]
+let _ = test leq [less_than]
+let _ = test geq [leq]

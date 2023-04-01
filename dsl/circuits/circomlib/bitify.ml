@@ -27,7 +27,7 @@ let e2 = v "e2"
 
 let n2b_inv i = ttuple [tfe (nu =. as_le_f (take vout i)); tfe (nu =. f2 ^% i)]
 
-let n2b_tout = refine (tarr tf_binary) (QExpr (as_le_f nu =. vin))
+let n2b_tout = tarr_t_q_k tf_binary (QExpr (as_le_f nu =. vin)) n
 
 let num2bits =
   circuit ~name:"Num2Bits"

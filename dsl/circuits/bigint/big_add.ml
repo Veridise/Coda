@@ -46,7 +46,7 @@ let t_n = z_range z1 (zsub1 CPLen)
 let t_n' = z_range z1 (zsub2 CPLen)
 
 (* { v : F | toUZ(v) <= 2**n - 1 } *)
-let tf_2n = tfe (leq (toUZ nu) (zsub (zpow z2 n) z1))
+let tf_2n = tfe (leq (toUZ nu) (zsub1 (zpow z2 n)))
 
 let mod_sum_three =
   Circuit
@@ -59,12 +59,11 @@ let mod_sum_three =
         elet "n2b"
           (call "Num2Bits" [zadd n z2; fadd (fadd a b) c])
           (* carry === n2b[n] + 2 * n2b[n + 1] *)
-          (elet "u0"
-             (assert_eq carry
-                (fadd (get n2b n) (fmul f2 (get n2b (zadd n z1)))) )
+          (elet "carry"
+             (fadd (get n2b n) (fmul f2 (get n2b (zadd1 n))))
              (* sum === a + b + c - carry * 2^n *)
-             (assert_eq sum
-                (fsub (fadd (fadd a b) c) (fmul carry (fpow f2 n))) ) ) }
+             (pair (fsub (fadd (fadd a b) c) (fmul carry (fpow f2 n))) carry) )
+    }
 
 let t_x = ttuple [tnat; ttuple [tf; tf]; ttuple [tf; tf]]
 
@@ -101,7 +100,7 @@ let big_add =
           (elet "x"
              (iter z0 k lam_big_add ~init:(make [cnil; f0]) ~inv:inv_big_add)
              (* out === sum ++ [carry] *)
-             (assert_eq out (concat (tget x 0) (cons (tget x 1) cnil))) ) }
+             (concat (tget x 0) (cons (tget x 1) cnil)) ) }
 
 (* BigAddModP *)
 
@@ -143,4 +142,4 @@ let big_add_mod_p =
                    (elet "u0"
                       (assert_eq (get sub k) f0)
                       (* out === take k sub *)
-                      (assert_eq out (take k sub)) ) ) ) ) }
+                      (take k sub) ) ) ) ) }

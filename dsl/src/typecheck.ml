@@ -63,24 +63,24 @@ let substs_qual (q : qual) (xe : (string * expr) list) : qual =
   List.fold_left ~f:(fun q (x, e) -> subst_qual x e q) ~init:q xe
 
 let functionalize_circ_output (Circuit {outputs; dep; _}) : typ =
-  if List.length outputs = 1 then
-    (assert (Option.is_none dep);
-    List.hd_exn outputs |> snd)
+  if List.length outputs = 1 then (
+    assert (Option.is_none dep) ;
+    List.hd_exn outputs |> snd )
   else
     let out_tuple = ttuple @@ List.map outputs ~f:snd in
-  let out_typ =
-    match dep with
-    | None ->
-        out_tuple
-    | Some q ->
-        let q' =
-          substs_qual q
-            ( outputs |> to_numbered
-            |> List.map ~f:(fun (i, (x, _)) -> (x, tget nu i)) )
-        in
-        refine out_tuple q'
-  in
-  out_typ
+    let out_typ =
+      match dep with
+      | None ->
+          out_tuple
+      | Some q ->
+          let q' =
+            substs_qual q
+              ( outputs |> to_numbered
+              |> List.map ~f:(fun (i, (x, _)) -> (x, tget nu i)) )
+          in
+          refine out_tuple q'
+    in
+    out_typ
 
 let functionalize_circ (Circuit {inputs; _} as c) : typ =
   List.fold_right ~f:(uncurry tfun) inputs ~init:(functionalize_circ_output c)
@@ -250,13 +250,15 @@ let rec synthesize (e : expr) : typ S.t =
                 failwith
                   (spf "[synthesize] App: not a function: %s" (show_typ t1)) )
         | Binop (BF, Pow, e1, e2) ->
-          check e1 tf >> check e2 tnat >> return (refine_expr tf (nu =. e))
+            check e1 tf >> check e2 tnat >> return (refine_expr tf (nu =. e))
         | Binop (BF, _, e1, e2) ->
             check e1 tf >> check e2 tf >> return (refine_expr tf (nu =. e))
         | Binop (BZ, _, e1, e2) ->
-            check e1 tint >> check e2 tint >> return (refine_expr tint (nu =. e))
+            check e1 tint >> check e2 tint
+            >> return (refine_expr tint (nu =. e))
         | Binop (BNat, _, e1, e2) ->
-          check e1 tint >> check e2 tint >> return (refine_expr tint (nu =. e))
+            check e1 tint >> check e2 tint
+            >> return (refine_expr tint (nu =. e))
         | Boolop (_, e1, e2) ->
             check e1 tbool >> check e2 tbool
             >> return (refine_expr tbool (nu =. e))

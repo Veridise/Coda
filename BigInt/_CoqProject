@@ -24,6 +24,8 @@ src/Benchmarks/Semaphore.v
 src/Benchmarks/ZKML.v
 src/Benchmarks/ZKSBT.v
 src/Benchmarks/ZKSQL.v
+src/Benchmarks/BigInt/BigAdd.v
+src/Benchmarks/BigInt/BigIsEqual.v
 src/Benchmarks/BigInt/BigIsZero.v
 src/Benchmarks/BigInt/BigLessThan.v
 src/Benchmarks/Circomlib/Bitify.v

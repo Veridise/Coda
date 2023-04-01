@@ -26,7 +26,7 @@ let _ = check_c_assert_binary |> generate_lemmas |> print_endline
 
    #use "circuits/biglessthan.ml"
    let check_big_lt = c_big_lt
-     |> typecheck_circuit (add_to_deltas d_empty [cand;cor;c_is_equal;c_less_than])
+     |> typecheck_circuit (add_to_deltas d_empty [cand;cor;is_equal;less_than])
      |> filter_trivial
 
    let _ = check_big_lt  |> generate_lemmas |> print_endline;; *)

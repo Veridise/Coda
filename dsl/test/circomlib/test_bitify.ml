@@ -1,7 +1,7 @@
 open Core
 open Circomlib.Bitify
-
-let check_n2b = Typecheck.typecheck_circuit [] num2bits
+module U = Test_utils.Utils
+(* let check_n2b = Typecheck.typecheck_circuit [] num2bits
 
 let check_b2n = Typecheck.typecheck_circuit [] bits2num
 
@@ -27,4 +27,7 @@ let _ =
 let _ =
   check_b2n |> Typecheck.filter_nontrivial
   |> Coqgen.generate_lemmas bits2num
-  |> print_endline
+  |> print_endline *)
+
+(* let _ = U.test num2bits [] *)
+let _ = U.test bits2num []

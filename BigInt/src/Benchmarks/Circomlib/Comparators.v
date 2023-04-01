@@ -226,7 +226,7 @@ Proof.
     assert (Hzn: [| z[:n] |] = [| z |]). {
       symmetry. erewrite Repr.as_le_split_last' with (i:=n).
       rewrite H3. simplify. reflexivity.
-      lia. auto. lia.
+      lia.
     }
     rewrite <- Hzn.
     applys_eq Repr.as_le_ub'.

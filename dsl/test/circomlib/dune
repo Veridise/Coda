@@ -1,9 +1,9 @@
 (executable
  (name test_comparators)
- (libraries lib typecheck coqgen circomlib)
+ (libraries lib typecheck coqgen circomlib test_utils)
  (modules test_comparators))
 
 (executable
  (name test_bitify)
- (libraries lib typecheck coqgen circomlib)
+ (libraries lib typecheck coqgen circomlib test_utils)
  (modules test_bitify))

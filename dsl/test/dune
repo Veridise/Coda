@@ -3,6 +3,11 @@
   (flags
    (:standard -warn-error -A))))
 
+(library
+ (name test_utils)
+ (libraries lib typecheck coqgen)
+ (modules utils))
+
 (executable
  (name test_monad)
  ;  (public_name test_state)

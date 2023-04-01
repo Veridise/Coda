@@ -283,13 +283,12 @@ Proof.
   rewrite firstn_skipn. auto.
 Qed.
 
-Lemma as_le_split_last : forall i ws,
+Lemma as_le_split_last' : forall i ws,
   length ws = S i ->
-  ws |: (n) ->
   [| ws |] = [| ws[:i] |] + 2^(n*i) * ws ! i.
 Proof.
   unwrap_C.
-  intros i ws Hlen Hrange. 
+  intros i ws Hlen. 
   assert (exists ws', ws = ws'). exists ws. reflexivity.
   destruct H as [ws' Hws]. pose proof Hws as Hws'.
   erewrite <- firstn_split_last with (l:=ws) (n:=i)(d:=0) in Hws; auto.
@@ -303,20 +302,13 @@ Proof.
   auto.
 Qed.
 
-Lemma as_le_split_last' : forall ws i,
-length ws = S i ->
-Forall (fun x1 => binary x1) ws ->
-n >= 1 ->
-[| ws |] = [| ws[:i] |] + 2^(n*i) * ws ! i.
+
+Lemma as_le_split_last : forall i ws,
+  length ws = S i ->
+  ws |: (n) ->
+  [| ws |] = [| ws[:i] |] + 2^(n*i) * ws ! i.
 Proof.
-  unwrap_C.
-  intros. apply as_le_split_last; try lia. eapply Forall_weaken; eauto.
-  simpl.
-  intros. apply in_range_binary in H2.
-  Set Printing All.
-  assert (2^1 <= 2^n). apply Zpow_facts.Zpower_le_monotone; lia.
-  lia.
-Qed.
+  intros. apply as_le_split_last'. lia. Qed.
 
 
 End Representation.

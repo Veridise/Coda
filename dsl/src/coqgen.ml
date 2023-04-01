@@ -220,6 +220,6 @@ let generate_lemmas (Circuit c : circuit) (cs : cons list) : string =
            spf "Lemma %s_obligation%d: %s.\nProof. Admitted." c.name i
              (cons_to_coq cons)
          else
-           spf "Lemma %s_obligation%d_trivial: %s.\nProof. Admitted." c.name i
+           spf "Lemma %s_obligation%d_trivial: %s.\nProof. intuit. Qed." c.name i
              (cons_to_coq cons) )
   |> String.concat "\n\n"

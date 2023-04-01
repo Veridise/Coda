@@ -40,7 +40,7 @@ let is_zero =
 (* IsEqual *)
 let t_is_equal = tfq (ind_dec nu (eq x y))
 
-let c_is_equal =
+let is_equal =
   Circuit
     { name= "IsEqual"
     ; inputs= [("x", tf); ("y", tf)]
@@ -51,16 +51,23 @@ let c_is_equal =
 (* LessThan *)
 let t_lt = tfq (ind_dec nu (lt (toUZ x) (toUZ y)))
 
-let c_less_than =
+let lt_n_t = attach (QExpr (nu <. CPLen -! z1)) tnat
+
+let lt_xy_t = attach (QExpr (toUZ nu <. z2 ^! n)) tf
+
+let less_than =
   Circuit
     { name= "LessThan"
-    ; inputs= [("n", tnat); ("x", tf); ("y", tf)]
+    ; inputs=
+        [ ("n", attach (QExpr (nu <. CPLen -! z1)) tnat)
+        ; ("x", lt_xy_t)
+        ; ("y", lt_xy_t) ]
     ; outputs= [("out", t_lt)]
     ; dep= None
     ; body=
         elet "z"
-          (call "Num2Bits" [nadd1 n; fadd (fsub x y) (fpow f2 n)])
-          (elet "b" (fsub1 (get z n)) (assert_eq vout (v "b"))) }
+          (call "Num2Bits" [n +. z1; x -% y +% (f2 ^% n)])
+          (call1 "Not" (get z n)) }
 
 (* GreaterThan *)
 

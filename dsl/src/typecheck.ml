@@ -63,7 +63,11 @@ let substs_qual (q : qual) (xe : (string * expr) list) : qual =
   List.fold_left ~f:(fun q (x, e) -> subst_qual x e q) ~init:q xe
 
 let functionalize_circ_output (Circuit {outputs; dep; _}) : typ =
-  let out_tuple = ttuple @@ List.map outputs ~f:snd in
+  if List.length outputs = 1 then
+    (assert (Option.is_none dep);
+    List.hd_exn outputs |> snd)
+  else
+    let out_tuple = ttuple @@ List.map outputs ~f:snd in
   let out_typ =
     match dep with
     | None ->
@@ -245,10 +249,14 @@ let rec synthesize (e : expr) : typ S.t =
             | t1 ->
                 failwith
                   (spf "[synthesize] App: not a function: %s" (show_typ t1)) )
+        | Binop (BF, Pow, e1, e2) ->
+          check e1 tf >> check e2 tnat >> return (refine_expr tf (nu =. e))
         | Binop (BF, _, e1, e2) ->
             check e1 tf >> check e2 tf >> return (refine_expr tf (nu =. e))
         | Binop (BZ, _, e1, e2) ->
-            check e1 tint >> check e2 tint >> return (refine_expr tf (nu =. e))
+            check e1 tint >> check e2 tint >> return (refine_expr tint (nu =. e))
+        | Binop (BNat, _, e1, e2) ->
+          check e1 tint >> check e2 tint >> return (refine_expr tint (nu =. e))
         | Boolop (_, e1, e2) ->
             check e1 tbool >> check e2 tbool
             >> return (refine_expr tbool (nu =. e))

@@ -148,7 +148,7 @@ Proof.
   unfold_default. apply Forall_nth; auto. lia.
 Qed.
   
-Definition f_not (x:F) := (x = 1)%F.
+Definition f_not (x:F) := (x = 0)%F.
 
 Lemma binary_not0: forall (x:F), ((x = 0 \/ x = 1) -> x <> 0 -> x = 1)%F.
 Proof. intuit. Qed.
@@ -177,14 +177,68 @@ Ltac ind x :=
     clear H1; clear H2; clear H3
   end.
 
-Lemma LessThan_obligation11: forall (n : nat) (x : F) (y : F) (z : (list F)) (v : F), (n < (C.k - 1%nat)%Z)%Z -> (F.to_Z x < (2%nat ^ n)%Z)%Z -> (F.to_Z y < (2%nat ^ n)%Z)%Z -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) z -> (((as_le_f z) = ((x - y)%F + (2%F ^ n)%F)%F) /\ ((length z) = (n + 1%nat)%nat)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (f_not (z!n))) /\ ((v = 0%F) -> ~(f_not (z!n))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (F.to_Z x < F.to_Z y)%Z) /\ ((v = 0%F) -> ~(F.to_Z x < F.to_Z y)%Z)))).
-Proof.
-  intros. unfold f_not, as_le_f in *.
-  split;
-  intuit; subst v.
-  assert (z!n = 0)%F by admit.
+Ltac assert_consequence H :=
+  match type of H with
+  | ?P -> ?Q -> ?R => assert R
+  end.
 
-Admitted.
+Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
+
+Ltac switch dst l :=
+  let H := fresh "H" in
+  match goal with
+  | [ |- ?G ] =>
+    assert (H: G <-> dst) by l;
+    apply H;
+    clear H
+  end.
+
+
+Lemma LessThan_obligation11: forall (n : nat) (x : F) (y : F) (z : (list F)) (v : F), (n <= (C.k - 1%nat)%Z)%Z -> (F.to_Z x < (2%nat ^ n)%Z)%Z -> (F.to_Z y < (2%nat ^ n)%Z)%Z -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) z -> (((as_le_f z) = ((x - y)%F + (2%F ^ n)%F)%F) /\ ((length z) = (n + 1%nat)%nat)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (f_not (z!n))) /\ ((v = 0%F) -> ~(f_not (z!n))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (F.to_Z x < F.to_Z y)%Z) /\ ((v = 0%F) -> ~(F.to_Z x < F.to_Z y)%Z)))).
+Proof.
+  unwrap_C.
+  intros. unfold f_not, as_le_f in *.
+  assert (H_pow_nk: (2 * 2^n <= 2^k)%Z). {
+      replace (2 * 2^n)%Z with (2 ^ (n + 1))%Z by (rewrite Zpower_exp; lia).
+      apply Zpow_facts.Zpower_le_monotone; lia.
+    }
+  assert (H_x_nonneg: (0 <= F.to_Z x)%Z). apply F.to_Z_range. lia.
+  assert (H_y_nonneg: (0 <= F.to_Z y)%Z). apply F.to_Z_range. lia.
+  assert (H_to_Z: ^ (x - y + (1 + 1) ^ n) = ^x - ^y + 2 ^ n). {
+    replace (x - y + 2^n)%F with (x + 2^ n - y)%F by fqsatz.
+    autorewrite with F_to_Z; try lia; repeat autorewrite with F_to_Z; simpl; try lia.
+  }
+  split; intuit; subst v.
+  (* MSB = 1 -> out = 0 -> x >= y *)
+  - assert (z!n = 1)%F. {
+      unfold_default. apply binary_not0. apply Forall_nth; eauto. lia. 
+      fold_default. intuit.
+    }
+    generalize H10. switch (^x >= ^y) lia.
+    assert (^[|z|] >= 2^n). {
+      applys_eq Repr.as_le_lb'; eauto; try lia.
+      rewrite nat_N_Z. reflexivity.
+      lia.
+      fold_default. auto.
+    }
+    apply f_equal with (f:=F.to_Z) in H6. 
+    rewrite H6, H_to_Z in *.
+    lia.
+  - (* MSB = 0 -> out = 1 -> x < y *)
+  assert ([|z|] | (n)). {
+    assert (Hzn: [| z[:n] |] = [| z |]). {
+      symmetry. erewrite Repr.as_le_split_last' with (i:=n).
+      rewrite H3. simplify. reflexivity.
+      lia. auto. lia.
+    }
+    rewrite <- Hzn.
+    applys_eq Repr.as_le_ub'.
+    repeat f_equal. rewrite firstn_length_le; lia.
+    apply Forall_firstn. auto.
+    rewrite firstn_length_le; lia.
+  }
+  apply f_equal with (f:=F.to_Z) in H6. lia.
+Qed.
 
 
 (** ** GreaterThan *)

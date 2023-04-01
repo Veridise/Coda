@@ -46,6 +46,32 @@ Proof.
   rewrite Zpower_exp; lia.
 Qed.
 
+
+Lemma binary_Z: forall x, binary x <-> ^x = 0%Z \/ ^x = 1%Z.
+Proof.
+  unfold binary;split;intros;unwrap_C.
+  - destruct H;subst;simpl;auto. right. apply Zmod_1_l. lia. 
+  - destruct H;subst;simpl;auto. 
+    + left. pose proof (@F.to_Z_0 q). rewrite <- H0 in H. apply F.eq_to_Z_iff in H;auto.
+    + right. pose proof (@F.to_Z_1 q). rewrite <- H0 in H;auto. apply F.eq_to_Z_iff in H;auto.
+Qed.
+
+Lemma leq_F_z_iff: forall x, (x <= 1 /\ x >= 0 <-> x = 0 \/ x = 1)%Z.
+Proof.
+  split; intros; lia.
+Qed.
+
+Lemma in_range_binary: forall x,  x | (1) <-> binary x.
+Proof.
+  split; intros.
+  - apply binary_Z. apply leq_F_z_iff. pose proof (F.to_Z_range x). lia.
+  - apply binary_Z in H. apply leq_F_z_iff; auto.
+Qed.
+
+Lemma Forall_in_range: forall xs, xs |: (1) <-> Forall binary xs.
+Proof. intuition; eapply Forall_weaken; try apply in_range_binary; auto.
+Qed.
+
 (* Little- and big-endian *)
 Section Endianness.
 
@@ -277,6 +303,22 @@ Proof.
   auto.
 Qed.
 
+Lemma as_le_split_last' : forall ws i,
+length ws = S i ->
+Forall (fun x1 => binary x1) ws ->
+n >= 1 ->
+[| ws |] = [| ws[:i] |] + 2^(n*i) * ws ! i.
+Proof.
+  unwrap_C.
+  intros. apply as_le_split_last; try lia. eapply Forall_weaken; eauto.
+  simpl.
+  intros. apply in_range_binary in H2.
+  Set Printing All.
+  assert (2^1 <= 2^n). apply Zpow_facts.Zpower_le_monotone; lia.
+  lia.
+Qed.
+
+
 End Representation.
 
 End Base2n.
@@ -291,30 +333,6 @@ Definition as_be2 := (as_be 1).
 
 
 
-Lemma binary_Z: forall x, binary x <-> ^x = 0%Z \/ ^x = 1%Z.
-Proof.
-  unfold binary;split;intros;unwrap_C.
-  - destruct H;subst;simpl;auto. right. apply Zmod_1_l. lia. 
-  - destruct H;subst;simpl;auto. 
-    + left. pose proof (@F.to_Z_0 q). rewrite <- H0 in H. apply F.eq_to_Z_iff in H;auto.
-    + right. pose proof (@F.to_Z_1 q). rewrite <- H0 in H;auto. apply F.eq_to_Z_iff in H;auto.
-Qed.
-
-Lemma leq_F_z_iff: forall x, (x <= 1 /\ x >= 0 <-> x = 0 \/ x = 1)%Z.
-Proof.
-  split; intros; lia.
-Qed.
-
-Lemma in_range_binary: forall x,  x | (1) <-> binary x.
-Proof.
-  split; intros.
-  - apply binary_Z. apply leq_F_z_iff. pose proof (F.to_Z_range x). lia.
-  - apply binary_Z in H. apply leq_F_z_iff; auto.
-Qed.
-
-Lemma Forall_in_range: forall xs, xs |: (1) <-> Forall binary xs.
-Proof. intuition; eapply Forall_weaken; try apply in_range_binary; auto.
-Qed.
 
 Create HintDb F_to_Z discriminated.
 Hint Rewrite (@F.to_Z_add q) : F_to_Z.
@@ -378,6 +396,16 @@ Proof.
   eapply repr_le_ub; auto. apply repr_trivial; auto.
 Qed.
 
+Definition as_le_ub := repr_le_ub'.
+
+Lemma as_le_ub': forall xs,
+Forall (fun x1 : F => x1 = 0 \/ x1 = 1) xs ->
+  length xs <= k ->
+  ^as_le 1 xs <= (2^(length xs) - 1)%Z.
+Proof.
+  intros.
+  apply as_le_ub. eapply Forall_weaken. apply in_range_binary. apply H. lia.
+Qed.
 
 Lemma Z_le_mul_pos: forall a b c,
   c > 0 ->
@@ -479,6 +507,37 @@ Proof with (lia || auto).
   repeat (autorewrite with F_to_Z; simplify; try (simpl; lia ));
   replace (1 + 1)%Z with 2%Z; try lia.
 Qed.
+
+
+Local Open Scope Z_scope.
+(* From Circom Require Import LibTactics. *)
+
+Theorem as_le_lb: forall xs (i: nat),
+  length xs <= k ->
+  xs |: (1) ->
+  i < length xs ->
+  List.nth i xs 0%F = 1%F ->
+  as_le 1 xs >=z 2^i.
+Proof.
+  intros.
+  eapply repr_le_lb.
+  eauto.
+  apply repr_trivial; intuit.
+  lia.
+  auto.
+Qed.
+Theorem as_le_lb': forall xs (i: nat),
+length xs <= k ->
+Forall (fun x1: F => binary x1) xs ->
+i < length xs ->
+List.nth i xs 0%F = 1%F ->
+as_le 1 xs >=z 2^i.
+Proof.
+  intros.
+  apply as_le_lb; try lia; auto.
+  eapply Forall_weaken. apply in_range_binary. auto.
+Qed.
+
 
 End Base2.
 End Repr.

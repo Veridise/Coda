@@ -25,7 +25,7 @@ let ab = v "ab"
 
 let total = v "total"
 
-let t_k = f_range_co z1 CPLen
+let t_k = f_range z1 CPLen
 
 (* BigIsZero *)
 let q_biz j = qforall "i" z0 j (qeq (get vin i) f0)

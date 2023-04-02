@@ -26,7 +26,7 @@ let ab = v "ab"
 
 let total = v "total"
 
-let t_k = f_range_co z1 CPLen
+let t_k = f_range z1 CPLen
 
 (* BigIsEqual *)
 let q_bie j = qforall "i" z0 j (qeq (get a i) (get b i))

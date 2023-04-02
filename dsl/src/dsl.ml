@@ -320,6 +320,8 @@ let sum es ee eb = Sum {s= es; e= ee; body= eb}
 
 let rsum s e t = RSum (s, e, t)
 
+let u_sum xs = unint "sum" [xs]
+
 let get xs i = ArrayOp (Get, [xs; i])
 
 let len xs = ArrayOp (Length, [xs])
@@ -330,13 +332,23 @@ let concat xs1 xs2 = ArrayOp (Concat, [xs1; xs2])
 
 let take n xs = ArrayOp (Take, [n; xs])
 
+let u_take n xs = unint "take" [n; xs]
+
 let drop n xs = ArrayOp (Drop, [n; xs])
+
+let u_drop n xs = unint "drop" [n; xs]
 
 let zip e1 e2 = ArrayOp (Zip, [e1; e2])
 
 let iter s e body ~init ~inv = Iter {s; e; body; init; inv}
 
 let map e1 e2 = Map (e1, e2)
+
+let make_sum xs ~len =
+  iter z0 len
+    (lama "i" tint (lama "x" tf (fadd (v "x") (get xs (v "i")))))
+    ~init:f0
+    ~inv:(fun i -> tfq (qeq nu (u_sum (u_take i xs))))
 
 (* { Array<t> | q v } *)
 let tarr_t_q t q = TRef (tarr t, q)

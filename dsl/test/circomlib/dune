@@ -1,4 +1,9 @@
 (executable
+ (name test_gates)
+ (libraries zarith lib coqgen circomlib test_utils)
+ (modules test_gates))
+
+(executable
  (name test_comparators)
  (libraries lib typecheck coqgen circomlib test_utils)
  (modules test_comparators))

@@ -1,23 +1,11 @@
 open Core
 open Typecheck
 open Coqgen
+open Zk_ml
 
-let d = add_to_deltas [] [Zk_ml.sign; Circomlib.Comparators.is_zero]
+module U = Test_utils.Utils
 
-let d' = add_to_deltas [] [Zk_ml.is_positive]
-
-let check_is_negative = Typecheck.typecheck_circuit d Zk_ml.is_negative
-
-let check_is_positive = Typecheck.typecheck_circuit d Zk_ml.is_positive
-
-let check_relu = Typecheck.typecheck_circuit d' Zk_ml.relu
-
-let check_poly = Typecheck.typecheck_circuit [] Zk_ml.poly
-
-let _ =
-  print_endline
-    (Format.sprintf "Number of constraints: %d\n" (List.length check_relu))
-
-let _ =
-  (* List.iter check_not ~f:(fun c -> print_endline @@ Typecheck.show_cons @@ c) *)
-  check_poly |> filter_nontrivial |> generate_lemmas |> print_endline
+let _ = U.test is_negative [sign; Circomlib.Comparators.is_zero]
+let _ = U.test is_positive [sign; Circomlib.Comparators.is_zero]
+let _ = U.test relu [is_positive]
+let _ = U.test poly []

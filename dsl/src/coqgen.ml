@@ -139,7 +139,7 @@ and expr_to_coq (e : expr) : string =
   | Fn (ToBigUZ, [n; xs]) ->
       spf "[\\ %s \\]" (expr_to_coq xs)
   | Fn (ToUZ, [e]) ->
-      spf "F.to_Z %s" (expr_to_coq e)
+      spf "(^ %s)" (expr_to_coq e)
   | Fn (ToSZ, [e]) ->
       spf "(Signed.to_Z %s)" (expr_to_coq e)
   | ArrayOp (aop, [e1; e2]) -> (

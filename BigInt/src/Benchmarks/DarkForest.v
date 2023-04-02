@@ -8,22 +8,18 @@
 
 (** ** QuinSelector *)
 
-(* print_endline (generate_lemmas quin_selector (typecheck_circuit
-(add_to_deltas d_empty [c_is_equal; c_less_than; calc_total])
-quin_selector));; *)
+(* print_endline (generate_lemmas quin_selector (typecheck_circuit (add_to_deltas d_empty [is_equal; less_than; calc_total]) quin_selector));; *)
 
 (* TODO *)
 
 (** IsNegative *)
 
-(* print_endline (generate_lemmas is_neg (typecheck_circuit
-(add_to_deltas d_empty [num2bits; c_sign]) is_neg));; *)
+(* print_endline (generate_lemmas is_neg (typecheck_circuit (add_to_deltas d_empty [num2bits; c_sign]) is_neg));; *)
 
 (* TODO *)
 
 (** ** Random *)
 
-(* print_endline (generate_lemmas random (typecheck_circuit
-(add_to_deltas d_empty [num2bits; mimc_sponge]) random));; *)
+(* print_endline (generate_lemmas random (typecheck_circuit (add_to_deltas d_empty [num2bits; mimc_sponge]) random));; *)
 
 (* TODO *)

@@ -59,7 +59,9 @@ let q_out = qnot (qforall "i" z0 (len value) (qnot (qeq (get value i) vin)))
 let t_out = tfq (q_ind_dec nu q_out)
 
 let lam_in =
-  lama "i" tint (lama "x" tf (elet "ise" (call "IsEqual" [vin; get value i]) (fadd x (v "ise"))))
+  lama "i" tint
+    (lama "x" tf
+       (elet "ise" (call "IsEqual" [vin; get value i]) (fadd x (v "ise"))) )
 
 let inv_in i =
   tfq (qimply (qeq nu f0) (qforall "j" z0 i (qnot (qeq (get value j) vin))))

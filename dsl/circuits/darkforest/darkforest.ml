@@ -39,13 +39,7 @@ let index = v "index"
 
 (* CalculateTotal *)
 
-let lam_sum_arr xs = lama "i" tint (lama "x" tf (fadd x (get xs i)))
-
-let rec sum_arr xs n =
-  iter z0 n (lam_sum_arr xs) ~init:f0 ~inv:(fun i ->
-      tfq (qeq nu (sum_arr (take i xs) i)) )
-
-let t_ct = tfq (qeq nu (sum_arr vin n))
+let t_ct = tfq (qeq nu (u_sum vin))
 
 let calc_total =
   Circuit
@@ -53,7 +47,7 @@ let calc_total =
     ; inputs= [("n", tnat); ("in", tarr_tf n)]
     ; outputs= [("out", t_ct)]
     ; dep= None
-    ; body= sum_arr vin n }
+    ; body= make_sum vin ~len:n }
 
 (* QuinSelector *)
 

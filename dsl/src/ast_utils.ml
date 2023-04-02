@@ -4,7 +4,7 @@ open Utils
 open Big_int_Z
 
 let show_base = function TF -> "F" | TInt -> "Z" | TBool -> "Bool"
-
+let show_quant = function Forall -> "∀" | Exists -> "∃"
 let show_binop = function
   | Add ->
       "+"
@@ -54,6 +54,8 @@ let show_aop = function
       "zip"
 
 let ppf_base ppf tb = Fmt.string ppf (show_base tb)
+
+let ppf_quant ppf q = Fmt.string ppf (show_quant q)
 
 let ppf_binop ppf op = Fmt.string ppf (show_binop op)
 
@@ -114,10 +116,12 @@ and ppf_qual ppf =
         pf ppf "(not %a)" ppf_qual q
     | QAnd (q1, q2) ->
         pf ppf "(qand %a %a)" ppf_qual q1 ppf_qual q2
+    | QOr (q1, q2) ->
+        pf ppf "(qor %a %a)" ppf_qual q1 ppf_qual q2
     | QImply (q1, q2) ->
         pf ppf "(qimply %a %a)" ppf_qual q1 ppf_qual q2
-    | QForall ((x, s, e), q) ->
-        pf ppf "(∀%a<=%s<%a. %a)" ppf_expr s x ppf_expr e ppf_qual q )
+    | QQuant (quant, (x, s, e), q) ->
+        pf ppf "(%a%a<=%s<%a. %a)" ppf_quant quant ppf_expr s x ppf_expr e ppf_qual q )
 
 and ppf_expr ppf : expr -> unit =
   Fmt.(
@@ -132,6 +136,8 @@ and ppf_expr ppf : expr -> unit =
         string ppf "C.q"
     | CPLen ->
         string ppf "C.k"
+    | EQual q ->
+        ppf_qual ppf q
     | Var x ->
         string ppf x
     | Ascribe (e, t) ->
@@ -221,8 +227,9 @@ let rec vars_typ : typ -> SS.t = function
 and vars_qual : qual -> SS.t = function
   | QExpr e ->
       vars_expr e
-  | QForall ((x, s, e), q) ->
+  | QQuant (_, (x, s, e), q) ->
       unions [except (vars_qual q) x; vars_expr s; vars_expr e]
+      
   | _ ->
       SS.empty
 
@@ -241,6 +248,7 @@ and vars_expr : expr -> SS.t = function
       SS.union (vars_expr e1) (except (vars_expr e2) x)
   | Assert (e1, e2) ->
       SS.union (vars_expr e1) (vars_expr e2)
+  | EQual q -> vars_qual q
   | Var x ->
       SS.singleton x
   | Lam (x, e) ->
@@ -313,13 +321,15 @@ and subst_qual (x : string) (e : expr) (q : qual) : qual =
       QNot (subst_qual x e q')
   | QAnd (q1, q2) ->
       QAnd (subst_qual x e q1, subst_qual x e q2)
+  | QOr (q1, q2) ->
+      QOr (subst_qual x e q1, subst_qual x e q2)
   | QImply (q1, q2) ->
       QImply (subst_qual x e q1, subst_qual x e q2)
   | QExpr e' ->
       QExpr (subst_expr x e e')
-  | QForall ((y, es, ee), q') ->
-      QForall
-        ( (y, subst_expr x e es, subst_expr x e ee)
+  | QQuant (quant, (y, es, ee), q') ->
+    QQuant
+        (quant, (y, subst_expr x e es, subst_expr x e ee)
         , if String.(x = y) then q' else subst_qual x e q' )
 
 and subst_expr (x : string) (ef : expr) (e : expr) : expr =
@@ -333,10 +343,15 @@ and subst_expr (x : string) (ef : expr) (e : expr) : expr =
       e
   | Var y ->
       if String.(x = y) then ef else e
+  | EQual q -> EQual (subst_qual x ef q)
   | LamA (y, t, body) ->
       if String.(x = y) then e else LamA (y, subst_typ x ef t, f body)
   | App (e1, e2) ->
       App (f e1, f e2)
+      | Ascribe (e, t) ->
+        Ascribe (f e, subst_typ x ef t)
+        | AscribeUnsafe (e, t) ->
+            AscribeUnsafe (f e, subst_typ x ef t)
   | Not e' ->
       Not (f e')
   | Binop (t, op, e1, e2) ->
@@ -405,12 +420,14 @@ and subst_qual' (e : expr) (e' : expr) (q : qual) : qual =
       QNot (f q')
   | QAnd (q1, q2) ->
       QAnd (f q1, f q2)
+  | QOr (q1, q2) ->
+      QOr (f q1, f q2)
   | QImply (q1, q2) ->
       QImply (f q1, f q2)
   | QExpr e0 ->
       QExpr (subst_expr' e e' e0)
-  | QForall ((y, es, ee), q') ->
-      QForall ((y, subst_expr' e e' es, subst_expr' e e' ee), f q')
+  | QQuant (quant, (y, es, ee), q') ->
+      QQuant (quant, (y, subst_expr' e e' es, subst_expr' e e' ee), f q')
 
 and subst_expr' (eo : expr) (en : expr) (e : expr) : expr =
   let f = subst_expr' eo en in
@@ -425,6 +442,8 @@ and subst_expr' (eo : expr) (en : expr) (e : expr) : expr =
         e
     | Var y ->
         e
+    | EQual q ->
+        EQual (subst_qual' eo en q)
     | LamA (y, t, body) ->
         LamA (y, subst_typ' eo en t, f body)
     | App (e1, e2) ->

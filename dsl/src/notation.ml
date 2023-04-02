@@ -30,13 +30,22 @@ let ( -. ) = nsub
 
 let ( =. ) = eq
 
+let ( ==. ) = qeq
+
+let to_q op f1 f2 = op (toUZ f1) (toUZ f2)
+
 let ( <. ) = lt
+let (<..) = to_q (<.)
 
 let ( >. ) a b = b <. a
 
+let (>..) = to_q (>.)
+
 let ( <=. ) = leq
+let ( <=.. ) = to_q (<=.)
 
 let ( >=. ) a b = b <=. a
+let ( >=.. ) = to_q (>=.)
 
 let ( @! ) = bnot
 

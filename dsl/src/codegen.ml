@@ -766,7 +766,7 @@ let rec get_length_from_qual (q : qual) config : int option =
         Some m
     | None, None ->
         None )
-  | QForall (_, q') ->
+  | QQuant (_, _, q') ->
       get_length_from_qual q' config
   | QExpr (Comp (Eq, e1, e2)) -> (
     match e1 with

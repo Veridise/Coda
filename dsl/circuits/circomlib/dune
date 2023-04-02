@@ -21,6 +21,6 @@
 (library
  (name circomlib)
  (libraries lib liblam)
- (modules bitify comparators gates mimcsponge multiplexer poseidon sign)
+ (modules bitify comparators gates mimcsponge multiplexer poseidon sign mux3)
  ; (modules)
  )

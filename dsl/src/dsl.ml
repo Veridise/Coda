@@ -9,13 +9,17 @@ let tf = base TF
 
 let tfq q = TRef (tf, q)
 
-let tfe e = TRef (tf, QExpr e)
+let lift e = QExpr e
+
+let lower q = EQual q
+
+let tfe e = TRef (tf, lift e)
 
 let tint = base TInt
 
 let tbool = base TBool
 
-let tboole e = TRef (tbool, QExpr e)
+let tboole e = TRef (tbool, lift e)
 
 (* lambda *)
 let lam x e = Lam (x, e)
@@ -54,7 +58,7 @@ let refine t q = TRef (t, q)
 
 let triv t = refine t QTrue
 
-let refine_expr t e = TRef (t, QExpr e)
+let refine_expr t e = TRef (t, lift e)
 
 let attach q = function
   | TRef (t, q') ->
@@ -159,11 +163,11 @@ let leq e1 e2 = Comp (Leq, e1, e2)
 
 let lt e1 e2 = Comp (Lt, e1, e2)
 
-let qeq e1 e2 = QExpr (eq e1 e2)
+let qeq e1 e2 = lift (eq e1 e2)
 
-let qleq e1 e2 = QExpr (leq e1 e2)
+let qleq e1 e2 = lift (leq e1 e2)
 
-let qlt e1 e2 = QExpr (lt e1 e2)
+let qlt e1 e2 = lift (lt e1 e2)
 
 let unint s es = Fn (Unint s, es)
 
@@ -190,6 +194,8 @@ let band e1 e2 = Boolop (And, e1, e2)
 let qnot q = QNot q
 
 let qand q1 q2 = QAnd (q1, q2)
+
+let qor q1 q2 = QOr (q1, q2)
 
 let qimply q1 q2 = QImply (q1, q2)
 
@@ -253,33 +259,48 @@ let btrue = Const (CBool true)
 
 let bfalse = Const (CBool false)
 
+let qtrue = QTrue
+let qfalse = lift bfalse
+
 let is_binary e = bor (eq e f0) (eq e f1)
 
 let tf_binary = tfe (is_binary nu)
 
 let binary_eq e = eq (fmul e (zsub1 e)) f0
 
-let ite e1 e2 e3 = band (imply e1 e2) (imply (bnot e1) e3)
+let ite q1 q2 q3 = qand (qimply q1 q2) (qimply (qnot q1) q3)
+
+
+let ite_expr e1 e2 e3 = ite (lift e1) (lift e2) (lift e3)
+let ites qqs q =
+  List.fold_right qqs ~f:(fun (qif, qthen) q -> ite qif qthen q) ~init:q
+let ites_expr eqs q =
+  ites (List.map eqs ~f:(fun (e,q) -> (lift e, q))) q
+
+let ors qs = List.fold_right qs ~f:(fun q q' -> qor q q') ~init:QTrue
+
+let contained_in e es = 
+  ors @@ List.map es ~f:(fun e' -> (qeq e e'))
 
 let ind e1 e2 e3 =
-  qand
-    (QExpr (is_binary e1))
-    (QExpr (band (imply (eq e1 f1) e2) (imply (eq e1 f0) e3)))
+  band (is_binary e1)
+    (band (imply (eq e1 f1) e2) (imply (eq e1 f0) e3))
 
 let q_ind e q1 q2 =
   qand
-    (QExpr (is_binary e))
+    (lift (is_binary e))
     (qand (qimply (qeq e f1) q1) (qimply (qeq e f0) q2))
 
-let ind_dec e1 e2 = ind e1 e2 (bnot e2)
+let ind_dec_expr e1 e2 = ind e1 e2 (bnot e2)
+let ind_dec e1 e2 = lift (ind e1 e2 (bnot e2))
 
 let q_ind_dec e q = q_ind e q (qnot q)
 
-let tnat = TRef (tint, QExpr (leq z0 nu))
+let tnat = TRef (tint, lift (leq z0 nu))
 
-let tnat_e e = TRef (tint, QAnd (QExpr (leq z0 nu), QExpr e))
+let tnat_e e = TRef (tint, QAnd (lift (leq z0 nu), lift e))
 
-let tpos = TRef (tint, QExpr (lt z0 nu))
+let tpos = TRef (tint, lift (lt z0 nu))
 
 let make es = TMake es
 
@@ -293,9 +314,13 @@ let snd_pair e = tget e 1
 
 let pair e1 e2 = make [e1; e2]
 
-let qforall i i0 i1 q = QForall ((i, i0, i1), q)
+let qquant quant i i0 i1 q = QQuant (quant, (i, i0, i1), q)
+let qforall = qquant Forall
+let qexists = qquant Exists
 
-let qforall_e i i0 i1 e = QForall ((i, i0, i1), QExpr e)
+
+let qforall_e i i0 i1 e = qforall i i0 i1 (lift e)
+let qexists_e i i0 i1 e = qexists i i0 i1 (lift e)
 
 let assert_eq e1 e2 = Assert (e1, e2)
 
@@ -369,25 +394,33 @@ let as_be_f (xs : expr) : expr = unint "as_be_f" [xs]
      (tfun "i" tint
         (TRef
            ( base tb
-           , QExpr (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))) ) ) ) *)
+           , lift (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))) ) ) ) *)
 
-let z_range l r = TRef (tint, qand (QExpr (leq l nu)) (QExpr (leq nu r)))
+let z_range l r = TRef (tint, qand (lift (leq l nu)) (lift (leq nu r)))
 
-let z_range_co l r = TRef (tint, qand (QExpr (leq l nu)) (QExpr (lt nu r)))
+let z_range_co l r = TRef (tint, qand (lift (leq l nu)) (lift (lt nu r)))
 
 let toSZ e = Fn (ToSZ, [e])
 
 let toUZ e = Fn (ToUZ, [e])
 
 let f_range l r =
-  TRef (tf, qand (QExpr (leq l (toUZ nu))) (QExpr (leq (toUZ nu) r)))
+  TRef (tf, qand (lift (leq l (toUZ nu))) (lift (leq (toUZ nu) r)))
 
 let f_range_co l r =
-  TRef (tf, qand (QExpr (leq l (toUZ nu))) (QExpr (lt (toUZ nu) r)))
+  TRef (tf, qand (lift (leq l (toUZ nu))) (lift (lt (toUZ nu) r)))
 
 let push e = Push e
 
 let pull e = Pull e
+
+let const_array t es =
+  AscribeUnsafe
+    ( List.fold_right es ~f:cons ~init:cnil
+    , tarr_t_q_k t
+        (List.foldi es ~init:QTrue ~f:(fun i q e ->
+             qand q (lift (eq (get nu (zn i)) e)) ) )
+        (zn @@ List.length es) )
 
 let circuit ?(dep = None) ~name ~inputs ~outputs ~body =
   Circuit {name; inputs; outputs; dep; body}

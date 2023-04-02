@@ -19,7 +19,7 @@ let out = v "out"
 let sign =
   Circuit
     { name= "Sign"
-    ; inputs= [("in", tf)]
+    ; inputs= [("in", tarr_t_k tf_binary (zc (Z.of_int 254)))]
     ; outputs= [("out", tfq (ind_dec nu (toSZ vin <. z0)))]
     ; dep= None
     ; body= unit_val }

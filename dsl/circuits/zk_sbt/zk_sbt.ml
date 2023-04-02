@@ -1,5 +1,6 @@
 open Ast
 open Dsl
+open Notation
 
 let z8 = zn 8
 
@@ -37,13 +38,15 @@ let count = v "count"
 
 let value = v "value"
 
+let v0 = get value z0
+
 let index = v "index"
 
 let claim = v "claim"
 
 let valueArraySize = v "valueArraySize"
 
-let operator = v "operator"
+let op = v "operator"
 
 let claimsTreeRoot = v "claimsTreeRoot"
 
@@ -54,7 +57,7 @@ let rootsTreeRoot = v "rootsTreeRoot"
 (* IN *)
 
 (* ~(forall 0 <= i < len value, value[i] <> in) *)
-let q_out = qnot (qforall "i" z0 (len value) (qnot (qeq (get value i) vin)))
+let q_out = qexists_e "i" z0 (len value) ((get value i) =. vin)
 
 let t_out = tfq (q_ind_dec nu q_out)
 
@@ -64,7 +67,7 @@ let lam_in =
        (elet "ise" (call "IsEqual" [vin; get value i]) (fadd x (v "ise"))) )
 
 let inv_in i =
-  tfq (qimply (qeq nu f0) (qforall "j" z0 i (qnot (qeq (get value j) vin))))
+  tfq (q_ind_dec nu (qexists_e "j" z0 i (get value j =. vin)))
 
 let c_in =
   Circuit
@@ -84,24 +87,22 @@ let is_eq x y = call "IsEqual" [x; y]
 
 let is_lt x y = call "LessThan" [z252; x; y]
 
-let is_gt x y = call "GreaterThan" [z252; cons x (cons y cnil)]
+let is_gt x y = call "GreaterThan" [z252; x; y]
 
 (* [1; e; l; g; i; 1 - i; 0; 0] *)
-let mux_query e l g i =
-  cons f1
-    (cons e
-       (cons l (cons g (cons i (cons (fsub f1 i) (cons f0 (cons f0 cnil)))))) )
+let mux_query e l g i = const_array tf [f1; e; l; g; i; f1 -% i; f0; f0]
 
 let t_out =
   tfq
-    (qeq nu
-       (call "Mux3"
-          [ mux_query
-              (is_eq vin (get value z0))
-              (is_lt vin (get value z0))
-              (is_gt vin (get value z0))
-              (call "IN" [valueArraySize; vin; value])
-          ; call "Num2Bits" [z3; operator] ] ) )
+    (ites_expr
+    [
+      (op =. fn 0, nu ==. f1);
+      (op =. fn 1, ind_dec nu (vin =. v0));
+      (op =. fn 2, ind_dec nu (vin <.. v0));
+      (op =. fn 3, ind_dec nu (vin >.. v0));
+      (op =. fn 4, q_ind_dec nu (qexists_e "j" z0 valueArraySize (get value j =. vin)));
+      (op =. fn 5, q_ind_dec nu (qnot (qexists_e "j" z0 valueArraySize (get value j =. vin))))
+    ] qfalse)
 
 let query =
   Circuit
@@ -121,7 +122,7 @@ let query =
                    (elet "in"
                       (call "IN" [valueArraySize; vin; value])
                       (elet "n2b"
-                         (call "Num2Bits" [z3; operator])
+                         (call "Num2Bits" [z3; op])
                          (call "Mux3" [mux_query eq lt gt iN; n2b]) ) ) ) ) ) }
 
 (* getValueByIndex *)

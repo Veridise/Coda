@@ -29,12 +29,15 @@ and qual =
   | QExpr of expr
   | QNot of qual
   | QAnd of qual * qual
+  | QOr of qual * qual
   | QImply of qual * qual
-  | QForall of (string * expr * expr) * qual
+  | QQuant of quant * (string * expr * expr) * qual
+and quant = Forall | Exists
 
 and expr =
   | NonDet
   | Assert of expr * expr
+  | EQual of qual
   (* const *)
   | Const of const
   | CPrime

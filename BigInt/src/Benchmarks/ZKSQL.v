@@ -16,6 +16,7 @@ Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.seto
 
 From Circom Require Import Circom Util Default Tuple ListUtil LibTactics Simplify Repr.
 From Circom.CircomLib Require Import Bitify.
+From Circom.Benchmarks Require Import DarkForest.
 
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.
@@ -51,32 +52,38 @@ Lemma CalculateTotal_obligation5_trivial: forall (n : nat) (_in : (list F)) (i :
 Proof. intuit. Qed.
 
 Lemma CalculateTotal_obligation6: forall (n : nat) (_in : (list F)) (i : nat) (x : F) (v : F), Forall (fun x6 => True) _in -> ((length _in) = n) -> (i < n) -> (x = (sum (take i _in))) -> True -> ((v = (x + (_in!i))%F) -> (v = (sum (take (i + 1%nat)%nat _in)))).
-Proof. Admitted.
+Proof.
+  unfold take; intros; subst.
+  apply sum_step; auto.
+Qed.
 
 Lemma CalculateTotal_obligation7: forall (n : nat) (_in : (list F)) (v : F), Forall (fun x7 => True) _in -> ((length _in) = n) -> True -> ((v = 0%F) -> (v = (sum (take 0%nat _in)))).
-Proof. Admitted.
+Proof. auto. Qed.
 
 Lemma CalculateTotal_obligation8: forall (n : nat) (_in : (list F)) (v : F), Forall (fun x8 => True) _in -> ((length _in) = n) -> True -> ((v = (sum (take n _in))) -> (v = (sum _in))).
-Proof. Admitted.
+Proof.
+  unfold take; intros; subst.
+  rewrite firstn_all; auto.
+Qed.
 
 (** ** SumEquals *)
 
 (* print_endline (generate_lemmas sum_equals (typecheck_circuit (add_to_deltas d_empty [is_equal; calc_total]) sum_equals));; *)
 
-Lemma SumEquals_obligation0: forall (n : nat) (nums : (list F)) (sum : F) (v : Z), Forall (fun x24 => True) nums -> ((length nums) = n) -> True -> True -> (((0%nat <= v) /\ (v = n)) -> (0%nat <= v)).
-Proof. Admitted.
-
-Lemma SumEquals_obligation1: forall (n : nat) (nums : (list F)) (sum : F) (v : (list F)), Forall (fun x25 => True) nums -> ((length nums) = n) -> True -> Forall (fun x26 => True) v -> True -> ((((length v) = n) /\ (v = nums)) -> ((length v) = n)).
-Proof. Admitted.
-
-Lemma SumEquals_obligation2_trivial: forall (n : nat) (nums : (list F)) (sum : F) (x : F) (v : F), Forall (fun x27 => True) nums -> ((length nums) = n) -> True -> (x = (sum nums)) -> True -> (((v = (sum nums)) /\ (v = x)) -> True).
+Lemma SumEquals_obligation0: forall (n : nat) (nums : (list F)) (s : F) (v : Z), Forall (fun x0 => True) nums -> ((length nums) = n) -> True -> True -> (((0%nat <= v) /\ (v = n)) -> (0%nat <= v)).
 Proof. intuit. Qed.
 
-Lemma SumEquals_obligation3_trivial: forall (n : nat) (nums : (list F)) (sum : F) (x : F) (v : F), Forall (fun x28 => True) nums -> ((length nums) = n) -> True -> (x = (sum nums)) -> True -> ((v = sum) -> True).
+Lemma SumEquals_obligation1: forall (n : nat) (nums : (list F)) (s : F) (v : (list F)), Forall (fun x1 => True) nums -> ((length nums) = n) -> True -> Forall (fun x2 => True) v -> True -> ((((length v) = n) /\ (v = nums)) -> ((length v) = n)).
 Proof. intuit. Qed.
 
-Lemma SumEquals_obligation4: forall (n : nat) (nums : (list F)) (sum : F) (x : F) (v : F), Forall (fun x29 => True) nums -> ((length nums) = n) -> True -> (x = (sum nums)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (x = sum)) /\ ((v = 0%F) -> ~(x = sum)))) -> ((v = 0%F) \/ (v = 1%F))).
-Proof. Admitted.
+Lemma SumEquals_obligation2_trivial: forall (n : nat) (nums : (list F)) (s : F) (x : F) (v : F), Forall (fun x3 => True) nums -> ((length nums) = n) -> True -> (x = (sum nums)) -> True -> (((v = (sum nums)) /\ (v = x)) -> True).
+Proof. intuit. Qed.
+
+Lemma SumEquals_obligation3_trivial: forall (n : nat) (nums : (list F)) (s : F) (x : F) (v : F), Forall (fun x4 => True) nums -> ((length nums) = n) -> True -> (x = (sum nums)) -> True -> ((v = s) -> True).
+Proof. intuit. Qed.
+
+Lemma SumEquals_obligation4: forall (n : nat) (nums : (list F)) (s : F) (x : F) (v : F), Forall (fun x5 => True) nums -> ((length nums) = n) -> True -> (x = (sum nums)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (x = s)) /\ ((v = 0%F) -> ~(x = s)))) -> ((v = 0%F) \/ (v = 1%F))).
+Proof. intuit. Qed.
 
 (** ** IsNotZero *)
 

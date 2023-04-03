@@ -1,5 +1,30 @@
 (** * DSL benchmark: Hydra-S1 ZKPS *)
 
+Require Import Coq.Lists.List.
+Require Import Coq.micromega.Lia.
+Require Import Coq.Init.Peano.
+Require Import Coq.Arith.PeanoNat.
+Require Import Coq.Arith.Compare_dec.
+Require Import Coq.PArith.BinPosDef.
+Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Znumtheory Coq.NArith.NArith. (* import Zdiv before Znumtheory *)
+Require Import Coq.NArith.Nnat.
+
+Require Import Crypto.Spec.ModularArithmetic.
+Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
+Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
+Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
+
+From Circom Require Import Circom Util Default Tuple ListUtil LibTactics Simplify Repr.
+
+Local Coercion N.of_nat : nat >-> N.
+Local Coercion Z.of_nat : nat >-> Z.
+
+Local Open Scope list_scope.
+Local Open Scope F_scope.
+Local Open Scope Z_scope.
+Local Open Scope circom_scope.
+Local Open Scope tuple_scope.
+
 (** ** PositionSwitcher *)
 
 (* print_endline (generate_lemmas position_switcher (typecheck_circuit d_empty position_switcher));; *)
@@ -68,7 +93,13 @@ Lemma PositionSwitcher_obligation20_trivial: forall (_in : (list F)) (s : F) (_ 
 Proof. intuit. Qed.
 
 Lemma PositionSwitcher_obligation21: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : (list F)), Forall (fun x22 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> Forall (fun x23 => True) v -> True -> ((v = (out0 :: (out1 :: nil))) -> ((((s = 0%F) \/ (s = 1%F)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> (((2%nat <= (length _in)) /\ (2%nat <= (length v))) /\ (((v!0%nat) = (_in!1%nat)) /\ ((v!1%nat) = (_in!0%nat))))) /\ ((s = 0%F) -> (((2%nat <= (length _in)) /\ (2%nat <= (length v))) /\ (((v!0%nat) = (_in!0%nat)) /\ ((v!1%nat) = (_in!1%nat)))))))) /\ ((length v) = 2%nat))).
-Proof. Admitted.
+Proof.
+  unwrap_C; intuit; subst;
+    simpl in *; try lia; try fqsatz;
+    destruct _in; simpl; try reflexivity;
+    simpl_default; try (simpl in *; lia);
+    try fqsatz.
+Qed.
 
 Lemma PositionSwitcher_obligation22_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : F), Forall (fun x24 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> True -> (True -> True).
 Proof. intuit. Qed.
@@ -84,7 +115,9 @@ Proof. intuit. Qed.
 (* print_endline (generate_lemmas vrfy_hydra_commit (typecheck_circuit (add_to_deltas d_empty [poseidon; vrfy_eddsa_poseidon]) vrfy_hydra_commit));; *)
 
 Lemma VerifyHydraCommitment_obligation0: forall (address : F) (secret : F) (commitmentMapperPubKey : (list F)) (commitmentReceipt : (list F)) (v : Z), True -> True -> Forall (fun x25 => True) commitmentMapperPubKey -> ((length commitmentMapperPubKey) = 2%nat) -> Forall (fun x26 => True) commitmentReceipt -> ((length commitmentReceipt) = 3%nat) -> True -> ((v = 1%nat) -> (0%nat <= v)).
-Proof. Admitted.
+Proof.
+  intuit; subst; lia.
+Qed.
 
 Lemma VerifyHydraCommitment_obligation1_trivial: forall (address : F) (secret : F) (commitmentMapperPubKey : (list F)) (commitmentReceipt : (list F)) (v : F), True -> True -> Forall (fun x27 => True) commitmentMapperPubKey -> ((length commitmentMapperPubKey) = 2%nat) -> Forall (fun x28 => True) commitmentReceipt -> ((length commitmentReceipt) = 3%nat) -> True -> ((v = secret) -> True).
 Proof. intuit. Qed.
@@ -93,7 +126,9 @@ Lemma VerifyHydraCommitment_obligation2_trivial: forall (address : F) (secret : 
 Proof. intuit. Qed.
 
 Lemma VerifyHydraCommitment_obligation3: forall (address : F) (secret : F) (commitmentMapperPubKey : (list F)) (commitmentReceipt : (list F)) (v : (list F)), True -> True -> Forall (fun x31 => True) commitmentMapperPubKey -> ((length commitmentMapperPubKey) = 2%nat) -> Forall (fun x32 => True) commitmentReceipt -> ((length commitmentReceipt) = 3%nat) -> Forall (fun x33 => True) v -> True -> ((v = (secret :: nil)) -> ((length v) = 1%nat)).
-Proof. Admitted.
+Proof.
+  intuit; subst; reflexivity.
+Qed.
 
 Lemma VerifyHydraCommitment_obligation4_trivial: forall (address : F) (secret : F) (commitmentMapperPubKey : (list F)) (commitmentReceipt : (list F)) (v : F), True -> True -> Forall (fun x34 => True) commitmentMapperPubKey -> ((length commitmentMapperPubKey) = 2%nat) -> Forall (fun x35 => True) commitmentReceipt -> ((length commitmentReceipt) = 3%nat) -> True -> (True -> True).
 Proof. intuit. Qed.

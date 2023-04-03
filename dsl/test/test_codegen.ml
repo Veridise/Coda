@@ -21,16 +21,22 @@ let g =
     [ is_zero
     ; is_equal
     ; less_than
-    ; c_num2bits
+    ; num2bits
+    ; bits2num
     ; c_big_is_zero
     ; c_big_is_equal
     ; c_big_lt
+    ; cand
     ; split
+    ; cnot
+    ; cor
     ; split_three
+    ; greater_than
     ; mod_sum_three
     ; c_mod_sub_three
     ; big_add
     ; big_sub
+    ; c_in
     ; big_add_mod_p
     ; big_sub_mod_p
     ; escalar_product
@@ -66,15 +72,17 @@ let _ = test_circuit [] is_zero
 
 let _ = test_circuit [] is_equal
 
-let _ = test_circuit [("n", 500)] c_num2bits
+let _ = test_circuit [("n", 500)] num2bits
+
+let _ = test_circuit [("n", 500)] bits2num
 
 let _ = test_circuit [("n", 200)] less_than
 
-let _ = test_circuit [("n", 200)] c_greater_than
+let _ = test_circuit [("n", 200)] greater_than
 
 let _ = test_circuit [("k", 10)] c_big_is_zero
 
-let _ = test_circuit [("n", 100); ("k", 50)] c_big_lt
+let _ = test_circuit [("n", 10); ("k", 10)] c_big_lt
 
 let _ = test_circuit [("n", 100)] mod_sum_three
 

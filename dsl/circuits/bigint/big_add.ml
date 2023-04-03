@@ -1,7 +1,8 @@
-(** Benchmarks ModSumThree and BigAdd *)
+(** Benchmarks ModSumThree, BigAdd, BigAddModP *)
 
 open Ast
 open Dsl
+open Notation
 
 let n = v "n"
 
@@ -41,29 +42,27 @@ let ab = v "ab"
 
 let out = v "out"
 
-let t_n = z_range z1 (zsub1 CPLen)
-
-let t_n' = z_range z1 (zsub2 CPLen)
+let t_n = attach (lift (nu <=. CPLen -! z1)) tnat
 
 (* { v : F | toUZ(v) <= 2**n - 1 } *)
-let tf_2n = tfe (leq (toUZ nu) (zsub1 (zpow z2 n)))
+let tf_2n = tfe (toUZ nu <=. (z2 ^! n) -! z1)
 
 let mod_sum_three =
   Circuit
     { name= "ModSumThree"
     ; inputs= [("n", t_n); ("a", tf_2n); ("b", tf_2n); ("c", tf_binary)]
     ; outputs= [("sum", tf_2n); ("carry", tf_binary)]
-    ; dep= Some (qeq (fadd sum (fmul carry (fpow f2 n))) (fadd (fadd a b) c))
+    ; dep= Some (sum +% ((f2 ^% n) *% carry) ==. a +% b +% c)
     ; body=
-        (* n2b = #Num2Bits (n + 2) (a + b + c) *)
+        (* n2b = #Num2Bits (n + 1) (a + b + c) *)
         elet "n2b"
-          (call "Num2Bits" [zadd n z2; fadd (fadd a b) c])
-          (* carry === n2b[n] + 2 * n2b[n + 1] *)
-          (elet "carry"
-             (fadd (get n2b n) (fmul f2 (get n2b (zadd1 n))))
-             (* sum === a + b + c - carry * 2^n *)
-             (pair (fsub (fadd (fadd a b) c) (fmul carry (fpow f2 n))) carry) )
-    }
+          (call2 "Num2Bits" (n +. z1) (a +% b +% c))
+          (elets
+             [ (* carry = N2B.out[n] *)
+               ("carry", get n2b n)
+             ; (* sum === a + b + c - carry * 2^n *)
+               ("sum", a +% b +% c -% (carry *% (f2 ^% n))) ]
+             (pair sum carry) ) }
 
 let t_x = ttuple [tnat; ttuple [tf; tf]; ttuple [tf; tf]]
 
@@ -111,6 +110,8 @@ let q_add_mod_p = qeq (toUZ nu) (zmod (zadd (toUZ a) (toUZ b)) (toUZ p))
 let t_big_int_lt_p k = tarr_t_q_k tf_2n q_lt_p k
 
 let t_big_int_add_mod_p k = tarr_t_q_k tf_2n q_add_mod_p k
+
+let t_n' = z_range z1 (zsub2 CPLen)
 
 let big_add_mod_p =
   Circuit

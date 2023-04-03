@@ -520,7 +520,7 @@ Proof.
 Qed.
 Theorem as_le_lb': forall xs (i: nat),
 length xs <= k ->
-Forall (fun x1: F => binary x1) xs ->
+Forall (binary) xs ->
 i < length xs ->
 List.nth i xs 0%F = 1%F ->
 as_le 1 xs >=z 2^i.
@@ -529,6 +529,53 @@ Proof.
   apply as_le_lb; try lia; auto.
   eapply Forall_weaken. apply in_range_binary. auto.
 Qed.
+
+Local Notation "[| xs |]" := (as_le 1 xs).
+(* From Circom Require Import LibTactics. *)
+Theorem as_le_msb1: forall xs,
+(1 <= length xs <= k)%Z ->
+Forall (binary) xs ->
+xs!(length xs-1)= 1%F -> as_le 1 xs >=z 2^(length xs - 1).
+Proof.
+  intros.
+  replace (Z.sub
+  (Z.of_nat
+     (@length (F.F q) xs))
+  (Zpos xH)) with (Z.of_nat (length xs - 1)%nat) by lia.
+  apply as_le_lb'; try lia; auto.
+  fold_default. auto.
+Qed.
+
+
+From Circom Require Import LibTactics.
+Theorem as_le_msb0: forall xs,
+(1 <= length xs <= k)%Z ->
+Forall (binary) xs ->
+xs!(length xs-1) = 0%F -> as_le 1 xs <=z (2^(length xs - 1) - 1)%Z.
+Proof.
+  unwrap_C.
+  intros.
+  replace ([|xs|]) with ([|xs[:(length xs - 1%nat)%nat]|]).
+  (* assert (exists n, n = length xs - 1). eexists. reflexivity. *)
+  Check as_le_ub'.
+  applys_eq as_le_ub'.
+  repeat f_equal. rewrite firstn_length_le. lia. lia.
+  apply Forall_firstn. auto.
+  rewrite firstn_length_le. lia. lia.
+  symmetry. rewrite as_le_split_last' with (i:=length xs-1).
+  simplify. fqsatz.
+  lia.
+Qed.
+  
+
+  
+  
+
+  
+  
+
+
+
 
 
 End Base2.

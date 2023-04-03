@@ -28,6 +28,22 @@ Local Open Scope tuple_scope.
 Definition sum := DSLL.sumL_F.
 Definition take {A} i (xs : list A) := xs[:i].
 
+Lemma sum_step :
+  forall (l : list F) (i : nat),
+    i < length l ->
+    (sum (l [:i]) + l ! i)%F = sum (l [:i + 1]).
+Proof.
+  unwrap_C.
+  induction l; intros;
+    try (simpl in H; lia).
+  destruct i; simpl; try fqsatz.
+  assert (i < length l).
+  { simpl in H; lia. }
+  simpl_default; auto.
+  rewrite <- IHl; auto.
+  fqsatz.
+Qed.
+
 (** ** CalculateTotal *)
 
 (* print_endline (generate_lemmas calc_total (typecheck_circuit d_empty calc_total));; *)
@@ -53,8 +69,8 @@ Proof. intuit. Qed.
 Lemma CalculateTotal_obligation6: forall (n : nat) (_in : (list F)) (i : nat) (x : F) (v : F), Forall (fun x6 => True) _in -> ((length _in) = n) -> (i < n) -> (x = (sum (take i _in))) -> True -> ((v = (x + (_in!i))%F) -> (v = (sum (take (i + 1%nat)%nat _in)))).
 Proof.
   unfold take; intros; subst.
-  admit.
-Admitted.
+  apply sum_step; auto.
+Qed.
 
 Lemma CalculateTotal_obligation7: forall (n : nat) (_in : (list F)) (v : F), Forall (fun x7 => True) _in -> ((length _in) = n) -> True -> ((v = 0%F) -> (v = (sum (take 0%nat _in)))).
 Proof. auto. Qed.

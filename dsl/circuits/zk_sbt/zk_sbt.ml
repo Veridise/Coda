@@ -166,7 +166,7 @@ let t_cut_id =
   tfq
     (qeq nu
        (call "Bits2Num"
-          [z216; take z216 (drop z16 (call "Num2Bits" [z256; vin]))] ) )
+          [z216; u_take z216 (u_drop z16 (call "Num2Bits" [z256; vin]))] ) )
 
 let cut_id =
   Circuit
@@ -182,7 +182,7 @@ let cut_id =
 (* cutState *)
 
 let t_cut_st =
-  tfq (qeq nu (call "Bits2Num" [z216; drop z40 (call "Num2Bits" [z256; vin])]))
+  tfq (qeq nu (call "Bits2Num" [z216; u_drop z40 (call "Num2Bits" [z256; vin])]))
 
 let cut_st =
   Circuit

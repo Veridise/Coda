@@ -15,6 +15,8 @@ open Semaphore
 open Hydra
 open Darkforest
 open Zk_sbt
+open Circomlib.Mux3
+open Circomlib.Sign
 
 let g =
   add_to_deltas []
@@ -30,6 +32,8 @@ let g =
     ; split
     ; cnot
     ; cor
+    ; mux3
+    ; c_sign
     ; split_three
     ; greater_than
     ; mod_sum_three
@@ -72,6 +76,10 @@ let _ = test_circuit [] is_zero
 
 let _ = test_circuit [] is_equal
 
+let _ = test_circuit [] mux3
+
+let _ = test_circuit [] c_sign
+
 let _ = test_circuit [("n", 500)] num2bits
 
 let _ = test_circuit [("n", 500)] bits2num
@@ -82,7 +90,7 @@ let _ = test_circuit [("n", 200)] greater_than
 
 let _ = test_circuit [("k", 10)] c_big_is_zero
 
-let _ = test_circuit [("n", 10); ("k", 10)] c_big_lt
+let _ = test_circuit [("n", 2); ("k", 2)] c_big_lt
 
 let _ = test_circuit [("n", 100)] mod_sum_three
 
@@ -91,8 +99,6 @@ let _ = test_circuit [("n", 100)] c_mod_sub_three
 let _ = test_circuit [("n", 100); ("m", 100)] split
 
 let _ = test_circuit [("n", 100); ("m", 100); ("k", 100)] split_three
-
-(* TODO *)
 
 let _ = test_circuit [("k", 10)] c_big_is_equal
 

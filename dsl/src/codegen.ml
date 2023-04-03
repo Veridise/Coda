@@ -289,6 +289,12 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
         (g, b', a', return_e)
     | None ->
         failwith ("No such circuit: " ^ c_name) )
+  | Ascribe (e1, _) ->
+      let g', b', a', e1' = reify_expr prefix g b d a config e1 in
+      (g', b', a', e1')
+  | AscribeUnsafe (e1, _) ->
+      let g', b', a', e1' = reify_expr prefix g b d a config e1 in
+      (g', b', a', e1')
   | Assert (e1, e2) -> (
       let g', b', a', e1' = reify_expr prefix g b d a config e1 in
       let g'', b'', a'', e2' = reify_expr prefix g' b' d a' config e2 in
@@ -836,6 +842,8 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
       let humanify_a =
         humanify transform_a (inputs_without_config @ outputs) g
       in
+      (* print_endline
+         (Format.sprintf "R1CS variables: %s" (show_ralpha simplify_a)) ; *)
       let r1cs_a = List.map r1cs_of_arithmetic_expression humanify_a in
       print_endline (Format.sprintf "=============================") ;
       print_endline

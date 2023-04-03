@@ -31,11 +31,9 @@ let split =
           (elet "big" star
              (* Constrain outputs to have the right number of bits *)
              (elet "u0"
-                (assert_eq (v "_n2b_s") (call "Num2Bits" [n; s]))
-                (elet "u1"
-                   (assert_eq (v "_n2b_b") (call "Num2Bits" [m; b]))
-                   (* in === small + big * 2 ^ n *)
-                   (assert_eq vin (fadd s (fmul b (fpow f2 n)))) ) ) ) }
+                (assert_eq vin (fadd s (fmul b (fpow f2 n))))
+                (* in === small + big * 2 ^ n *)
+                (make [call "Num2Bits" [n; s]; call "Num2Bits" [m; b]]) ) ) }
 
 let split_three =
   Circuit
@@ -52,15 +50,13 @@ let split_three =
              (elet "big" star
                 (* Constrain outputs to have the right number of bits *)
                 (elet "u0"
-                   (assert_eq (v "_n2b_s") (call "Num2Bits" [n; s]))
-                   (elet "u1"
-                      (assert_eq (v "_n2b_m") (call "Num2Bits" [m; med]))
-                      (elet "u2"
-                         (assert_eq (v "_n2b_b") (call "Num2Bits" [k; b]))
-                         (* in === small + medium * 2 ^ n + big * 2 ^ (n + m) *)
-                         (assert_eq vin
-                            (fadd s
-                               (fadd
-                                  (fmul med (fpow f2 n))
-                                  (fmul b (fpow f2 (fadd n m))) ) ) ) ) ) ) ) )
-    }
+                   (* in === small + medium * 2 ^ n + big * 2 ^ (n + m) *)
+                   (assert_eq vin
+                      (fadd s
+                         (fadd
+                            (fmul med (fpow f2 n))
+                            (fmul b (fpow f2 (fadd n m))) ) ) )
+                   (make
+                      [ call "Num2Bits" [n; s]
+                      ; call "Num2Bits" [m; med]
+                      ; call "Num2Bits" [k; b] ] ) ) ) ) }

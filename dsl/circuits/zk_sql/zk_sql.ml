@@ -2,6 +2,10 @@ open Ast
 open Dsl
 open Notation
 
+let a = v "a"
+
+let b = v "b"
+
 let i = v "i"
 
 let n = v "n"
@@ -30,21 +34,13 @@ let index = v "index"
 
 (* CalculateTotal *)
 
-let lam_sum_arr xs = lama "i" tint (lama "x" tf (fadd x (get xs i)))
-
-let rec sum_arr xs =
-  iter z0 (len xs) (lam_sum_arr xs) ~init:f0 ~inv:(fun i ->
-      tfq (qeq nu (sum_arr (take i xs))) )
-
-let t_ct = tfq (qeq nu (sum_arr vin))
-
 let calc_total =
   Circuit
     { name= "CalculateTotal"
     ; inputs= [("n", tnat); ("in", tarr_tf n)]
-    ; outputs= [("out", t_ct)]
+    ; outputs= [("out", tfq (qeq nu (u_sum vin)))]
     ; dep= None
-    ; body= sum_arr vin }
+    ; body= make_sum vin ~len:n }
 
 let sum_equals =
   Circuit
@@ -52,7 +48,10 @@ let sum_equals =
     ; inputs= [("n", tnat); ("nums", tarr_tf n); ("sum", tf)]
     ; outputs= [("out", tf_binary)]
     ; dep= None
-    ; body= call "IsEqual" [call "CalculateTotal" [n; v "nums"]; v "sum"] }
+    ; body=
+        elet "x"
+          (call "CalculateTotal" [n; v "nums"])
+          (call "IsEqual" [x; v "sum"]) }
 
 let is_not_zero =
   Circuit
@@ -69,7 +68,10 @@ let is_filtered =
     ; outputs= [("out", tf)]
     ; dep= None
     ; body=
-        call "CalculateTotal"
-          [ z2
-          ; x *% call "IsEqual" [v "op"; f0]
-          ; y *% call "IsEqual" [v "op"; f1] ] }
+        elet "a"
+          (call "IsEqual" [v "op"; f0])
+          (elet "b"
+             (call "IsEqual" [v "op"; f1])
+             (elet "z"
+                (cons (x *% a) (cons (y *% b) cnil))
+                (call "CalculateTotal" [z2; z]) ) ) }

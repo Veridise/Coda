@@ -57,7 +57,7 @@ let rootsTreeRoot = v "rootsTreeRoot"
 (* IN *)
 
 (* ~(forall 0 <= i < len value, value[i] <> in) *)
-let q_out = qexists_e "i" z0 (len value) ((get value i) =. vin)
+let q_out = qexists_e "i" z0 (len value) (get value i =. vin)
 
 let t_out = tfq (q_ind_dec nu q_out)
 
@@ -66,8 +66,7 @@ let lam_in =
     (lama "x" tf
        (elet "ise" (call "IsEqual" [vin; get value i]) (fadd x (v "ise"))) )
 
-let inv_in i =
-  tfq (q_ind_dec nu (qexists_e "j" z0 i (get value j =. vin)))
+let inv_in i = tfq (q_ind_dec nu (qexists_e "j" z0 i (get value j =. vin)))
 
 let c_in =
   Circuit
@@ -95,14 +94,17 @@ let mux_query e l g i = const_array tf [f1; e; l; g; i; f1 -% i; f0; f0]
 let t_out =
   tfq
     (ites_expr
-    [
-      (op =. fn 0, nu ==. f1);
-      (op =. fn 1, ind_dec nu (vin =. v0));
-      (op =. fn 2, ind_dec nu (vin <.. v0));
-      (op =. fn 3, ind_dec nu (vin >.. v0));
-      (op =. fn 4, q_ind_dec nu (qexists_e "j" z0 valueArraySize (get value j =. vin)));
-      (op =. fn 5, q_ind_dec nu (qnot (qexists_e "j" z0 valueArraySize (get value j =. vin))))
-    ] qfalse)
+       [ (op =. fn 0, nu ==. f1)
+       ; (op =. fn 1, ind_dec nu (vin =. v0))
+       ; (op =. fn 2, ind_dec nu (vin <.. v0))
+       ; (op =. fn 3, ind_dec nu (vin >.. v0))
+       ; ( op =. fn 4
+         , q_ind_dec nu (qexists_e "j" z0 valueArraySize (get value j =. vin))
+         )
+       ; ( op =. fn 5
+         , q_ind_dec nu
+             (qnot (qexists_e "j" z0 valueArraySize (get value j =. vin))) ) ]
+       qfalse )
 
 let query =
   Circuit
@@ -182,7 +184,8 @@ let cut_id =
 (* cutState *)
 
 let t_cut_st =
-  tfq (qeq nu (call "Bits2Num" [z216; u_drop z40 (call "Num2Bits" [z256; vin])]))
+  tfq
+    (qeq nu (call "Bits2Num" [z216; u_drop z40 (call "Num2Bits" [z256; vin])]))
 
 let cut_st =
   Circuit

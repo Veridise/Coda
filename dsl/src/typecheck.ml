@@ -204,8 +204,12 @@ let rec synthesize (e : expr) : typ S.t =
             else
               let%bind g = get_gamma in
               match List.Assoc.find g x ~equal:String.equal with
-              | Some t ->
-                  return (attaches [QExpr (nu =. v x)] t)
+              | Some t -> (
+                match t with
+                | TFun _ ->
+                    return t
+                | _ ->
+                    return (attaches [QExpr (nu =. v x)] t) )
               | None ->
                   failwith ("[synthesize] No such variable: " ^ x)
               (* let%bind g = get_gamma in
@@ -378,45 +382,56 @@ let rec synthesize (e : expr) : typ S.t =
                      (TArr (t, QExpr (nu =. e), zsub el e2), cs1 @ cs2)
                  | _ ->
                      failwith "[synthesize] drop: not an array" ) *)
-        | ArrayOp (Zip, [e1; e2]) ->
-            ignore e1 ;
-            ignore e2 ;
-            failwith (spf "TODO [synthesize] ArrayOp (%s)" (show_aop Zip))
-            (* let t1, cs1 = f e1 in
-                 let t2, cs2 = f e2 in
-                 match (t1, t2) with
-                 | TArr (t1', q1, l1), TArr (t2', q2, l2) ->
-                     (* FIXME: q1 and q2 are erased *)
-                     ( tarr (ttuple [t1'; t2']) QTrue l1
-                     , cs1 @ cs2 @ [CheckCons (g, a, QExpr (eq l1 l2))] )
-                 | TArr _, _ | _, TArr _ ->
-                     failwith "zip: not an array" ) *)
+        | ArrayOp (Zip, [e1; (Var _ as e2)]) -> (
+            let%bind t1 = synthesize e1 and t2 = synthesize e2 in
+            let s1, s2 = (skeleton t1, skeleton t2) in
+            match (s1, s2) with
+            | TArr te1, TArr te2 ->
+                let l = len e1 in
+                (* FIXME: zip length should be min(len e1, len e2) *)
+                let nu_iz = Dsl.get nu (v "iz") in
+                let e1_iz = Dsl.get e1 (v "iz") in
+                let e2_iz = Dsl.get e2 (v "iz") in
+                return
+                @@ tarr_t_q_k (tpair te1 te2)
+                     (qforall "iz" z0 l
+                        (qand (tget nu_iz 0 ==. e1_iz) (tget nu_iz 1 ==. e2_iz)) )
+                     l
+            | _ ->
+                failwith "[synthesize] Zip: e1 not an array" )
+        | ArrayOp (Zip, [_; _]) ->
+            failwith "[synthesize] map: Not in ANF"
         | ArrayOp (op, _) ->
             failwith
               (spf "[synthesize] ArrayOp: %s not implemented" (show_aop op))
-            (*
-    | Map (e1, e2) -> (
-        let t1, cs1 = f e1 in
-        let t2, cs2 = f e2 in
-        match (t1, t2) with
-        | TFun (x, tx, TRef (tr, q)), TArr (t2', q2, el) ->
-            (* todo: factor out non-dependent part of q *)
-            (* FIXME: q is erased *)
-            let i = "i" in
-            let q2' =
-              q
-              |> subst_qual x (get e2 (v i))
-              |> subst_qual nu_str (get nu (v i))
-            in
-            ( TArr
-                ( TRef (tr, QTrue)
-                , qand (qforall i z0 el q2') (QExpr (eq nu (Map (e1, e2))))
-                , el )
-            , cs1 @ cs2 @ subtype g a t2' tx )
-        | _, TArr _ ->
-            failwith "map: not a valid function"
-        | TFun _, _ ->
-            failwith "map: not a valid array" ) *)
+        | Map (e1, (Var _ as e2)) -> (
+            let%bind t1 = synthesize e1 and t2 = synthesize e2 in
+            match (t1, descale t2) with
+            | TFun (x, tx, tr), TArr te -> (
+                subtype te tx
+                >>= fun () ->
+                match normalize tr with
+                | TRef (tr', q) ->
+                    let i = "im" in
+                    let l = len e2 in
+                    let q' =
+                      qforall i z0 l
+                        ( q
+                        |> subst_qual x (Dsl.get e2 (v i))
+                        |> subst_qual nu_str (Dsl.get nu (v i)) )
+                    in
+                    return (tarr_t_q_k tr' q' l)
+                | _ ->
+                    failwith "[synthesize] Map: tr?" )
+            | tf, TArr _ ->
+                failwith
+                  (spf "[synthesize] map: not a function: %s" (show_typ tf))
+            | TFun _, _ ->
+                failwith "[synthesize] map: not an array"
+            | _ ->
+                failwith "[synthesize] map: ???" )
+        | Map _ ->
+            failwith "[synthesize] map: Not in ANF"
         | DMake (es, q) ->
             let%bind ts = S.mapM es ~f:synthesize
             and g = get_gamma

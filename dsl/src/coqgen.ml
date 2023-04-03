@@ -14,7 +14,9 @@ let counter = ref 0
 
 let base_to_coq (tb : base) : string =
   match tb with TF -> "F" | TInt -> "Z" | TBool -> "bool"
+
 let quant_to_coq = function Forall -> "forall" | Exists -> "exists"
+
 let get_base (t : typ) : base =
   match skeleton t with
   | TBase tb ->
@@ -99,8 +101,10 @@ and expr_to_coq (e : expr) : string =
     | CInt n ->
         if Z.(n >= zero) then spf "%s%%nat" (Z.to_string n)
         else spf "%s%%Z" (Z.to_string n)
-    | CNil -> "nil"
-    | CBool false -> "False"
+    | CNil ->
+        "nil"
+    | CBool false ->
+        "False"
     | _ ->
         todos "[expr_to_coq] Const" )
   | CPrime ->
@@ -108,9 +112,9 @@ and expr_to_coq (e : expr) : string =
   | CPLen ->
       "C.k"
   | Ascribe (e, _) ->
-    expr_to_coq e
-| AscribeUnsafe (e, _) ->
-    expr_to_coq e
+      expr_to_coq e
+  | AscribeUnsafe (e, _) ->
+      expr_to_coq e
   | Binop (t, op, e1, e2) ->
       let trailer = match t with BF -> "F" | BZ -> "Z" | BNat -> "nat" in
       let op_str = show_binop op in
@@ -183,10 +187,8 @@ and qual_to_coq (q : qual) : string =
   | QImply (q1, q2) ->
       spf "(%s -> %s)" (qual_to_coq q1) (qual_to_coq q2)
   | QQuant (quant, (x, s, e), q) ->
-      spf "(%s (%s:%s), %s <= %s < %s -> %s)"
-      (quant_to_coq quant)
-       x "nat" (expr_to_coq s) x
-        (expr_to_coq e) (qual_to_coq q)
+      spf "(%s (%s:%s), %s <= %s < %s -> %s)" (quant_to_coq quant) x "nat"
+        (expr_to_coq s) x (expr_to_coq e) (qual_to_coq q)
   | _ ->
       todos "qual_to_coq"
 

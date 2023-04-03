@@ -260,6 +260,7 @@ let btrue = Const (CBool true)
 let bfalse = Const (CBool false)
 
 let qtrue = QTrue
+
 let qfalse = lift bfalse
 
 let is_binary e = bor (eq e f0) (eq e f1)
@@ -270,28 +271,25 @@ let binary_eq e = eq (fmul e (zsub1 e)) f0
 
 let ite q1 q2 q3 = qand (qimply q1 q2) (qimply (qnot q1) q3)
 
-
 let ite_expr e1 e2 e3 = ite (lift e1) (lift e2) (lift e3)
+
 let ites qqs q =
   List.fold_right qqs ~f:(fun (qif, qthen) q -> ite qif qthen q) ~init:q
-let ites_expr eqs q =
-  ites (List.map eqs ~f:(fun (e,q) -> (lift e, q))) q
+
+let ites_expr eqs q = ites (List.map eqs ~f:(fun (e, q) -> (lift e, q))) q
 
 let ors qs = List.fold_right qs ~f:(fun q q' -> qor q q') ~init:QTrue
 
-let contained_in e es = 
-  ors @@ List.map es ~f:(fun e' -> (qeq e e'))
+let contained_in e es = ors @@ List.map es ~f:(fun e' -> qeq e e')
 
 let ind e1 e2 e3 =
-  band (is_binary e1)
-    (band (imply (eq e1 f1) e2) (imply (eq e1 f0) e3))
+  band (is_binary e1) (band (imply (eq e1 f1) e2) (imply (eq e1 f0) e3))
 
 let q_ind e q1 q2 =
-  qand
-    (lift (is_binary e))
-    (qand (qimply (qeq e f1) q1) (qimply (qeq e f0) q2))
+  qand (lift (is_binary e)) (qand (qimply (qeq e f1) q1) (qimply (qeq e f0) q2))
 
 let ind_dec_expr e1 e2 = ind e1 e2 (bnot e2)
+
 let ind_dec e1 e2 = lift (ind e1 e2 (bnot e2))
 
 let q_ind_dec e q = q_ind e q (qnot q)
@@ -315,11 +313,13 @@ let snd_pair e = tget e 1
 let pair e1 e2 = make [e1; e2]
 
 let qquant quant i i0 i1 q = QQuant (quant, (i, i0, i1), q)
+
 let qforall = qquant Forall
+
 let qexists = qquant Exists
 
-
 let qforall_e i i0 i1 e = qforall i i0 i1 (lift e)
+
 let qexists_e i i0 i1 e = qexists i i0 i1 (lift e)
 
 let assert_eq e1 e2 = Assert (e1, e2)

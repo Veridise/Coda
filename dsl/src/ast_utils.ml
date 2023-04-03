@@ -4,7 +4,9 @@ open Utils
 open Big_int_Z
 
 let show_base = function TF -> "F" | TInt -> "Z" | TBool -> "Bool"
+
 let show_quant = function Forall -> "∀" | Exists -> "∃"
+
 let show_binop = function
   | Add ->
       "+"
@@ -121,7 +123,8 @@ and ppf_qual ppf =
     | QImply (q1, q2) ->
         pf ppf "(qimply %a %a)" ppf_qual q1 ppf_qual q2
     | QQuant (quant, (x, s, e), q) ->
-        pf ppf "(%a%a<=%s<%a. %a)" ppf_quant quant ppf_expr s x ppf_expr e ppf_qual q )
+        pf ppf "(%a%a<=%s<%a. %a)" ppf_quant quant ppf_expr s x ppf_expr e
+          ppf_qual q )
 
 and ppf_expr ppf : expr -> unit =
   Fmt.(
@@ -229,7 +232,6 @@ and vars_qual : qual -> SS.t = function
       vars_expr e
   | QQuant (_, (x, s, e), q) ->
       unions [except (vars_qual q) x; vars_expr s; vars_expr e]
-      
   | _ ->
       SS.empty
 
@@ -248,7 +250,8 @@ and vars_expr : expr -> SS.t = function
       SS.union (vars_expr e1) (except (vars_expr e2) x)
   | Assert (e1, e2) ->
       SS.union (vars_expr e1) (vars_expr e2)
-  | EQual q -> vars_qual q
+  | EQual q ->
+      vars_qual q
   | Var x ->
       SS.singleton x
   | Lam (x, e) ->
@@ -328,8 +331,9 @@ and subst_qual (x : string) (e : expr) (q : qual) : qual =
   | QExpr e' ->
       QExpr (subst_expr x e e')
   | QQuant (quant, (y, es, ee), q') ->
-    QQuant
-        (quant, (y, subst_expr x e es, subst_expr x e ee)
+      QQuant
+        ( quant
+        , (y, subst_expr x e es, subst_expr x e ee)
         , if String.(x = y) then q' else subst_qual x e q' )
 
 and subst_expr (x : string) (ef : expr) (e : expr) : expr =
@@ -343,15 +347,16 @@ and subst_expr (x : string) (ef : expr) (e : expr) : expr =
       e
   | Var y ->
       if String.(x = y) then ef else e
-  | EQual q -> EQual (subst_qual x ef q)
+  | EQual q ->
+      EQual (subst_qual x ef q)
   | LamA (y, t, body) ->
       if String.(x = y) then e else LamA (y, subst_typ x ef t, f body)
   | App (e1, e2) ->
       App (f e1, f e2)
-      | Ascribe (e, t) ->
-        Ascribe (f e, subst_typ x ef t)
-        | AscribeUnsafe (e, t) ->
-            AscribeUnsafe (f e, subst_typ x ef t)
+  | Ascribe (e, t) ->
+      Ascribe (f e, subst_typ x ef t)
+  | AscribeUnsafe (e, t) ->
+      AscribeUnsafe (f e, subst_typ x ef t)
   | Not e' ->
       Not (f e')
   | Binop (t, op, e1, e2) ->

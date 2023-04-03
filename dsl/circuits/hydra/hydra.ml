@@ -9,6 +9,8 @@ let s = v "s"
 
 let x = v "x"
 
+let y = v "y"
+
 let z = v "z"
 
 let vin = v "in"
@@ -150,13 +152,15 @@ let lam_vmp z =
              (tget (get z i) 1)
              (elet "c"
                 (cons x (cons elem cnil))
-                (call "Poseidon" [z2; call "PositionSwitcher" [c; s]]) ) ) ) )
+                (elet "y"
+                   (call "PositionSwitcher" [c; s])
+                   (call "Poseidon" [z2; y]) ) ) ) ) )
 
 (* Compute the Poseidon hash over z (list of pairs of F suitable for
    PositionSwitcher) from initial value init *)
-let rec hasher z init =
-  iter z0 (len z) (lam_vmp z) ~init ~inv:(fun i ->
-      tfq (qeq nu (hasher (take i z) init)) )
+let rec hasher z k init =
+  iter z0 k (lam_vmp z) ~init ~inv:(fun i ->
+      tfq (qeq nu (hasher (take i z) i init)) )
 
 let vrfy_mrkl_path =
   Circuit
@@ -174,7 +178,7 @@ let vrfy_mrkl_path =
         elet "z"
           (zip pathElements pathIndices)
           (* root === hasher z leaf *)
-          (assert_eq root (hasher z leaf)) }
+          (assert_eq root (hasher z levels leaf)) }
 
 (** VerifyHydraCommitment *)
 

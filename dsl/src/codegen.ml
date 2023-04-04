@@ -924,6 +924,21 @@ let add_output_constraint (config : configuration) (a : ralpha) (e : expr)
     | _ ->
         failwith "output_constraint unmatched, not a tuple"
 
+let buffer = ref ""
+
+let print_to_file (filename : string) (s : string) : unit =
+  let oc = open_out filename in
+  Printf.fprintf oc "%s" s ; close_out oc
+
+let print_endline_to_file (s : string) : unit =
+  buffer := !buffer ^ s ;
+  ()
+
+let flush_to_file (filename : string) : unit =
+  print_to_file filename !buffer ;
+  buffer := "" ;
+  ()
+
 (* generate r1cs from circuit *)
 let codegen (d : delta) (config : configuration) (c : circuit) : unit =
   match c with
@@ -963,4 +978,6 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
         (Format.sprintf "Number of R1CS constraints: %s"
            (string_of_int (List.length r1cs_a)) ) ;
       print_endline (Format.sprintf "=============================") ;
+      print_endline_to_file (show_list_r1cs r1cs_a) ;
+      flush_to_file ("./test/codegen_results/" ^ name ^ ".r1cs") ;
       ref_counter := 0

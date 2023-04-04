@@ -138,7 +138,7 @@ let big_add_mod_p =
                    (concat p (cons f0 cnil)) )
                 (* sub = #BigSub n (k + 1) add p' *)
                 (elet "sub"
-                   (call "BigSub" [n; zadd1 k; add; p'])
+                   (tget (call "BigSub" [n; zadd1 k; add; p']) 0)
                    (* sub[k] === 0 *)
                    (elet "u0"
                       (assert_eq (get sub k) f0)

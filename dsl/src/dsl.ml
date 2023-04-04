@@ -434,5 +434,7 @@ let const_array t es =
              qand q (lift (eq (get nu (zn i)) e)) ) )
         (zn @@ List.length es) )
 
+let const_array_untyped es = List.fold_right es ~f:cons ~init:cnil
+
 let circuit ?(dep = None) ~name ~inputs ~outputs ~body =
   Circuit {name; inputs; outputs; dep; body}

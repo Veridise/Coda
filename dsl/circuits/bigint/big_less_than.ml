@@ -71,4 +71,4 @@ let c_big_lt =
     ; body=
         elet "lt"
           (tget (iter z0 k lam_big_lt ~init:(pair f0 f1) ~inv:inv_big_lt) 0)
-          (assert_eq (v "out") (v "lt")) }
+          (v "lt") }

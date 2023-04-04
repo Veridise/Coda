@@ -90,13 +90,17 @@ let rec denote_expr (e : expr) : rexpr option =
   match e with
   | Const (CF i) ->
       Some (RConst i)
+  | Const (CInt i) ->
+      Some (RConst i)
   | CPrime ->
       None
   | CPLen ->
       None
+  | Fn (ToUZ, [e]) ->
+      denote_expr e
   | Var x ->
       Some (RVar x)
-  | Binop (BF, op, e1, e2) -> (
+  | Binop (_, op, e1, e2) -> (
     match (denote_expr e1, denote_expr e2) with
     | Some e1', Some e2' -> (
       match denote_binop op with
@@ -263,6 +267,7 @@ let rec drop_array (l : expr) (n : int) : expr =
       if n = 0 then l else drop_array e2 (n - 1)
   | _ ->
       failwith ("drop_array: not an array :" ^ show_expr l)
+
 (* codegen *)
 
 let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
@@ -398,6 +403,8 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       (* get i''-th element of l *)
       let g', b', a', i' = reify_expr prefix g b d a config i in
       let i'' = eval_int i' config in
+      (* print_endline ("get " ^ string_of_big_int i'');
+         print_endline (show_expr l); *)
       (g', b', a', get_nth_array l (int_of_big_int i''))
   | ArrayOp (Cons, [e1; e2]) ->
       let g, b, a, e1' = reify_expr prefix g b d a config e1 in
@@ -427,18 +434,25 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
   | ArrayOp (Length, [e]) ->
       let g, b, a, e' = reify_expr prefix g b d a config e in
       (g, b, a, Const (CInt (big_int_of_int (length_of e'))))
-  (* | Map (e1, e2) ->
+  | Map (e1, e2) ->
       let g, b, a, e2' = reify_expr prefix g b d a config e2 in
-        (* e2' is an array *)
+      (* e2' is an array *)
       let e2_out = ref [] in
-      for i = 0 to Array.length e2' - 1 do
-        let g', b', a', e1' = reify_expr prefix g b d a config e1 in
-        let g'', b'', a'', e2'' = reify_expr prefix g' b' d a' config e2'.(i) in
-        let g''', b''', a''', e1'' =
-          reify_expr prefix g'' b'' d a'' config e1'
+      let length = length_of e2' in
+      let g' = ref g in
+      let b' = ref b in
+      let a' = ref a in
+      for i = 0 to length - 1 do
+        let e2_nth = get_nth_array e2' i in
+        let g, b, a, e1' =
+          reify_expr prefix !g' !b' d !a' config (App (e1, e2_nth))
         in
-        e2_out := !e2_out @ [e1'']
-      done; *)
+        (* g' := g;
+           b' := b; *)
+        a' := a ;
+        e2_out := !e2_out @ [e1']
+      done ;
+      (!g', !b', !a', const_array_untyped !e2_out)
   | Iter {s; e; body; init; _} ->
       (* s: start; e: end;  [start, end) *)
       (*  it's like a for loop *)
@@ -473,6 +487,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
         (Format.sprintf "Codegen unavailable for expression %s" (show_expr e))
 
 and eval_int (e : expr) (config : configuration) : big_int =
+  (* print_endline ("eval_int: " ^ show_expr e) ; *)
   match e with
   | Const (CF f) ->
       f
@@ -515,10 +530,14 @@ and expr_array_zip prefix g b d a config e1 e2 =
         expr_array_zip prefix g'' b'' d a'' config e2 e2'
       in
       (g''', b''', a''', ArrayOp (Cons, [TMake [e1''; e1''']; e2'']))
+  | Const CNil, Const CNil ->
+      (g, b, a, Const CNil)
   | _ ->
-      (g, b, a, TMake [e1; e2])
+      raise
+        (Failure ("expr_array_zip: not an array" ^ show_expr e1 ^ show_expr e2))
 
 and simplify_expr (e : expr) : expr =
+  (* print_endline ("simplify_expr: " ^ show_expr e) ; *)
   match e with
   | Binop (ty, op, e1, e2) -> (
     match (simplify_expr e1, simplify_expr e2) with
@@ -589,6 +608,7 @@ and simplify_expr (e : expr) : expr =
 and calc_inputs (config : configuration) (args : expr list)
     (inputs : signal list) : configuration * expr list * signal list =
   (* iterate the args with index *)
+  (* print_endline ("calc_inputs" ^ show_exprs args ); *)
   if List.length args <> List.length inputs then
     failwith "calc_inputs: args and inputs have different length" ;
   let out_args = ref [] in
@@ -598,7 +618,7 @@ and calc_inputs (config : configuration) (args : expr list)
     let arg = List.nth args i in
     let input = List.nth inputs i in
     match snd input with
-    | TBase TInt ->
+    | TBase TInt | TRef (TBase TInt, _) ->
         let i = eval_int arg config in
         out_config := (fst input, int_of_big_int i) :: !out_config
     | _ ->

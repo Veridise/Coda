@@ -122,9 +122,8 @@ let multi_mux_1 =
     ; inputs= [("n", tnat); ("c", t_c); ("s", tf)]
     ; outputs= [("out", t_out)]
     ; dep= None
-    ; body=
-        (* out === map (\[a; b] => (b - a) * s + a) c *)
-        assert_eq out (map lam_mm1 c) }
+    ; body= (* out === map (\[a; b] => (b - a) * s + a) c *)
+            map lam_mm1 c }
 
 (* let check_multi_mux_1 = typecheck_circuit d_empty multi_mux_1 *)
 

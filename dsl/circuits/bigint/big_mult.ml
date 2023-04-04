@@ -59,9 +59,9 @@ let mod_prod =
           (call "Num2Bits" [zmul z2 n; fmul a b])
           (* prod === #Bits2Num n (take n n2b) *)
           (elets
-             [("prod", (call "Bits2Num" [n; take n n2b]));
-             (* carry === #Bits2Num n (drop n n2b) *)
-             ("carry", (call "Bits2Num" [n; drop n n2b]))]
+             [ ("prod", call "Bits2Num" [n; take n n2b])
+             ; (* carry === #Bits2Num n (drop n n2b) *)
+               ("carry", call "Bits2Num" [n; drop n n2b]) ]
              (pair prod carry) ) }
 
 let lam_pts = lama "i" tint (lama "x" (tarr_tf i) (concat x (cons i cnil)))

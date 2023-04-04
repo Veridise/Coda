@@ -265,7 +265,7 @@ let r1cs_of_arithmetic_expression (expr : arithmetic_expression) : r1cs =
   | Quadratic (a, b, c) ->
       (a, b, multiply_coefficients_by_constant c (minus_big_int unit_big_int))
   | NonQuadratic ->
-      failwith "NonQuadratic expression cannot be converted to R1CS" 
+      failwith "NonQuadratic expression cannot be converted to R1CS"
 
 let show_r1cs (r1cs : r1cs) : string =
   let a, b, c = r1cs in

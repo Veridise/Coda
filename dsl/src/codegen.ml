@@ -940,7 +940,7 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
       in
       (* add assertion for outputs = output_e *)
       let a' = add_output_constraint config [] output_e outputs in
-      let simplify_a = simplify_ralpha a@a' in
+      let simplify_a = simplify_ralpha a @ a' in
       let transform_a = List.map transform simplify_a in
       let humanify_a =
         humanify transform_a (inputs_without_config @ outputs) g
@@ -958,7 +958,7 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ; *)
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_alpha a)) ; *)
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_ralpha simplify_a)) ; *)
-      print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ;
+      (* print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ; *)
       print_endline
         (Format.sprintf "Number of R1CS constraints: %s"
            (string_of_int (List.length r1cs_a)) ) ;

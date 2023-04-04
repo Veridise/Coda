@@ -267,11 +267,17 @@ let r1cs_of_arithmetic_expression (expr : arithmetic_expression) : r1cs =
   | NonQuadratic ->
       failwith "NonQuadratic expression cannot be converted to R1CS"
 
+let prime : bigint =
+  big_int_of_string
+    "21888242871839275222246405745257275088548364400416034343698204186575808495617"
+
+let cast_bigint_to_field (n : bigint) : bigint = mod_big_int n prime
+
 let show_r1cs (r1cs : r1cs) : string =
   let a, b, c = r1cs in
   let show_coefficients (coefficients : (symbol * bigint) list) : string =
     List.map coefficients ~f:(fun (x, n) ->
-        Printf.sprintf "%s * %s" (string_of_big_int n) x )
+        Printf.sprintf "%s * %s" (string_of_big_int (cast_bigint_to_field n)) x )
     |> String.concat ~sep:" + "
   in
   Printf.sprintf "( %s )    *    ( %s )    -    ( %s ) = 0"

@@ -940,7 +940,8 @@ let flush_to_file (filename : string) : unit =
   ()
 
 (* generate r1cs from circuit *)
-let codegen (d : delta) (config : configuration) (c : circuit) : unit =
+let codegen (path : string) (d : delta) (config : configuration) (c : circuit) :
+    unit =
   match c with
   | Circuit {name; inputs; outputs; dep; body} ->
       let inputs_without_config =
@@ -979,5 +980,5 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
            (string_of_int (List.length r1cs_a)) ) ;
       print_endline (Format.sprintf "=============================") ;
       print_endline_to_file (show_list_r1cs r1cs_a) ;
-      flush_to_file ("./test/codegen_results/" ^ name ^ ".r1cs") ;
+      flush_to_file (path ^ name ^ ".r1cs") ;
       ref_counter := 0

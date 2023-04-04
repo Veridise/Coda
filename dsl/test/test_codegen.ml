@@ -52,8 +52,10 @@ let g =
     ; Zk_sql.calc_total
     ; Zk_ml.is_positive ]
 
+let path = ref "./test/codegen_results/"
+
 let test_circuit config c =
-  try codegen g config c
+  try codegen !path g config c
   with err -> (
     Printf.printf "=============================\n" ;
     (* print error *)
@@ -67,6 +69,9 @@ let test_circuit config c =
         raise err )
 
 (* circomlib *)
+
+let _ = path := "./test/codegen_results/circomlib/"
+
 let _ = test_circuit [] cnot
 
 let _ = test_circuit [] cxor
@@ -101,9 +106,7 @@ let _ = test_circuit [("w", 50)] escalar_product
 
 (* Bigint *)
 
-(* let _ = test_circuit [] mux3 *)
-
-(* let _ = test_circuit [] c_sign *)
+let _ = path := "./test/codegen_results/bigint/"
 
 let _ = test_circuit [("k", 10)] c_big_is_equal
 
@@ -133,9 +136,13 @@ let _ = test_circuit [("n", 10); ("k", 2); ("m_out", 2)] big_mult_short_long
 
 (* hydra *)
 
+let _ = path := "./test/codegen_results/hydra/"
+
 let _ = test_circuit [] position_switcher
 
 (* zk-sbt *)
+
+let _ = path := "./test/codegen_results/zk_sbt/"
 
 let _ = test_circuit [("valueArraySize", 10)] c_in
 
@@ -149,6 +156,8 @@ let _ = test_circuit [] cut_st
 
 (* darkforest *)
 
+let _ = path := "./test/codegen_results/darkforest/"
+
 let _ = test_circuit [("choices", 10)] quin_selector
 
 let _ = test_circuit [] is_neg
@@ -159,6 +168,8 @@ let _ = test_circuit [("n", 10)] Darkforest.calc_total
 
 (* zk-sql *)
 
+let _ = path := "./test/codegen_results/zk_sql/"
+
 let _ = test_circuit [("n", 10)] Zk_sql.calc_total
 
 let _ = test_circuit [("n", 10)] Zk_sql.sum_equals
@@ -168,6 +179,8 @@ let _ = test_circuit [] Zk_sql.is_not_zero
 let _ = test_circuit [] Zk_sql.is_filtered
 
 (* zk-ml *)
+
+let _ = path := "./test/codegen_results/zk_ml/"
 
 let _ = test_circuit [] Zk_ml.is_negative
 

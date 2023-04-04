@@ -1,3 +1,0 @@
-( -1 * s + 1 * nums[0] + 1 * nums[1] + 1 * nums[2] + 1 * nums[3] + 1 * nums[4] + 1 * nums[5] + 1 * nums[6] + 1 * nums[7] + 1 * nums[8] + 1 * nums[9] )    *    ( 1 * IsZero.v11 )    -    ( 1 * 1 + -1 * IsZero.v12 ) = 0
-( -1 * s + 1 * nums[0] + 1 * nums[1] + 1 * nums[2] + 1 * nums[3] + 1 * nums[4] + 1 * nums[5] + 1 * nums[6] + 1 * nums[7] + 1 * nums[8] + 1 * nums[9] )    *    ( 1 * IsZero.v12 )    -    (  ) = 0
-(  )    *    (  )    -    ( -1 * IsZero.v12 + 1 * out ) = 0

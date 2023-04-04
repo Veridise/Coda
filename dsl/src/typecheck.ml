@@ -382,6 +382,9 @@ let rec synthesize (e : expr) : typ S.t =
                      (TArr (t, QExpr (nu =. e), zsub el e2), cs1 @ cs2)
                  | _ ->
                      failwith "[synthesize] drop: not an array" ) *)
+        | ArrayOp (Cons, [e1; Const CNil]) ->
+            let%bind t1 = synthesize e1 in
+            return @@ tarr_t_k t1 z1
         | ArrayOp (Zip, [e1; (Var _ as e2)]) -> (
             let%bind t1 = synthesize e1 and t2 = synthesize e2 in
             let s1, s2 = (skeleton t1, skeleton t2) in
@@ -399,6 +402,21 @@ let rec synthesize (e : expr) : typ S.t =
                      l
             | _ ->
                 failwith "[synthesize] Zip: e1 not an array" )
+        | ArrayOp (Concat, [e1; e2]) -> (
+            let%bind t1 = synthesize e1 and t2 = synthesize e2 in
+            let l1 = len e1 in
+            let l2 = len e2 in
+            match (normalize t1, normalize t2) with
+            | TRef (TArr te1, _), TRef (TArr te2, _) ->
+                let te1' = skeleton te1 and te2' = skeleton te2 in
+                subtype te1' te2'
+                >>= fun () ->
+                subtype te1' te2'
+                >>= fun () -> return (tarr_t_q_k te1 (nu ==. e) (l1 +. l2))
+            | _ ->
+                failwith
+                  (spf "[synthesize] Concat: t1=%s\tt2=%s" (show_typ t1)
+                     (show_typ t2) ) )
         | ArrayOp (Zip, [_; _]) ->
             failwith "[synthesize] map: Not in ANF"
         | ArrayOp (op, _) ->
@@ -438,6 +456,10 @@ let rec synthesize (e : expr) : typ S.t =
             and a = get_alpha in
             add_cons (CheckCons ((nu_str, ttuple ts) :: g, a, q))
             >> return (refine (ttuple ts) q)
+        | Fn (ToUZ, [e']) ->
+            print_endline (spf "[synthesize] ToUZ:  %s" (show_expr e')) ;
+            let%bind () = check e' tf in
+            return (refine_expr tint (nu =. e))
         | _ ->
             failwith
               (spf "Synthesis unavailable for expression %s" (show_expr e))
@@ -474,6 +496,8 @@ and check (e : expr) (t : typ) : unit S.t =
               check_cons (qimply (QExpr (len nu =. z0)) q)
           | _ ->
               failwith (spf "Expect CNil <= %s to be an array" (show_typ t)) )
+        | TMake es, TRef (TTuple ts, QTrue) ->
+            iterM (List.zip_exn es ts) ~f:(uncurry check)
         | ArrayOp (Cons, [e1; e2]), TRef (TArr te, q) ->
             let%bind () = check e1 te and () = check e2 (tarr te) in
             subtype (refine_expr (tarr te) (nu =. e)) nt

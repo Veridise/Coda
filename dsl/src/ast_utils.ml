@@ -179,8 +179,8 @@ and ppf_expr ppf : expr -> unit =
         string ppf "TODO: ppf_expr: DPCons"
     | DMatch _ ->
         string ppf "TODO: ppf_expr: DPDestr"
-    | Map _ ->
-        string ppf "TODO: ppf_expr: Map"
+    | Map (e1, e2) ->
+        pf ppf "(map %a %a)" ppf_expr e1 ppf_expr e2
     | Foldl _ ->
         string ppf "TODO: ppf_expr: Foldl"
     | Iter _ ->

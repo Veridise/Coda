@@ -1,0 +1,9 @@
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))
+
+(executable
+ (name test_big_add)
+ (libraries zarith lib coqgen circomlib test_utils bigint)
+ (modules test_big_add))

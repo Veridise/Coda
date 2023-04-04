@@ -58,3 +58,8 @@
  (name test_zk_sbt)
  (libraries zarith lib coqgen circomlib test_utils zk_sbt)
  (modules test_zk_sbt))
+
+(executable
+ (name test_darkforest)
+ (libraries zarith lib coqgen circomlib test_utils darkforest)
+ (modules test_darkforest))

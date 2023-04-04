@@ -160,6 +160,8 @@ and expr_to_coq (e : expr) : string =
         spf "(%s!%s)" (expr_to_coq e1) (expr_to_coq e2)
     | Cons ->
         spf "(%s :: %s)" (expr_to_coq e1) (expr_to_coq e2)
+    | Concat ->
+        spf "(%s ++ %s)" (expr_to_coq e1) (expr_to_coq e2)
     | _ ->
         failwith (spf "[expr_to_coq] ArrayOp %s not implemented" (show_aop aop))
     )

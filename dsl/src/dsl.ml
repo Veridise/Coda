@@ -369,6 +369,15 @@ let iter s e body ~init ~inv = Iter {s; e; body; init; inv}
 
 let map e1 e2 = Map (e1, e2)
 
+let pairwise_mul xs ys e' =
+  elet "xy_s" (zip xs ys)
+    (elet "xmy_s"
+       (map
+          (lama "x_y" (tpair tf tf)
+             (fmul (tget (v "x_y") 0) (tget (v "x_y") 1)) )
+          (v "xy_s") )
+       (e' "xmy_s") )
+
 let make_sum xs ~len =
   iter z0 len
     (lama "i" tint (lama "x" tf (fadd (v "x") (get xs (v "i")))))

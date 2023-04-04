@@ -1,5 +1,6 @@
 open Ast
 open Dsl
+open Notation
 
 let f4 = fn 4
 
@@ -51,32 +52,38 @@ let calc_total =
 
 (* QuinSelector *)
 
-let t_qs = tfq (qimply (qlt index choices) (qeq nu (get vin index)))
-
-let lam_rng = lama "i" tint (lama "x" (tarr_tf i) (concat x (cons i cnil)))
+let t_qs = tfq (qimply (lift (index <. choices)) (nu ==. get vin index))
 
 (* Generates [0; 1; ...; k - 1] *)
-let rec gen_rng k =
-  iter z0 k lam_rng ~init:cnil ~inv:(fun i -> tarr_t_q tf (qeq nu (gen_rng i)))
-
-(* map (\(a, b) => a * b) z *)
-let pair_mul z = map (lama "x" (tpair tf tf) (fmul (tget x 0) (tget x 1))) z
+let gen_rng k =
+  iter z0 k
+    (lama "i" tint
+       (lama_p
+          [("f", tf); ("x", tarr tf)]
+          (pair (v "f" +% f1) (concat x (cons (v "f") cnil))) ) )
+    ~init:(pair f0 cnil)
+    ~inv:(fun i ->
+      let j = "jg" in
+      (* forall z0 <= j < i, v[j] = ^j *)
+      tpair
+        (tfe (toUZ nu =. i))
+        (tarr_t_q_k tf (qforall j z0 i (get nu (v j) ==. toUZ (v j))) (v j)) )
 
 let quin_selector =
   Circuit
     { name= "QuinSelector"
     ; inputs= [("choices", tf); ("in", tarr_tf (toUZ choices)); ("index", tf)]
-    ; outputs= [("out", t_qs)]
+    ; outputs= [("out", t_qs)] (* ; outputs= [("out", tunit)] *)
     ; dep= None
     ; body=
-        elet "u0"
-          (assert_eq (call "LessThan" [z4; index; choices]) f1)
-          (elet "rng"
+        elets
+          [("lt", call "LessThan" [z4; index; choices]); ("u0", v "lt" === f1)]
+          (elet_p ["_"; "rng"]
              (gen_rng (toUZ choices))
              (elet "eqs"
                 (map (lama "x" tf (call "IsEqual" [x; index])) rng)
-                (elet "z" (zip vin eqs)
-                   (call "CalculateTotal" [toUZ choices; pair_mul z]) ) ) ) }
+                (pairwise_mul vin eqs (fun p ->
+                     call "CalculateTotal" [toUZ choices; v p] ) ) ) ) }
 
 (* IsNegative *)
 

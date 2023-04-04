@@ -233,11 +233,36 @@ let rec get_nth_array (l : expr) (n : int) : expr =
   match l with
   | ArrayOp (Cons, [e1; e2]) ->
       if n = 0 then e1 else get_nth_array e2 (n - 1)
+  | Const CNil ->
+      failwith "get_nth_array: index out of bounds"
   | _ ->
       failwith ("get_nth_array: not an array :" ^ show_expr l)
 
 let rec length_of (l : expr) : int =
   match l with ArrayOp (Cons, [_; e2]) -> 1 + length_of e2 | _ -> 0
+
+let rec take_array (l : expr) (n : int) : expr =
+  match l with
+  | ArrayOp (Cons, [e1; e2]) ->
+      if n = 0 then Const CNil else ArrayOp (Cons, [e1; take_array e2 (n - 1)])
+  | _ ->
+      failwith ("take_array: not an array :" ^ show_expr l)
+
+let rec concat_array (l1 : expr) (l2 : expr) : expr =
+  match l1 with
+  | ArrayOp (Cons, [e1; e2]) ->
+      ArrayOp (Cons, [e1; concat_array e2 l2])
+  | Const CNil ->
+      l2
+  | _ ->
+      failwith ("concat_array: not an array :" ^ show_expr l1)
+
+let rec drop_array (l : expr) (n : int) : expr =
+  match l with
+  | ArrayOp (Cons, [_; e2]) ->
+      if n = 0 then l else drop_array e2 (n - 1)
+  | _ ->
+      failwith ("drop_array: not an array :" ^ show_expr l)
 (* codegen *)
 
 let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
@@ -385,6 +410,20 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
         expr_array_zip prefix g' b' d a' config e1' e2'
       in
       (g'', b'', a'', ziped_expr)
+  | ArrayOp (Take, [n; e]) ->
+      let g, b, a, n' = reify_expr prefix g b d a config n in
+      let g', b', a', e' = reify_expr prefix g b d a config e in
+      let n'' = eval_int n' config in
+      (g', b', a', take_array e' (int_of_big_int n''))
+  | ArrayOp (Drop, [n; e]) ->
+      let g, b, a, n' = reify_expr prefix g b d a config n in
+      let g', b', a', e' = reify_expr prefix g b d a config e in
+      let n'' = eval_int n' config in
+      (g', b', a', drop_array e' (int_of_big_int n''))
+  | ArrayOp (Concat, [xs1; xs2]) ->
+      let g, b, a, xs1' = reify_expr prefix g b d a config xs1 in
+      let g', b', a', xs2' = reify_expr prefix g b d a config xs2 in
+      (g', b', a', concat_array xs1' xs2')
   | ArrayOp (Length, [e]) ->
       let g, b, a, e' = reify_expr prefix g b d a config e in
       (g, b, a, Const (CInt (big_int_of_int (length_of e'))))

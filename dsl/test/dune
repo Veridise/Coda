@@ -31,7 +31,9 @@
   semaphore
   hydra
   darkforest
-  zk_sbt)
+  zk_sbt
+  zk_sql
+  zk_ml)
  (modules test_codegen))
 
 (executable

@@ -54,11 +54,10 @@ let c_mod_sub_three =
         (* b_plus_c = b + c *)
         elet "b_plus_c" (fadd b c)
           (* borrow === #LessThan (n + 1) a (b + c) *)
-          (elet "u0"
-             (assert_eq borrow (call "LessThan" [zadd n z1; a; b_plus_c]))
-             (* out === borrow * 2 ** n + a - (b + c) *)
-             (assert_eq out (fsub (fadd (fmul borrow (fpow f2 n)) a) b_plus_c)) )
-    }
+          (make
+             [ fsub (fadd (fmul borrow (fpow f2 n)) a) b_plus_c
+             ; call "LessThan" [zadd n z1; a; b_plus_c] ]
+             (* out === borrow * 2 ** n + a - (b + c) *) ) }
 
 (* Proper Big Int of length k *)
 let t_big_int k = tarr_t_k tf_2n k
@@ -102,10 +101,8 @@ let big_sub =
           (elet "x"
              (iter z0 k lam_big_sub ~init:(make [cnil; f0]) ~inv:inv_big_sub)
              (* out === sub *)
-             (elet "u0"
-                (assert_eq out (tget x 0))
-                (* underflow === borrow *)
-                (assert_eq uf (tget x 1)) ) ) }
+             (make [tget x 0; tget x 1])
+             (* underflow === borrow *) ) }
 
 (* BigSubModP *)
 

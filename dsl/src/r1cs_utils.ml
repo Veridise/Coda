@@ -146,6 +146,10 @@ let add (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
   | Quadratic (a_0, b_0, c_0), Linear coefficients_1 ->
       Quadratic (a_0, b_0, add_coefficients_to_coefficients c_0 coefficients_1)
   | _ ->
+      print_endline
+        ("add: non-quadratic expression" ^ show_arithmetic_expression expr_0) ;
+      print_endline
+        ("add: non-quadratic expression" ^ show_arithmetic_expression expr_1) ;
       NonQuadratic
 
 let mul (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
@@ -180,6 +184,10 @@ let mul (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
         , b_0
         , multiply_coefficients_by_constant c_0 value_1 )
   | _ ->
+      print_endline
+        ("mul: non-quadratic expression" ^ show_arithmetic_expression expr_0) ;
+      print_endline
+        ("mul: non-quadratic expression" ^ show_arithmetic_expression expr_1) ;
       NonQuadratic
 
 let sub (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
@@ -204,6 +212,10 @@ let div (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
         , b_0
         , divide_coefficients_by_constant c_0 value_1 )
   | _ ->
+      print_endline
+        ("div: non-quadratic expression" ^ show_arithmetic_expression expr_0) ;
+      print_endline
+        ("div: non-quadratic expression" ^ show_arithmetic_expression expr_1) ;
       NonQuadratic
 
 let simplify (expr : arithmetic_expression) : arithmetic_expression =

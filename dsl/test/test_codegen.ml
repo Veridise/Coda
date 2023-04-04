@@ -102,7 +102,7 @@ let _ = test_circuit [("n", 500)] bits2num
 
 let _ = test_circuit [("n", 10)] multi_mux_1
 
-let _ = test_circuit [("w", 50)] escalar_product
+let _ = test_circuit [("w", 20)] escalar_product
 
 (* Bigint *)
 

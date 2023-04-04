@@ -731,6 +731,8 @@ let show_list_signal (l : signal list) : string =
   show_list_signal' l
 
 (* transform rexpr into r1cs arithmetic_expression *)
+let intermidiate_constraints = ref []
+
 let rec transform (e : rexpr) : arithmetic_expression =
   match e with
   | RConst c ->
@@ -741,22 +743,63 @@ let rec transform (e : rexpr) : arithmetic_expression =
       R1cs_utils.simplify (opp (transform e'))
   | RBinop (op, e1, e2) -> (
     match op with
-    | RAdd ->
+    | RAdd -> (
         let e1' = transform e1 in
         let e2' = transform e2 in
-        R1cs_utils.simplify (add e1' e2')
-    | RSub ->
+        match (e1', e2') with
+        | Quadratic _, Quadratic _ ->
+            let temp_left = Signal (fresh_var "temp_left" ()) in
+            let left' = sub e1' temp_left in
+            let temp_right = Signal (fresh_var "temp_right" ()) in
+            let right' = sub e2' temp_right in
+            intermidiate_constraints :=
+              !intermidiate_constraints @ [left'; right'] ;
+            R1cs_utils.simplify (add temp_left temp_right)
+        | _ ->
+            R1cs_utils.simplify (add e1' e2') )
+    | RSub -> (
         let e1' = transform e1 in
         let e2' = transform e2 in
-        R1cs_utils.simplify (sub e1' e2')
-    | RMul ->
+        match (e1', e2') with
+        | Quadratic _, Quadratic _ ->
+            let temp_left = Signal (fresh_var "temp_left" ()) in
+            let left' = sub e1' temp_left in
+            let temp_right = Signal (fresh_var "temp_right" ()) in
+            let right' = sub e2' temp_right in
+            intermidiate_constraints :=
+              !intermidiate_constraints @ [left'; right'] ;
+            R1cs_utils.simplify (sub temp_left temp_right)
+        | _ ->
+            R1cs_utils.simplify (sub e1' e2') )
+    | RMul -> (
         let e1' = transform e1 in
         let e2' = transform e2 in
-        R1cs_utils.simplify (mul e1' e2') )
+        (* automatically convert non-quadratic expr into quadratic expr *)
+        match (e1', e2') with
+        | Quadratic _, Quadratic _
+        | Quadratic _, Linear _
+        | Linear _, Quadratic _ ->
+            let temp_left = Signal (fresh_var "temp_left" ()) in
+            let left' = sub e1' temp_left in
+            let temp_right = Signal (fresh_var "temp_right" ()) in
+            let right' = sub e2' temp_right in
+            intermidiate_constraints :=
+              !intermidiate_constraints @ [left'; right'] ;
+            R1cs_utils.simplify (mul temp_left temp_right)
+        | Quadratic _, Signal _ ->
+            let temp_left = Signal (fresh_var "temp_left" ()) in
+            let left' = sub e1' temp_left in
+            intermidiate_constraints := !intermidiate_constraints @ [left'] ;
+            R1cs_utils.simplify (mul temp_left e2')
+        | Signal _, Quadratic _ ->
+            let temp_right = Signal (fresh_var "temp_right" ()) in
+            let right' = sub e2' temp_right in
+            intermidiate_constraints := !intermidiate_constraints @ [right'] ;
+            R1cs_utils.simplify (mul e1' temp_right)
+        | _ ->
+            R1cs_utils.simplify (mul e1' e2') ) )
   | RComp (REq, e1, e2) ->
-      let e1' = transform e1 in
-      let e2' = transform e2 in
-      R1cs_utils.simplify (sub e1' e2')
+      transform (RBinop (RSub, e1, e2))
 
 let rec show_list_r1cs (e : r1cs list) : string =
   match e with
@@ -964,6 +1007,9 @@ let codegen (path : string) (d : delta) (config : configuration) (c : circuit) :
       (* print_endline
          (Format.sprintf "R1CS variables: %s" (show_ralpha simplify_a)) ; *)
       let r1cs_a = List.map r1cs_of_arithmetic_expression humanify_a in
+      let r1cs_intermediate =
+        List.map r1cs_of_arithmetic_expression !intermidiate_constraints
+      in
       print_endline (Format.sprintf "=============================") ;
       print_endline
         (Format.sprintf "Circuit: %s   Config: %s   Input: %s   Output: %s" name
@@ -977,8 +1023,14 @@ let codegen (path : string) (d : delta) (config : configuration) (c : circuit) :
       (* print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ; *)
       print_endline
         (Format.sprintf "Number of R1CS constraints: %s"
-           (string_of_int (List.length r1cs_a)) ) ;
+           (string_of_int (List.length r1cs_a + List.length r1cs_intermediate)) ) ;
+      (* print_endline
+         (Format.sprintf "Number of Intermediate : %s"
+            (string_of_int (List.length r1cs_intermediate)) ) ; *)
       print_endline (Format.sprintf "=============================") ;
       print_endline_to_file (show_list_r1cs r1cs_a) ;
+      print_endline_to_file (show_list_r1cs r1cs_intermediate) ;
       flush_to_file (path ^ name ^ ".r1cs") ;
-      ref_counter := 0
+      ref_counter := 0 ;
+      intermidiate_constraints := [] ;
+      ()

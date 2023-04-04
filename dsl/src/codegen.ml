@@ -444,7 +444,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       let a' = ref a in
       for i = 0 to length - 1 do
         let e2_nth = get_nth_array e2' i in
-        let g, b, a, e1' =
+        let _, _, a, e1' =
           reify_expr prefix !g' !b' d !a' config (App (e1, e2_nth))
         in
         (* g' := g;
@@ -774,13 +774,14 @@ let rec show_config (c : configuration) : string =
 
 let rec parse_array (l : expr) (x : symbol) (n : int) : (symbol * symbol) list =
   match l with
-  | Const CNil ->
-      []
-  | ArrayOp (Cons, [Var v; xs]) ->
+  | ArrayOp (Cons, [e; xs]) ->
       let l = parse_array xs x (n + 1) in
-      (v, x ^ "[" ^ string_of_int n ^ "]") :: l
+      let l' = parse_array e (x ^ "[" ^ string_of_int n ^ "]") 0 in
+      l' @ l
+  | Var v ->
+      (v, x) :: []
   | _ ->
-      failwith "parse_array: not an array"
+      []
 
 let rec find_in_gamma (x : symbol) (g : gamma) : (symbol * symbol) list =
   match List.assoc_opt x g with
@@ -876,10 +877,52 @@ let rec initial_args_list config (inputs : signal list) : expr list =
   | (_, ty) :: inputs' ->
       type_refine config ty :: initial_args_list config inputs'
 
-(* let add_output_constraint (a : ralpha) (e: expr) (out: signal list) : ralpha =
-    for i = 0 to List.length out - 1 do
-        let (x, t) = List.nth out i in
-    done; *)
+let rec type_based_output_cons (config : configuration) (s : symbol) (t : typ)
+    (e : expr) : ralpha =
+  match t with
+  | TBase _ -> (
+    match denote_expr (simplify_expr e) with
+    | Some e' ->
+        [RComp (REq, RVar s, e')]
+    | _ ->
+        raise (Failure ("type_based_output_cons: TBase" ^ show_expr e)) )
+  | TTuple _ ->
+      failwith "type_based_output_cons: TTuple" (* single case no tuple *)
+  | TRef (tarr, q) -> (
+    match tarr with
+    | TArr ty -> (
+      match get_length_from_qual q config with
+      | Some n ->
+          let out = ref [] in
+          for i = 0 to n - 1 do
+            let e' = get_nth_array e i in
+            let s' = s ^ "[" ^ string_of_int i ^ "]" in
+            out := type_based_output_cons config s' ty e' @ !out
+          done ;
+          !out
+      | None ->
+          failwith "type_refine: TRef" )
+    | _ ->
+        type_based_output_cons config s tarr e )
+  | _ ->
+      failwith "type_refine: not implemented"
+
+let add_output_constraint (config : configuration) (a : ralpha) (e : expr)
+    (out : signal list) : ralpha =
+  if List.length out = 0 then a
+  else if List.length out = 1 then
+    type_based_output_cons config (fst (List.hd out)) (snd (List.hd out)) e @ a
+  else
+    match e with
+    | TMake es ->
+        if List.length es <> List.length out then
+          failwith "output_constraint unmatched"
+        else
+          List.fold_left2
+            (fun a e (s, t) -> type_based_output_cons config s t e @ a)
+            a es out
+    | _ ->
+        failwith "output_constraint unmatched, not a tuple"
 
 (* generate r1cs from circuit *)
 let codegen (d : delta) (config : configuration) (c : circuit) : unit =
@@ -894,9 +937,10 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
       let g, _, a, _, output_e =
         codegen_circuit args [] [] d [] config
           (Circuit {name; inputs= inputs_without_config; outputs; dep; body})
-        (* add assertion for outputs = output_e *)
       in
-      let simplify_a = simplify_ralpha a in
+      (* add assertion for outputs = output_e *)
+      let a' = add_output_constraint config [] output_e outputs in
+      let simplify_a = simplify_ralpha a@a' in
       let transform_a = List.map transform simplify_a in
       let humanify_a =
         humanify transform_a (inputs_without_config @ outputs) g
@@ -914,7 +958,7 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_beta b)) ; *)
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_alpha a)) ; *)
       (* print_endline (Format.sprintf "R1CS variables: %s" (show_ralpha simplify_a)) ; *)
-      (* print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ; *)
+      print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ;
       print_endline
         (Format.sprintf "Number of R1CS constraints: %s"
            (string_of_int (List.length r1cs_a)) ) ;

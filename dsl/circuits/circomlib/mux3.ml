@@ -19,4 +19,4 @@ let mux3 =
     ; inputs= [("c", tarr_tf z8); ("s", tarr_t_k tf_binary z3)]
     ; outputs= [("out", t_out)]
     ; dep= None
-    ; body= unit_val }
+    ; body= f0 }

@@ -62,6 +62,11 @@ let calc_total =
 
 (* QuinSelector *)
 
+let t_choices =
+  tfq (qand (lift (z4 <. zsub1 CPLen)) (lift (toUZ nu <. zpow z2 z4)))
+
+let t_index = tfq (lift (toUZ nu <. toUZ choices))
+
 let t_qs = tfq (qimply (lift (index <. choices)) (nu ==. get vin index))
 
 (* Generates [0; 1; ...; k - 1] *)
@@ -82,7 +87,10 @@ let gen_rng k =
 let quin_selector =
   Circuit
     { name= "QuinSelector"
-    ; inputs= [("choices", tf); ("in", tarr_tf (toUZ choices)); ("index", tf)]
+    ; inputs=
+        [ ("choices", t_choices)
+        ; ("in", tarr_tf (toUZ choices))
+        ; ("index", t_index) ]
     ; outputs= [("out", t_qs)] (* ; outputs= [("out", tunit)] *)
     ; dep= None
     ; body=

@@ -4,10 +4,7 @@ open Coqgen
 open Darkforest
 module U = Test_utils.Utils
 
-
-
-let _ =
-  U.test calc_total []
+let _ = U.test calc_total []
 
 let _ =
   U.test quin_selector

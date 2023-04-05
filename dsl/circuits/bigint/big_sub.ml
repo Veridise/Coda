@@ -54,11 +54,10 @@ let c_mod_sub_three =
         (* b_plus_c = b + c *)
         elet "b_plus_c" (fadd b c)
           (* borrow === #LessThan (n + 1) a (b + c) *)
-          (elet "u0"
-             (assert_eq borrow (call "LessThan" [zadd n z1; a; b_plus_c]))
-             (* out === borrow * 2 ** n + a - (b + c) *)
-             (assert_eq out (fsub (fadd (fmul borrow (fpow f2 n)) a) b_plus_c)) )
-    }
+          (make
+             [ fsub (fadd (fmul borrow (fpow f2 n)) a) b_plus_c
+             ; call "LessThan" [zadd n z1; a; b_plus_c] ]
+             (* out === borrow * 2 ** n + a - (b + c) *) ) }
 
 (* Proper Big Int of length k *)
 let t_big_int k = tarr_t_k tf_2n k
@@ -102,10 +101,8 @@ let big_sub =
           (elet "x"
              (iter z0 k lam_big_sub ~init:(make [cnil; f0]) ~inv:inv_big_sub)
              (* out === sub *)
-             (elet "u0"
-                (assert_eq out (tget x 0))
-                (* underflow === borrow *)
-                (assert_eq uf (tget x 1)) ) ) }
+             (make [tget x 0; tget x 1])
+             (* underflow === borrow *) ) }
 
 (* BigSubModP *)
 
@@ -143,9 +140,9 @@ let big_sub_mod_p =
           (call "BigSub" [n; k; a; b])
           (* add = #BigAdd n k sub p *)
           (elet "add"
-             (call "BigAdd" [n; k; tget x 0; p])
+             (take k (call "BigAdd" [n; k; tget x 0; p]))
              (* tmp = zip sub add *)
              (elet "tmp"
                 (zip (tget x 0) add)
                 (* out === map (\(s, a) => (1 - underflow) * s + underflow * a) tmp *)
-                (assert_eq out (map lam_bsmp tmp)) ) ) }
+                (elet "uf" (tget x 1) (map lam_bsmp tmp)) ) ) }

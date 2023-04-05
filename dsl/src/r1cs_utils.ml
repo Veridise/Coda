@@ -146,6 +146,10 @@ let add (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
   | Quadratic (a_0, b_0, c_0), Linear coefficients_1 ->
       Quadratic (a_0, b_0, add_coefficients_to_coefficients c_0 coefficients_1)
   | _ ->
+      print_endline
+        ("add: non-quadratic expression" ^ show_arithmetic_expression expr_0) ;
+      print_endline
+        ("add: non-quadratic expression" ^ show_arithmetic_expression expr_1) ;
       NonQuadratic
 
 let mul (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
@@ -180,6 +184,10 @@ let mul (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
         , b_0
         , multiply_coefficients_by_constant c_0 value_1 )
   | _ ->
+      print_endline
+        ("mul: non-quadratic expression" ^ show_arithmetic_expression expr_0) ;
+      print_endline
+        ("mul: non-quadratic expression" ^ show_arithmetic_expression expr_1) ;
       NonQuadratic
 
 let sub (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
@@ -204,6 +212,10 @@ let div (expr_0 : arithmetic_expression) (expr_1 : arithmetic_expression) :
         , b_0
         , divide_coefficients_by_constant c_0 value_1 )
   | _ ->
+      print_endline
+        ("div: non-quadratic expression" ^ show_arithmetic_expression expr_0) ;
+      print_endline
+        ("div: non-quadratic expression" ^ show_arithmetic_expression expr_1) ;
       NonQuadratic
 
 let simplify (expr : arithmetic_expression) : arithmetic_expression =
@@ -267,11 +279,17 @@ let r1cs_of_arithmetic_expression (expr : arithmetic_expression) : r1cs =
   | NonQuadratic ->
       failwith "NonQuadratic expression cannot be converted to R1CS"
 
+let prime : bigint =
+  big_int_of_string
+    "21888242871839275222246405745257275088548364400416034343698204186575808495617"
+
+let cast_bigint_to_field (n : bigint) : bigint = mod_big_int n prime
+
 let show_r1cs (r1cs : r1cs) : string =
   let a, b, c = r1cs in
   let show_coefficients (coefficients : (symbol * bigint) list) : string =
     List.map coefficients ~f:(fun (x, n) ->
-        Printf.sprintf "%s * %s" (string_of_big_int n) x )
+        Printf.sprintf "%s * %s" (string_of_big_int (cast_bigint_to_field n)) x )
     |> String.concat ~sep:" + "
   in
   Printf.sprintf "( %s )    *    ( %s )    -    ( %s ) = 0"

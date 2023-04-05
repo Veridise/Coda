@@ -90,13 +90,17 @@ let rec denote_expr (e : expr) : rexpr option =
   match e with
   | Const (CF i) ->
       Some (RConst i)
+  | Const (CInt i) ->
+      Some (RConst i)
   | CPrime ->
       None
   | CPLen ->
       None
+  | Fn (ToUZ, [e]) ->
+      denote_expr e
   | Var x ->
       Some (RVar x)
-  | Binop (BF, op, e1, e2) -> (
+  | Binop (_, op, e1, e2) -> (
     match (denote_expr e1, denote_expr e2) with
     | Some e1', Some e2' -> (
       match denote_binop op with
@@ -233,11 +237,37 @@ let rec get_nth_array (l : expr) (n : int) : expr =
   match l with
   | ArrayOp (Cons, [e1; e2]) ->
       if n = 0 then e1 else get_nth_array e2 (n - 1)
+  | Const CNil ->
+      failwith "get_nth_array: index out of bounds"
   | _ ->
       failwith ("get_nth_array: not an array :" ^ show_expr l)
 
 let rec length_of (l : expr) : int =
   match l with ArrayOp (Cons, [_; e2]) -> 1 + length_of e2 | _ -> 0
+
+let rec take_array (l : expr) (n : int) : expr =
+  match l with
+  | ArrayOp (Cons, [e1; e2]) ->
+      if n = 0 then Const CNil else ArrayOp (Cons, [e1; take_array e2 (n - 1)])
+  | _ ->
+      failwith ("take_array: not an array :" ^ show_expr l)
+
+let rec concat_array (l1 : expr) (l2 : expr) : expr =
+  match l1 with
+  | ArrayOp (Cons, [e1; e2]) ->
+      ArrayOp (Cons, [e1; concat_array e2 l2])
+  | Const CNil ->
+      l2
+  | _ ->
+      failwith ("concat_array: not an array :" ^ show_expr l1)
+
+let rec drop_array (l : expr) (n : int) : expr =
+  match l with
+  | ArrayOp (Cons, [_; e2]) ->
+      if n = 0 then l else drop_array e2 (n - 1)
+  | _ ->
+      failwith ("drop_array: not an array :" ^ show_expr l)
+
 (* codegen *)
 
 let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
@@ -373,6 +403,8 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       (* get i''-th element of l *)
       let g', b', a', i' = reify_expr prefix g b d a config i in
       let i'' = eval_int i' config in
+      (* print_endline ("get " ^ string_of_big_int i'');
+         print_endline (show_expr l); *)
       (g', b', a', get_nth_array l (int_of_big_int i''))
   | ArrayOp (Cons, [e1; e2]) ->
       let g, b, a, e1' = reify_expr prefix g b d a config e1 in
@@ -385,21 +417,42 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
         expr_array_zip prefix g' b' d a' config e1' e2'
       in
       (g'', b'', a'', ziped_expr)
+  | ArrayOp (Take, [n; e]) ->
+      let g, b, a, n' = reify_expr prefix g b d a config n in
+      let g', b', a', e' = reify_expr prefix g b d a config e in
+      let n'' = eval_int n' config in
+      (g', b', a', take_array e' (int_of_big_int n''))
+  | ArrayOp (Drop, [n; e]) ->
+      let g, b, a, n' = reify_expr prefix g b d a config n in
+      let g', b', a', e' = reify_expr prefix g b d a config e in
+      let n'' = eval_int n' config in
+      (g', b', a', drop_array e' (int_of_big_int n''))
+  | ArrayOp (Concat, [xs1; xs2]) ->
+      let g, b, a, xs1' = reify_expr prefix g b d a config xs1 in
+      let g', b', a', xs2' = reify_expr prefix g b d a config xs2 in
+      (g', b', a', concat_array xs1' xs2')
   | ArrayOp (Length, [e]) ->
       let g, b, a, e' = reify_expr prefix g b d a config e in
       (g, b, a, Const (CInt (big_int_of_int (length_of e'))))
-  (* | Map (e1, e2) ->
+  | Map (e1, e2) ->
       let g, b, a, e2' = reify_expr prefix g b d a config e2 in
-        (* e2' is an array *)
+      (* e2' is an array *)
       let e2_out = ref [] in
-      for i = 0 to Array.length e2' - 1 do
-        let g', b', a', e1' = reify_expr prefix g b d a config e1 in
-        let g'', b'', a'', e2'' = reify_expr prefix g' b' d a' config e2'.(i) in
-        let g''', b''', a''', e1'' =
-          reify_expr prefix g'' b'' d a'' config e1'
+      let length = length_of e2' in
+      let g' = ref g in
+      let b' = ref b in
+      let a' = ref a in
+      for i = 0 to length - 1 do
+        let e2_nth = get_nth_array e2' i in
+        let _, _, a, e1' =
+          reify_expr prefix !g' !b' d !a' config (App (e1, e2_nth))
         in
-        e2_out := !e2_out @ [e1'']
-      done; *)
+        (* g' := g;
+           b' := b; *)
+        a' := a ;
+        e2_out := !e2_out @ [e1']
+      done ;
+      (!g', !b', !a', const_array_untyped !e2_out)
   | Iter {s; e; body; init; _} ->
       (* s: start; e: end;  [start, end) *)
       (*  it's like a for loop *)
@@ -434,6 +487,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
         (Format.sprintf "Codegen unavailable for expression %s" (show_expr e))
 
 and eval_int (e : expr) (config : configuration) : big_int =
+  (* print_endline ("eval_int: " ^ show_expr e) ; *)
   match e with
   | Const (CF f) ->
       f
@@ -476,10 +530,14 @@ and expr_array_zip prefix g b d a config e1 e2 =
         expr_array_zip prefix g'' b'' d a'' config e2 e2'
       in
       (g''', b''', a''', ArrayOp (Cons, [TMake [e1''; e1''']; e2'']))
+  | Const CNil, Const CNil ->
+      (g, b, a, Const CNil)
   | _ ->
-      (g, b, a, TMake [e1; e2])
+      raise
+        (Failure ("expr_array_zip: not an array" ^ show_expr e1 ^ show_expr e2))
 
 and simplify_expr (e : expr) : expr =
+  (* print_endline ("simplify_expr: " ^ show_expr e) ; *)
   match e with
   | Binop (ty, op, e1, e2) -> (
     match (simplify_expr e1, simplify_expr e2) with
@@ -550,6 +608,7 @@ and simplify_expr (e : expr) : expr =
 and calc_inputs (config : configuration) (args : expr list)
     (inputs : signal list) : configuration * expr list * signal list =
   (* iterate the args with index *)
+  (* print_endline ("calc_inputs" ^ show_exprs args ); *)
   if List.length args <> List.length inputs then
     failwith "calc_inputs: args and inputs have different length" ;
   let out_args = ref [] in
@@ -559,7 +618,7 @@ and calc_inputs (config : configuration) (args : expr list)
     let arg = List.nth args i in
     let input = List.nth inputs i in
     match snd input with
-    | TBase TInt ->
+    | TBase TInt | TRef (TBase TInt, _) ->
         let i = eval_int arg config in
         out_config := (fst input, int_of_big_int i) :: !out_config
     | _ ->
@@ -672,6 +731,8 @@ let show_list_signal (l : signal list) : string =
   show_list_signal' l
 
 (* transform rexpr into r1cs arithmetic_expression *)
+let intermidiate_constraints = ref []
+
 let rec transform (e : rexpr) : arithmetic_expression =
   match e with
   | RConst c ->
@@ -682,22 +743,63 @@ let rec transform (e : rexpr) : arithmetic_expression =
       R1cs_utils.simplify (opp (transform e'))
   | RBinop (op, e1, e2) -> (
     match op with
-    | RAdd ->
+    | RAdd -> (
         let e1' = transform e1 in
         let e2' = transform e2 in
-        R1cs_utils.simplify (add e1' e2')
-    | RSub ->
+        match (e1', e2') with
+        | Quadratic _, Quadratic _ ->
+            let temp_left = Signal (fresh_var "temp_left" ()) in
+            let left' = sub e1' temp_left in
+            let temp_right = Signal (fresh_var "temp_right" ()) in
+            let right' = sub e2' temp_right in
+            intermidiate_constraints :=
+              !intermidiate_constraints @ [left'; right'] ;
+            R1cs_utils.simplify (add temp_left temp_right)
+        | _ ->
+            R1cs_utils.simplify (add e1' e2') )
+    | RSub -> (
         let e1' = transform e1 in
         let e2' = transform e2 in
-        R1cs_utils.simplify (sub e1' e2')
-    | RMul ->
+        match (e1', e2') with
+        | Quadratic _, Quadratic _ ->
+            let temp_left = Signal (fresh_var "temp_left" ()) in
+            let left' = sub e1' temp_left in
+            let temp_right = Signal (fresh_var "temp_right" ()) in
+            let right' = sub e2' temp_right in
+            intermidiate_constraints :=
+              !intermidiate_constraints @ [left'; right'] ;
+            R1cs_utils.simplify (sub temp_left temp_right)
+        | _ ->
+            R1cs_utils.simplify (sub e1' e2') )
+    | RMul -> (
         let e1' = transform e1 in
         let e2' = transform e2 in
-        R1cs_utils.simplify (mul e1' e2') )
+        (* automatically convert non-quadratic expr into quadratic expr *)
+        match (e1', e2') with
+        | Quadratic _, Quadratic _
+        | Quadratic _, Linear _
+        | Linear _, Quadratic _ ->
+            let temp_left = Signal (fresh_var "temp_left" ()) in
+            let left' = sub e1' temp_left in
+            let temp_right = Signal (fresh_var "temp_right" ()) in
+            let right' = sub e2' temp_right in
+            intermidiate_constraints :=
+              !intermidiate_constraints @ [left'; right'] ;
+            R1cs_utils.simplify (mul temp_left temp_right)
+        | Quadratic _, Signal _ ->
+            let temp_left = Signal (fresh_var "temp_left" ()) in
+            let left' = sub e1' temp_left in
+            intermidiate_constraints := !intermidiate_constraints @ [left'] ;
+            R1cs_utils.simplify (mul temp_left e2')
+        | Signal _, Quadratic _ ->
+            let temp_right = Signal (fresh_var "temp_right" ()) in
+            let right' = sub e2' temp_right in
+            intermidiate_constraints := !intermidiate_constraints @ [right'] ;
+            R1cs_utils.simplify (mul e1' temp_right)
+        | _ ->
+            R1cs_utils.simplify (mul e1' e2') ) )
   | RComp (REq, e1, e2) ->
-      let e1' = transform e1 in
-      let e2' = transform e2 in
-      R1cs_utils.simplify (sub e1' e2')
+      transform (RBinop (RSub, e1, e2))
 
 let rec show_list_r1cs (e : r1cs list) : string =
   match e with
@@ -715,13 +817,14 @@ let rec show_config (c : configuration) : string =
 
 let rec parse_array (l : expr) (x : symbol) (n : int) : (symbol * symbol) list =
   match l with
-  | Const CNil ->
-      []
-  | ArrayOp (Cons, [Var v; xs]) ->
+  | ArrayOp (Cons, [e; xs]) ->
       let l = parse_array xs x (n + 1) in
-      (v, x ^ "[" ^ string_of_int n ^ "]") :: l
+      let l' = parse_array e (x ^ "[" ^ string_of_int n ^ "]") 0 in
+      l' @ l
+  | Var v ->
+      (v, x) :: []
   | _ ->
-      failwith "parse_array: not an array"
+      []
 
 let rec find_in_gamma (x : symbol) (g : gamma) : (symbol * symbol) list =
   match List.assoc_opt x g with
@@ -817,13 +920,71 @@ let rec initial_args_list config (inputs : signal list) : expr list =
   | (_, ty) :: inputs' ->
       type_refine config ty :: initial_args_list config inputs'
 
-(* let add_output_constraint (a : ralpha) (e: expr) (out: signal list) : ralpha =
-    for i = 0 to List.length out - 1 do
-        let (x, t) = List.nth out i in
-    done; *)
+let rec type_based_output_cons (config : configuration) (s : symbol) (t : typ)
+    (e : expr) : ralpha =
+  match t with
+  | TBase _ -> (
+    match denote_expr (simplify_expr e) with
+    | Some e' ->
+        [RComp (REq, RVar s, e')]
+    | _ ->
+        raise (Failure ("type_based_output_cons: TBase" ^ show_expr e)) )
+  | TTuple _ ->
+      failwith "type_based_output_cons: TTuple" (* single case no tuple *)
+  | TRef (tarr, q) -> (
+    match tarr with
+    | TArr ty -> (
+      match get_length_from_qual q config with
+      | Some n ->
+          let out = ref [] in
+          for i = 0 to n - 1 do
+            let e' = get_nth_array e i in
+            let s' = s ^ "[" ^ string_of_int i ^ "]" in
+            out := type_based_output_cons config s' ty e' @ !out
+          done ;
+          !out
+      | None ->
+          failwith "type_refine: TRef" )
+    | _ ->
+        type_based_output_cons config s tarr e )
+  | _ ->
+      failwith "type_refine: not implemented"
+
+let add_output_constraint (config : configuration) (a : ralpha) (e : expr)
+    (out : signal list) : ralpha =
+  if List.length out = 0 then a
+  else if List.length out = 1 then
+    type_based_output_cons config (fst (List.hd out)) (snd (List.hd out)) e @ a
+  else
+    match e with
+    | TMake es ->
+        if List.length es <> List.length out then
+          failwith "output_constraint unmatched"
+        else
+          List.fold_left2
+            (fun a e (s, t) -> type_based_output_cons config s t e @ a)
+            a es out
+    | _ ->
+        failwith "output_constraint unmatched, not a tuple"
+
+let buffer = ref ""
+
+let print_to_file (filename : string) (s : string) : unit =
+  let oc = open_out filename in
+  Printf.fprintf oc "%s" s ; close_out oc
+
+let print_endline_to_file (s : string) : unit =
+  buffer := !buffer ^ s ;
+  ()
+
+let flush_to_file (filename : string) : unit =
+  print_to_file filename !buffer ;
+  buffer := "" ;
+  ()
 
 (* generate r1cs from circuit *)
-let codegen (d : delta) (config : configuration) (c : circuit) : unit =
+let codegen (path : string) (d : delta) (config : configuration) (c : circuit) :
+    unit =
   match c with
   | Circuit {name; inputs; outputs; dep; body} ->
       let inputs_without_config =
@@ -835,9 +996,10 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
       let g, _, a, _, output_e =
         codegen_circuit args [] [] d [] config
           (Circuit {name; inputs= inputs_without_config; outputs; dep; body})
-        (* add assertion for outputs = output_e *)
       in
-      let simplify_a = simplify_ralpha a in
+      (* add assertion for outputs = output_e *)
+      let a' = add_output_constraint config [] output_e outputs in
+      let simplify_a = simplify_ralpha a @ a' in
       let transform_a = List.map transform simplify_a in
       let humanify_a =
         humanify transform_a (inputs_without_config @ outputs) g
@@ -845,6 +1007,9 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
       (* print_endline
          (Format.sprintf "R1CS variables: %s" (show_ralpha simplify_a)) ; *)
       let r1cs_a = List.map r1cs_of_arithmetic_expression humanify_a in
+      let r1cs_intermediate =
+        List.map r1cs_of_arithmetic_expression !intermidiate_constraints
+      in
       print_endline (Format.sprintf "=============================") ;
       print_endline
         (Format.sprintf "Circuit: %s   Config: %s   Input: %s   Output: %s" name
@@ -858,6 +1023,14 @@ let codegen (d : delta) (config : configuration) (c : circuit) : unit =
       (* print_endline (Format.sprintf "R1CS:\n%s" (show_list_r1cs r1cs_a)) ; *)
       print_endline
         (Format.sprintf "Number of R1CS constraints: %s"
-           (string_of_int (List.length r1cs_a)) ) ;
+           (string_of_int (List.length r1cs_a + List.length r1cs_intermediate)) ) ;
+      (* print_endline
+         (Format.sprintf "Number of Intermediate : %s"
+            (string_of_int (List.length r1cs_intermediate)) ) ; *)
       print_endline (Format.sprintf "=============================") ;
-      ref_counter := 0
+      print_endline_to_file (show_list_r1cs r1cs_a) ;
+      print_endline_to_file (show_list_r1cs r1cs_intermediate) ;
+      flush_to_file (path ^ name ^ ".r1cs") ;
+      ref_counter := 0 ;
+      intermidiate_constraints := [] ;
+      ()

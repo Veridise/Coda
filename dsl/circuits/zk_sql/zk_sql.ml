@@ -10,6 +10,8 @@ let i = v "i"
 
 let n = v "n"
 
+let s = v "s"
+
 let x = v "x"
 
 let y = v "y"
@@ -45,13 +47,12 @@ let calc_total =
 let sum_equals =
   Circuit
     { name= "SumEquals"
-    ; inputs= [("n", tnat); ("nums", tarr_tf n); ("sum", tf)]
+    ; inputs= [("n", tnat); ("nums", tarr_tf n); ("s", tf)]
     ; outputs= [("out", tf_binary)]
     ; dep= None
     ; body=
-        elet "x"
-          (call "CalculateTotal" [n; v "nums"])
-          (call "IsEqual" [x; v "sum"]) }
+        elet "x" (call "CalculateTotal" [n; v "nums"]) (call "IsEqual" [x; s])
+    }
 
 let is_not_zero =
   Circuit

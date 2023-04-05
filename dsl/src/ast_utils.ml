@@ -198,6 +198,8 @@ let show_qual (q : qual) = Fmt.str "%a" ppf_qual q
 
 let show_expr (e : expr) = Fmt.str "%a" ppf_expr e
 
+let show_exprs (es : expr list) = Fmt.str "%a" (Fmt.list ppf_expr) es
+
 let show_const (c : const) = Fmt.str "%a" ppf_const c
 
 module SS = StringSet

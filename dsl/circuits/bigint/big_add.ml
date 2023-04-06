@@ -42,16 +42,17 @@ let ab = v "ab"
 
 let out = v "out"
 
+(* { F | ^v <= C.k - 1 } *)
 let t_n = attach (lift (nu <=. CPLen -! z1)) tnat
 
-(* { v : F | toUZ(v) <= 2**n - 1 } *)
-let tf_2n = tfe (toUZ nu <=. (z2 ^! n) -! z1)
+(* { F | ^v <= 2^n - 1 } *)
+let tf_n_bit = tfe (toUZ nu <=. (z2 ^! n) -! z1)
 
 let mod_sum_three =
   Circuit
     { name= "ModSumThree"
-    ; inputs= [("n", t_n); ("a", tf_2n); ("b", tf_2n); ("c", tf_binary)]
-    ; outputs= [("sum", tf_2n); ("carry", tf_binary)]
+    ; inputs= [("n", t_n); ("a", tf_n_bit); ("b", tf_n_bit); ("c", tf_binary)]
+    ; outputs= [("sum", tf_n_bit); ("carry", tf_binary)]
     ; dep= Some (sum +% ((f2 ^% n) *% carry) ==. a +% b +% c)
     ; body=
         (* n2b = #Num2Bits (n + 1) (a + b + c) *)
@@ -67,7 +68,7 @@ let mod_sum_three =
 let t_x = ttuple [tnat; ttuple [tf; tf]; ttuple [tf; tf]]
 
 (* Proper big Ints of length k *)
-let t_big_int k = tarr_t_k tf_2n k
+let t_big_int k = tarr_t_k tf_n_bit k
 
 (* \i (s, c) => let (si, ci) = #ModSumThree n (ab[i]).0 (ab[i]).1 c in (s ++ si, ci) *)
 let lam_big_add =
@@ -107,9 +108,9 @@ let q_lt_p = QExpr (leq (toUZ nu) (zsub1 (toUZ p)))
 
 let q_add_mod_p = qeq (toUZ nu) (zmod (zadd (toUZ a) (toUZ b)) (toUZ p))
 
-let t_big_int_lt_p k = tarr_t_q_k tf_2n q_lt_p k
+let t_big_int_lt_p k = tarr_t_q_k tf_n_bit q_lt_p k
 
-let t_big_int_add_mod_p k = tarr_t_q_k tf_2n q_add_mod_p k
+let t_big_int_add_mod_p k = tarr_t_q_k tf_n_bit q_add_mod_p k
 
 let t_n' = z_range z1 (zsub2 CPLen)
 

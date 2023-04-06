@@ -55,9 +55,7 @@ let is_equal =
 (* LessThan *)
 let t_lt = tfq (ind_dec nu (lt (toUZ x) (toUZ y)))
 
-let lt_n_t = attach (QExpr (nu <. CPLen -! z1)) tnat
-
-let input_t = attach (QExpr (toUZ nu <. z2 ^! n)) tf
+let input_t = attach (lift (toUZ nu <. z2 ^! n)) tf
 
 let less_than =
   Circuit
@@ -88,7 +86,7 @@ let greater_than =
 (* LessEqThan *)
 let t_leq = tfq (ind_dec nu (toUZ a <=. toUZ b))
 
-let input_t' = attach (QExpr (toUZ nu +! z1 <. z2 ^! n)) tf
+let input_t' = attach (lift (toUZ nu +! z1 <. z2 ^! n)) tf
 
 let leq =
   Circuit
@@ -100,7 +98,7 @@ let leq =
 
 let t_geq = tfq (ind_dec nu (toUZ x >=. toUZ y))
 
-let input_t' = attach (QExpr (toUZ nu +! z1 <. z2 ^! n)) tf
+let input_t' = attach (lift (toUZ nu +! z1 <. z2 ^! n)) tf
 
 let geq =
   Circuit

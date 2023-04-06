@@ -2,6 +2,7 @@
 
 open Ast
 open Dsl
+open Notation
 
 let a = v "a"
 
@@ -37,30 +38,31 @@ let add = v "add"
 
 let tmp = v "tmp"
 
-(* { v : Int | 1 <= v <= C.k - 2 } *)
-let t_n = z_range z1 (zsub2 CPLen)
+(* { F | ^v <= C.k - 2 } *)
+let t_n = attach (lift (nu <=. CPLen -! z2)) tnat
 
-(* { v : F | toUZ(v) <= 2**n - 1 } *)
-let tf_2n = tfe (leq (toUZ nu) (zsub (zpow z2 n) z1))
+(* { F | ^v <= 2^n - 1 } *)
+let tf_n_bit = tfe (toUZ nu <=. (z2 ^! n) -! z1)
 
-let c_mod_sub_three =
+let mod_sub_three =
   Circuit
     { name= "ModSubThree"
-    ; inputs= [("n", t_n); ("a", tf_2n); ("b", tf_2n); ("c", tf_binary)]
-    ; outputs= [("out", tf); ("borrow", tf_binary)]
+    ; inputs= [("n", t_n); ("a", tf_n_bit); ("b", tf_n_bit); ("c", tf_binary)]
+    ; outputs=
+        [("out", tf); ("borrow", tfq (ind_dec nu (toUZ a <. toUZ (b +% c))))]
     ; (* out = borrow * 2 ** n + a - (b + c) *)
-      dep= Some (qeq out (fsub (fadd (fmul borrow (fpow f2 n)) a) (fadd b c)))
+      dep= Some (out ==. ((borrow *% f2) ^% n) +% a -% (b +% c))
     ; body=
-        (* b_plus_c = b + c *)
-        elet "b_plus_c" (fadd b c)
-          (* borrow === #LessThan (n + 1) a (b + c) *)
-          (make
-             [ fsub (fadd (fmul borrow (fpow f2 n)) a) b_plus_c
-             ; call "LessThan" [zadd n z1; a; b_plus_c] ]
-             (* out === borrow * 2 ** n + a - (b + c) *) ) }
+        elet "borrow"
+          (call "LessThan" [n +. z1; a; b +% c])
+          (pair
+             (* borrow === #LessThan (n + 1) a (b + c) *)
+             (((borrow *% f2) ^% n) +% a -% (b +% c))
+             (* out === borrow * 2 ** n + a - (b + c) *)
+             borrow ) }
 
 (* Proper Big Int of length k *)
-let t_big_int k = tarr_t_k tf_2n k
+let t_big_int k = tarr_t_k tf_n_bit k
 
 (* { F | binary(nu) /\ nu = 1 <-> [| a |] < [| b |] } *)
 let t_uf = tfq (q_ind_dec nu (QExpr (lt (toUZ a) (toUZ b))))
@@ -113,10 +115,10 @@ let q_lt_p = QExpr (leq (toUZ nu) (zsub1 (toUZ p)))
 let q_sub_mod_p = qeq (toUZ nu) (zmod (zsub (toUZ a) (toUZ b)) (toUZ p))
 
 (* Proper BigInts of length k with the q_lt_p property *)
-let t_big_int_lt_p k = tarr_t_q_k tf_2n q_lt_p k
+let t_big_int_lt_p k = tarr_t_q_k tf_n_bit q_lt_p k
 
 (* Proper BigInts of length k with the q_sub_mod_p property *)
-let t_big_int_sub_mod_p k = tarr_t_q_k tf_2n q_sub_mod_p k
+let t_big_int_sub_mod_p k = tarr_t_q_k tf_n_bit q_sub_mod_p k
 
 let lam_bsmp =
   lama "x"

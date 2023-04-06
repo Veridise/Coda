@@ -78,7 +78,10 @@ let t_gt = tfq (ind_dec nu (toUZ a >. toUZ b))
 let greater_than =
   Circuit
     { name= "GreaterThan"
-    ; inputs= [("n", attach (lift (nu <=. CPLen -! z1)) tnat); ("a", input_t); ("b", input_t)]
+    ; inputs=
+        [ ("n", attach (lift (nu <=. CPLen -! z1)) tnat)
+        ; ("a", input_t)
+        ; ("b", input_t) ]
     ; outputs= [("out", t_gt)]
     ; dep= None
     ; body= call "LessThan" [n; b; a] }
@@ -91,7 +94,10 @@ let input_t' = attach (lift (toUZ nu +! z1 <. z2 ^! n)) tf
 let leq =
   Circuit
     { name= "LessEqThan"
-    ; inputs= [("n", attach (lift (nu <=. CPLen -! z1)) tnat); ("a", input_t); ("b", input_t')]
+    ; inputs=
+        [ ("n", attach (lift (nu <=. CPLen -! z1)) tnat)
+        ; ("a", input_t)
+        ; ("b", input_t') ]
     ; outputs= [("out", t_leq)]
     ; dep= None
     ; body= call "LessThan" [n; a; b +% f1] }
@@ -103,7 +109,10 @@ let input_t' = attach (lift (toUZ nu +! z1 <. z2 ^! n)) tf
 let geq =
   Circuit
     { name= "GreaterEqThan"
-    ; inputs= [("n", attach (lift (nu <=. CPLen -! z1)) tnat); ("x", input_t'); ("y", input_t)]
+    ; inputs=
+        [ ("n", attach (lift (nu <=. CPLen -! z1)) tnat)
+        ; ("x", input_t')
+        ; ("y", input_t) ]
     ; outputs= [("out", t_geq)]
     ; dep= None
     ; body= call "LessEqThan" [n; y; x] }

@@ -4,6 +4,10 @@ open Ast
 open Dsl
 open Notation
 
+let v_fst = tget nu 0
+
+let v_snd = tget nu 1
+
 let n = v "n"
 
 let k = v "k"
@@ -14,7 +18,11 @@ let p' = v "p'"
 
 let a = v "a"
 
+let ai = v "ai"
+
 let b = v "b"
+
+let bi = v "bi"
 
 let c = v "c"
 
@@ -37,8 +45,6 @@ let carry = v "carry"
 let add = v "add"
 
 let lt = v "lt"
-
-let ab = v "ab"
 
 let out = v "out"
 
@@ -70,37 +76,37 @@ let t_x = ttuple [tnat; ttuple [tf; tf]; ttuple [tf; tf]]
 (* Proper big Ints of length k *)
 let t_big_int k = tarr_t_k tf_n_bit k
 
-(* \i (s, c) => let (si, ci) = #ModSumThree n (ab[i]).0 (ab[i]).1 c in (s ++ si, ci) *)
-let lam_big_add =
-  lama "i" tint
-    (lama "x"
-       (ttuple [tf; tf])
-       (elet "s" (tget x 0)
-          (elet "c" (tget x 1)
-             (elet "a"
-                (tget (get ab i) 0)
-                (elet "b"
-                   (tget (get ab i) 1)
-                   (elet "y"
-                      (call "ModSumThree" [n; a; b; c])
-                      (make [concat s (cons (tget y 0) cnil); tget y 1]) ) ) ) ) ) )
-
-let inv_big_add i = ttuple [t_big_int i; tf_binary]
+let inv_big_add i =
+  refine
+    (ttuple [t_big_int i; tf_binary])
+    ( as_le n (concat v_fst (consts [v_snd]))
+    ==. as_le n (take a i) +! as_le n (take b i) )
 
 let big_add =
   Circuit
     { name= "BigAdd"
-    ; inputs= [("n", t_n); ("k", tpos); ("a", t_big_int k); ("b", t_big_int k)]
-    ; outputs= [("out", t_big_int (zadd1 k))]
+    ; inputs=
+        [ ("n", t_n)
+        ; ("k", refine_expr tnat (z1 <=. nu))
+        ; ("a", t_big_int k)
+        ; ("b", t_big_int k) ]
+    ; outputs= [("out", t_big_int (k +. z1))]
     ; dep= None
     ; body=
-        (* ab = zip a b *)
-        elet "ab" (zip a b)
-          (* (sum, carry) = iter 0 k lam_big_add ([], 0) *)
-          (elet "x"
-             (iter z0 k lam_big_add ~init:(make [cnil; f0]) ~inv:inv_big_add)
-             (* out === sum ++ [carry] *)
-             (concat (tget x 0) (cons (tget x 1) cnil)) ) }
+        elet_p ["sum"; "carry"]
+          (iter z0 k ~init:(pair cnil f0) ~inv:inv_big_add
+             (lama "i" tint
+                (lama_p
+                   [("s", tarr tf); ("c", tf)]
+                   (elets
+                      [("ai", get a i); ("bi", get b i)]
+                      (elet_p ["sum"; "carry"]
+                         (call "ModSumThree" [n; ai; bi; c])
+                         (pair
+                            (concat s (const_array tf [v "sum"]))
+                            (v "carry") ) ) ) ) ) )
+          (* out === sum ++ [carry] *)
+          (concat (v "sum") (consts [v "carry"])) }
 
 (* BigAddModP *)
 
@@ -119,7 +125,7 @@ let big_add_mod_p =
     { name= "BigAddModP"
     ; inputs=
         [ ("n", t_n')
-        ; ("k", tpos)
+        ; ("k", refine_expr tnat (z1 <=. nu))
         ; ("a", t_big_int_lt_p k)
         ; ("b", t_big_int_lt_p k)
         ; ("p", t_big_int k) ]

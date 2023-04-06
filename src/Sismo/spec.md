@@ -1,6 +1,6 @@
 # Specifications of the Hydra circuits
 
-## Premilinary Definitions
+## [Premilinary Definitions](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/CircomLib/EdDSA.v#L83-L91)
 
 ```ocaml
 eddsa_poseidon Ax Ay S R8x R8y M := 
@@ -25,50 +25,50 @@ eddsa_poseidon Ax Ay S R8x R8y M :=
 
 *This property was proved using Picus, an in house tool used to verify that ZK circuits are properly constrained. Picus proved Poseidon(1) and Poseidon(2) were properly constrained and since all properly constrained circuits are deterministic, we can safely conclude that Poseidon(1) and Poseidon(2) are deterministic. 
 
-### 2. EdDSAPoseidonVerifier()
+### 2. [EdDSAPoseidonVerifier()](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/CircomLib/EdDSA.v#L93-L111)
 
 - Description: EdDSAPoseidonVerifier is a circuit that verifies an EdDSA signature on a message using the Poseidon hash function. The circuit is disabled when enabled = 0.
 - Input: enabled, Ax, Ay, S, R8x, R8y, M
 - Precondition: True
-- Postcondition:
+- [Postcondition](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/CircomLib/EdDSA.v#L131-L158):
   - (1)enabled != 0 -> eddsa_poseidon Ax Ay S R8x R8y M
-- Property:
+- [Property](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/CircomLib/EdDSA.v#L163-L207):
     (1)(circuit is disabled when enabled = 0) forall Ax Ay S R8x R8y M, EdDSAPoseidonVerifier 0 Ax Ay S R8x R8y M
 
-### 3. PositionSwitcher
+### 3. [PositionSwitcher](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/Sismo/hydra.v#L46-L49)
 
 - Input: in[2], s
 - Output: out[2]
 - Precondition: True
-- Postcondition:
+- [Postcondition](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/Sismo/hydra.v#L57-L81):
   - (1) s is binary
   - (2) out[0] = s ? in[1] : in[0]
   - (3) out[1] = s ? in[0] : in[1]
 
-### 4. VerifyMerklePath(levels)
+### 4. [VerifyMerklePath(levels)](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/Sismo/hydra.v#L104-L116)
 
 - Input: leaf, root, enabled, pathElements[levels], pathIndices[levels]
 - Precondition: True
-- Postcondition:
+- [Postcondition](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/Sismo/hydra.v#L128-L234):
   - (1) forall i, 0 <= i < levels -> pathIndices[i] is binary
   - (2) enabled != 0 -> 
         root = foldl (fun x y => if (fst x = 0) then (poseidons_2 y (snd x)) else (poseidons_2 (snd x) y)) 
             (combine pathIndices pathElements) leaf
-- Property:
+- [Property](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/Sismo/hydra.v#L236-L254):
   (1)(circuit is disabled when enabled = 0) forall leaf root pathElements pathIndices, VerifyMerklePath leaf root 0 pathElements pathIndices
 
-### 5. VerifyHydraCommitment
+### 5. [VerifyHydraCommitment](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/Sismo/hydra.v#L278-L291)
 
 - Input: address, accountSecret, vaultSecret, enabled, commitmentMapperPubKey[2], commitmentReceipt[3]
 - Precondition: True
-- Postcondition: 
+- [Postcondition](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/Sismo/hydra.v#L304-L329): 
   - (1) enabled != 0 ->
         let message = poseidons_2 address (poseidons_2 vaultSecret accountSecret) in 
         eddsa_poseidon commitmentMapperPubKey[0] commitmentMapperPubKey[1] commitmentReceipt[2] commitmentReceipt[0] commitmentReceipt[1] message
-- Property:
+- [Property](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/Sismo/hydra.v#L333-L360):
   (1)(circuit is disabled when enabled = 0) forall address accountSecret vaultSecret commitmentMapperPubKey commitmentReceipt, VerifyHydraCommitment address accountSecret vaultSecret 0 commitmentMapperPubKey commitmentReceipt
 
-### 6. hydraS2(registryTreeHeight, accountsTreeHeight)
+### 6. [hydraS2(registryTreeHeight, accountsTreeHeight)](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/Sismo/hydra.v#L388-L458)
 
 - Input: sourceIdentifier, sourceSecret, sourceValue, vaultSecret, sourceCommitmentReceipt[3]
        destinationIdentifier, destinationSecret, destinationCommitmentReceipt[3],
@@ -80,7 +80,7 @@ eddsa_poseidon Ax Ay S R8x R8y M :=
        vaultIdentifier, vaultNamespace,
        sourceVerificationEnabled, destinationVerificationEnabled
 - Precondition: True
-- Postcondition:
+- [Postcondition](https://github.com/Veridise/Coda/blob/a4873f40ff630a40f9d85bb4b7c4f18115665b6a/src/Sismo/hydra.v#L490-L635):
   - (1) sourceVerificationEnabled != 0 ->
         let sourceSecretHash = poseidons_2(sourceIdentifier, poseidons_2(vaultSecret, sourceSecret)) in
         eddsa_poseidon commitmentMapperPubKey[0] commitmentMapperPubKey[1] sourceCommitmentReceipt[2] sourceCommitmentReceipt[0] sourceCommitmentReceipt[1] sourceSecretHash

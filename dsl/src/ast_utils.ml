@@ -172,7 +172,7 @@ and ppf_expr ppf : expr -> unit =
     | Sum {s; e; body} ->
         pf ppf "\\sum_{%a, %a}(%a)" ppf_expr s ppf_expr e ppf_expr body
     | TMake es ->
-        pf ppf "%a" (parens (list ~sep:comma ppf_expr)) es
+        pf ppf "%a" (parens (list ~sep:(Fmt.any ", ") ppf_expr)) es
     | TGet (e, i) ->
         pf ppf "%a.%d" ppf_expr e i
     | DMake _ ->
@@ -186,7 +186,7 @@ and ppf_expr ppf : expr -> unit =
     | Iter _ ->
         string ppf "TODO: ppf_expr: Iter"
     | Fn (f, es) ->
-        pf ppf "(%a %a)" ppf_func f (list ppf_expr) es
+        pf ppf "(%a %a)" ppf_func f (list ~sep:(Fmt.any " ") ppf_expr) es
     | Push e ->
         pf ppf "(push %a)" ppf_expr e
     | Pull e ->
@@ -198,7 +198,7 @@ let show_qual (q : qual) = Fmt.str "%a" ppf_qual q
 
 let show_expr (e : expr) = Fmt.str "%a" ppf_expr e
 
-let show_exprs (es : expr list) = Fmt.str "%a" (Fmt.list ppf_expr) es
+let show_exprs (es : expr list) = Fmt.str "%a" (Fmt.list ~sep:(Fmt.any " ") ppf_expr) es
 
 let show_const (c : const) = Fmt.str "%a" ppf_const c
 
@@ -308,7 +308,7 @@ let rec subst_typ (x : string) (e : expr) (t : typ) : typ =
   | TBase _ ->
       t
   | TRef (t, q) ->
-      TRef (t, subst_qual x e q)
+      TRef (subst_typ x e t, subst_qual x e q)
   | TFun (y, t1, t2) ->
       if String.(x = y) then t
       else (* TODO: alpha-rename *)
@@ -402,7 +402,7 @@ and subst_expr (x : string) (ef : expr) (e : expr) : expr =
   | Pull e ->
       Pull (f e)
   | _ ->
-      todos "subst_expr"
+      todos (Format.sprintf "subst_expr: %s" (show_expr e))
 
 let rec subst_typ' (e : expr) (e' : expr) (t : typ) : typ =
   let f = subst_typ' e e' in
@@ -453,6 +453,10 @@ and subst_expr' (eo : expr) (en : expr) (e : expr) : expr =
         EQual (subst_qual' eo en q)
     | LamA (y, t, body) ->
         LamA (y, subst_typ' eo en t, f body)
+    | Ascribe (ea, t) ->
+        Ascribe (subst_expr' eo en ea, subst_typ' eo en t)
+    | AscribeUnsafe (ea, t) ->
+        AscribeUnsafe (subst_expr' eo en ea, subst_typ' eo en t)
     | App (e1, e2) ->
         App (f e1, f e2)
     | Not e' ->
@@ -489,15 +493,15 @@ and subst_expr' (eo : expr) (en : expr) (e : expr) : expr =
     | DMatch (e1, ys, e2) ->
         DMatch (f e1, ys, f e2)
     | Map (e1, e2) ->
-        todos "subst_expr: Map"
+        todos "subst_expr': Map"
     | Foldl {f; acc; xs} ->
-        todos "subst_expr: Foldl"
+        todos "subst_expr': Foldl"
     | Push e ->
         Push (f e)
     | Pull e ->
         Pull (f e)
     | _ ->
-        todos "subst_expr"
+        todos (Format.sprintf "subst_expr': %s" (show_expr e))
 
 let rec skeleton = function
   | TBase tb ->

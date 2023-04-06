@@ -452,7 +452,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
         a' := a ;
         e2_out := !e2_out @ [e1']
       done ;
-      (!g', !b', !a', const_array_untyped !e2_out)
+      (!g', !b', !a', consts !e2_out)
   | Iter {s; e; body; init; _} ->
       (* s: start; e: end;  [start, end) *)
       (*  it's like a for loop *)

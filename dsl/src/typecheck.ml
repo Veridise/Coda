@@ -320,21 +320,21 @@ let rec synthesize (e : expr) : typ S.t =
             (* s is int *)
             let t_iter =
               (* TODO: ensure var freshness *)
-              tfun "s" tint
-                (tfun "e" tint
-                   (tfun "body"
+              tfun "_s" tint
+                (tfun "_e" tint
+                   (tfun "_body"
                       ((* assume s <= i < e *)
-                       tfun "i" (z_range_co s e)
+                       tfun "_i" (z_range_co s e)
                          (* assume inv(i,x) holds *)
-                         (tfun "x"
-                            (inv (v "i"))
+                         (tfun "_x"
+                            (inv (v "_i"))
                             (* prove inv(i+1,output) holds *)
-                            (inv (v "i" +. z1)) ) )
+                            (inv (v "_i" +. z1)) ) )
                       (* prove inv(s,init) holds *)
-                      (tfun "init"
-                         (inv (v "s"))
+                      (tfun "_init"
+                         (inv (v "_s"))
                          (* conclude inv(e,output) holds *)
-                         (inv (v "e")) ) ) )
+                         (inv (v "_e")) ) ) )
             in
             synthesize (dummy_apps "iter" t_iter [s; e; body; init])
         | TMake es ->
@@ -496,8 +496,14 @@ and check (e : expr) (t : typ) : unit S.t =
               check_cons (qimply (QExpr (len nu =. z0)) q)
           | _ ->
               failwith (spf "Expect CNil <= %s to be an array" (show_typ t)) )
-        | TMake es, TRef (TTuple ts, QTrue) ->
+        | TMake es, TRef (TTuple ts, q) ->
             iterM (List.zip_exn es ts) ~f:(uncurry check)
+            >>= fun () ->
+            let q' =
+              List.foldi es ~init:q ~f:(fun i q e ->
+                  subst_qual' (tget nu i) e q )
+            in
+            check_cons (qimply QTrue q')
         | ArrayOp (Cons, [e1; e2]), TRef (TArr te, q) ->
             let%bind () = check e1 te and () = check e2 (tarr te) in
             subtype (refine_expr (tarr te) (nu =. e)) nt

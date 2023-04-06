@@ -30,6 +30,14 @@ let key = v "KEY"
 
 let n2b = v "n2b"
 
+let n2b0 = v "n2b0"
+
+let n2b1 = v "n2b1"
+
+let n2b2 = v "n2b2"
+
+let n2b3 = v "n2b3"
+
 let rng = v "rng"
 
 let eqs = v "eqs"
@@ -37,6 +45,8 @@ let eqs = v "eqs"
 let choices = v "choices"
 
 let index = v "index"
+
+let mimc = v "mimc"
 
 (* CalculateTotal *)
 
@@ -51,6 +61,11 @@ let calc_total =
     ; body= make_sum vin ~len:n }
 
 (* QuinSelector *)
+
+let t_choices =
+  tfq (qand (lift (z4 <. zsub1 CPLen)) (lift (toUZ nu <. zpow z2 z4)))
+
+let t_index = tfq (lift (toUZ nu <. toUZ choices))
 
 let t_qs = tfq (qimply (lift (index <. choices)) (nu ==. get vin index))
 
@@ -72,7 +87,10 @@ let gen_rng k =
 let quin_selector =
   Circuit
     { name= "QuinSelector"
-    ; inputs= [("choices", tf); ("in", tarr_tf (toUZ choices)); ("index", tf)]
+    ; inputs=
+        [ ("choices", t_choices)
+        ; ("in", tarr_tf (toUZ choices))
+        ; ("index", t_index) ]
     ; outputs= [("out", t_qs)] (* ; outputs= [("out", tunit)] *)
     ; dep= None
     ; body=
@@ -114,12 +132,16 @@ let random =
     ; outputs= [("out", t_rand)]
     ; dep= None
     ; body=
-        elet "n2b"
-          (call "Num2Bits"
-             [z254; get (call "MiMCSponge" [z3; z4; z1; vin; key]) z0] )
-          (* 8 * n2b[3] + 4 * n2b[2] + 2 * n2b[1] + n2b[0] *)
-          (fadd
-             (fmul f8 (get n2b z3))
-             (fadd
-                (fmul f4 (get n2b z2))
-                (fadd (fmul f2 (get n2b z1)) (get n2b z0)) ) ) }
+        elet "mimc"
+          (call "MiMCSponge" [z3; z4; z1; vin; key])
+          (elet "z" (get mimc z0)
+             (elet "n2b"
+                (call "Num2Bits" [z254; z])
+                (elet "n2b3" (get n2b z3)
+                   (elet "n2b2" (get n2b z2)
+                      (elet "n2b1" (get n2b z1)
+                         (elet "n2b0" (get n2b z0)
+                            (* 8 * n2b[3] + 4 * n2b[2] + 2 * n2b[1] + n2b[0] *)
+                            (fadd (fmul f8 n2b3)
+                               (fadd (fmul f4 n2b2) (fadd (fmul f2 n2b1) n2b0)) ) ) ) ) ) ) )
+    }

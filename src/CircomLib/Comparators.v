@@ -41,12 +41,13 @@ Local Open Scope tuple_scope.
 
 Module IsZero.
 
-Definition cons (_in out _inv: F) :=
+Definition cons (_in out: F) :=
+  exists _inv,
   out = 1 - _in * _inv /\
   _in * out = 0.
 
 (* IsZero *)
-Record t : Type := { _in: F; out: F; _cons: exists _inv, cons _in out _inv }.
+Record t : Type := { _in: F; out: F; _cons: cons _in out }.
 
 (* IsZero spec *)
 Definition spec (c: t) : Prop :=
@@ -381,5 +382,54 @@ Qed.
 
 End LessEqThan.
 End LessEqThan.
+
+Module ForceEqualIfEnabled.
+
+Section ForceEqualIfEnabled.
+
+Definition cons (enabled: F) (in_: F^2) :=
+  exists (isz: IsZero.t),
+    in_[1] - in_[0] = isz.(IsZero._in) /\
+    (1 - isz.(IsZero.out)) * enabled = 0.
+
+Record t: Type := {
+  enabled: F;
+  _in: F^2;
+  _cons: cons enabled _in;
+}.
+
+Lemma F_sub_eq: forall (a b: F), a - b = 0 -> a = b.
+Proof.
+  intros.
+  pose proof (F.ring_theory q). destruct H0.
+  apply Crypto.Algebra.Ring.sub_zero_iff;auto.
+Qed.
+
+Lemma soundness : forall (w: t),
+  let '(x, y) := (w.(_in)[0], w.(_in)[1]) in
+  (w.(enabled) <> 0 -> x = y).
+Proof.
+  intros. 
+  destruct w as [w_enabled w_in [isz [H_isz_in H_isz_out]]].
+  pose proof (@F.to_Z_range q (w_in [0])) as hhh1. 
+  pose proof (@F.to_Z_range q (w_in [1])) as hhh2. 
+  simpl in *. pose proof two_lt_q. pose proof q_lb as q_lb.
+  pose proof (IsZero.soundness isz) as H_isz.
+  unfold IsZero.spec in H_isz.
+  destruct (dec (IsZero._in isz = 0));subst.
+  - intros. rewrite H_isz in *. 
+    rewrite e in *. symmetry. apply F_sub_eq;auto.
+  - intros. rewrite H_isz in *. rewrite Fsub_0_r in *. rewrite Fmul_1_l in *.
+    exfalso. apply H0. auto.
+Qed.
+
+Axiom unconstrained : F -> F -> Prop.
+
+Axiom circuit_disabled: forall (w: t),
+  w.(enabled) = 0 ->
+  unconstrained (w.(_in)[0]) (w.(_in)[1]).
+
+End ForceEqualIfEnabled.
+End ForceEqualIfEnabled.
 
 End Comparators.

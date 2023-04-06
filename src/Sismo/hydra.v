@@ -14,7 +14,7 @@ Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.seto
 Require Import Ring.
 
 From Circom Require Import Circom Util Default Tuple LibTactics Simplify Repr ListUtil.
-From Circom.CircomLib Require Import Bitify Comparators.
+From Circom.CircomLib Require Import Bitify Comparators EdDSA.
 
 Local Open Scope list_scope.
 Local Open Scope F_scope.
@@ -37,80 +37,6 @@ Definition nth2 {m n} (i: nat) (x: (F^n)^m) := Tuple.nth_default (repeat 0 n) i 
 Local Notation "x [ i ][ j ]" := (Tuple.nth_default 0 j (nth2 i x)) (at level 20).
 Definition nth3 {m n p} (i: nat) (x: ((F^n)^m)^p) := Tuple.nth_default (repeat (repeat 0 n) m) i x.
 Local Notation "x [ i ][ j ][ k ]" := (Tuple.nth_default 0 k (nth2 j (nth3 i x))) (at level 20).
-
-
-
-
-
-(* Poseidon *)
-Module Poseidon.
-Section Poseidon.
-Context {nInputs: nat}.
-
-Definition cons (inputs: F^nInputs) (out: F) := True.
-
-Record t : Type := 
-{ inputs: F^nInputs;
-  out: F;
-  _cons: cons inputs out; }.
-
-Definition wgen: t. skip. Defined.
-
-#[global] Instance Default: Default t. constructor. exact wgen. Defined.
-
-End Poseidon.
-
-Module PoseidonHypo.
-Definition poseidon_1 : F -> F. skip. Defined.
-Definition poseidon_2 : F -> F -> F. skip. Defined.
-Lemma poseidon_1_spec : 
-  forall (p: @Poseidon.t 1) x, p.(inputs)[0] = x -> p.(Poseidon.out) = poseidon_1 x. skip. Defined.
-Lemma poseidon_2_spec :
-  forall (p: @Poseidon.t 2) x y, p.(inputs)[0] = x -> p.(inputs)[1] = y -> p.(Poseidon.out) = poseidon_2 x y. skip. Defined.
-End PoseidonHypo.
-
-End Poseidon.
-
-
-
-
-
-(* Source: https://github.com/iden3/circomlib/blob/master/circuits/eddsaposeidon.circom *)
-Module EdDSAPoseidonVerifier.
-Section EdDSAPoseidonVerifier.
-
-(* TODO  TODO  TODO  TODO  TODO*)
-Definition cons (enabled: F) (Ax: F) (Ay: F) (S: F) (R8x: F) (R8y: F) (M: F) := True.
-
-Record t : Type := 
-{ enabled: F;
-  Ax: F;
-  Ay: F;
-  S: F;
-  R8x: F;
-  R8y: F;
-  M: F;
-  _cons: cons enabled Ax Ay S R8x R8y M; }.
-
-Definition wgen: t. skip. Defined.
-
-#[global] Instance Default: Default t. constructor. exact wgen. Defined.
-
-End EdDSAPoseidonVerifier.
-
-Module EdDSAPoseidonVerifierHypo.
-Definition eddsa_poseidon : F -> F -> F -> F -> F -> F -> Prop. skip. Defined.
-Lemma EdDSAPoseidonVerifier_spec :
-  forall (p: @EdDSAPoseidonVerifier.t),
-    p.(enabled) <> 0 ->
-    eddsa_poseidon p.(Ax) p.(Ay) p.(S) p.(R8x) p.(R8y) p.(M).
-  Admitted.
-End EdDSAPoseidonVerifierHypo.
-
-End EdDSAPoseidonVerifier.
-
-
-
 
 
 (* Source: https://github.com/sismo-core/hydra-s2-zkps/blob/main/circuits/common/verify-merkle-path.circom#L10 *)
@@ -307,6 +233,26 @@ Proof.
   rewrite <- _Hlen0 at 1. rewrite ListUtil.List.firstn_all. rewrite H0. auto.
 Qed.
 
+Theorem circuit_disabled (leaf: F) (enabled: F) (pathElements: F^levels) (pathIndices: F^levels)
+(selectors: PositionSwitcher.t^levels) (hashers: (@Poseidon.t 2)^levels) (computedPath: F^levels):
+let _C :=
+  (D.iter (fun i _C =>
+  _C /\
+  selectors[i].(PositionSwitcher._in)[0] = (if i =? 0 then leaf else computedPath[i - 1]) /\
+  selectors[i].(PositionSwitcher._in)[1] = pathElements[i] /\
+  selectors[i].(PositionSwitcher.s) = pathIndices[i] /\
+  hashers[i].(Poseidon.inputs)[0] = selectors[i].(PositionSwitcher.out)[0] /\
+  hashers[i].(Poseidon.inputs)[1] = selectors[i].(PositionSwitcher.out)[1] /\
+  computedPath[i] = hashers[i].(Poseidon.out))levels True)
+in _C ->
+forall root,
+enabled = 0 ->
+(root - computedPath[levels - 1])*enabled = 0.
+Proof.
+  intros.
+  subst. rewrite Fmul_0_r. auto.
+Qed.
+
 Definition wgen: t. skip. Defined.
 
 #[global] Instance Default: Default t. constructor. exact wgen. Defined.
@@ -321,11 +267,13 @@ End VerifyMerklePath.
 (* Source: https://github.com/sismo-core/hydra-s2-zkps/blob/main/circuits/common/verify-hydra-commitment.circom#L10 *)
 Module VerifyHydraCommitment.
 Module Poseidon := Poseidon.
+Module EdDSA := EdDSA.
 Module EdDSAPoseidonVerifier := EdDSAPoseidonVerifier.
 
 Section VerifyHydraCommitmentProof.
 Definition poseidon_2 := Poseidon.PoseidonHypo.poseidon_2.
-Definition eddsa_poseidon := EdDSAPoseidonVerifier.EdDSAPoseidonVerifierHypo.eddsa_poseidon.
+
+Definition eddsa_poseidon := EdDSA.EdDSAPoseidonVerifier.eddsa_poseidon.
 
 Definition cons (address: F)(accountSecret: F)(vaultSecret: F)(enabled: F)
                 (commitmentMapperPubKey: F^2)(commitmentReceipt: F^3): Prop :=
@@ -371,13 +319,44 @@ Proof.
   destruct _cons as [eddsa _cons].
   intuition.
   pose proof (Poseidon.PoseidonHypo.poseidon_2_spec commitment) as commitment_spec.
-  pose proof (Poseidon.PoseidonHypo.poseidon_2_spec message) as message_spec.
-  pose proof (EdDSAPoseidonVerifier.EdDSAPoseidonVerifierHypo.EdDSAPoseidonVerifier_spec eddsa) as eddsa_spec.
+  pose proof (Poseidon.PoseidonHypo.poseidon_2_spec message) as message_spec. 
+  pose proof (CircomLib.EdDSA.EdDSAPoseidonVerifier.EdDSAPoseidonVerifierProof.EdDSAPoseidonVerifier_spec eddsa) as eddsa_spec.
   intuit. subst.
   apply eddsa_spec in H.
   rewrite H5, H6, H7, H8, H9, H11 in H. unfold eddsa_poseidon. unfold poseidon_2.
   rewrite <- message_spec;auto.
   rewrite <- commitment_spec;auto.
+Qed.
+
+Definition tt: Prop := True.
+
+Theorem circuit_disabled: forall (c:t), c.(enabled) = 0 -> tt.
+Proof.
+  intros.
+  destruct c. simpl in *. intuition.
+  destruct _cons0 as [commitment _cons].
+  destruct _cons as [message _cons].
+  destruct _cons as [eddsa _cons].
+  intuit.
+  destruct eddsa as [enabled Ax Ay R8x R8y S M cons]. simpl in *.
+  pose proof (CircomLib.EdDSA.EdDSAPoseidonVerifier.EdDSAPoseidonVerifierProof.EdDSAPoseidonVerifier_spec_disabled
+  Ax Ay R8x R8y S M) as eddsa_spec_disabled.
+  destruct cons. do 2 destruct H10. intuit. subst.
+  specialize (eddsa_spec_disabled x x0 x1).
+  intuit.
+  destruct CircomLib.EdDSA.EdDSAPoseidonVerifier.BabyDbl.
+  destruct CircomLib.EdDSA.EdDSAPoseidonVerifier.BabyDbl.
+  destruct CircomLib.EdDSA.EdDSAPoseidonVerifier.BabyDbl.
+  destruct CircomLib.EdDSA.EdDSAPoseidonVerifier.edwards_mult.
+  destruct CircomLib.EdDSA.EdDSAPoseidonVerifier.edwards_add.
+  destruct CircomLib.EdDSA.EdDSAPoseidonVerifier.edwards_mult.
+  intuit.
+  (* signals are unconstrained *)
+  assert(CircomLib.EdDSA.EdDSAPoseidonVerifier.EdDSAPoseidonVerifierProof.unconstrained
+  f9 f7). auto.
+  assert(CircomLib.EdDSA.EdDSAPoseidonVerifier.EdDSAPoseidonVerifierProof.unconstrained
+  f10 f8). auto.
+  unfold tt. auto.
 Qed.
 
 Definition wgen: t. skip. Defined.

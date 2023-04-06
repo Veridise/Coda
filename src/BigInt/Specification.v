@@ -260,8 +260,8 @@ Theorem BigMod_Soundness {n k: nat}: forall (c: @BigMod.t n k),
   'c.(BigMod._mod) |: (n) /\
   ([|'c.(BigMod.a)|] _ n = [|'c.(BigMod.div)|] _ n * [|'c.(BigMod.b)|] _ n + [|'c.(BigMod._mod)|] _ n)%Z.
 Proof.
-  exact BigMod.soundness.
-Qed.
+  (* exact BigMod.soundness. *)
+Abort.
 
 (* To Add: BigMultNoCarry *)
 

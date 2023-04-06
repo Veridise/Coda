@@ -46,4 +46,6 @@ src/BigInt/Theory/Polynom_test.v
 src/BigInt/Proof/BigMult.v
 src/BigInt/Proof/BigMod.v
 src/BigInt/Specification.v
+src/CircomLib/EdDSA.v
+src/Sismo/hydra.v
 # src/BigInt/Proof/PrimeReduce.v

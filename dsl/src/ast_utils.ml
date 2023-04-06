@@ -307,14 +307,14 @@ let rec subst_typ (x : string) (e : expr) (t : typ) : typ =
   match t with
   | TBase _ ->
       t
-  | TRef (t, q) ->
-      TRef (subst_typ x e t, subst_qual x e q)
+  | TRef (t', q) ->
+      TRef (subst_typ x e t', subst_qual x e q)
   | TFun (y, t1, t2) ->
       if String.(x = y) then t
       else (* TODO: alpha-rename *)
         TFun (y, subst_typ x e t1, subst_typ x e t2)
-  | TArr t ->
-      TArr (f t)
+  | TArr t' ->
+      TArr (f t')
   | TTuple ts ->
       TTuple (List.map ~f ts)
 

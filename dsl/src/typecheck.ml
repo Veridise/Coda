@@ -112,10 +112,13 @@ let with_binding (x, t) f = with_bindings [(x, t)] f
 
 let get_alpha = S.(get >>| fun st -> st.alpha)
 
+let i = ref 0
 let add_cons cons =
-  if is_non_trivial cons then
-    print_endline (spf "[add_cons] New constraint\n%s\n" (show_cons cons))
+  print_endline (spf "[add_cons] (%d) New constraint \n%s\n" !i (show_cons cons));
+  if is_non_trivial cons then ()
+    (* print_endline (spf "[add_cons] (%d) New constraint \n%s\n" !i (show_cons cons)) *)
   else () ;
+  i := !i + 1;
   S.(modify (fun st -> {st with cs= st.cs @ [cons]}))
 
 let add_assertion q = S.(modify (fun st -> {st with alpha= st.alpha @ q}))
@@ -492,8 +495,8 @@ and check (e : expr) (t : typ) : unit S.t =
         match (e, nt) with
         | Const CNil, nt -> (
           match nt with
-          | TRef (TArr _, q) ->
-              check_cons (qimply (QExpr (len nu =. z0)) q)
+          | TRef (TArr _, _) ->
+            subtype (attach (nu ==. cnil) (skeleton t)) nt
           | _ ->
               failwith (spf "Expect CNil <= %s to be an array" (show_typ t)) )
         | TMake es, TRef (TTuple ts, q) ->

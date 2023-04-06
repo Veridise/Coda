@@ -65,3 +65,8 @@
  (name test_darkforest)
  (libraries zarith lib coqgen circomlib test_utils darkforest)
  (modules test_darkforest))
+
+(executable
+ (name test_hydra)
+ (libraries zarith lib coqgen circomlib test_utils hydra)
+ (modules test_hydra))

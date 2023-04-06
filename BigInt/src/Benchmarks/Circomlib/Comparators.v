@@ -139,47 +139,34 @@ Ltac switch dst l :=
 
 
 
-Lemma LessThan_obligation0_trivial: forall (n : nat) (x : F) (y : F) (v : Z), (n < (C.k - 1%nat)%Z)%Z -> (F.to_Z x < (2%nat ^ n)%Z)%Z -> (F.to_Z y < (2%nat ^ n)%Z)%Z -> True -> ((((0%nat <= v)%Z /\ (v < (C.k - 1%nat)%Z)%Z) /\ (v = n)) -> True).
+Lemma LessThan_obligation0_trivial: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> True).
 Proof. intuit. Qed.
 
-Lemma LessThan_obligation1_trivial: forall (n : nat) (x : F) (y : F) (v : Z), (n < (C.k - 1%nat)%Z)%Z -> (F.to_Z x < (2%nat ^ n)%Z)%Z -> (F.to_Z y < (2%nat ^ n)%Z)%Z -> True -> ((v = 1%nat) -> True).
+Lemma LessThan_obligation1_trivial: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = 1%nat) -> True).
 Proof. intuit. Qed.
 
-Lemma LessThan_obligation2: forall (n : nat) (x : F) (y : F) (v : Z), (n < (C.k - 1%nat)%Z)%Z -> (F.to_Z x < (2%nat ^ n)%Z)%Z -> (F.to_Z y < (2%nat ^ n)%Z)%Z -> True -> ((v = (n + 1%nat)%nat) -> (0%nat <= v)%Z).
+Lemma LessThan_obligation2: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = (n + 1%nat)%nat) -> (0%nat <= v)).
 Proof. lia. Qed.
 
-Lemma LessThan_obligation3_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n < (C.k - 1%nat)%Z)%Z -> (F.to_Z x < (2%nat ^ n)%Z)%Z -> (F.to_Z y < (2%nat ^ n)%Z)%Z -> True -> (((F.to_Z v < (2%nat ^ n)%Z)%Z /\ (v = x)) -> True).
+Lemma LessThan_obligation3_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((^ v) < (2%nat ^ n)%Z) /\ (v = x)) -> True).
 Proof. intuit. Qed.
 
-Lemma LessThan_obligation4_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n < (C.k - 1%nat)%Z)%Z -> (F.to_Z x < (2%nat ^ n)%Z)%Z -> (F.to_Z y < (2%nat ^ n)%Z)%Z -> True -> (((F.to_Z v < (2%nat ^ n)%Z)%Z /\ (v = y)) -> True).
+Lemma LessThan_obligation4_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((^ v) < (2%nat ^ n)%Z) /\ (v = y)) -> True).
 Proof. intuit. Qed.
 
-Lemma LessThan_obligation5_trivial: 
-  forall (n : nat) (x : F) (y : F) (v : F), 
-  (n < (C.k - 1%nat)%Z)%Z -> 
-  (F.to_Z x < (2%nat ^ n)%Z)%Z -> 
-  (F.to_Z y < (2%nat ^ n)%Z)%Z -> 
-  True -> 
-  ((v = (x - y)%F) -> True).
-  Proof. intuit. Qed.
+Lemma LessThan_obligation5_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = (x - y)%F) -> True).
+Proof. intuit. Qed.
 
-
-Lemma LessThan_obligation6_trivial: 
-  forall (n : nat) (x : F) (y : F) (v : F), 
-  (n < (C.k - 1%nat)%Z)%Z -> 
-  (F.to_Z x < (2%nat ^ n)%Z)%Z -> 
-  (F.to_Z y < (2%nat ^ n)%Z)%Z -> 
-  True -> 
-  ((v = 2%F) -> True).
-  Proof. intuit. Qed.
+Lemma LessThan_obligation6_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = 2%F) -> True).
+Proof. intuit. Qed.
 
 Lemma LessThan_obligation7: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> (0%nat <= v)).
 Proof. lia. Qed.
 
-Lemma LessThan_obligation8_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n < (C.k - 1%nat)%Z)%Z -> (F.to_Z x < (2%nat ^ n)%Z)%Z -> (F.to_Z y < (2%nat ^ n)%Z)%Z -> True -> ((v = (2%F ^ n)%F) -> True).
+Lemma LessThan_obligation8_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = (2%F ^ n)%F) -> True).
 Proof. intuit. Qed.
 
-Lemma LessThan_obligation9_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n < (C.k - 1%nat)%Z)%Z -> (F.to_Z x < (2%nat ^ n)%Z)%Z -> (F.to_Z y < (2%nat ^ n)%Z)%Z -> True -> ((v = ((x - y)%F + (2%F ^ n)%F)%F) -> True).
+Lemma LessThan_obligation9_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = ((x - y)%F + (2%F ^ n)%F)%F) -> True).
 Proof. intuit. Qed.
 
 Lemma LessThan_obligation10: forall (n : nat) (x : F) (y : F) (z : (list F)) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) z -> (((as_le_f z) = ((x - y)%F + (2%F ^ n)%F)%F) /\ ((length z) = (n + 1%nat)%nat)) -> True -> ((v = (z!n)) -> ((v = 0%F) \/ (v = 1%F))).

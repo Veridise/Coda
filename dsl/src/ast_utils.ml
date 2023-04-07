@@ -176,9 +176,13 @@ and ppf_expr ppf : expr -> unit =
     | TGet (e, i) ->
         pf ppf "%a.%d" ppf_expr e i
     | DMake (es, q) ->
-        pf ppf "%a_{%a}" (parens (list ~sep:(Fmt.any ", ") ppf_expr)) es ppf_qual q
+        pf ppf "%a_{%a}"
+          (parens (list ~sep:(Fmt.any ", ") ppf_expr))
+          es ppf_qual q
     | DMatch (e1, xs, e2) ->
-        pf ppf "(match %a %a %a)" ppf_expr e1 (parens (list ~sep:(Fmt.any ", ") string)) xs ppf_expr e2
+        pf ppf "(match %a %a %a)" ppf_expr e1
+          (parens (list ~sep:(Fmt.any ", ") string))
+          xs ppf_expr e2
     | Map (e1, e2) ->
         pf ppf "(map %a %a)" ppf_expr e1 ppf_expr e2
     | Foldl _ ->

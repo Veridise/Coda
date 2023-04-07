@@ -62,7 +62,7 @@ let refine_expr t e = TRef (t, lift e)
 
 let attach q = function
   | TRef (t, QTrue) ->
-    TRef (t, q)
+      TRef (t, q)
   | TRef (t, q') ->
       TRef (t, QAnd (q', q))
   | t ->
@@ -73,7 +73,6 @@ let get_tq t = match t with TRef (t, q) -> (t, q) | _ -> (t, QTrue)
 let as_tref t =
   let t', q = get_tq t in
   TRef (t', q)
-
 
 let badd b e1 e2 = Binop (b, Add, e1, e2)
 
@@ -200,13 +199,11 @@ let qor q1 q2 = QOr (q1, q2)
 
 let qimply q1 q2 = QImply (q1, q2)
 
-
 let ors qs = List.fold_right qs ~f:(fun q q' -> qor q q') ~init:QTrue
+
 let ands qs = List.fold_right qs ~f:(fun q q' -> qand q q') ~init:QTrue
 
 let attaches qs t = attach (ands qs) t
-
-let match_with e1 xs e2 = DMatch (e1, xs, e2)
 
 let dmake es q = DMake (es, q)
 
@@ -284,7 +281,6 @@ let ites qqs q =
   List.fold_right qqs ~f:(fun (qif, qthen) q -> ite qif qthen q) ~init:q
 
 let ites_expr eqs q = ites (List.map eqs ~f:(fun (e, q) -> (lift e, q))) q
-
 
 let contained_in e es = ors @@ List.map es ~f:(fun e' -> qeq e e')
 
@@ -374,6 +370,17 @@ let zip e1 e2 = ArrayOp (Zip, [e1; e2])
 let iter s e body ~init ~inv = Iter {s; e; body; init; inv}
 
 let map e1 e2 = Map (e1, e2)
+
+let match_with e1 xs e2 = DMatch (e1, xs, e2)
+
+let lama_match x_t e =
+  let xs, ts = List.unzip x_t in
+  let jumble = String.concat ~sep:"_" xs in
+  lama jumble (ttuple ts) (match_with (v jumble) xs e)
+
+let match_with' xs e1 e2 =
+  let x = String.concat ~sep:"_" xs in
+  elet x e1 (match_with (v x) xs e2)
 
 let pairwise_mul xs ys e' =
   elet "xy_s" (zip xs ys)

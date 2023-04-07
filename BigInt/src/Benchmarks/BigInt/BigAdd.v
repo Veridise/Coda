@@ -216,10 +216,14 @@ Proof. intuit. Qed.
 Lemma BigAdd_obligation13: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (ss_cc : (list F) * F) (c' : F) (s' : (list F)) (_u0 : (list F) * F) (ai : F) (bi : F) (mst : F * F) (carry : F) (sum : F) (_u1 : F * F) (v : F), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x84 => ((^ x84) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x85 => ((^ x85) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match ss_cc with (x87,x88) => Forall (fun x86 => ((^ x86) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x87 end -> match ss_cc with (x87,x88) => ((length x87) = i) end -> match ss_cc with (x87,x88) => ((x88 = 0%F) \/ (x88 = 1%F)) end -> match ss_cc with (x87,x88) => ((as_le n (x87 ++ (x88 :: nil))) = ((as_le n (a[:i])) + (as_le n (b[:i])))%Z) end -> (c' = snd (ss_cc)) -> Forall (fun x89 => True) s' -> (s' = fst (ss_cc)) -> match _u0 with (x91,x92) => Forall (fun x90 => True) x91 end -> match _u0 with (x91,x92) => True end -> match _u0 with (x91,x92) => True end -> match _u0 with (x91,x92) => (ss_cc = ss_cc) end -> (ai = (a!i)) -> (bi = (b!i)) -> match mst with (x93,x94) => ((^ x93) <= ((2%nat ^ n)%Z - 1%nat)%Z) end -> match mst with (x93,x94) => ((x94 = 0%F) \/ (x94 = 1%F)) end -> match mst with (x93,x94) => ((x93 + ((2%F ^ n)%F * x94)%F)%F = ((ai + bi)%F + c')%F) end -> (carry = snd (mst)) -> (sum = fst (mst)) -> match _u1 with (x95,x96) => True end -> match _u1 with (x95,x96) => True end -> match _u1 with (x95,x96) => (mst = mst) end -> True -> ((v = carry) -> ((v = 0%F) \/ (v = 1%F))).
 Proof. intuit; subst; simpl; intuit. Qed.
 
-Lemma firstn_plus_1: forall {A: Type} {H: Default A} (xs: list A) (n: nat),
-  n+1 <= length xs ->
-  xs[:(n+1)%nat] = xs[:n] ++ (xs!n :: nil).
-Admitted.
+
+Lemma firstn_plus1 {A: Type} {H: Default A}: forall i l,
+  (i < length l)%nat ->
+  l[:i+1] = l[:i] ++ (l!i :: nil).
+Proof.
+  intros. replace (i+1)%nat with (S i) by lia.
+  rewrite firstn_S with (d:=default). fold_default. reflexivity. lia.
+Qed.
 
 Lemma BigAdd_obligation14: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (ss_cc : (list F) * F) (c' : F) (s' : (list F)) (_u0 : (list F) * F) (ai : F) (bi : F) (mst : F * F) (carry : F) (sum : F) (_u1 : F * F), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x97 => ((^ x97) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x98 => ((^ x98) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match ss_cc with (x100,x101) => Forall (fun x99 => ((^ x99) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x100 end -> match ss_cc with (x100,x101) => ((length x100) = i) end -> match ss_cc with (x100,x101) => ((x101 = 0%F) \/ (x101 = 1%F)) end -> match ss_cc with (x100,x101) => ((as_le n (x100 ++ (x101 :: nil))) = ((as_le n (a[:i])) + (as_le n (b[:i])))%Z) end -> (c' = snd (ss_cc)) -> Forall (fun x102 => True) s' -> (s' = fst (ss_cc)) -> match _u0 with (x104,x105) => Forall (fun x103 => True) x104 end -> match _u0 with (x104,x105) => True end -> match _u0 with (x104,x105) => True end -> match _u0 with (x104,x105) => (ss_cc = ss_cc) end -> (ai = (a!i)) -> (bi = (b!i)) -> match mst with (x106,x107) => ((^ x106) <= ((2%nat ^ n)%Z - 1%nat)%Z) end -> match mst with (x106,x107) => ((x107 = 0%F) \/ (x107 = 1%F)) end -> match mst with (x106,x107) => ((x106 + ((2%F ^ n)%F * x107)%F)%F = ((ai + bi)%F + c')%F) end -> (carry = snd (mst)) -> (sum = fst (mst)) -> match _u1 with (x108,x109) => True end -> match _u1 with (x108,x109) => True end -> match _u1 with (x108,x109) => (mst = mst) end -> (True -> ((as_le n ((s' ++ (sum :: nil)) ++ (carry :: nil))) = ((as_le n (a[:(i + 1%nat)%nat])) + (as_le n (b[:(i + 1%nat)%nat])))%Z)).
 Proof. 
@@ -228,7 +232,7 @@ Proof.
   intros. destruct ss_cc as [ss cc]. destruct mst  as [s c]. simpl in *. apply Repr.in_range_binary in H8, H20.
   intuit. subst.
   rewrite RZ.as_le_app.
-  repeat rewrite firstn_plus_1 by lia.
+  repeat rewrite firstn_plus1 by lia.
   repeat rewrite RZ.as_le_app.
 
   simpl. rewrite app_length. simpl. simplify.

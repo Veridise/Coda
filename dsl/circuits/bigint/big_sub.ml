@@ -6,7 +6,11 @@ open Notation
 
 let a = v "a"
 
+let ai = v "ai"
+
 let b = v "b"
+
+let bi = v "bi"
 
 let c = v "c"
 
@@ -20,6 +24,8 @@ let p = v "p"
 
 let s = v "s"
 
+let s' = v "s'"
+
 let x = v "x"
 
 let y = v "y"
@@ -30,6 +36,12 @@ let out = v "out"
 
 let borrow = v "borrow"
 
+let borrow' = v "borrow'"
+
+let br = v "br"
+
+let br' = v "br'"
+
 let uf = v "underflow"
 
 let b_plus_c = v "b_plus_c"
@@ -38,8 +50,8 @@ let add = v "add"
 
 let tmp = v "tmp"
 
-(* { F | ^v <= C.k - 2 } *)
-let t_n = attach (lift (nu <=. CPLen -! z2)) tnat
+(* { F | v <= C.k - 2 } *)
+let t_n = attaches [lift (nu <=. CPLen -! z2); lift (z1 <=. nu)] tnat
 
 (* { F | ^v <= 2^n - 1 } *)
 let tf_n_bit = tfe (toUZ nu <=. (z2 ^! n) -! z1)
@@ -61,50 +73,43 @@ let mod_sub_three =
              (* out === borrow * 2 ** n + a - (b + c) *)
              borrow ) }
 
-(* Proper Big Int of length k *)
+(* Proper big Ints of length k *)
 let t_big_int k = tarr_t_k tf_n_bit k
 
-(* { F | binary(nu) /\ nu = 1 <-> [| a |] < [| b |] } *)
-let t_uf = tfq (q_ind_dec nu (QExpr (lt (toUZ a) (toUZ b))))
-
-(* \i (s, c) => let (si, ci) = #ModSubThree n (ab[i]).0 (ab[i]).1 c in (s ++ si, ci) *)
-let lam_big_sub =
-  lama "i" tint
-    (lama "x"
-       (ttuple [tarr_tf i; tf])
-       (elet "s" (tget x 0)
-          (elet "c" (tget x 1)
-             (elet "a"
-                (tget (get ab i) 0)
-                (elet "b"
-                   (tget (get ab i) 1)
-                   (elet "y"
-                      (call "ModSubThree" [n; a; b; c])
-                      (make [concat s (cons (tget y 0) cnil); tget y 1]) ) ) ) ) ) )
-
-let inv_big_sub i = ttuple [t_big_int i; tf_binary]
+let inv_big_sub i =
+  refine
+    (ttuple [t_big_int i; tfq (ind_dec nu (as_le n (take a i) <. as_le n (take b i)))])
+    ( as_le n (tfst nu)
+    ==. as_le n (take a i) -! as_le n (take b i) +! ((z2 ^! n) *! (toUZ (tsnd nu))))
 
 let big_sub =
   Circuit
     { name= "BigSub"
-    ; inputs= [("n", t_n); ("k", tpos); ("a", t_big_int k); ("b", t_big_int k)]
-    ; outputs= [("out", t_big_int k); ("underflow", t_uf)]
-    ; (* [| out |] = [| a |] - [| b |] + [| underflow |] * 2 ^ (n * k) *)
-      dep=
-        Some
-          (qeq (toUZ out)
-             (zadd
-                (zsub (toUZ a) (toUZ b))
-                (zmul (toUZ uf) (zpow z2 (zmul n k))) ) )
+    ; inputs=
+        [ ("n", t_n)
+        ; ("k", attach (lift (z1 <=. nu)) tnat)
+        ; ("a", t_big_int k)
+        ; ("b", t_big_int k) ]
+    ; outputs=
+        [ ("out", t_big_int k)
+        ; ("underflow", tfq (ind_dec nu (as_le n a <. as_le n b))) ]
+    ; dep= Some (as_le n out ==. as_le n a -! as_le n b +! ((z2 ^! n) *! (toUZ uf)))
     ; body=
-        (* ab = zip a b *)
-        elet "ab" (zip a b)
-          (* (sub, borrow) = iter 0 k lam_big_sub ([], 0) *)
-          (elet "x"
-             (iter z0 k lam_big_sub ~init:(make [cnil; f0]) ~inv:inv_big_sub)
-             (* out === sub *)
-             (make [tget x 0; tget x 1])
-             (* underflow === borrow *) ) }
+        match_with' ["s"; "br"]
+          (iter z0 k
+             ~init:(pair (push cnil) f0)
+             ~inv:inv_big_sub
+             (lama "i" tint
+                (lama_match
+                   [("s'", tarr tf); ("br'", tf)]
+                   (elets
+                      [("ai", get a i); ("bi", get b i)]
+                      (match_with' ["s"; "br"]
+                         (call "ModSubThree" [n; ai; bi; br'])
+                         (pair
+                            (push (concat s' (const_array tf [v "s"])))
+                            br) ) ) ) ) ) 
+          (pair (push s) br) }
 
 (* BigSubModP *)
 

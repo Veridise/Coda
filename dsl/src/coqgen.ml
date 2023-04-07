@@ -170,11 +170,11 @@ and expr_to_coq (e : expr) : string =
   | ArrayOp (aop, _) ->
       failwith (spf "[expr_to_coq] ArrayOp %s wrong arity" (show_aop aop))
   | TGet (e1, 0) ->
-      spf "fst (%s)" (expr_to_coq e1)
+      spf "(fst %s)" (expr_to_coq e1)
   | TGet (e1, 1) ->
-      spf "snd (%s)" (expr_to_coq e1)
+      spf "(snd %s)" (expr_to_coq e1)
   | Push e' ->
-    spf "%s" (expr_to_coq e')
+      spf "%s" (expr_to_coq e')
   | _ ->
       todos (spf "[expr_to_coq] %s" (show_expr e))
 

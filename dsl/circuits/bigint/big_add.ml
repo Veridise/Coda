@@ -21,11 +21,13 @@ let b = v "b"
 let bi = v "bi"
 
 let c = v "c"
+
 let c' = v "c'"
 
 let i = v "i"
 
 let s = v "s"
+
 let s' = v "s'"
 
 let x = v "x"
@@ -69,8 +71,6 @@ let mod_sum_three =
                ("sum", a +% b +% c -% (carry *% (f2 ^% n))) ]
              (pair sum carry) ) }
 
-let t_x = ttuple [tnat; ttuple [tf; tf]; ttuple [tf; tf]]
-
 (* Proper big Ints of length k *)
 let t_big_int k = tarr_t_k tf_n_bit k
 
@@ -91,23 +91,22 @@ let big_add =
     ; outputs= [("out", t_big_int (k +. z1))]
     ; dep= None
     ; body=
-        elet "sum_carry"
-          (iter z0 k ~init:(pair (push cnil) f0) ~inv:inv_big_add
+        match_with' ["sum"; "carry"]
+          (iter z0 k
+             ~init:(pair (push cnil) f0)
+             ~inv:inv_big_add
              (lama "i" tint
-                (lama "ss_cc" (tpair (tarr tf) tf)
-                  (match_with (v "ss_cc") ["s'"; "c'"]
+                (lama_match
+                   [("s'", tarr tf); ("c'", tf)]
                    (elets
                       [("ai", get a i); ("bi", get b i)]
-                        (elet "mst" (call "ModSumThree" [n; ai; bi; c'])
-                        (match_with
-                        (v "mst")
-                        ["sum"; "carry"]
+                      (match_with' ["sum"; "carry"]
+                         (call "ModSumThree" [n; ai; bi; c'])
                          (pair
                             (push (concat s' (const_array tf [v "sum"])))
-                            (v "carry") ) ) ) ) ) )))
-          (match_with (v "sum_carry") ["sum"; "carry"]
+                            (v "carry") ) ) ) ) ) )
           (* out === sum ++ [carry] *)
-          (push (concat (v "sum") (consts [v "carry"])))) }
+          (push (concat (v "sum") (consts [v "carry"]))) }
 
 (* BigAddModP *)
 

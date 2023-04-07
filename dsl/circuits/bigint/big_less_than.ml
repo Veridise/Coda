@@ -40,9 +40,9 @@ let lam_big_lt =
   lama "i" tint
     (lama "lt_eq" (tpair tf tf)
        (elet "lt"
-          (fst_pair (v "lt_eq"))
+          (tfst (v "lt_eq"))
           (elet "eq"
-             (snd_pair (v "lt_eq"))
+             (tsnd (v "lt_eq"))
              (elet "x" (get xs i)
                 (elet "y" (get ys i)
                    (elet "x_lt_y"

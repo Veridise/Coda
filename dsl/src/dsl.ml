@@ -61,6 +61,8 @@ let triv t = refine t QTrue
 let refine_expr t e = TRef (t, lift e)
 
 let attach q = function
+  | TRef (t, QTrue) ->
+    TRef (t, q)
   | TRef (t, q') ->
       TRef (t, QAnd (q', q))
   | t ->
@@ -72,7 +74,6 @@ let as_tref t =
   let t', q = get_tq t in
   TRef (t', q)
 
-let attaches qs t = List.fold_right qs ~f:attach ~init:t
 
 let badd b e1 e2 = Binop (b, Add, e1, e2)
 
@@ -199,6 +200,12 @@ let qor q1 q2 = QOr (q1, q2)
 
 let qimply q1 q2 = QImply (q1, q2)
 
+
+let ors qs = List.fold_right qs ~f:(fun q q' -> qor q q') ~init:QTrue
+let ands qs = List.fold_right qs ~f:(fun q q' -> qand q q') ~init:QTrue
+
+let attaches qs t = attach (ands qs) t
+
 let match_with e1 xs e2 = DMatch (e1, xs, e2)
 
 let dmake es q = DMake (es, q)
@@ -278,7 +285,6 @@ let ites qqs q =
 
 let ites_expr eqs q = ites (List.map eqs ~f:(fun (e, q) -> (lift e, q))) q
 
-let ors qs = List.fold_right qs ~f:(fun q q' -> qor q q') ~init:QTrue
 
 let contained_in e es = ors @@ List.map es ~f:(fun e' -> qeq e e')
 
@@ -306,9 +312,9 @@ let unit_val = make []
 
 let tget e n = TGet (e, n)
 
-let fst_pair e = tget e 0
+let tfst e = tget e 0
 
-let snd_pair e = tget e 1
+let tsnd e = tget e 1
 
 let pair e1 e2 = make [e1; e2]
 

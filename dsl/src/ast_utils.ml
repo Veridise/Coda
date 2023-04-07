@@ -175,10 +175,10 @@ and ppf_expr ppf : expr -> unit =
         pf ppf "%a" (parens (list ~sep:(Fmt.any ", ") ppf_expr)) es
     | TGet (e, i) ->
         pf ppf "%a.%d" ppf_expr e i
-    | DMake _ ->
-        string ppf "TODO: ppf_expr: DPCons"
-    | DMatch _ ->
-        string ppf "TODO: ppf_expr: DPDestr"
+    | DMake (es, q) ->
+        pf ppf "%a_{%a}" (parens (list ~sep:(Fmt.any ", ") ppf_expr)) es ppf_qual q
+    | DMatch (e1, xs, e2) ->
+        pf ppf "(match %a %a %a)" ppf_expr e1 (parens (list ~sep:(Fmt.any ", ") string)) xs ppf_expr e2
     | Map (e1, e2) ->
         pf ppf "(map %a %a)" ppf_expr e1 ppf_expr e2
     | Foldl _ ->
@@ -403,7 +403,7 @@ and subst_expr (x : string) (ef : expr) (e : expr) : expr =
   | Pull e ->
       Pull (f e)
   | _ ->
-      todos (Format.sprintf "subst_expr: %s" (show_expr e))
+      todos (Format.sprintf "TODO: subst_expr: %s" (show_expr e))
 
 let rec subst_typ' (e : expr) (e' : expr) (t : typ) : typ =
   let f = subst_typ' e e' in

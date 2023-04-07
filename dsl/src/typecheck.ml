@@ -214,7 +214,7 @@ let rec synthesize (e : expr) : typ S.t =
                 | TFun _ ->
                     return t
                 | _ ->
-                    return (attaches [QExpr (nu =. v x)] t) )
+                    return (attaches [QExpr (nu =. v x)] (skeleton t) ))
               | None ->
                   failwith ("[synthesize] No such variable: " ^ x)
               (* let%bind g = get_gamma in
@@ -520,6 +520,19 @@ and check (e : expr) (t : typ) : unit S.t =
         | LetIn (x, e1, e2), t2 ->
             let%bind t1 = synthesize e1 in
             with_binding (x, t1) (check e2 t2)
+        | DMatch (e1, xs, e2), _ ->
+          let%bind t1 = synthesize e1 in
+          (match normalize t1 with
+          | TRef (TTuple ts, q) ->
+            let ts' = List.mapi ts ~f:(fun i t -> attach (nu ==. tget e1 i) t) in
+            let u = fresh "_u" in
+            let q' =
+              List.foldi xs ~init:q ~f:(fun i q x ->
+                  subst_qual' (tget nu i) (v x) q ) in
+            let q'' = subst_qual' nu e1 q' in
+            let tu = attach q'' (skeleton t1) in
+            with_bindings ((u,tu)::List.zip_exn xs ts') (check e2 t)
+          | _ -> failwith "[check] match: not a tuple")
             (* | DPDestr (e1, xs, e2), t2 -> *)
             (* synthesize e1 >>= fun t1 ->
                let ts, a' =

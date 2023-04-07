@@ -67,7 +67,8 @@ let t_choices =
 
 let t_index = tfq (lift (toUZ nu <. toUZ choices))
 
-let t_qs = tfq (qimply (lift (index <. choices)) (nu ==. get vin index))
+let t_qs =
+  tfq (qimply (lift (toUZ index <. toUZ choices)) (nu ==. get vin (toUZ index)))
 
 (* Generates [0; 1; ...; k - 1] *)
 let gen_rng k =

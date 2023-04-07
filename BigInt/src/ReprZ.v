@@ -321,15 +321,6 @@ Proof.
   lia. lia.
 Qed.
 
-Lemma as_le_split_last''' : forall ws w,
-  [| ws ++ w :: nil|] = [| ws[:length ws] |] + 2^(n*(length ws)) * ToZ.to_Z (w).
-Proof.
-  intros.
-  rewrite as_le_split_last' with (i:=(length ws - 1)%nat).
-  repeat f_equal. 
-  lia. lia.
-Qed.
-
 
 End Representation.
 

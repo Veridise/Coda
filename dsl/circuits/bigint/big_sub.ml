@@ -78,9 +78,11 @@ let t_big_int k = tarr_t_k tf_n_bit k
 
 let inv_big_sub i =
   refine
-    (ttuple [t_big_int i; tfq (ind_dec nu (as_le n (take a i) <. as_le n (take b i)))])
+    (ttuple
+       [t_big_int i; tfq (ind_dec nu (as_le n (take a i) <. as_le n (take b i)))] )
     ( as_le n (tfst nu)
-    ==. as_le n (take a i) -! as_le n (take b i) +! ((z2 ^! n) *! (toUZ (tsnd nu))))
+    ==. as_le n (take a i) -! as_le n (take b i) +! ((z2 ^! n) *! toUZ (tsnd nu))
+    )
 
 let big_sub =
   Circuit
@@ -93,7 +95,8 @@ let big_sub =
     ; outputs=
         [ ("out", t_big_int k)
         ; ("underflow", tfq (ind_dec nu (as_le n a <. as_le n b))) ]
-    ; dep= Some (as_le n out ==. as_le n a -! as_le n b +! ((z2 ^! n) *! (toUZ uf)))
+    ; dep=
+        Some (as_le n out ==. as_le n a -! as_le n b +! ((z2 ^! n) *! toUZ uf))
     ; body=
         match_with' ["s"; "br"]
           (iter z0 k
@@ -106,9 +109,7 @@ let big_sub =
                       [("ai", get a i); ("bi", get b i)]
                       (match_with' ["s"; "br"]
                          (call "ModSubThree" [n; ai; bi; br'])
-                         (pair
-                            (push (concat s' (const_array tf [v "s"])))
-                            br) ) ) ) ) ) 
+                         (pair (push (concat s' (const_array tf [v "s"]))) br) ) ) ) ) )
           (pair (push s) br) }
 
 (* BigSubModP *)

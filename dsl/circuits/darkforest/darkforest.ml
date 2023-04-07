@@ -114,7 +114,7 @@ let is_neg =
     ; inputs= [("in", tf)]
     ; outputs= [("out", t_is_neg)]
     ; dep= None
-    ; body= call "Sign" [call "Num2Bits" [z254; vin]] }
+    ; body= elet "z" (call "Num2Bits" [z254; vin]) (call "Sign" [z]) }
 
 (* Random *)
 

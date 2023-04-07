@@ -61,7 +61,7 @@ let rec typ_to_coq (t : typ) : typing =
           else
             cs
             |> List.map (fun (c : typing) -> c.coq_typ)
-            |> fun ss -> spf "%s" (String.concat " * " ss)
+            |> fun ss -> spf "(%s)" (String.concat " * " ss)
         in
         let xs_str = List.init l (fun _ -> fresh "x") in
         let xs_pat = if l = 0 then "_" else String.concat "," xs_str in

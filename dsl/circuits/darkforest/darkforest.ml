@@ -82,7 +82,7 @@ let gen_rng k =
       (* forall z0 <= j < i, v[j] = ^j *)
       tpair
         (tfe (toUZ nu =. i))
-        (tarr_t_q_k tf (qforall j z0 i (get nu (v j) ==. toUZ (v j))) (v j)) )
+        (tarr_t_q_k tf (qforall j z0 i (toUZ (get nu (v j)) ==. v j)) i) )
 
 let quin_selector =
   Circuit

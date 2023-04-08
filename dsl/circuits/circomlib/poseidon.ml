@@ -5,7 +5,9 @@ let nInputs = v "nInputs"
 
 let inputs = v "inputs"
 
-let t_poseidon = tfq (qeq nu (unint "Poseidon" [nInputs; inputs]))
+let u_poseidon n xs = unint "Poseidon" [n; xs]
+
+let t_poseidon = tfq (qeq nu (u_poseidon nInputs inputs))
 
 let poseidon =
   Circuit

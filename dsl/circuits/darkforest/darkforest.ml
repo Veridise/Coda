@@ -67,7 +67,8 @@ let t_choices =
 
 let t_index = tfq (lift (toUZ nu <. toUZ choices))
 
-let t_qs = tfq (qimply (lift (index <. choices)) (nu ==. get vin index))
+let t_qs =
+  tfq (qimply (lift (toUZ index <. toUZ choices)) (nu ==. get vin (toUZ index)))
 
 (* Generates [0; 1; ...; k - 1] *)
 let gen_rng k =
@@ -105,8 +106,7 @@ let quin_selector =
 
 (* IsNegative *)
 
-(* TODO: Need integer division to specify this correctly *)
-let t_is_neg = tf
+let t_is_neg = tfq (ind_dec nu (lt (toSZ vin) z0))
 
 let is_neg =
   Circuit
@@ -114,7 +114,7 @@ let is_neg =
     ; inputs= [("in", tf)]
     ; outputs= [("out", t_is_neg)]
     ; dep= None
-    ; body= elet "z" (call "Num2Bits" [z254; vin]) (call "Sign" [z]) }
+    ; body= elet "z" (call2 "Num2Bits" z254 vin) (call1 "Sign" z) }
 
 (* Random *)
 

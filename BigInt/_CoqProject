@@ -18,6 +18,7 @@ src/CircomLib/Comparators.v
 src/CircomLib/Bitify.v
 src/CircomLib/Gates.v
 src/CircomLib/Multiplexer.v
+src/Benchmarks/Liblam.v
 src/Benchmarks/Coda.v
 src/Benchmarks/Circomlib/Bitify.v
 src/Benchmarks/Circomlib/Comparators.v

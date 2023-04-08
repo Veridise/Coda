@@ -227,13 +227,13 @@ let cons_to_coq (c : cons) : string =
         (String.concat " -> " (g_ref @ alpha_to_coq a @ [qual_to_coq q]))
       |> rename_nu
 
-let generate_lemmas (Circuit c : circuit) (cs : cons list) : string =
+let generate_lemmas name (cs : cons list) : string =
   cs |> to_numbered
   |> List.map (fun (i, cons) ->
          if Typecheck.is_non_trivial cons then
-           spf "Lemma %s_obligation%d: %s.\nProof. Admitted." c.name i
+           spf "Lemma %s_obligation%d: %s.\nProof. Admitted." name i
              (cons_to_coq cons)
          else
-           spf "Lemma %s_obligation%d_trivial: %s.\nProof. intuit. Qed." c.name
-             i (cons_to_coq cons) )
+           spf "Lemma %s_obligation%d_trivial: %s.\nProof. intuit. Qed." name i
+             (cons_to_coq cons) )
   |> String.concat "\n\n"

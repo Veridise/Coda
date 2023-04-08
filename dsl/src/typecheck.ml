@@ -597,3 +597,17 @@ let typecheck_circuit (d : delta) (c : circuit) : cons list =
           let init = {delta= d; gamma= init_gamma c; alpha= []; cs= []} in
           let _, st = S.run init (check body (functionalize_circ_output c)) in
           st.cs ) )
+
+let run_synthesis ~gamma e =
+  S.(
+    Let_syntax.(
+      let t, {cs; _} =
+        run {delta= []; gamma; alpha= []; cs= []} (synthesize e)
+      in
+      (t, cs) ) )
+
+let run_checking ~gamma e t =
+  S.(
+    Let_syntax.(
+      let _, {cs; _} = run {delta= []; gamma; alpha= []; cs= []} (check e t) in
+      cs ) )

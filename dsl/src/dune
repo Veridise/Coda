@@ -20,7 +20,7 @@
 
 (library
  (name liblam)
- (libraries core lib typecheck)
+ (libraries core lib typecheck coqgen)
  (modules liblam)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.eq)))

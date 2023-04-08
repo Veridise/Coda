@@ -70,21 +70,6 @@ let t_index = tfq (lift (toUZ nu <. toUZ choices))
 let t_qs =
   tfq (qimply (lift (toUZ index <. toUZ choices)) (nu ==. get vin (toUZ index)))
 
-(* Generates [0; 1; ...; k - 1] *)
-let gen_rng k =
-  iter z0 k
-    (lama "i" tint
-       (lama_p
-          [("f", tf); ("x", tarr tf)]
-          (pair (v "f" +% f1) (concat x (cons (v "f") cnil))) ) )
-    ~init:(pair f0 cnil)
-    ~inv:(fun i ->
-      let j = "jg" in
-      (* forall z0 <= j < i, v[j] = ^j *)
-      tpair
-        (tfe (toUZ nu =. i))
-        (tarr_t_q_k tf (qforall j z0 i (toUZ (get nu (v j)) ==. v j)) i) )
-
 let quin_selector =
   Circuit
     { name= "QuinSelector"
@@ -97,12 +82,12 @@ let quin_selector =
     ; body=
         elets
           [("lt", call "LessThan" [z4; index; choices]); ("u0", v "lt" === f1)]
-          (elet_p ["_"; "rng"]
-             (gen_rng (toUZ choices))
-             (elet "eqs"
-                (map (lama "x" tf (call "IsEqual" [x; index])) rng)
+          (elets [
+            ("rng", app Liblam.(use gen_rng) (toUZ choices));
+            ("eqs",
+                (map (lama "x" tf (call "IsEqual" [x; index])) rng))]
                 (pairwise_mul vin eqs (fun p ->
-                     call "CalculateTotal" [toUZ choices; v p] ) ) ) ) }
+                     call "CalculateTotal" [toUZ choices; v p] ) ) ) }
 
 (* IsNegative *)
 

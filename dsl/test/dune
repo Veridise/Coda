@@ -47,6 +47,11 @@
  (modules test_coqgen))
 
 (executable
+ (name test_liblam)
+ (libraries zarith lib typecheck liblam test_utils)
+ (modules test_liblam))
+
+(executable
  (name test_zk_ml)
  (libraries zarith lib coqgen circomlib test_utils zk_ml)
  (modules test_zk_ml))

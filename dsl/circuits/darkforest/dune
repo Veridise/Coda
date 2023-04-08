@@ -1,4 +1,4 @@
 (library
  (name darkforest)
- (libraries lib typecheck)
+ (libraries lib liblam)
  (modules darkforest))

@@ -1,4 +1,4 @@
-(** * DSL benchmark: Comparators *)
+(** * DSL benchmark utilities *)
 
 Require Import Coq.Lists.List.
 Require Import Coq.micromega.Lia.
@@ -14,8 +14,7 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 
-From Circom Require Import Circom Util Default Tuple ListUtil LibTactics Simplify Repr ReprZ.
-From Circom.CircomLib Require Import Bitify.
+From Circom Require Import Circom DSL Util Default Tuple ListUtil LibTactics Simplify Repr ReprZ.
 
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.
@@ -41,6 +40,10 @@ Definition f_not (x: F) := x = 0%F.
 Definition f_nand (x: F) (y: F) := ~(x = 1%F /\ y = 1%F).
 Definition f_nor (x: F) (y: F) := ~(x = 1%F \/ y = 1%F).
 Definition f_xor (x: F) (y: F) := x <> y.
+
+
+Definition sum := DSLL.sumL_F.
+Definition take {A} i (xs : list A) := xs[:i].
 
 
 Lemma binary_not0: forall (x:F), ((x = 0 \/ x = 1) -> x <> 0 -> x = 1)%F.
@@ -114,3 +117,20 @@ Ltac switch dst l :=
     apply H;
     clear H
   end.
+
+
+Lemma sum_step :
+  forall (xs : list F) (i : nat),
+    i < length xs ->
+    (sum (xs [:i]) + xs ! i)%F = sum (xs [:i + 1]).
+Proof.
+  unwrap_C.
+  induction xs; intros;
+    try (simpl in H; lia).
+  destruct i; simpl; try fqsatz.
+  assert (i < length xs).
+  { simpl in H; lia. }
+  simpl_default; auto.
+  rewrite <- IHxs; auto.
+  fqsatz.
+Qed.

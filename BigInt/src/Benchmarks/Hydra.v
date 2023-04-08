@@ -29,79 +29,76 @@ Local Open Scope tuple_scope.
 
 (* print_endline (generate_lemmas position_switcher (typecheck_circuit d_empty position_switcher));; *)
 
-Lemma PositionSwitcher_obligation0_trivial: forall (_in : (list F)) (s : F) (v : F), Forall (fun x0 => True) _in -> ((length _in) = 2%nat) -> True -> True -> ((v = s) -> True).
+Lemma PositionSwitcher_obligation0_trivial: forall (_in : (list F)) (s : F) (v : F), Forall (fun x0 => True) _in -> ((length _in) = 2%nat) -> True -> True -> (((v = s) /\ True) -> True).
 Proof. intuit. Qed.
 
 Lemma PositionSwitcher_obligation1_trivial: forall (_in : (list F)) (s : F) (v : F), Forall (fun x1 => True) _in -> ((length _in) = 2%nat) -> True -> True -> ((v = 1%F) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation2_trivial: forall (_in : (list F)) (s : F) (v : F), Forall (fun x2 => True) _in -> ((length _in) = 2%nat) -> True -> True -> ((v = s) -> True).
+Lemma PositionSwitcher_obligation2_trivial: forall (_in : (list F)) (s : F) (v : F), Forall (fun x2 => True) _in -> ((length _in) = 2%nat) -> True -> True -> (((v = s) /\ True) -> True).
 Proof. intuit. Qed.
 
 Lemma PositionSwitcher_obligation3_trivial: forall (_in : (list F)) (s : F) (v : F), Forall (fun x3 => True) _in -> ((length _in) = 2%nat) -> True -> True -> ((v = (1%F - s)%F) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation4_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (v : F), Forall (fun x4 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> True -> (((v = (_in!1%nat)) /\ (v = in1)) -> True).
+Lemma PositionSwitcher_obligation4_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (v : F), Forall (fun x4 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> True -> (((v = in1) /\ True) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation5_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (v : F), Forall (fun x5 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> True -> (((v = (_in!0%nat)) /\ (v = in0)) -> True).
+Lemma PositionSwitcher_obligation5_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (v : F), Forall (fun x5 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> True -> (((v = in0) /\ True) -> True).
 Proof. intuit. Qed.
 
 Lemma PositionSwitcher_obligation6_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (v : F), Forall (fun x6 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> True -> ((v = (in1 - in0)%F) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation7_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (v : F), Forall (fun x7 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> True -> ((v = s) -> True).
+Lemma PositionSwitcher_obligation7_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (v : F), Forall (fun x7 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> True -> (((v = s) /\ True) -> True).
 Proof. intuit. Qed.
 
 Lemma PositionSwitcher_obligation8_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (v : F), Forall (fun x8 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> True -> ((v = ((in1 - in0)%F * s)%F) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation9_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (v : F), Forall (fun x9 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> True -> (((v = (_in!0%nat)) /\ (v = in0)) -> True).
+Lemma PositionSwitcher_obligation9_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (v : F), Forall (fun x9 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> True -> (((v = in0) /\ True) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation10_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (v : F), Forall (fun x10 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> True -> (((v = (_in!0%nat)) /\ (v = in0)) -> True).
+Lemma PositionSwitcher_obligation10_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (v : F), Forall (fun x10 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> True -> (((v = in0) /\ True) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation11_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (v : F), Forall (fun x11 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> True -> (((v = (_in!1%nat)) /\ (v = in1)) -> True).
+Lemma PositionSwitcher_obligation11_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (v : F), Forall (fun x11 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> True -> (((v = in1) /\ True) -> True).
 Proof. intuit. Qed.
 
 Lemma PositionSwitcher_obligation12_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (v : F), Forall (fun x12 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> True -> ((v = (in0 - in1)%F) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation13_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (v : F), Forall (fun x13 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> True -> ((v = s) -> True).
+Lemma PositionSwitcher_obligation13_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (v : F), Forall (fun x13 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> True -> (((v = s) /\ True) -> True).
 Proof. intuit. Qed.
 
 Lemma PositionSwitcher_obligation14_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (v : F), Forall (fun x14 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> True -> ((v = ((in0 - in1)%F * s)%F) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation15_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (v : F), Forall (fun x15 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> True -> (((v = (_in!1%nat)) /\ (v = in1)) -> True).
+Lemma PositionSwitcher_obligation15_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (v : F), Forall (fun x15 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> True -> (((v = in1) /\ True) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation16_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : F), Forall (fun x16 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> True -> (((v = (((in1 - in0)%F * s)%F + in0)%F) /\ (v = out0)) -> True).
+Lemma PositionSwitcher_obligation16_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : F), Forall (fun x16 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> True -> (((v = out0) /\ True) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation17_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : F), Forall (fun x17 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> True -> (((v = (((in0 - in1)%F * s)%F + in1)%F) /\ (v = out1)) -> True).
+Lemma PositionSwitcher_obligation17_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : F), Forall (fun x17 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> True -> (((v = out1) /\ True) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation18_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F), Forall (fun x18 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> (((length v) = 0%nat) -> True).
+Lemma PositionSwitcher_obligation18_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : (list F)), Forall (fun x18 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> Forall (fun x19 => True) v -> True -> ((v = nil) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation19_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : (list F)), Forall (fun x19 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> Forall (fun x20 => True) v -> True -> ((v = (out1 :: nil)) -> True).
+Lemma PositionSwitcher_obligation19_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : F), Forall (fun x20 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> True -> (True -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation20_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : F), Forall (fun x21 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> True -> (True -> True).
+Lemma PositionSwitcher_obligation20_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : (list F)), Forall (fun x21 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> Forall (fun x22 => True) v -> True -> ((v = (out1 :: nil)) -> True).
 Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation21: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : (list F)), Forall (fun x22 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> Forall (fun x23 => True) v -> True -> ((v = (out0 :: (out1 :: nil))) -> ((((s = 0%F) \/ (s = 1%F)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> (((2%nat <= (length _in)) /\ (2%nat <= (length v))) /\ (((v!0%nat) = (_in!1%nat)) /\ ((v!1%nat) = (_in!0%nat))))) /\ ((s = 0%F) -> (((2%nat <= (length _in)) /\ (2%nat <= (length v))) /\ (((v!0%nat) = (_in!0%nat)) /\ ((v!1%nat) = (_in!1%nat)))))))) /\ ((length v) = 2%nat))).
-Proof.
-  unwrap_C; intuit; subst;
-    simpl in *; try lia; try fqsatz;
-    destruct _in; simpl; try reflexivity;
-    simpl_default; try (simpl in *; lia);
-    try fqsatz.
-Qed.
+Lemma PositionSwitcher_obligation21_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : F), Forall (fun x23 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> True -> (True -> True).
+Proof. intuit. Qed.
 
-Lemma PositionSwitcher_obligation22_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : F), Forall (fun x24 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> True -> (True -> True).
+Lemma PositionSwitcher_obligation22: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : (list F)), Forall (fun x24 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> Forall (fun x25 => True) v -> True -> ((v = (out0 :: (out1 :: nil))) -> ((((s = 0%F) \/ (s = 1%F)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> (((2%nat <= (length _in)) /\ (2%nat <= (length v))) /\ (((v!0%nat) = (_in!1%nat)) /\ ((v!1%nat) = (_in!0%nat))))) /\ ((s = 0%F) -> (((2%nat <= (length _in)) /\ (2%nat <= (length v))) /\ (((v!0%nat) = (_in!0%nat)) /\ ((v!1%nat) = (_in!1%nat)))))))) /\ ((length v) = 2%nat))).
+Proof. Admitted.
+
+Lemma PositionSwitcher_obligation23_trivial: forall (_in : (list F)) (s : F) (_ : unit) (in0 : F) (in1 : F) (out0 : F) (out1 : F) (v : F), Forall (fun x26 => True) _in -> ((length _in) = 2%nat) -> True -> ((s * (1%F - s)%F)%F = 0%F) -> (in0 = (_in!0%nat)) -> (in1 = (_in!1%nat)) -> (out0 = (((in1 - in0)%F * s)%F + in0)%F) -> (out1 = (((in0 - in1)%F * s)%F + in1)%F) -> True -> (True -> True).
 Proof. intuit. Qed.
 
 (** ** VerifyMerklePath *)

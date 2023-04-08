@@ -81,8 +81,9 @@ let inv_big_sub i =
     (ttuple
        [t_big_int i; tfq (ind_dec nu (as_le n (take a i) <. as_le n (take b i)))] )
     ( as_le n (tfst nu)
-    ==. as_le n (take a i) -! as_le n (take b i) +! ((z2 ^! (n *! i)) *! toUZ (tsnd nu))
-    )
+    ==. as_le n (take a i)
+        -! as_le n (take b i)
+        +! ((z2 ^! (n *! i)) *! toUZ (tsnd nu)) )
 
 let big_sub =
   Circuit
@@ -96,7 +97,9 @@ let big_sub =
         [ ("out", t_big_int k)
         ; ("underflow", tfq (ind_dec nu (as_le n a <. as_le n b))) ]
     ; dep=
-        Some (as_le n out ==. as_le n a -! as_le n b +! ((z2 ^! (n *! i)) *! toUZ uf))
+        Some
+          ( as_le n out
+          ==. as_le n a -! as_le n b +! ((z2 ^! (n *! i)) *! toUZ uf) )
     ; body=
         match_with' ["s"; "br"]
           (iter z0 k

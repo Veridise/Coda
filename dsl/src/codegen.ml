@@ -392,6 +392,15 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
           )
       | _ ->
           failwith ("Not a tuple" ^ show_expr e1') )
+  | DMatch (e1, xs, e2) ->
+      let g', b', a', e1' = reify_expr prefix g b d a config e1 in
+      let expr' = ref e2 in
+      for i = 0 to List.length xs - 1 do
+        let x = List.nth xs i in
+        expr' := LetIn (x, TGet (e1', i), !expr')
+      done ;
+      let g'', b'', a'', e'' = reify_expr prefix g' b' d a' config !expr' in
+      (g'', b'', a'', e'')
   | Push e ->
       let g', b', a', e' = reify_expr prefix g b d a config e in
       (g', b', a', e')
@@ -733,6 +742,8 @@ let show_list_signal (l : signal list) : string =
 (* transform rexpr into r1cs arithmetic_expression *)
 let intermidiate_constraints = ref []
 
+let expr_mem = ref []
+
 let rec transform (e : rexpr) : arithmetic_expression =
   match e with
   | RConst c ->
@@ -747,28 +758,72 @@ let rec transform (e : rexpr) : arithmetic_expression =
         let e1' = transform e1 in
         let e2' = transform e2 in
         match (e1', e2') with
-        | Quadratic _, Quadratic _ ->
-            let temp_left = Signal (fresh_var "temp_left" ()) in
-            let left' = sub e1' temp_left in
-            let temp_right = Signal (fresh_var "temp_right" ()) in
-            let right' = sub e2' temp_right in
-            intermidiate_constraints :=
-              !intermidiate_constraints @ [left'; right'] ;
-            R1cs_utils.simplify (add temp_left temp_right)
+        | Quadratic _, Quadratic _ -> (
+          match List.assoc_opt e1' !expr_mem with
+          | Some x -> (
+            match List.assoc_opt e2' !expr_mem with
+            | Some y ->
+                add x y
+            | None ->
+                let temp_right = Signal (fresh_var "temp_right" ()) in
+                let right' = sub e2' temp_right in
+                intermidiate_constraints := !intermidiate_constraints @ [right'] ;
+                expr_mem := !expr_mem @ [(e2', temp_right)] ;
+                R1cs_utils.simplify (add x temp_right) )
+          | None -> (
+            match List.assoc_opt e2' !expr_mem with
+            | Some y ->
+                let temp_left = Signal (fresh_var "temp_left" ()) in
+                let left' = sub e1' temp_left in
+                intermidiate_constraints := !intermidiate_constraints @ [left'] ;
+                expr_mem := !expr_mem @ [(e1', temp_left)] ;
+                R1cs_utils.simplify (add temp_left y)
+            | None ->
+                let temp_left = Signal (fresh_var "temp_left" ()) in
+                let left' = sub e1' temp_left in
+                let temp_right = Signal (fresh_var "temp_right" ()) in
+                let right' = sub e2' temp_right in
+                intermidiate_constraints :=
+                  !intermidiate_constraints @ [left'; right'] ;
+                expr_mem := !expr_mem @ [(e1', temp_left)] ;
+                expr_mem := !expr_mem @ [(e2', temp_right)] ;
+                R1cs_utils.simplify (add temp_left temp_right) ) )
         | _ ->
             R1cs_utils.simplify (add e1' e2') )
     | RSub -> (
         let e1' = transform e1 in
         let e2' = transform e2 in
         match (e1', e2') with
-        | Quadratic _, Quadratic _ ->
-            let temp_left = Signal (fresh_var "temp_left" ()) in
-            let left' = sub e1' temp_left in
-            let temp_right = Signal (fresh_var "temp_right" ()) in
-            let right' = sub e2' temp_right in
-            intermidiate_constraints :=
-              !intermidiate_constraints @ [left'; right'] ;
-            R1cs_utils.simplify (sub temp_left temp_right)
+        | Quadratic _, Quadratic _ -> (
+          match List.assoc_opt e1' !expr_mem with
+          | Some x -> (
+            match List.assoc_opt e2' !expr_mem with
+            | Some y ->
+                sub x y
+            | None ->
+                let temp_right = Signal (fresh_var "temp_right" ()) in
+                let right' = sub e2' temp_right in
+                intermidiate_constraints := !intermidiate_constraints @ [right'] ;
+                expr_mem := !expr_mem @ [(e2', temp_right)] ;
+                R1cs_utils.simplify (sub x temp_right) )
+          | None -> (
+            match List.assoc_opt e2' !expr_mem with
+            | Some y ->
+                let temp_left = Signal (fresh_var "temp_left" ()) in
+                let left' = sub e1' temp_left in
+                intermidiate_constraints := !intermidiate_constraints @ [left'] ;
+                expr_mem := !expr_mem @ [(e1', temp_left)] ;
+                R1cs_utils.simplify (sub temp_left y)
+            | None ->
+                let temp_left = Signal (fresh_var "temp_left" ()) in
+                let left' = sub e1' temp_left in
+                let temp_right = Signal (fresh_var "temp_right" ()) in
+                let right' = sub e2' temp_right in
+                intermidiate_constraints :=
+                  !intermidiate_constraints @ [left'; right'] ;
+                expr_mem := !expr_mem @ [(e1', temp_left)] ;
+                expr_mem := !expr_mem @ [(e2', temp_right)] ;
+                R1cs_utils.simplify (sub temp_left temp_right) ) )
         | _ ->
             R1cs_utils.simplify (sub e1' e2') )
     | RMul -> (
@@ -776,26 +831,56 @@ let rec transform (e : rexpr) : arithmetic_expression =
         let e2' = transform e2 in
         (* automatically convert non-quadratic expr into quadratic expr *)
         match (e1', e2') with
-        | Quadratic _, Quadratic _
-        | Quadratic _, Linear _
-        | Linear _, Quadratic _ ->
-            let temp_left = Signal (fresh_var "temp_left" ()) in
-            let left' = sub e1' temp_left in
-            let temp_right = Signal (fresh_var "temp_right" ()) in
-            let right' = sub e2' temp_right in
-            intermidiate_constraints :=
-              !intermidiate_constraints @ [left'; right'] ;
-            R1cs_utils.simplify (mul temp_left temp_right)
-        | Quadratic _, Signal _ ->
-            let temp_left = Signal (fresh_var "temp_left" ()) in
-            let left' = sub e1' temp_left in
-            intermidiate_constraints := !intermidiate_constraints @ [left'] ;
-            R1cs_utils.simplify (mul temp_left e2')
-        | Signal _, Quadratic _ ->
-            let temp_right = Signal (fresh_var "temp_right" ()) in
-            let right' = sub e2' temp_right in
-            intermidiate_constraints := !intermidiate_constraints @ [right'] ;
-            R1cs_utils.simplify (mul e1' temp_right)
+        | Quadratic _, Quadratic _ -> (
+          match List.assoc_opt e1' !expr_mem with
+          | Some x -> (
+            match List.assoc_opt e2' !expr_mem with
+            | Some y ->
+                mul x y
+            | None ->
+                let temp_right = Signal (fresh_var "temp_right" ()) in
+                let right' = sub e2' temp_right in
+                intermidiate_constraints := !intermidiate_constraints @ [right'] ;
+                expr_mem := !expr_mem @ [(e2', temp_right)] ;
+                R1cs_utils.simplify (mul x temp_right) )
+          | None -> (
+            match List.assoc_opt e2' !expr_mem with
+            | Some y ->
+                let temp_left = Signal (fresh_var "temp_left" ()) in
+                let left' = sub e1' temp_left in
+                intermidiate_constraints := !intermidiate_constraints @ [left'] ;
+                expr_mem := !expr_mem @ [(e1', temp_left)] ;
+                R1cs_utils.simplify (mul temp_left y)
+            | None ->
+                let temp_left = Signal (fresh_var "temp_left" ()) in
+                let left' = sub e1' temp_left in
+                let temp_right = Signal (fresh_var "temp_right" ()) in
+                let right' = sub e2' temp_right in
+                intermidiate_constraints :=
+                  !intermidiate_constraints @ [left'; right'] ;
+                expr_mem := !expr_mem @ [(e1', temp_left)] ;
+                expr_mem := !expr_mem @ [(e2', temp_right)] ;
+                R1cs_utils.simplify (mul temp_left temp_right) ) )
+        | Quadratic _, Linear _ | Quadratic _, Signal _ -> (
+          match List.assoc_opt e1' !expr_mem with
+          | Some x ->
+              R1cs_utils.simplify (mul x e2')
+          | None ->
+              let temp_left = Signal (fresh_var "temp_left" ()) in
+              let left' = sub e1' temp_left in
+              intermidiate_constraints := !intermidiate_constraints @ [left'] ;
+              expr_mem := !expr_mem @ [(e1', temp_left)] ;
+              R1cs_utils.simplify (mul temp_left e2') )
+        | Linear _, Quadratic _ | Signal _, Quadratic _ -> (
+          match List.assoc_opt e2' !expr_mem with
+          | Some y ->
+              R1cs_utils.simplify (mul e1' y)
+          | None ->
+              let temp_right = Signal (fresh_var "temp_right" ()) in
+              let right' = sub e2' temp_right in
+              intermidiate_constraints := !intermidiate_constraints @ [right'] ;
+              expr_mem := !expr_mem @ [(e2', temp_right)] ;
+              R1cs_utils.simplify (mul e1' temp_right) )
         | _ ->
             R1cs_utils.simplify (mul e1' e2') ) )
   | RComp (REq, e1, e2) ->
@@ -1033,4 +1118,5 @@ let codegen (path : string) (d : delta) (config : configuration) (c : circuit) :
       flush_to_file (path ^ name ^ ".r1cs") ;
       ref_counter := 0 ;
       intermidiate_constraints := [] ;
+      expr_mem := [];
       ()

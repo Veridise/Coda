@@ -34,12 +34,12 @@ let g =
     ; split
     ; cnot
     ; cor
-    ; mux3
-    ; c_sign
+    ; mux3 (* todo *)
+    ; c_sign (* todo *)
     ; split_three
     ; greater_than
     ; mod_sum_three
-    ; c_mod_sub_three
+    ; mod_sub_three
     ; big_add
     ; big_sub
     ; c_in
@@ -112,7 +112,7 @@ let _ = test_circuit [("k", 10)] c_big_is_equal
 
 let _ = test_circuit [("k", 10)] c_big_is_zero
 
-let _ = test_circuit [("n", 100)] c_mod_sub_three
+let _ = test_circuit [("n", 100)] mod_sub_three
 
 let _ = test_circuit [("n", 100)] mod_sum_three
 
@@ -124,7 +124,7 @@ let _ = test_circuit [("n", 100); ("m", 100); ("k", 100)] split_three
 
 let _ = test_circuit [("n", 10); ("k", 5)] big_add
 
-let _ = test_circuit [("n", 2); ("k", 2)] c_big_lt
+let _ = test_circuit [("n", 10); ("k", 5)] c_big_lt
 
 let _ = test_circuit [("n", 10); ("k", 5)] big_add_mod_p
 

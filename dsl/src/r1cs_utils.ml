@@ -308,11 +308,20 @@ let r1cs_of_arithmetic_expression (expr : arithmetic_expression) : r1cs =
   | Signal x ->
       ([], [], [(x, unit_big_int)])
   | Linear l ->
-      ([], [], l)
+      ([], [], simplify_coefficients l)
   | Quadratic (a, b, c) ->
-      (a, b, multiply_coefficients_by_constant c (minus_big_int unit_big_int))
+      ( simplify_coefficients a
+      , simplify_coefficients b
+      , simplify_coefficients
+          (multiply_coefficients_by_constant c (minus_big_int unit_big_int)) )
   | NonQuadratic ->
       failwith "NonQuadratic expression cannot be converted to R1CS"
+
+let removable_r1cs (e : r1cs) : bool =
+  let a, b, c = e in
+  List.for_all a ~f:(fun (_, value) -> eq_big_int value zero_big_int)
+  && List.for_all b ~f:(fun (_, value) -> eq_big_int value zero_big_int)
+  && List.for_all c ~f:(fun (_, value) -> eq_big_int value zero_big_int)
 
 let prime : bigint =
   big_int_of_string

@@ -98,4 +98,27 @@ Proof. intuit. Qed.
 
 (* print_endline (generate_lemmas is_filtered (typecheck_circuit (add_to_deltas d_empty [is_equal; calc_total]) is_filtered));; *)
 
-(* TODO *)
+Lemma IsFiltered_obligation0_trivial: forall (x : F) (y : F) (op : F) (v : F), True -> True -> True -> True -> (((v = op) /\ True) -> True).
+Proof. intuit. Qed.
+
+Lemma IsFiltered_obligation1_trivial: forall (x : F) (y : F) (op : F) (v : F), True -> True -> True -> True -> ((v = 0%F) -> True).
+Proof. intuit. Qed.
+
+Lemma IsFiltered_obligation2_trivial: forall (x : F) (y : F) (op : F) (a : F) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> True -> (((v = op) /\ True) -> True).
+Proof. intuit. Qed.
+
+Lemma IsFiltered_obligation3_trivial: forall (x : F) (y : F) (op : F) (a : F) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> True -> ((v = 1%F) -> True).
+Proof. intuit. Qed.
+
+Lemma IsFiltered_obligation4: forall (x : F) (y : F) (op : F) (a : F) (b : F) (z : (list F)) (v : Z), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> Forall (fun x0 => True) z -> (((True /\ ((z!0%nat) = (x * a)%F)) /\ ((z!1%nat) = (y * b)%F)) /\ ((length z) = 2%nat)) -> True -> ((v = 2%nat) -> (0%nat <= v)).
+Proof.
+  intuit; subst; lia.
+Qed.
+
+Lemma IsFiltered_obligation5: forall (x : F) (y : F) (op : F) (a : F) (b : F) (z : (list F)) (v : (list F)), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> Forall (fun x1 => True) z -> (((True /\ ((z!0%nat) = (x * a)%F)) /\ ((z!1%nat) = (y * b)%F)) /\ ((length z) = 2%nat)) -> Forall (fun x2 => True) v -> True -> (((v = z) /\ True) -> ((length v) = 2%nat)).
+Proof.
+  intuit; subst; auto.
+Qed.
+
+Lemma IsFiltered_obligation6_trivial: forall (x : F) (y : F) (op : F) (a : F) (b : F) (z : (list F)) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> Forall (fun x3 => True) z -> (((True /\ ((z!0%nat) = (x * a)%F)) /\ ((z!1%nat) = (y * b)%F)) /\ ((length z) = 2%nat)) -> True -> ((v = (sum z)) -> True).
+Proof. intuit. Qed.

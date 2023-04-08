@@ -74,5 +74,5 @@ let is_filtered =
           (elet "b"
              (call "IsEqual" [v "op"; f1])
              (elet "z"
-                (cons (x *% a) (cons (y *% b) cnil))
+                (const_array tf [x *% a; y *% b])
                 (call "CalculateTotal" [z2; z]) ) ) }

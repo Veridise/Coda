@@ -142,6 +142,8 @@ let position_switcher =
 
 (* VerifyMerklePath *)
 
+let u_hasher xs init = unint "VerifyMerklePathHash" [xs; init]
+
 (* \i x => #Poseidon 2 (#PositionSwitcher [x; (z[i]).0] (z[i]).1) *)
 let lam_vmp z =
   lama "i" tint
@@ -151,16 +153,16 @@ let lam_vmp z =
           (elet "s"
              (tget (get z i) 1)
              (elet "c"
-                (cons x (cons elem cnil))
+                (const_array tf [x; elem])
                 (elet "y"
                    (call "PositionSwitcher" [c; s])
                    (call "Poseidon" [z2; y]) ) ) ) ) )
 
 (* Compute the Poseidon hash over z (list of pairs of F suitable for
    PositionSwitcher) from initial value init *)
-let rec hasher z k init =
+let hasher z k init =
   iter z0 k (lam_vmp z) ~init ~inv:(fun i ->
-      tfq (qeq nu (hasher (take i z) i init)) )
+      tfq (qeq nu (u_hasher (u_take i z) init)) )
 
 let vrfy_mrkl_path =
   Circuit
@@ -178,7 +180,7 @@ let vrfy_mrkl_path =
         elet "z"
           (zip pathElements pathIndices)
           (* root === hasher z leaf *)
-          (assert_eq root (hasher z levels leaf)) }
+          (elet "u" (assert_eq root (hasher z levels leaf)) unit_val) }
 
 (** VerifyHydraCommitment *)
 

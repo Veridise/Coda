@@ -18,6 +18,7 @@ src/CircomLib/Comparators.v
 src/CircomLib/Bitify.v
 src/CircomLib/Gates.v
 src/CircomLib/Multiplexer.v
+src/Benchmarks/Coda.v
 src/Benchmarks/DarkForest.v
 src/Benchmarks/Hydra.v
 src/Benchmarks/Semaphore.v

@@ -14,7 +14,7 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 
-From Circom Require Import Circom DSL Util Default Tuple ListUtil LibTactics Signed Simplify Repr.
+From Circom Require Import Circom DSL Util Default Tuple ListUtil LibTactics Signed Simplify Repr Coda.
 
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.
@@ -24,28 +24,6 @@ Local Open Scope F_scope.
 Local Open Scope Z_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
-
-Definition as_le_f := Repr.as_le 1%nat.
-Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
-
-Definition sum := DSLL.sumL_F.
-Definition take {A} i (xs : list A) := xs[:i].
-
-Lemma sum_step :
-  forall (l : list F) (i : nat),
-    i < length l ->
-    (sum (l [:i]) + l ! i)%F = sum (l [:i + 1]).
-Proof.
-  unwrap_C.
-  induction l; intros;
-    try (simpl in H; lia).
-  destruct i; simpl; try fqsatz.
-  assert (i < length l).
-  { simpl in H; lia. }
-  simpl_default; auto.
-  rewrite <- IHl; auto.
-  fqsatz.
-Qed.
 
 Definition MiMCSponge (nInputs nRounds nOutputs : nat) (ins : list F) (KEY : F) : list F :=
   List.repeat 0%F nOutputs.

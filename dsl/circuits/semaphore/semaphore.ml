@@ -1,5 +1,6 @@
 open Ast
 open Dsl
+open Circomlib__Poseidon
 (* open Typecheck *)
 
 let n = v "n"
@@ -53,8 +54,7 @@ let nullifierHash = v "nullifierHash"
 let t_calc_secret =
   tfq
     (qeq nu
-       (call "Poseidon"
-          [z2; cons identityNullifier (cons identityTrapdoor cnil)] ) )
+       (u_poseidon z2 (const_array tf [identityNullifier; identityTrapdoor])) )
 
 let calc_secret =
   Circuit
@@ -63,12 +63,12 @@ let calc_secret =
     ; outputs= [("out", t_calc_secret)]
     ; dep= None
     ; body=
-        call "Poseidon" [z2; cons identityNullifier (cons identityTrapdoor cnil)]
-    }
+        call "Poseidon"
+          [z2; const_array tf [identityNullifier; identityTrapdoor]] }
 
 (* CalculateIdentityCommitment *)
 
-let t_calc_id_commit = tfq (qeq nu (call "Poseidon" [z1; cons secret cnil]))
+let t_calc_id_commit = tfq (qeq nu (u_poseidon z1 (const_array tf [secret])))
 
 let calc_id_commit =
   Circuit
@@ -76,15 +76,14 @@ let calc_id_commit =
     ; inputs= [("secret", tf)]
     ; outputs= [("out", t_calc_id_commit)]
     ; dep= None
-    ; body= call "Poseidon" [z1; cons secret cnil] }
+    ; body= call "Poseidon" [z1; const_array tf [secret]] }
 
 (* CalculateNullifierHash *)
 
 let t_calc_null_hash =
   tfq
     (qeq nu
-       (call "Poseidon"
-          [z2; cons externalNullifier (cons identityNullifier cnil)] ) )
+       (u_poseidon z2 (const_array tf [externalNullifier; identityNullifier])) )
 
 let calc_null_hash =
   Circuit
@@ -94,7 +93,7 @@ let calc_null_hash =
     ; dep= None
     ; body=
         call "Poseidon"
-          [z2; cons externalNullifier (cons identityNullifier cnil)] }
+          [z2; const_array tf [externalNullifier; identityNullifier]] }
 
 (* { Array<F> | length v = 2 } *)
 let tarr_tf_2 = tarr_t_k tf z2

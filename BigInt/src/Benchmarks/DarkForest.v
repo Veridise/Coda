@@ -14,7 +14,7 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 
-From Circom Require Import Circom DSL Util Default Tuple ListUtil LibTactics Simplify Repr.
+From Circom Require Import Circom DSL Util Default Tuple ListUtil LibTactics Signed Simplify Repr.
 
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.
@@ -24,6 +24,9 @@ Local Open Scope F_scope.
 Local Open Scope Z_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
+
+Definition as_le_f := Repr.as_le 1%nat.
+Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
 
 Definition sum := DSLL.sumL_F.
 Definition take {A} i (xs : list A) := xs[:i].
@@ -43,6 +46,12 @@ Proof.
   rewrite <- IHl; auto.
   fqsatz.
 Qed.
+
+Definition MiMCSponge (nInputs nRounds nOutputs : nat) (ins : list F) (KEY : F) : list F :=
+  List.repeat 0%F nOutputs.
+
+Local Notation "4" := (1 + 1 + 1 + 1)%F.
+Local Notation "8" := (1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)%F.
 
 (** ** CalculateTotal *)
 
@@ -181,41 +190,47 @@ Proof. Admitted.
 (* print_endline (generate_lemmas is_neg (typecheck_circuit (add_to_deltas d_empty [num2bits; c_sign]) is_neg));; *)
 
 Lemma IsNegative_obligation0: forall (_in : F) (v : Z), True -> True -> ((v = 254%nat) -> (0%nat <= v)).
-Proof. Admitted.
+Proof. lia. Qed.
 
 Lemma IsNegative_obligation1_trivial: forall (_in : F) (v : F), True -> True -> (((v = _in) /\ True) -> True).
 Proof. intuit. Qed.
 
-Lemma IsNegative_obligation2: forall (_in : F) (z : (list F)) (v : (list F)), True -> Forall (fun x169 => ((x169 = 0%F) \/ (x169 = 1%F))) z -> (((as_le_f z) = _in) /\ ((length z) = 254%nat)) -> Forall (fun x170 => True) v -> True -> (((v = z) /\ True) -> ((length v) = 254%nat)).
+Lemma IsNegative_obligation2: forall (_in : F) (z : (list F)) (v : (list F)), True -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) z -> (((as_le_f z) = _in) /\ ((length z) = 254%nat)) -> Forall (fun x1 => True) v -> True -> (((v = z) /\ True) -> ((length v) = 254%nat)).
+Proof.
+  intuit; subst; lia.
+Qed.
+
+Lemma IsNegative_obligation3: forall (_in : F) (z : (list F)) (v : F), True -> Forall (fun x2 => ((x2 = 0%F) \/ (x2 = 1%F))) z -> (((as_le_f z) = _in) /\ ((length z) = 254%nat)) -> True -> (True -> ((v = 0%F) \/ (v = 1%F))).
 Proof. Admitted.
 
-Lemma IsNegative_obligation3: forall (_in : F) (z : (list F)) (v : F), True -> Forall (fun x171 => ((x171 = 0%F) \/ (x171 = 1%F))) z -> (((as_le_f z) = _in) /\ ((length z) = 254%nat)) -> True -> (True -> ((v = 0%F) \/ (v = 1%F))).
-Proof. Admitted.
-
-Lemma IsNegative_obligation4_trivial: forall (_in : F) (z : (list F)) (v : F), True -> Forall (fun x172 => ((x172 = 0%F) \/ (x172 = 1%F))) z -> (((as_le_f z) = _in) /\ ((length z) = 254%nat)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((Signed.to_Z (as_le_f z)) < 0%nat)) /\ ((v = 0%F) -> ~((Signed.to_Z (as_le_f z)) < 0%nat)))) -> True).
-Proof. intuit. Qed.
+Lemma IsNegative_obligation4: forall (_in : F) (z : (list F)) (v : F), True -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) z -> (((as_le_f z) = _in) /\ ((length z) = 254%nat)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((Signed.to_Z (as_le_f z)) < 0%nat)) /\ ((v = 0%F) -> ~((Signed.to_Z (as_le_f z)) < 0%nat)))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((Signed.to_Z _in) < 0%nat)) /\ ((v = 0%F) -> ~((Signed.to_Z _in) < 0%nat))))).
+Proof.
+  intuit; subst; auto.
+Qed.
 
 (** ** Random *)
 
 (* print_endline (generate_lemmas random (typecheck_circuit (add_to_deltas d_empty [num2bits; mimc_sponge]) random));; *)
 
 Lemma Random_obligation0: forall (_in : (list F)) (KEY : F) (v : Z), Forall (fun x115 => True) _in -> ((forall (i:nat), 0%nat <= i < (length _in) -> ((^ (_in!i)) < (2%nat ^ 32%nat)%Z)) /\ ((length _in) = 3%nat)) -> ((^ KEY) < (2%nat ^ 32%nat)%Z) -> True -> ((v = 3%nat) -> (0%nat <= v)).
-Proof. Admitted.
+Proof. lia. Qed.
 
 Lemma Random_obligation1: forall (_in : (list F)) (KEY : F) (v : Z), Forall (fun x116 => True) _in -> ((forall (i:nat), 0%nat <= i < (length _in) -> ((^ (_in!i)) < (2%nat ^ 32%nat)%Z)) /\ ((length _in) = 3%nat)) -> ((^ KEY) < (2%nat ^ 32%nat)%Z) -> True -> ((v = 4%nat) -> (0%nat <= v)).
-Proof. Admitted.
+Proof. lia. Qed.
 
 Lemma Random_obligation2: forall (_in : (list F)) (KEY : F) (v : Z), Forall (fun x117 => True) _in -> ((forall (i:nat), 0%nat <= i < (length _in) -> ((^ (_in!i)) < (2%nat ^ 32%nat)%Z)) /\ ((length _in) = 3%nat)) -> ((^ KEY) < (2%nat ^ 32%nat)%Z) -> True -> ((v = 1%nat) -> (0%nat <= v)).
-Proof. Admitted.
+Proof. lia. Qed.
 
 Lemma Random_obligation3: forall (_in : (list F)) (KEY : F) (v : (list F)), Forall (fun x118 => True) _in -> ((forall (i:nat), 0%nat <= i < (length _in) -> ((^ (_in!i)) < (2%nat ^ 32%nat)%Z)) /\ ((length _in) = 3%nat)) -> ((^ KEY) < (2%nat ^ 32%nat)%Z) -> Forall (fun x119 => True) v -> True -> (((v = _in) /\ True) -> ((length v) = 3%nat)).
-Proof. Admitted.
+Proof.
+  intuit; subst; auto.
+Qed.
 
 Lemma Random_obligation4_trivial: forall (_in : (list F)) (KEY : F) (v : F), Forall (fun x120 => True) _in -> ((forall (i:nat), 0%nat <= i < (length _in) -> ((^ (_in!i)) < (2%nat ^ 32%nat)%Z)) /\ ((length _in) = 3%nat)) -> ((^ KEY) < (2%nat ^ 32%nat)%Z) -> True -> (((v = KEY) /\ True) -> True).
 Proof. intuit. Qed.
 
 Lemma Random_obligation5: forall (_in : (list F)) (KEY : F) (mimc : (list F)) (z : F) (v : Z), Forall (fun x121 => True) _in -> ((forall (i:nat), 0%nat <= i < (length _in) -> ((^ (_in!i)) < (2%nat ^ 32%nat)%Z)) /\ ((length _in) = 3%nat)) -> ((^ KEY) < (2%nat ^ 32%nat)%Z) -> Forall (fun x122 => True) mimc -> ((mimc = (MiMCSponge 3%nat 4%nat 1%nat _in KEY)) /\ ((length mimc) = 1%nat)) -> (z = (mimc!0%nat)) -> True -> ((v = 254%nat) -> (0%nat <= v)).
-Proof. Admitted.
+Proof. lia. Qed.
 
 Lemma Random_obligation6_trivial: forall (_in : (list F)) (KEY : F) (mimc : (list F)) (z : F) (v : F), Forall (fun x123 => True) _in -> ((forall (i:nat), 0%nat <= i < (length _in) -> ((^ (_in!i)) < (2%nat ^ 32%nat)%Z)) /\ ((length _in) = 3%nat)) -> ((^ KEY) < (2%nat ^ 32%nat)%Z) -> Forall (fun x124 => True) mimc -> ((mimc = (MiMCSponge 3%nat 4%nat 1%nat _in KEY)) /\ ((length mimc) = 1%nat)) -> (z = (mimc!0%nat)) -> True -> (((v = z) /\ True) -> True).
 Proof. intuit. Qed.

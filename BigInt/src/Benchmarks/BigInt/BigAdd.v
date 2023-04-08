@@ -14,8 +14,7 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 
-From Circom Require Import Circom Util Default Tuple ListUtil LibTactics Simplify Repr ReprZ.
-From Circom.CircomLib Require Import Bitify.
+From Circom Require Import Circom Util Default Tuple ListUtil LibTactics Simplify Repr ReprZ Coda.
 
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.
@@ -26,27 +25,12 @@ Local Open Scope Z_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
 
-Definition as_le_f := Repr.as_le 1%nat.
+
+Module RZU := ReprZUnsigned.
+Module RZ := RZU.RZ.
+Definition as_le := RZ.as_le.
+Local Notation "[| xs | n ]" := (RZ.as_le n xs).
 Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
-
-Lemma F_to_Z_nonneg: forall (x:F), 0 <= ^x.
-Proof.
-  intros. apply F.to_Z_range. lia.
-Qed.
-
-Ltac pose_nonneg := repeat match goal with
-| [ |- context[F.to_Z ?x ] ] =>
-  let t := type of (F_to_Z_nonneg x) in
-  lazymatch goal with
-  (* already posed *)
-  | [ _: t |- _] => fail
-  | _ => 
-    let Hnonneg := fresh "_Hnonneg" in
-    pose proof (F_to_Z_nonneg x) as Hnonneg
-    ; move Hnonneg at top
-  end
-| _ => fail
-end.
 
 (** ** ModSumThree *)
 
@@ -158,11 +142,6 @@ Proof. intros. intuit; subst; unfold_default; apply Forall_nth; auto; try lia. Q
 
 (** ** BigAdd *)
 
-Module RZU := ReprZUnsigned.
-Module RZ := RZU.RZ.
-Definition as_le := RZ.as_le.
-Local Notation "[| xs | n ]" := (RZ.as_le n xs).
-
 Lemma BigAdd_obligation0_trivial: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (v : Z), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x3 => ((^ x3) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x4 => ((^ x4) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> True -> ((v = 0%nat) -> True).
 Proof. intuit. Qed.
 
@@ -217,13 +196,6 @@ Lemma BigAdd_obligation13: forall (n : nat) (k : nat) (a : (list F)) (b : (list 
 Proof. intuit; subst; simpl; intuit. Qed.
 
 
-Lemma firstn_plus1 {A: Type} {H: Default A}: forall i l,
-  (i < length l)%nat ->
-  l[:i+1] = l[:i] ++ (l!i :: nil).
-Proof.
-  intros. replace (i+1)%nat with (S i) by lia.
-  rewrite firstn_S with (d:=default). fold_default. reflexivity. lia.
-Qed.
 
 Lemma BigAdd_obligation14: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (ss_cc : (list F) * F) (c' : F) (s' : (list F)) (_u0 : (list F) * F) (ai : F) (bi : F) (mst : F * F) (carry : F) (sum : F) (_u1 : F * F), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x97 => ((^ x97) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x98 => ((^ x98) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match ss_cc with (x100,x101) => Forall (fun x99 => ((^ x99) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x100 end -> match ss_cc with (x100,x101) => ((length x100) = i) end -> match ss_cc with (x100,x101) => ((x101 = 0%F) \/ (x101 = 1%F)) end -> match ss_cc with (x100,x101) => ((as_le n (x100 ++ (x101 :: nil))) = ((as_le n (a[:i])) + (as_le n (b[:i])))%Z) end -> (c' = snd (ss_cc)) -> Forall (fun x102 => True) s' -> (s' = fst (ss_cc)) -> match _u0 with (x104,x105) => Forall (fun x103 => True) x104 end -> match _u0 with (x104,x105) => True end -> match _u0 with (x104,x105) => True end -> match _u0 with (x104,x105) => (ss_cc = ss_cc) end -> (ai = (a!i)) -> (bi = (b!i)) -> match mst with (x106,x107) => ((^ x106) <= ((2%nat ^ n)%Z - 1%nat)%Z) end -> match mst with (x106,x107) => ((x107 = 0%F) \/ (x107 = 1%F)) end -> match mst with (x106,x107) => ((x106 + ((2%F ^ n)%F * x107)%F)%F = ((ai + bi)%F + c')%F) end -> (carry = snd (mst)) -> (sum = fst (mst)) -> match _u1 with (x108,x109) => True end -> match _u1 with (x108,x109) => True end -> match _u1 with (x108,x109) => (mst = mst) end -> (True -> ((as_le n ((s' ++ (sum :: nil)) ++ (carry :: nil))) = ((as_le n (a[:(i + 1%nat)%nat])) + (as_le n (b[:(i + 1%nat)%nat])))%Z)).
 Proof. 

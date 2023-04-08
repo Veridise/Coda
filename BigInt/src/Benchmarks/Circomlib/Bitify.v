@@ -16,8 +16,7 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 
-From Circom Require Import Circom Util Default Tuple ListUtil LibTactics Simplify Repr.
-From Circom.CircomLib Require Import Bitify.
+From Circom Require Import Circom Util Default Tuple ListUtil LibTactics Simplify Repr Coda.
 
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.

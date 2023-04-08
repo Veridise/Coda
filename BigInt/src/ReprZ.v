@@ -512,6 +512,65 @@ Proof.
   apply big_lt_complete; auto.
 Qed.
 
+(* Lemma iff_trans: forall P Q R, *)
+  (* P <-> Q -> *)
+
+
+Lemma big_lt_dec_le: forall xs ys x y,
+ length xs = length ys ->
+  xs |: (n) ->
+  x | (n) ->
+  ys |: (n) ->
+  y | (n) ->
+  [|xs ++ x :: nil|] < [|ys ++ y :: nil|] <-> 
+  (^x = ^y  /\ [|xs|] < [|ys|] \/ ^x < ^y ).
+Proof.
+  intros.
+  repeat rewrite le__rev_be.
+  etransitivity.
+  symmetry. apply big_lt_dec.
+  do 2 rewrite rev_app_distr, app_length, rev_length, rev_length. simpl. lia.
+  apply Forall_rev, Forall_app; auto.
+  apply Forall_rev, Forall_app; auto.
+  
+  do 2 rewrite rev_app_distr. cbn [rev app].
+  simpl.
+  split_dec.
+  - intuit.
+  - etransitivity.
+    apply big_lt_dec;
+    try (do 2 rewrite rev_length; auto);
+    try (apply Forall_rev; auto).
+    apply f_equal with (f:=F.to_Z) in e. intuit.
+  - split. intuit. inversion H4.
+    intuit.
+    exfalso.
+    pose proof F_to_Z_inj. auto.
+Qed.
+
+Lemma or_strength: forall P Q {H: Decidable P},
+  P \/ Q <-> P \/ ~P /\ Q.
+Proof.
+  intros. intuit. destruct (dec P); intuit.
+Qed.
+
+Lemma big_lt_dec_le': forall xs ys x y,
+ length xs = length ys ->
+  xs |: (n) ->
+  x | (n) ->
+  ys |: (n) ->
+  y | (n) ->
+  [|xs ++ x :: nil|] < [|ys ++ y :: nil|] <-> 
+  (^x < ^y \/ ^x <= ^y  /\ [|xs|] < [|ys|]).
+Proof.
+  intros.
+  etransitivity.
+  apply big_lt_dec_le; auto.
+  rewrite or_strength with (P:= x <q y).
+  intuit; try lia.
+  unfold Decidable. destruct (dec (x <q y)); intuit.
+Qed.
+
 Lemma big_lt_firstn: forall i xs ys,
   length xs = length ys ->
   xs |: (n) ->

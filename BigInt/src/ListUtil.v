@@ -79,6 +79,8 @@ Proof.
   rewrite firstn_skipn. reflexivity.
 Qed.
 
+
+
 Lemma skipn_nth_last: forall {A: Type} i xs (d: A),
   length xs = S i ->
   skipn i xs = nth i xs d :: nil.
@@ -325,3 +327,13 @@ Ltac lift_to_list := repeat match goal with
 | [H: tforall _ _ |- _] => apply tforall_Forall in H
 | [ |- tforall _ _] => apply tforall_Forall
 end.
+
+
+
+Lemma firstn_plus1 {A: Type} {H: Default A}: forall i l,
+  (i < length l)%nat ->
+  l[:i+1] = l[:i] ++ (l!i :: nil).
+Proof.
+  intros. replace (i+1)%nat with (S i) by lia.
+  rewrite firstn_S with (d:=default). fold_default. reflexivity. lia.
+Qed.

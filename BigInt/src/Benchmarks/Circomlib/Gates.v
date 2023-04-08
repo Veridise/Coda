@@ -14,22 +14,17 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 
-From Circom Require Import Circom Util Default Tuple LibTactics Simplify Repr.
+From Circom Require Import Circom Util Default Tuple LibTactics Simplify Repr Coda.
 From Circom.CircomLib Require Import Bitify.
 
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.
 
-Notation "2" := (1 + 1)%F : F_scope.
-
+Local Open Scope list_scope.
 Local Open Scope F_scope.
-
-Definition f_and (x: F) (y: F) := x = 1%F /\ y = 1%F.
-Definition f_or (x: F) (y: F) := x = 1%F \/ y = 1%F.
-Definition f_not (x: F) := x = 0%F.
-Definition f_nand (x: F) (y: F) := ~(x = 1%F /\ y = 1%F).
-Definition f_nor (x: F) (y: F) := ~(x = 1%F \/ y = 1%F).
-Definition f_xor (x: F) (y: F) := x <> y.
+Local Open Scope Z_scope.
+Local Open Scope circom_scope.
+Local Open Scope tuple_scope.
 
 (** ** NOT *)
 

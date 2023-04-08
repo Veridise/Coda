@@ -14,8 +14,7 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 
-From Circom Require Import Circom Util Default Tuple ListUtil LibTactics Simplify Repr.
-From Circom.CircomLib Require Import Bitify.
+From Circom Require Import Circom Util Default Tuple ListUtil LibTactics Simplify Repr Coda.
 
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.
@@ -26,6 +25,8 @@ Local Open Scope Z_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
 
+
+Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
 
 (** ** IsZero *)
 
@@ -89,55 +90,6 @@ Lemma IsEqual_obligation4: forall (x : F) (y : F) (v : F), True -> True -> True 
 Proof. intuition. Qed.
 
 (** ** LessThan *)
-
-Definition as_le_f := Repr.as_le 1%nat.
-
-Definition f_not (x:F) := (x = 0)%F.
-
-Lemma binary_not0: forall (x:F), ((x = 0 \/ x = 1) -> x <> 0 -> x = 1)%F.
-Proof. intuit. Qed.
-
-Lemma binary_not1: forall (x:F), ((x = 0 \/ x = 1) -> x <> 1 -> x = 0)%F.
-Proof. intuit. Qed.
-Ltac ind x :=
-  match goal with
-  | [H: (x = 0%F \/ x = 1 %F) /\ (x = 1%F -> ?P) /\ (x = 0%F -> ?Q) |- _ ] =>
-    let H1 := fresh "H" in
-    let H2 := fresh "H" in
-    let H3 := fresh "H" in
-    destruct H as [H1 [H2 H3]];
-    try match goal with
-    | [ Hx: x <> 1%F |- _ ] =>
-      apply binary_not1 in Hx; try apply H1
-    | [ Hx: x <> 0%F |- _ ] =>
-      apply binary_not0 in Hx; try apply H1
-    end;
-    match goal with
-    | [ Hx: x = 1%F |- _] =>
-      apply H2 in Hx
-    | [ Hx: x = 0%F |- _] =>
-      apply H3 in Hx
-    end;
-    clear H1; clear H2; clear H3
-  end.
-
-Ltac assert_consequence H :=
-  match type of H with
-  | ?P -> ?Q -> ?R => assert R
-  end.
-
-Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
-
-Ltac switch dst l :=
-  let H := fresh "H" in
-  match goal with
-  | [ |- ?G ] =>
-    assert (H: G <-> dst) by l;
-    apply H;
-    clear H
-  end.
-
-
 
 Lemma LessThan_obligation0_trivial: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> True).
 Proof. intuit. Qed.

@@ -63,13 +63,13 @@ let mod_sub_three =
     ; outputs=
         [("out", tf); ("borrow", tfq (ind_dec nu (toUZ a <. toUZ (b +% c))))]
     ; (* out = borrow * 2 ** n + a - (b + c) *)
-      dep= Some (out ==. ((borrow *% f2) ^% n) +% a -% (b +% c))
+      dep= Some (out ==. (borrow *% (f2 ^% n)) +% a -% (b +% c))
     ; body=
         elet "borrow"
           (call "LessThan" [n +. z1; a; b +% c])
           (pair
              (* borrow === #LessThan (n + 1) a (b + c) *)
-             (((borrow *% f2) ^% n) +% a -% (b +% c))
+             ((borrow *% (f2 ^% n)) +% a -% (b +% c))
              (* out === borrow * 2 ** n + a - (b + c) *)
              borrow ) }
 
@@ -81,7 +81,7 @@ let inv_big_sub i =
     (ttuple
        [t_big_int i; tfq (ind_dec nu (as_le n (take a i) <. as_le n (take b i)))] )
     ( as_le n (tfst nu)
-    ==. as_le n (take a i) -! as_le n (take b i) +! ((z2 ^! n) *! toUZ (tsnd nu))
+    ==. as_le n (take a i) -! as_le n (take b i) +! ((z2 ^! (n *! i)) *! toUZ (tsnd nu))
     )
 
 let big_sub =
@@ -96,7 +96,7 @@ let big_sub =
         [ ("out", t_big_int k)
         ; ("underflow", tfq (ind_dec nu (as_le n a <. as_le n b))) ]
     ; dep=
-        Some (as_le n out ==. as_le n a -! as_le n b +! ((z2 ^! n) *! toUZ uf))
+        Some (as_le n out ==. as_le n a -! as_le n b +! ((z2 ^! (n *! i)) *! toUZ uf))
     ; body=
         match_with' ["s"; "br"]
           (iter z0 k

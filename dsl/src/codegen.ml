@@ -1089,11 +1089,15 @@ let codegen (path : string) (d : delta) (config : configuration) (c : circuit) :
       let humanify_a =
         humanify transform_a (inputs_without_config @ outputs) g
       in
+      let humanify_intermidiate =
+        humanify !intermidiate_constraints (inputs_without_config @ outputs) g in
+      let simplify_humanify_a = List.filter (fun x -> not (removable_arithmetic_expression x)) humanify_a in
+      let simplify_humanify_intermidiate = List.filter (fun x -> not (removable_arithmetic_expression x)) humanify_intermidiate in
       (* print_endline
          (Format.sprintf "R1CS variables: %s" (show_ralpha simplify_a)) ; *)
-      let r1cs_a = List.map r1cs_of_arithmetic_expression humanify_a in
+      let r1cs_a = List.map r1cs_of_arithmetic_expression simplify_humanify_a in
       let r1cs_intermediate =
-        List.map r1cs_of_arithmetic_expression !intermidiate_constraints
+        List.map r1cs_of_arithmetic_expression simplify_humanify_intermidiate
       in
       print_endline (Format.sprintf "=============================") ;
       print_endline
@@ -1118,5 +1122,5 @@ let codegen (path : string) (d : delta) (config : configuration) (c : circuit) :
       flush_to_file (path ^ name ^ ".r1cs") ;
       ref_counter := 0 ;
       intermidiate_constraints := [] ;
-      expr_mem := [];
+      expr_mem := [] ;
       ()

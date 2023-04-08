@@ -261,6 +261,41 @@ let subst_var (e : arithmetic_expression) (x : string) (v : string) :
   | NonQuadratic ->
       NonQuadratic
 
+let rec simplify_coefficients (coefficients : (symbol * bigint) list) :
+    (symbol * bigint) list =
+  match coefficients with
+  | [] ->
+      []
+  | (symbol, value) :: rest ->
+      let rest' = simplify_coefficients rest in
+      let rest'' =
+        List.filter rest' ~f:(fun (symbol', _) ->
+            not (String.equal symbol symbol') )
+      in
+      let rest''' =
+        List.fold rest' ~init:zero_big_int ~f:(fun acc (key, value') ->
+            if String.equal symbol key then add_big_int acc value' else acc )
+      in
+      let value' = add_big_int value rest''' in
+      if eq_big_int value' zero_big_int then rest''
+      else (symbol, value') :: rest''
+
+let rec removable_arithmetic_expression (e : arithmetic_expression) : bool =
+  match e with
+  | Number _ ->
+      failwith "removable_arithmetic_expression: Number"
+  | Signal _ ->
+      false
+  | Linear coefficients ->
+      List.for_all coefficients ~f:(fun (_, value) ->
+          eq_big_int value zero_big_int )
+  | Quadratic (a, b, c) ->
+      removable_arithmetic_expression (Linear a)
+      && removable_arithmetic_expression (Linear b)
+      && removable_arithmetic_expression (Linear c)
+  | NonQuadratic ->
+      false
+
 (* Represents a constraint of the form: A*B - C = 0
    where A,B and C are linear expression. *)
 type r1cs =

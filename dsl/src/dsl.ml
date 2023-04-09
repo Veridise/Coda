@@ -430,6 +430,8 @@ let as_be_f (xs : expr) : expr = unint "as_be_f" [xs]
            ( base tb
            , lift (eq nu (mul (get xs (v "i")) (pow f2 (mul n (v "i"))))) ) ) ) *)
 
+let to_le_f (n : expr) (f : expr) : expr = unint "to_le_f" [n; f]
+
 let z_range l r = TRef (tint, qand (lift (leq l nu)) (lift (leq nu r)))
 
 let z_range_co l r = TRef (tint, qand (lift (leq l nu)) (lift (lt nu r)))

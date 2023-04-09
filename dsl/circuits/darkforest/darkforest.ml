@@ -82,12 +82,11 @@ let quin_selector =
     ; body=
         elets
           [("lt", call "LessThan" [z4; index; choices]); ("u0", v "lt" === f1)]
-          (elets [
-            ("rng", app Liblam.(use gen_rng) (toUZ choices));
-            ("eqs",
-                (map (lama "x" tf (call "IsEqual" [x; index])) rng))]
-                (pairwise_mul vin eqs (fun p ->
-                     call "CalculateTotal" [toUZ choices; v p] ) ) ) }
+          (elets
+             [ ("rng", app Liblam.(use gen_rng) (toUZ choices))
+             ; ("eqs", map (lama "x" tf (call "IsEqual" [x; index])) rng) ]
+             (pairwise_mul vin eqs (fun p ->
+                  call "CalculateTotal" [toUZ choices; v p] ) ) ) }
 
 (* IsNegative *)
 

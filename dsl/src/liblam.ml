@@ -1,3 +1,4 @@
+open Core
 open Ast
 open Dsl
 open Notation
@@ -52,7 +53,7 @@ let gen_rng =
                     (* forall z0 <= j < i, v[j] = ^j *)
                     (t_ks i) ) )
              (v "ks") )
-    ; typ= None }
+    ; typ= Some (tfun "k" tf (t_ks k)) }
 
 let pairwise_add =
   let k = v "k" in
@@ -127,3 +128,4 @@ let scale =
                 (lama "zs" (t_zs i) (concat zs (consts [x *% get ys i]))) ) ) }
 
 let libs = [gen_rng; pairwise_add; pairwise_mul; scale]
+let libs_gamma = List.map libs ~f:(fun l -> (name l, typ l))

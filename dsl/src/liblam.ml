@@ -16,13 +16,7 @@ let typ (Lib l) =
   | None ->
       Typecheck.run_synthesis ~gamma:[] l.def |> fst
 
-let verify_ty ~gamma (Lib l : lib) =
-  Typecheck.run_checking ~gamma l.def (typ (Lib l))
-
-let verify ~gamma (Lib l : lib) =
-  verify_ty ~gamma (Lib l) |> Coqgen.generate_lemmas l.name |> print_endline
-
-let use (Lib l : lib) = AscribeUnsafe (v l.name, typ (Lib l))
+let use (l : lib) = (name l, typ l)
 
 let stars k =
   let i = v "i" in
@@ -131,3 +125,5 @@ let scale =
              ~inv:(fun i -> t_zs i)
              (lama "i" tnat
                 (lama "zs" (t_zs i) (concat zs (consts [x *% get ys i]))) ) ) }
+
+let libs = [gen_rng; pairwise_add; pairwise_mul; scale]

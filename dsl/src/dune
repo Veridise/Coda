@@ -20,14 +20,14 @@
 
 (library
  (name liblam)
- (libraries core lib typecheck coqgen)
+ (libraries core lib typecheck)
  (modules liblam)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.eq)))
 
 (library
  (name coqgen)
- (libraries core lib typecheck)
+ (libraries core lib typecheck liblam)
  (modules coqgen)
  (preprocess
   (pps ppx_deriving.show ppx_deriving.eq)))

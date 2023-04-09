@@ -368,7 +368,7 @@ let rec synthesize (e : expr) : typ S.t =
             match skeleton t1 with
             | TArr te ->
                 let%bind () = check e2 tint in
-                return (refine te (nu ==. e))
+                return (tarr_t_q_k te (nu ==. e) (len e1))
             | _ ->
                 failwith "[synthesize] take: not an array" )
         | ArrayOp (Drop, [e1; e2]) -> (
@@ -376,7 +376,7 @@ let rec synthesize (e : expr) : typ S.t =
             match skeleton t1 with
             | TArr te ->
                 let%bind () = check e2 tint in
-                return (refine te (nu ==. e))
+                return (tarr_t_q_k te (nu ==. e) (len e1))
             | _ ->
                 failwith "[synthesize] drop: not an array" )
         | ArrayOp (Cons, [e1; Const CNil]) ->
@@ -581,16 +581,16 @@ let init_gamma (c : circuit) : gamma =
   (* let to_base_types = List.map ~f:(fun (x, t) -> (x, skeleton t)) in *)
   match c with Circuit {inputs; _} -> List.rev inputs
 
-let typecheck_circuit (d : delta) (c : circuit) : cons list =
+let typecheck_circuit (d : delta) (c : circuit) ?(liblam=[]): cons list =
   match c with
   | Circuit {body; _} ->
       S.(
         Let_syntax.(
-          let init = {delta= d; gamma= init_gamma c; alpha= []; cs= []} in
+          let init = {delta= d; gamma= liblam @ init_gamma c; alpha= []; cs= []} in
           let _, st = S.run init (check body (functionalize_circ_output c)) in
           st.cs ) )
 
-let run_synthesis ~gamma e =
+let run_synthesis ?(gamma=[]) e =
   S.(
     Let_syntax.(
       let t, {cs; _} =
@@ -598,7 +598,7 @@ let run_synthesis ~gamma e =
       in
       (t, cs) ) )
 
-let run_checking ~gamma e t =
+let run_checking ?(gamma=[]) e t =
   S.(
     Let_syntax.(
       let _, {cs; _} = run {delta= []; gamma; alpha= []; cs= []} (check e t) in

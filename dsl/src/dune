@@ -34,7 +34,7 @@
 
 (library
  (name codegen)
- (libraries core lib fmt zarith)
+ (libraries core lib fmt zarith liblam)
  (modules r1cs_utils codegen)
  (preprocess
   (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))

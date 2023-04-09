@@ -17,7 +17,7 @@ let typ (Lib l) =
   | None ->
       Typecheck.run_synthesis ~gamma:[] l.def |> fst
 
-let use (l : lib) = ascribe (def l) (typ l)
+let use (l : lib) = (name l, typ l)
 
 let stars k =
   let i = v "i" in
@@ -130,3 +130,5 @@ let scale =
 let libs = [gen_rng; pairwise_add; pairwise_mul; scale]
 
 let libs_gamma = List.map libs ~f:(fun l -> (name l, typ l))
+
+let libs_gamma_codegen = List.map libs ~f:(fun l -> (name l, def l))

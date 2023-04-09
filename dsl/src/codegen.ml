@@ -4,6 +4,7 @@ open Utils
 open Ast_utils
 open R1cs_utils
 open Big_int_Z
+open Liblam
 
 (* circuit declarations *)
 type delta = (string * circuit) list
@@ -1078,8 +1079,9 @@ let codegen (path : string) (d : delta) (config : configuration) (c : circuit) :
           inputs
       in
       let args = initial_args_list config inputs_without_config in
+      let gamma_lib = libs_gamma_codegen in
       let g, _, a, _, output_e =
-        codegen_circuit args [] [] d [] config
+        codegen_circuit args gamma_lib [] d [] config
           (Circuit {name; inputs= inputs_without_config; outputs; dep; body})
       in
       (* add assertion for outputs = output_e *)

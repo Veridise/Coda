@@ -363,30 +363,22 @@ let rec synthesize (e : expr) : typ S.t =
                 return (refine t (QExpr (nu =. e)))
             | _ ->
                 failwith "[synthesize] get: not an array" )
-        | ArrayOp (Take, [e1; e2]) ->
-            ignore e1 ;
-            ignore e2 ;
-            failwith (spf "TODO [synthesize] ArrayOp (%s)" (show_aop Take))
-            (* let t1, cs1 = f e1 in
-                 match t1 with
-                 | TArr (t, q, el) ->
-                     (* check index in range *)
-                     let cs2 = check d g a e2 (z_range z0 el) in
-                     (TArr (t, QExpr (nu =. e), e2), cs1 @ cs2)
-                 | _ ->
-                     failwith "[synthesize] take: not an array" ) *)
-        | ArrayOp (Drop, [e1; e2]) ->
-            ignore e1 ;
-            ignore e2 ;
-            failwith (spf "TODO [synthesize] ArrayOp (%s)" (show_aop Drop))
-            (* let t1, cs1 = f e1 in
-                 match t1 with
-                 | TArr (t, q, el) ->
-                     (* check index in range *)
-                     let cs2 = check d g a e2 (z_range z0 el) in
-                     (TArr (t, QExpr (nu =. e), zsub el e2), cs1 @ cs2)
-                 | _ ->
-                     failwith "[synthesize] drop: not an array" ) *)
+        | ArrayOp (Take, [e1; e2]) -> (
+            let%bind t1 = synthesize e1 in
+            match skeleton t1 with
+            | TArr te ->
+                let%bind () = check e2 tint in
+                return (refine te (nu ==. e))
+            | _ ->
+                failwith "[synthesize] take: not an array" )
+        | ArrayOp (Drop, [e1; e2]) -> (
+            let%bind t1 = synthesize e1 in
+            match skeleton t1 with
+            | TArr te ->
+                let%bind () = check e2 tint in
+                return (refine te (nu ==. e))
+            | _ ->
+                failwith "[synthesize] drop: not an array" )
         | ArrayOp (Cons, [e1; Const CNil]) ->
             let%bind t1 = synthesize e1 in
             return @@ tarr_t_k t1 z1

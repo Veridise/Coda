@@ -156,6 +156,8 @@ and expr_to_coq (e : expr) : string =
     match aop with
     | Take ->
         spf "(%s[:%s])" (expr_to_coq e1) (expr_to_coq e2)
+    | Drop ->
+        spf "(skipn %s %s)" (expr_to_coq e2) (expr_to_coq e1)
     | Get ->
         spf "(%s!%s)" (expr_to_coq e1) (expr_to_coq e2)
     | Cons ->

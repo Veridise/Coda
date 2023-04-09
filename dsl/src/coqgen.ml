@@ -200,8 +200,8 @@ and qual_to_coq (q : qual) : string =
 
 let gamma_to_coq (g : gamma) : (string * string) list * string list =
   List.rev g
-  |> List.filter (fun (x,_) ->
-    not (List.exists (fun l -> (x = Liblam.name l)) Liblam.libs))
+  |> List.filter (fun (x, _) ->
+         not (List.exists (fun l -> x = Liblam.name l) Liblam.libs) )
   |> List.map (fun (x, t) ->
          let {coq_typ; ref} = typ_to_coq t in
          let x = if x = "in" then "_in" else x in

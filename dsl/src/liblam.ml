@@ -128,4 +128,5 @@ let scale =
                 (lama "zs" (t_zs i) (concat zs (consts [x *% get ys i]))) ) ) }
 
 let libs = [gen_rng; pairwise_add; pairwise_mul; scale]
+
 let libs_gamma = List.map libs ~f:(fun l -> (name l, typ l))

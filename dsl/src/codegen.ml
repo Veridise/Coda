@@ -299,7 +299,8 @@ let rec beta_reduction (s : subst) (e : expr) : expr =
       Binop (ty, op, beta_reduction s e1, beta_reduction s e2)
   | ArrayOp (op, l) ->
       ArrayOp (op, List.map (beta_reduction s) l)
-  | Var x -> ( match List.assoc_opt x s with Some e' -> e' | None -> Var x )
+  | Var x -> (
+    match List.assoc_opt x s with Some e' -> e' | None -> Var x )
   | App (e1, e2) ->
       App (beta_reduction s e1, beta_reduction s e2)
   | Lam (x, e) ->
@@ -307,14 +308,14 @@ let rec beta_reduction (s : subst) (e : expr) : expr =
   | LamA (x, t, e) ->
       LamA (x, t, beta_reduction s e)
   | LetIn (x, e1, e2) ->
-    LetIn (x, beta_reduction s e1, beta_reduction s e2)
+      LetIn (x, beta_reduction s e1, beta_reduction s e2)
   | Assert (e1, e2) ->
       Assert (beta_reduction s e1, beta_reduction s e2)
   | Ascribe (e, ty) ->
       Ascribe (beta_reduction s e, ty)
   | AscribeUnsafe (e, ty) ->
       AscribeUnsafe (beta_reduction s e, ty)
-  | TMake (l) ->
+  | TMake l ->
       TMake (List.map (beta_reduction s) l)
   | TGet (e, i) ->
       TGet (beta_reduction s e, i)
@@ -326,8 +327,11 @@ let rec beta_reduction (s : subst) (e : expr) : expr =
       Comp (op, beta_reduction s e1, beta_reduction s e2)
   | Call (name, l) ->
       Call (name, List.map (beta_reduction s) l)
-  | Sum {s=s1; e; body} ->
-      Sum {s= beta_reduction s s1; e= beta_reduction s e; body= beta_reduction s body}
+  | Sum {s= s1; e; body} ->
+      Sum
+        { s= beta_reduction s s1
+        ; e= beta_reduction s e
+        ; body= beta_reduction s body }
   | EQual q ->
       EQual q
   | RSum (s1, e, ty) ->
@@ -339,9 +343,17 @@ let rec beta_reduction (s : subst) (e : expr) : expr =
   | Map (e1, e2) ->
       Map (beta_reduction s e1, beta_reduction s e2)
   | Foldl {f; acc; xs} ->
-      Foldl {f= beta_reduction s f; acc= beta_reduction s acc; xs= beta_reduction s xs}
-  | Iter {s=s1; e; body; init; inv} ->
-      Iter {s= beta_reduction s s1; e= beta_reduction s e; body= beta_reduction s body; init= beta_reduction s init; inv}
+      Foldl
+        { f= beta_reduction s f
+        ; acc= beta_reduction s acc
+        ; xs= beta_reduction s xs }
+  | Iter {s= s1; e; body; init; inv} ->
+      Iter
+        { s= beta_reduction s s1
+        ; e= beta_reduction s e
+        ; body= beta_reduction s body
+        ; init= beta_reduction s init
+        ; inv }
   | Fn (f, l) ->
       Fn (f, List.map (beta_reduction s) l)
   | Push e ->
@@ -350,6 +362,7 @@ let rec beta_reduction (s : subst) (e : expr) : expr =
       Pull (beta_reduction s e)
 
 let subst_tasks = ref []
+
 let subst_task_count = ref 0
 
 let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
@@ -437,9 +450,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       let g', b', a', e2' = reify_expr prefix g b d a config e2 in
       let g'', b'', a'', e1' = reify_expr prefix g' b' d a' config e1 in
       match e1' with
-      | Lam (x, e) 
-      | LamA (x, _, e)
-      ->
+      | Lam (x, e) | LamA (x, _, e) ->
           (* evaluate e2 *)
           let e2'' =
             simplify_expr e2' (* simplify e2 before add it to environment*)
@@ -447,12 +458,14 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
           (* substitute x with e2 in e *)
           (* let g''' = (x, e2'') :: g'' in *)
           subst_tasks := (x, e2'') :: !subst_tasks ;
-          let e' = if previous_subst_task_count = 0 then (
-            let e' = beta_reduction !subst_tasks e in
-            subst_tasks := [] ;
-            subst_task_count := 0;
-            e'
-          ) else e in
+          let e' =
+            if previous_subst_task_count = 0 then (
+              let e' = beta_reduction !subst_tasks e in
+              subst_tasks := [] ;
+              subst_task_count := 0 ;
+              e' )
+            else e
+          in
           (* add x -> e2 to gamma *)
           let g'''', b'''', a'''', e''' =
             reify_expr prefix g'' b'' d a'' config e'
@@ -501,7 +514,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       let g', b', a', e' = reify_expr prefix g b d a config e in
       (g', b', a', e')
   | ArrayOp (Get, [e; i]) ->
-    (* print_endline ("TGet" ^ show_gamma g) ; *)
+      (* print_endline ("TGet" ^ show_gamma g) ; *)
       let g, b, a, l = reify_expr prefix g b d a config e in
       (* get i''-th element of l *)
       let g', b', a', i' = reify_expr prefix g b d a config i in
@@ -1220,5 +1233,5 @@ let codegen (path : string) (d : delta) (config : configuration) (c : circuit) :
       intermidiate_constraints := [] ;
       expr_mem := [] ;
       subst_tasks := [] ;
-            subst_task_count := 0;
+      subst_task_count := 0 ;
       ()

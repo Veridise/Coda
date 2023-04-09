@@ -24,6 +24,7 @@ src/Benchmarks/Circomlib/Bitify.v
 src/Benchmarks/Circomlib/Comparators.v
 src/Benchmarks/Circomlib/Gates.v
 src/Benchmarks/Circomlib/Multiplexer.v
+src/Benchmarks/Circomlib/Mux1.v
 src/Benchmarks/BigInt/BigAdd.v
 src/Benchmarks/BigInt/BigIsEqual.v
 src/Benchmarks/BigInt/BigIsZero.v

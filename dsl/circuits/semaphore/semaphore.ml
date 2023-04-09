@@ -15,6 +15,8 @@ let i = v "i"
 
 let j = v "j"
 
+let m = v "m"
+
 let s = v "s"
 
 let x = v "x"
@@ -108,10 +110,11 @@ let lam_mtip z =
                 (* pathIndices[i] binary *)
                 (assert_eq (fmul j (fsub f1 j)) f0)
                 (elet "c"
-                   (cons
-                      (cons x (cons s cnil))
-                      (cons (cons s (cons x cnil)) cnil) )
-                   (call "Poseidon" [z2; call "MultiMux1" [z2; c; j]]) ) ) ) ) )
+                   (const_array (tarr_tf z2)
+                      [const_array tf [x; s]; const_array tf [s; x]] )
+                   (elet "m"
+                      (call "MultiMux1" [z2; c; j])
+                      (call "Poseidon" [z2; m]) ) ) ) ) ) )
 
 let rec hasher z init =
   iter z0 (len z) (lam_mtip z) ~init ~inv:(fun i ->

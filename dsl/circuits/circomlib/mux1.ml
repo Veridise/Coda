@@ -37,9 +37,11 @@ let t_mm1 = tarr_t_q_k tf q_mm1 n
 
 let lam_mm1 =
   lama "x" tarr_tf_2
-    (elet "a" (get x z0)
-       (elet "b" (get x z1)
-          (elet "y" (fsub b a) (elet "z" (fmul y s) (fadd z a))) ) )
+    (ascribe
+       (elet "a" (get x z0)
+          (elet "b" (get x z1)
+             (elet "y" (fsub b a) (elet "z" (fmul y s) (fadd z a))) ) )
+       tf )
 
 let multi_mux_1 =
   Circuit

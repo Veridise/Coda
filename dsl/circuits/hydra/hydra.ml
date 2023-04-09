@@ -1,9 +1,23 @@
 open Ast
 open Dsl
 
+let va = v "a"
+
+let b = v "b"
+
 let c = v "c"
 
 let i = v "i"
+
+let k0 = v "k0"
+
+let k1 = v "k1"
+
+let r0 = v "r0"
+
+let r1 = v "r1"
+
+let r2 = v "r2"
 
 let s = v "s"
 
@@ -195,27 +209,38 @@ let vrfy_hydra_commit =
     ; outputs= []
     ; dep= None
     ; body=
-        elet "commitment"
-          (call "Poseidon" [z1; cons secret cnil])
-          (elet "message"
-             (call "Poseidon" [z2; cons address (cons commitment cnil)])
-             (call "EdDSAPoseidonVerifier"
-                [ f1
-                ; get commitmentMapperPubKey z0
-                ; get commitmentMapperPubKey z1
-                ; get commitmentReceipt z2
-                ; get commitmentReceipt z0
-                ; get commitmentReceipt z1
-                ; message ] ) ) }
+        elet "x" (const_array tf [secret])
+          (elet "commitment"
+             (call "Poseidon" [z1; x])
+             (elet "y"
+                (const_array tf [address; commitment])
+                (elet "message"
+                   (call "Poseidon" [z2; y])
+                   (elet "k0"
+                      (get commitmentMapperPubKey z0)
+                      (elet "k1"
+                         (get commitmentMapperPubKey z1)
+                         (elet "r2" (get commitmentReceipt z2)
+                            (elet "r0" (get commitmentReceipt z0)
+                               (elet "r1" (get commitmentReceipt z1)
+                                  (call "EdDSAPoseidonVerifier"
+                                     [f1; k0; k1; r2; r0; r1; message] ) ) ) ) ) ) ) ) )
+    }
 
 (* hydraS1 *)
+
+let t_h = TRef (tint, qand (lift (leq z252 (zsub1 CPLen))) (lift (lt z0 nu)))
+
+let t_claimedValue = tfq (lift (lt (toUZ nu) (zpow z2 z252)))
+
+let t_sourceValue = tfq (lift (lt (zadd1 (toUZ nu)) (zpow z2 z252)))
 
 let hydra_s1 =
   Circuit
     { name= "hydraS1"
     ; inputs=
-        [ ("registryTreeHeight", tpos)
-        ; ("accountsTreeHeight", tpos)
+        [ ("registryTreeHeight", t_h)
+        ; ("accountsTreeHeight", t_h)
         ; ("sourceIdentifier", tf)
         ; ("sourceSecret", tf)
         ; ("sourceCommitmentReceipt", tarr_tf z3)
@@ -226,14 +251,14 @@ let hydra_s1 =
         ; ("accountsTreeRoot", tf)
         ; ("registryMerklePathElements", tarr_tf registryTreeHeight)
         ; ("registryMerklePathIndices", tarr_tf registryTreeHeight)
-        ; ("sourceValue", tf)
+        ; ("sourceValue", t_sourceValue)
         ; ("destinationIdentifier", tf)
         ; ("chainId", tf)
         ; ("commitmentMapperPubKey", tarr_tf z2)
         ; ("registryTreeRoot", tf)
         ; ("externalNullifier", tf)
         ; ("nullifier", tf)
-        ; ("claimedValue", tf)
+        ; ("claimedValue", t_claimedValue)
         ; ("accountsTreeValue", tf)
         ; ("isStrict", tf) ]
     ; outputs= []
@@ -251,59 +276,62 @@ let hydra_s1 =
                 ; destinationSecret
                 ; commitmentMapperPubKey
                 ; destinationCommitmentReceipt ] )
-             (elet "accountLeafConstructor"
-                (call "Poseidon"
-                   [z2; cons sourceIdentifier (cons sourceValue cnil)] )
-                (elet "u2"
-                   (call "VerifyMerklePath"
-                      [ accountsTreeHeight
-                      ; accountLeafConstructor
-                      ; accountsTreeRoot
-                      ; accountMerklePathElements
-                      ; accountMerklePathIndices ] )
-                   (elet "registryLeafConstructor"
-                      (call "Poseidon"
-                         [ z2
-                         ; cons accountsTreeRoot (cons accountsTreeValue cnil)
-                         ] )
-                      (elet "u3"
-                         (call "VerifyMerklePath"
-                            [ registryTreeHeight
-                            ; registryLeafConstructor
-                            ; registryTreeRoot
-                            ; registryMerklePathElements
-                            ; registryMerklePathIndices ] )
-                         (elet "_"
-                            (call "Num2Bits" [z252; sourceValue])
-                            (elet "_"
-                               (call "Num2Bits" [z252; claimedValue])
-                               (elet "u4"
-                                  (assert_eq
-                                     (call "LessEqThan"
-                                        [ z252
-                                        ; cons claimedValue
-                                            (cons sourceValue cnil) ] )
-                                     f1 )
-                                  (elet "u5"
-                                     (assert_eq
-                                        (fmul (fsub1 isStrict) isStrict)
-                                        f0 )
-                                     (elet "u6"
-                                        (assert_eq sourceValue
-                                           (fadd sourceValue
-                                              (fmul
-                                                 (fsub claimedValue sourceValue)
-                                                 isStrict ) ) )
-                                        (elet "sourceSecretHash"
-                                           (call "Poseidon"
-                                              [ z2
-                                              ; cons sourceSecret (cons f1 cnil)
-                                              ] )
-                                           (assert_eq
-                                              (call "Poseidon"
-                                                 [ z2
-                                                 ; cons sourceSecretHash
-                                                     (cons externalNullifier
-                                                        cnil ) ] )
-                                              nullifier ) ) ) ) ) ) ) ) ) ) ) )
+             (elet "x"
+                (const_array tf [sourceIdentifier; sourceValue])
+                (elet "accountLeafConstructor"
+                   (call "Poseidon" [z2; x])
+                   (elet "u2"
+                      (call "VerifyMerklePath"
+                         [ accountsTreeHeight
+                         ; accountLeafConstructor
+                         ; accountsTreeRoot
+                         ; accountMerklePathElements
+                         ; accountMerklePathIndices ] )
+                      (elet "y"
+                         (const_array tf [accountsTreeRoot; accountsTreeValue])
+                         (elet "registryLeafConstructor"
+                            (call "Poseidon" [z2; y])
+                            (elet "u3"
+                               (call "VerifyMerklePath"
+                                  [ registryTreeHeight
+                                  ; registryLeafConstructor
+                                  ; registryTreeRoot
+                                  ; registryMerklePathElements
+                                  ; registryMerklePathIndices ] )
+                               (elet "_x"
+                                  (call "Num2Bits" [z252; sourceValue])
+                                  (elet "_y"
+                                     (call "Num2Bits" [z252; claimedValue])
+                                     (elet "z"
+                                        (call "LessEqThan"
+                                           [z252; claimedValue; sourceValue] )
+                                        (elet "u4" (assert_eq z f1)
+                                           (elet "u5"
+                                              (assert_eq
+                                                 (fmul (fsub1 isStrict) isStrict)
+                                                 f0 )
+                                              (elet "u6"
+                                                 (assert_eq sourceValue
+                                                    (fadd sourceValue
+                                                       (fmul
+                                                          (fsub claimedValue
+                                                             sourceValue )
+                                                          isStrict ) ) )
+                                                 (elet "a"
+                                                    (const_array tf
+                                                       [sourceSecret; f1] )
+                                                    (elet "sourceSecretHash"
+                                                       (call "Poseidon" [z2; va])
+                                                       (elet "b"
+                                                          (const_array tf
+                                                             [ sourceSecretHash
+                                                             ; externalNullifier
+                                                             ] )
+                                                          (elet "c"
+                                                             (call "Poseidon"
+                                                                [z2; b] )
+                                                             (elet "u7"
+                                                                (assert_eq c
+                                                                   nullifier )
+                                                                unit_val ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) )
     }

@@ -12,9 +12,13 @@ let z216 = zn 216
 
 let z256 = zn 256
 
+let d = v "d"
+
 let i = v "i"
 
 let j = v "j"
+
+let t = v "t"
 
 let x = v "x"
 
@@ -140,15 +144,15 @@ let get_val_by_idx =
     ; body=
         elet "n2b"
           (call "Num2Bits" [z8; index])
-          (call "Mux3" [claim; take z3 n2b]) }
+          (elet "z" (take z3 n2b) (call "Mux3" [claim; z])) }
 
 (* getIdenState *)
 
 let t_get_iden_state =
   tfq
     (qeq nu
-       (call "Poseidon"
-          [z3; cons claimsTreeRoot (cons revTreeRoot (cons rootsTreeRoot cnil))] ) )
+       (u_poseidon z3
+          (const_array tf [claimsTreeRoot; revTreeRoot; rootsTreeRoot]) ) )
 
 let get_iden_state =
   Circuit
@@ -158,17 +162,14 @@ let get_iden_state =
     ; outputs= [("idenState", t_get_iden_state)]
     ; dep= None
     ; body=
-        call "Poseidon"
-          [z3; cons claimsTreeRoot (cons revTreeRoot (cons rootsTreeRoot cnil))]
-    }
+        elet "z"
+          (const_array tf [claimsTreeRoot; revTreeRoot; rootsTreeRoot])
+          (call "Poseidon" [z3; z]) }
 
 (* cutId *)
 
 let t_cut_id =
-  tfq
-    (qeq nu
-       (call "Bits2Num"
-          [z216; u_take z216 (u_drop z16 (call "Num2Bits" [z256; vin]))] ) )
+  tfq (qeq nu (as_le_f (u_take z216 (u_drop z16 (to_le_f z256 vin)))))
 
 let cut_id =
   Circuit
@@ -179,13 +180,12 @@ let cut_id =
     ; body=
         elet "n2b"
           (call "Num2Bits" [z256; vin])
-          (call "Bits2Num" [z216; take z216 (drop z16 n2b)]) }
+          (elet "d" (drop z16 n2b)
+             (elet "t" (take z216 d) (call "Bits2Num" [z216; t])) ) }
 
 (* cutState *)
 
-let t_cut_st =
-  tfq
-    (qeq nu (call "Bits2Num" [z216; u_drop z40 (call "Num2Bits" [z256; vin])]))
+let t_cut_st = tfq (qeq nu (as_le_f (u_drop z40 (to_le_f z256 vin))))
 
 let cut_st =
   Circuit
@@ -196,4 +196,4 @@ let cut_st =
     ; body=
         elet "n2b"
           (call "Num2Bits" [z256; vin])
-          (call "Bits2Num" [z216; drop z40 n2b]) }
+          (elet "d" (drop z40 n2b) (call "Bits2Num" [z216; d])) }

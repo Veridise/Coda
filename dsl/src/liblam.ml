@@ -6,11 +6,15 @@ open Monads
 type lib = Lib of {name: string; def: expr; typ: typ}
 
 let name (Lib l) = l.name
+
 let def (Lib l) = l.def
+
 let typ (Lib l) = l.typ
 
 let verify_ty ~gamma (Lib l : lib) = Typecheck.run_checking ~gamma l.def l.typ
-let verify ~gamma (Lib l : lib) = verify_ty ~gamma (Lib l) |> Coqgen.generate_lemmas l.name |> print_endline
+
+let verify ~gamma (Lib l : lib) =
+  verify_ty ~gamma (Lib l) |> Coqgen.generate_lemmas l.name |> print_endline
 
 let use (Lib l : lib) = AscribeUnsafe (v l.name, l.typ)
 

@@ -88,7 +88,10 @@ let big_add =
         ; ("k", refine_expr tnat (z1 <=. nu))
         ; ("a", t_big_int k)
         ; ("b", t_big_int k) ]
-    ; outputs= [("out", attach (as_le n nu ==. as_le n a +! as_le n b) (t_big_int (k +. z1)))]
+    ; outputs=
+        [ ( "out"
+          , attach (as_le n nu ==. as_le n a +! as_le n b) (t_big_int (k +. z1))
+          ) ]
     ; dep= None
     ; body=
         match_with' ["sum"; "carry"]
@@ -108,18 +111,14 @@ let big_add =
           (* out === sum ++ [carry] *)
           (push (concat (v "sum") (consts [v "carry"]))) }
 
-
-
 (* BigAddModP *)
 
 let q_lt_p = QExpr (toUZ nu <=. toUZ p -! z1)
 
 let t_big_int_lt_p k = tarr_t_q_k tf_n_bit q_lt_p k
 
-let t_big_int_add_mod_p k = tarr_t_q_k
-  tf_n_bit 
-  (toUZ nu ==. (zmod (toUZ a +! toUZ b) (toUZ p)))
-  k
+let t_big_int_add_mod_p k =
+  tarr_t_q_k tf_n_bit (toUZ nu ==. zmod (toUZ a +! toUZ b) (toUZ p)) k
 
 let t_n' = z_range z1 (zsub2 CPLen)
 
@@ -128,29 +127,21 @@ let big_add_mod_p =
     { name= "BigAddModP"
     ; inputs=
         [ ("n", t_n')
-        ; ("k", refine_expr tnat (z1 <=. nu))
+        ; ("k", attach (lift (z1 <=. nu)) tnat)
         ; ("a", t_big_int_lt_p k)
         ; ("b", t_big_int_lt_p k)
         ; ("p", t_big_int k) ]
     ; outputs= [("out", t_big_int_add_mod_p k)]
     ; dep= None
     ; body=
-        (* add = #BigAdd n k a b *)
-        elet "add"
-          (call "BigAdd" [n; k; a; b])
-          (* lt = #BigLessThan n (k + 1) add (p ++ [0]) *)
-          (elet "lt"
-             (call "BigLessThan" [n; zadd1 k; add; concat p (cons f0 cnil)])
-             (* p' = map (\p_i => (1 - lt) * p_i) (p ++ [0]) *)
-             (elet "p'"
-                (map
-                   (lama "x" tf (fmul (fsub f1 lt) x))
-                   (concat p (cons f0 cnil)) )
-                (* sub = #BigSub n (k + 1) add p' *)
-                (elet "sub"
-                   (tget (call "BigSub" [n; zadd1 k; add; p']) 0)
-                   (* sub[k] === 0 *)
-                   (elet "u0"
-                      (assert_eq (get sub k) f0)
-                      (* out === take k sub *)
-                      (take k sub) ) ) ) ) }
+        elets
+          [ (* add = #BigAdd n k a b *)
+            ("add", call "BigAdd" [n; k; a; b])
+          ; (* lt = #BigLessThan n (k + 1) add (p ++ [0]) *)
+            ("lt", call "BigLessThan" [n; k +. z1; add; concat p (consts [f0])])
+          ; (* p' = scale (k+1) (1 - lt) (p ++ [0]) *)
+            ("p'", apps (v "scale") [k +. z1; f1 -% lt; concat p (consts [f0])])
+          ; (* sub = #BigSub n (k + 1) add p' *)
+            ("sub", tfst (call "BigSub" [n; k +. z1; add; p']))
+            (* ("u0", assert_eq (get sub k) f0)  *) ]
+          (take sub k) }

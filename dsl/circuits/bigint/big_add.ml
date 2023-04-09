@@ -143,5 +143,6 @@ let big_add_mod_p =
             ("p'", apps (v "scale") [k +. z1; f1 -% lt; concat p (consts [f0])])
           ; (* sub = #BigSub n (k + 1) add p' *)
             ("sub", tfst (call "BigSub" [n; k +. z1; add; p']))
-            (* ("u0", assert_eq (get sub k) f0)  *) ]
-          (take sub k) }
+            (* ("u0", assert_eq (get sub k) f0)  *)
+          ; ("u0", assert_eq (get sub k) f0) ]
+          (take k sub) }

@@ -368,7 +368,7 @@ let rec synthesize (e : expr) : typ S.t =
             match skeleton t1 with
             | TArr te ->
                 let%bind () = check e2 tint in
-                return (tarr_t_q_k te (nu ==. e) (e2))
+                return (tarr_t_q_k te (nu ==. e) e2)
             | _ ->
                 failwith "[synthesize] take: not an array" )
         | ArrayOp (Drop, [e1; e2]) -> (

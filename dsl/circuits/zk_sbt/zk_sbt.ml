@@ -145,7 +145,7 @@ let get_val_by_idx =
     ; body=
         elet "n2b"
           (call "Num2Bits" [z8; index])
-          (elet "z" (take z3 n2b) (call "Mux3" [claim; z])) }
+          (elet "z" (take n2b z3) (call "Mux3" [claim; z])) }
 
 (* getIdenState *)
 
@@ -181,8 +181,8 @@ let cut_id =
     ; body=
         elet "n2b"
           (call "Num2Bits" [z256; vin])
-          (elet "d" (drop z16 n2b)
-             (elet "t" (take z216 d) (call "Bits2Num" [z216; t])) ) }
+          (elet "d" (drop n2b z16)
+             (elet "t" (take d z216) (call "Bits2Num" [z216; t])) ) }
 
 (* cutState *)
 
@@ -197,4 +197,4 @@ let cut_st =
     ; body=
         elet "n2b"
           (call "Num2Bits" [z256; vin])
-          (elet "d" (drop z40 n2b) (call "Bits2Num" [z216; d])) }
+          (elet "d" (drop n2b z40) (call "Bits2Num" [z216; d])) }

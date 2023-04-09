@@ -146,7 +146,7 @@ let lam_mtip z =
 
 let rec hasher z init =
   iter z0 (len z) (lam_mtip z) ~init ~inv:(fun i ->
-      tfq (qeq nu (hasher (take i z) init)) )
+      tfq (qeq nu (hasher (take z i) init)) )
 
 let t_r = tfq (qeq nu (hasher (zip pathIndices siblings) leaf))
 

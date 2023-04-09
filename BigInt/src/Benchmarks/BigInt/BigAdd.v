@@ -244,17 +244,22 @@ Proof. intuit. Qed.
 Lemma BigAdd_obligation18: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x117 => ((^ x117) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x118 => ((^ x118) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (True -> ((as_le n (nil ++ (0%F :: nil))) = ((as_le n (a[:0%nat])) + (as_le n (b[:0%nat])))%Z)).
 Proof. unwrap_C. intuit; simpl. simplify. Qed.
 
-Lemma BigAdd_obligation19: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (sum_carry : (list F) * F) (carry : F) (sum : (list F)) (_u2 : (list F) * F) (v : (list F)), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x119 => ((^ x119) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x120 => ((^ x120) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> match sum_carry with (x122,x123) => Forall (fun x121 => ((^ x121) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x122 end -> match sum_carry with (x122,x123) => ((length x122) = k) end -> match sum_carry with (x122,x123) => ((x123 = 0%F) \/ (x123 = 1%F)) end -> match sum_carry with (x122,x123) => ((as_le n (x122 ++ (x123 :: nil))) = ((as_le n (a[:k])) + (as_le n (b[:k])))%Z) end -> (carry = snd (sum_carry)) -> Forall (fun x124 => True) sum -> (sum = fst (sum_carry)) -> match _u2 with (x126,x127) => Forall (fun x125 => True) x126 end -> match _u2 with (x126,x127) => True end -> match _u2 with (x126,x127) => True end -> match _u2 with (x126,x127) => (sum_carry = sum_carry) end -> Forall (fun x128 => True) v -> True -> (((v = (sum ++ (carry :: nil))) /\ ((length v) = ((length sum) + (length (carry :: nil)))%nat)) -> (((length v) = (k + 1%nat)%nat) /\ (forall (i0:nat), 0%nat <= i0 < (length v) -> ((^ (v!i0)) <= ((2%nat ^ n)%Z - 1%nat)%Z)))).
+Lemma BigAdd_obligation19: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (sum_carry : ((list F) * F)) (carry : F) (sum : (list F)) (_u2 : ((list F) * F)) (v : (list F)), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x119 => ((^ x119) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x120 => ((^ x120) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> match sum_carry with (x122,x123) => Forall (fun x121 => ((^ x121) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x122 end -> match sum_carry with (x122,x123) => ((length x122) = k) end -> match sum_carry with (x122,x123) => ((x123 = 0%F) \/ (x123 = 1%F)) end -> match sum_carry with (x122,x123) => ((as_le n (x122 ++ (x123 :: nil))) = ((as_le n (a[:k])) + (as_le n (b[:k])))%Z) end -> (carry = (snd sum_carry)) -> Forall (fun x124 => True) sum -> (sum = (fst sum_carry)) -> match _u2 with (x126,x127) => Forall (fun x125 => True) x126 end -> match _u2 with (x126,x127) => True end -> match _u2 with (x126,x127) => True end -> match _u2 with (x126,x127) => ((sum_carry = sum_carry) /\ True) end -> Forall (fun x128 => True) v -> True -> (((v = (sum ++ (carry :: nil))) /\ ((length v) = ((length sum) + (length (carry :: nil)))%nat)) -> ((((length v) = (k + 1%nat)%nat) /\ ((as_le n v) = ((as_le n a) + (as_le n b))%Z)) /\ (forall (i0:nat), 0%nat <= i0 < (length v) -> ((^ (v!i0)) <= ((2%nat ^ n)%Z - 1%nat)%Z)))).
 Proof.
   unwrap_C.
-   intuit; 
-  subst; simpl; rewrite app_length in *; simpl in *; try lia;
+  intros.
+  destruct (sum_carry) as [_sum _carry]. destruct _u2. simpl in *. subst _sum _carry.
+  do 2 rewrite firstn_all2 in H8 by lia. apply Repr.in_range_binary in H7.
+  intuit; subst v;
+  rewrite app_length in *; simpl in *; try lia.
   unfold_default; apply Forall_nth; try (rewrite app_length; simpl; lia);
   apply Forall_app; intuit; constructor; auto; autorewrite with F_to_Z; try lia.
   assert (2^1 <= 2^n). apply Zpow_facts.Zpower_le_monotone; lia.
   lia.
 Qed.
 
+Lemma BigAdd_obligation20_trivial: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (sum_carry : ((list F) * F)) (carry : F) (sum : (list F)) (_u2 : ((list F) * F)) (v : F), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x129 => ((^ x129) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x130 => ((^ x130) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> match sum_carry with (x132,x133) => Forall (fun x131 => ((^ x131) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x132 end -> match sum_carry with (x132,x133) => ((length x132) = k) end -> match sum_carry with (x132,x133) => ((x133 = 0%F) \/ (x133 = 1%F)) end -> match sum_carry with (x132,x133) => ((as_le n (x132 ++ (x133 :: nil))) = ((as_le n (a[:k])) + (as_le n (b[:k])))%Z) end -> (carry = (snd sum_carry)) -> Forall (fun x134 => True) sum -> (sum = (fst sum_carry)) -> match _u2 with (x136,x137) => Forall (fun x135 => True) x136 end -> match _u2 with (x136,x137) => True end -> match _u2 with (x136,x137) => True end -> match _u2 with (x136,x137) => ((sum_carry = sum_carry) /\ True) end -> True -> (True -> True).
+Proof. intuit. Qed.
 
 
 (* TODO *)

@@ -8,7 +8,6 @@ type lib = Lib of {name: string; def: expr; typ: typ option}
 let name (Lib l) = l.name
 
 let def (Lib l) = l.def
-<<<<<<< HEAD
 
 let typ (Lib l) =
   match l.typ with
@@ -16,15 +15,6 @@ let typ (Lib l) =
       t
   | None ->
       Typecheck.run_synthesis ~gamma:[] l.def |> fst
-=======
-
-let typ (Lib l) = l.typ
-
-let verify_ty ~gamma (Lib l : lib) = Typecheck.run_checking ~gamma l.def l.typ
-
-let verify ~gamma (Lib l : lib) =
-  verify_ty ~gamma (Lib l) |> Coqgen.generate_lemmas l.name |> print_endline
->>>>>>> refs/remotes/origin/certcom
 
 let verify_ty ~gamma (Lib l : lib) =
   Typecheck.run_checking ~gamma l.def (typ (Lib l))

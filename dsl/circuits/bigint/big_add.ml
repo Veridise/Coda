@@ -88,7 +88,7 @@ let big_add =
         ; ("k", refine_expr tnat (z1 <=. nu))
         ; ("a", t_big_int k)
         ; ("b", t_big_int k) ]
-    ; outputs= [("out", t_big_int (k +. z1))]
+    ; outputs= [("out", attach (as_le n nu ==. as_le n a +! as_le n b) (t_big_int (k +. z1)))]
     ; dep= None
     ; body=
         match_with' ["sum"; "carry"]
@@ -108,15 +108,18 @@ let big_add =
           (* out === sum ++ [carry] *)
           (push (concat (v "sum") (consts [v "carry"]))) }
 
+
+
 (* BigAddModP *)
 
-let q_lt_p = QExpr (leq (toUZ nu) (zsub1 (toUZ p)))
-
-let q_add_mod_p = qeq (toUZ nu) (zmod (zadd (toUZ a) (toUZ b)) (toUZ p))
+let q_lt_p = QExpr (toUZ nu <=. toUZ p -! z1)
 
 let t_big_int_lt_p k = tarr_t_q_k tf_n_bit q_lt_p k
 
-let t_big_int_add_mod_p k = tarr_t_q_k tf_n_bit q_add_mod_p k
+let t_big_int_add_mod_p k = tarr_t_q_k
+  tf_n_bit 
+  (toUZ nu ==. (zmod (toUZ a +! toUZ b) (toUZ p)))
+  k
 
 let t_n' = z_range z1 (zsub2 CPLen)
 

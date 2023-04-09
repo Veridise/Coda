@@ -3,16 +3,26 @@ open Dsl
 open Notation
 open Monads
 
-type lib = Lib of {name: string; def: expr; typ: typ}
+type lib = Lib of {name: string; def: expr; typ: typ option}
 
 let name (Lib l) = l.name
+
 let def (Lib l) = l.def
-let typ (Lib l) = l.typ
 
-let verify_ty ~gamma (Lib l : lib) = Typecheck.run_checking ~gamma l.def l.typ
-let verify ~gamma (Lib l : lib) = verify_ty ~gamma (Lib l) |> Coqgen.generate_lemmas l.name |> print_endline
+let typ (Lib l) =
+  match l.typ with
+  | Some t ->
+      t
+  | None ->
+      Typecheck.run_synthesis ~gamma:[] l.def |> fst
 
-let use (Lib l : lib) = AscribeUnsafe (v l.name, l.typ)
+let verify_ty ~gamma (Lib l : lib) =
+  Typecheck.run_checking ~gamma l.def (typ (Lib l))
+
+let verify ~gamma (Lib l : lib) =
+  verify_ty ~gamma (Lib l) |> Coqgen.generate_lemmas l.name |> print_endline
+
+let use (Lib l : lib) = AscribeUnsafe (v l.name, typ (Lib l))
 
 let stars k =
   let i = v "i" in
@@ -48,4 +58,76 @@ let gen_rng =
                     (* forall z0 <= j < i, v[j] = ^j *)
                     (t_ks i) ) )
              (v "ks") )
-    ; typ= tfun "k" t_k (t_ks k) }
+    ; typ= None }
+
+let pairwise_add =
+  let k = v "k" in
+  let xs = v "xs" in
+  let ys = v "ys" in
+  let zs = v "zs" in
+  let t_xs = tarr_t_k tf k in
+  let i = v "i" in
+  let j = "add_j" in
+  let t_zs i =
+    tarr_t_q_k tf
+      (qforall j z0 i (get nu (v j) ==. get xs (v j) +% get ys (v j)))
+      i
+  in
+  Lib
+    { name= "pairwise_add"
+    ; typ= None
+    ; def=
+        lamas
+          [("k", tnat); ("xs", t_xs); ("ys", t_xs)]
+          (iter z0 k ~init:cnil
+             ~inv:(fun i -> t_zs i)
+             (lama "i" tnat
+                (lama "zs" (t_zs i)
+                   (concat zs (consts [get xs i +% get ys i])) ) ) ) }
+
+let pairwise_mul =
+  let k = v "k" in
+  let xs = v "xs" in
+  let ys = v "ys" in
+  let zs = v "zs" in
+  let t_xs = tarr_t_k tf k in
+  let i = v "i" in
+  let j = "mul_j" in
+  let t_zs i =
+    tarr_t_q_k tf
+      (qforall j z0 i (get nu (v j) ==. get xs (v j) +% get ys (v j)))
+      i
+  in
+  Lib
+    { name= "pairwise_add"
+    ; typ= None
+    ; def=
+        lamas
+          [("k", tnat); ("xs", t_xs); ("ys", t_xs)]
+          (iter z0 k ~init:cnil
+             ~inv:(fun i -> t_zs i)
+             (lama "i" tnat
+                (lama "zs" (t_zs i)
+                   (concat zs (consts [get xs i +% get ys i])) ) ) ) }
+
+let scale =
+  let k = v "k" in
+  let x = v "x" in
+  let ys = v "ys" in
+  let zs = v "zs" in
+  let t_ys = tarr_t_k tf k in
+  let i = v "i" in
+  let j = "scale_j" in
+  let t_zs i =
+    tarr_t_q_k tf (qforall j z0 i (get nu (v j) ==. x *% get ys (v j))) i
+  in
+  Lib
+    { name= "scale"
+    ; typ= None
+    ; def=
+        lamas
+          [("k", tnat); ("x", tf); ("ys", t_ys)]
+          (iter z0 k ~init:cnil
+             ~inv:(fun i -> t_zs i)
+             (lama "i" tnat
+                (lama "zs" (t_zs i) (concat zs (consts [x *% get ys i]))) ) ) }

@@ -95,37 +95,6 @@ let calc_null_hash =
         call "Poseidon"
           [z2; const_array tf [externalNullifier; identityNullifier]] }
 
-(* { Array<F> | length v = 2 } *)
-let tarr_tf_2 = tarr_t_k tf z2
-
-(* { Array<{ Array<F> | length nu = 2 }> | length nu = n } *)
-let t_c = tarr_t_k tarr_tf_2 n
-
-let q_out =
-  qforall "i" z0 (len out)
-    (qeq (get out i)
-       (fadd
-          (fmul (fsub (tget (get c i) 1) (tget (get c i) 0)) s)
-          (tget (get c i) 0) ) )
-
-(* { Array<F> | q_out nu /\ length nu = n } *)
-let t_out = tarr_t_q_k tf q_out n
-
-let lam_mm1 =
-  lama "x" tarr_tf_2
-    (elet "a" (get x z0) (elet "b" (get x z1) (fadd (fmul (fsub b a) s) a)))
-
-let multi_mux_1 =
-  Circuit
-    { name= "MultiMux1"
-    ; inputs= [("n", tnat); ("c", t_c); ("s", tf)]
-    ; outputs= [("out", t_out)]
-    ; dep= None
-    ; body= (* out === map (\[a; b] => (b - a) * s + a) c *)
-            map lam_mm1 c }
-
-(* let check_multi_mux_1 = typecheck_circuit d_empty multi_mux_1 *)
-
 (* MerkleTreeInclusionProof *)
 
 let lam_mtip z =

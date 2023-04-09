@@ -15,6 +15,7 @@ open Semaphore
 open Hydra
 open Darkforest
 open Zk_sbt
+open Circomlib.Mux1
 open Circomlib.Mux3
 open Circomlib.Sign
 open Zk_sql

@@ -12,3 +12,8 @@
  (name test_bitify)
  (libraries lib typecheck coqgen circomlib test_utils)
  (modules test_bitify))
+
+(executable
+ (name test_mux1)
+ (libraries lib typecheck coqgen circomlib test_utils)
+ (modules test_mux1))

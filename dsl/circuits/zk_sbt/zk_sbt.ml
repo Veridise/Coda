@@ -1,6 +1,7 @@
 open Ast
 open Dsl
 open Notation
+open Circomlib.Poseidon
 
 let z8 = zn 8
 

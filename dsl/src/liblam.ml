@@ -17,7 +17,7 @@ let typ (Lib l) =
   | None ->
       Typecheck.run_synthesis ~gamma:[] l.def |> fst
 
-let use (l : lib) = (name l, typ l)
+let use (l : lib) = ascribe (def l) (typ l)
 
 let stars k =
   let i = v "i" in

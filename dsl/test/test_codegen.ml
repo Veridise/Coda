@@ -89,51 +89,51 @@ let _ = test_circuit [] is_zero
 
 let _ = test_circuit [] is_equal
 
-let _ = test_circuit [("n", 200)] less_than
+let _ = test_circuit [("n", 252)] less_than
 
-let _ = test_circuit [("n", 200)] greater_than
+let _ = test_circuit [("n", 252)] greater_than
 
-let _ = test_circuit [("n", 200)] leq
+let _ = test_circuit [("n", 252)] leq
 
-let _ = test_circuit [("n", 200)] geq
+let _ = test_circuit [("n", 252)] geq
 
-let _ = test_circuit [("n", 500)] num2bits
+let _ = test_circuit [("n", 252)] num2bits
 
-let _ = test_circuit [("n", 500)] bits2num
+let _ = test_circuit [("n", 252)] bits2num
 
-let _ = test_circuit [("n", 10)] multi_mux_1
+let _ = test_circuit [("n", 252)] multi_mux_1
 
-let _ = test_circuit [("w", 20)] escalar_product
+let _ = test_circuit [("w", 252)] escalar_product
 
 (* Bigint *)
 
 let _ = path := "./test/codegen_results/bigint/"
 
-let _ = test_circuit [("k", 10)] c_big_is_equal
+let _ = test_circuit [("k", 6)] c_big_is_equal
 
-let _ = test_circuit [("k", 10)] c_big_is_zero
+let _ = test_circuit [("k", 6)] c_big_is_zero
 
-let _ = test_circuit [("n", 100)] mod_sub_three
+let _ = test_circuit [("n", 43)] mod_sub_three
 
-let _ = test_circuit [("n", 100)] mod_sum_three
+let _ = test_circuit [("n", 43)] mod_sum_three
 
-let _ = test_circuit [("n", 10)] mod_prod
+let _ = test_circuit [("n", 43)] mod_prod
 
-let _ = test_circuit [("n", 100); ("m", 100)] split
+let _ = test_circuit [("n", 43); ("m", 43)] split
 
-let _ = test_circuit [("n", 100); ("m", 100); ("k", 100)] split_three
+let _ = test_circuit [("n", 43); ("m", 43); ("k", 43)] split_three
 
-let _ = test_circuit [("n", 10); ("k", 5)] big_add
+let _ = test_circuit [("n", 43); ("k", 6)] big_add
 
-let _ = test_circuit [("n", 10); ("k", 5)] big_lt
+let _ = test_circuit [("n", 43); ("k", 6)] big_lt
 
-let _ = test_circuit [("n", 10); ("k", 5)] big_add_mod_p
+let _ = test_circuit [("n", 43); ("k", 6)] big_add_mod_p
 
-let _ = test_circuit [("n", 10); ("k", 5)] big_sub
+let _ = test_circuit [("n", 43); ("k", 6)] big_sub
 
-let _ = test_circuit [("n", 10); ("k", 5)] big_sub_mod_p
+let _ = test_circuit [("n", 43); ("k", 6)] big_sub_mod_p
 
-let _ = test_circuit [("n", 10); ("k", 2); ("m_out", 2)] big_mult_short_long
+let _ = test_circuit [("n", 43); ("k", 6); ("m_out", 2)] big_mult_short_long
 
 (* hydra *)
 
@@ -145,9 +145,9 @@ let _ = test_circuit [] position_switcher
 
 let _ = path := "./test/codegen_results/zk_sbt/"
 
-let _ = test_circuit [("valueArraySize", 10)] c_in
+let _ = test_circuit [("valueArraySize", 64)] c_in
 
-let _ = test_circuit [("valueArraySize", 10)] query
+let _ = test_circuit [("valueArraySize", 64)] query
 
 let _ = test_circuit [] get_val_by_idx
 
@@ -159,21 +159,21 @@ let _ = test_circuit [] cut_st
 
 let _ = path := "./test/codegen_results/darkforest/"
 
-let _ = test_circuit [("choices", 10)] quin_selector
+let _ = test_circuit [("choices", 16)] quin_selector
 
 let _ = test_circuit [] is_neg
 
 (* let _ = test_circuit [("n", 10)] random *)
 
-let _ = test_circuit [("n", 10)] Darkforest.calc_total
+let _ = test_circuit [("n", 40)] Darkforest.calc_total
 
 (* zk-sql *)
 
 let _ = path := "./test/codegen_results/zk_sql/"
 
-let _ = test_circuit [("n", 10)] Zk_sql.calc_total
+let _ = test_circuit [("n", 40)] Zk_sql.calc_total
 
-let _ = test_circuit [("n", 10)] Zk_sql.sum_equals
+let _ = test_circuit [("n", 2)] Zk_sql.sum_equals
 
 let _ = test_circuit [] Zk_sql.is_not_zero
 
@@ -189,4 +189,4 @@ let _ = test_circuit [] Zk_ml.is_positive
 
 let _ = test_circuit [] Zk_ml.relu
 
-let _ = test_circuit [("n", 10)] Zk_ml.poly
+let _ = test_circuit [("n", 1000000)] Zk_ml.poly

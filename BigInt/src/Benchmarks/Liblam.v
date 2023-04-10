@@ -266,3 +266,62 @@ Proof. intuit. Qed.
 
 Lemma scale_obligation12_trivial: forall (k : nat) (x : F) (ys : (list F)) (v : (list F)), True -> Forall (fun x18 => True) ys -> ((length ys) = k) -> Forall (fun x19 => True) v -> True -> (((forall (scale_j:nat), 0%nat <= scale_j < k -> ((v!scale_j) = (x * (ys!scale_j))%F)) /\ ((length v) = k)) -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((v!scale_j) = (x * (ys!scale_j))%F)) /\ ((length v) = k))).
 Proof. intuit. Qed.
+
+
+(* ite array *)
+
+Lemma ite_array_obligation0_trivial: forall (v : Z), True -> ((0%nat <= v) -> (0%nat <= v)).
+Proof. intuit. Qed.
+
+Lemma ite_array_obligation1_trivial: forall (k : nat) (v : F), True -> (((v = 0%F) \/ (v = 1%F)) -> ((v = 0%F) \/ (v = 1%F))).
+Proof. intuit. Qed.
+
+Lemma ite_array_obligation2_trivial: forall (k : nat) (c : F) (v : (list F)), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x0 => True) v -> True -> (((length v) = k) -> ((length v) = k)).
+Proof. intuit. Qed.
+
+Lemma ite_array_obligation3_trivial: forall (k : nat) (c : F) (us : (list F)) (v : (list F)), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x1 => True) us -> ((length us) = k) -> Forall (fun x2 => True) v -> True -> (((length v) = k) -> ((length v) = k)).
+Proof. intuit. Qed.
+
+Lemma ite_array_obligation4: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (v : Z), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x3 => True) us -> ((length us) = k) -> Forall (fun x4 => True) vs -> ((length vs) = k) -> True -> (((0%nat <= v) /\ (v = k)) -> (0%nat <= v)).
+Proof. lia. Qed.
+
+Lemma ite_array_obligation5_trivial: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (v : F), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x5 => True) us -> ((length us) = k) -> Forall (fun x6 => True) vs -> ((length vs) = k) -> True -> ((v = 1%F) -> True).
+Proof. intuit. Qed.
+
+Lemma ite_array_obligation6_trivial: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (v : F), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x7 => True) us -> ((length us) = k) -> Forall (fun x8 => True) vs -> ((length vs) = k) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (v = c)) -> True).
+Proof. intuit. Qed.
+
+Lemma ite_array_obligation7_trivial: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (v : F), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x9 => True) us -> ((length us) = k) -> Forall (fun x10 => True) vs -> ((length vs) = k) -> True -> ((v = (1%F - c)%F) -> True).
+Proof. intuit. Qed.
+
+Lemma ite_array_obligation8: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (v : (list F)), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x11 => True) us -> ((length us) = k) -> Forall (fun x12 => True) vs -> ((length vs) = k) -> Forall (fun x13 => True) v -> True -> ((((length v) = k) /\ (v = us)) -> ((length v) = k)).
+Proof. lia. Qed.
+
+Lemma ite_array_obligation9: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (c_true : (list F)) (v : Z), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x14 => True) us -> ((length us) = k) -> Forall (fun x15 => True) vs -> ((length vs) = k) -> Forall (fun x16 => True) c_true -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_true!scale_j) = ((1%F - c)%F * (us!scale_j))%F)) /\ ((length c_true) = k)) -> True -> (((0%nat <= v) /\ (v = k)) -> (0%nat <= v)).
+Proof. lia. Qed.
+
+Lemma ite_array_obligation10_trivial: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (c_true : (list F)) (v : F), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x17 => True) us -> ((length us) = k) -> Forall (fun x18 => True) vs -> ((length vs) = k) -> Forall (fun x19 => True) c_true -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_true!scale_j) = ((1%F - c)%F * (us!scale_j))%F)) /\ ((length c_true) = k)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (v = c)) -> True).
+Proof. intuit. Qed.
+
+Lemma ite_array_obligation11: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (c_true : (list F)) (v : (list F)), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x20 => True) us -> ((length us) = k) -> Forall (fun x21 => True) vs -> ((length vs) = k) -> Forall (fun x22 => True) c_true -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_true!scale_j) = ((1%F - c)%F * (us!scale_j))%F)) /\ ((length c_true) = k)) -> Forall (fun x23 => True) v -> True -> ((((length v) = k) /\ (v = vs)) -> ((length v) = k)).
+Proof. intuit. Qed.
+
+Lemma ite_array_obligation12: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (c_true : (list F)) (c_false : (list F)) (v : Z), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x24 => True) us -> ((length us) = k) -> Forall (fun x25 => True) vs -> ((length vs) = k) -> Forall (fun x26 => True) c_true -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_true!scale_j) = ((1%F - c)%F * (us!scale_j))%F)) /\ ((length c_true) = k)) -> Forall (fun x27 => True) c_false -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_false!scale_j) = (c * (vs!scale_j))%F)) /\ ((length c_false) = k)) -> True -> (((0%nat <= v) /\ (v = k)) -> (0%nat <= v)).
+Proof. lia. Qed.
+
+Lemma ite_array_obligation13: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (c_true : (list F)) (c_false : (list F)) (v : (list F)), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x28 => True) us -> ((length us) = k) -> Forall (fun x29 => True) vs -> ((length vs) = k) -> Forall (fun x30 => True) c_true -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_true!scale_j) = ((1%F - c)%F * (us!scale_j))%F)) /\ ((length c_true) = k)) -> Forall (fun x31 => True) c_false -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_false!scale_j) = (c * (vs!scale_j))%F)) /\ ((length c_false) = k)) -> Forall (fun x32 => True) v -> True -> ((((forall (scale_j:nat), 0%nat <= scale_j < k -> ((v!scale_j) = ((1%F - c)%F * (us!scale_j))%F)) /\ ((length v) = k)) /\ (v = c_true)) -> ((length v) = k)).
+Proof. lia. Qed.
+
+Lemma ite_array_obligation14: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (c_true : (list F)) (c_false : (list F)) (v : (list F)), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x33 => True) us -> ((length us) = k) -> Forall (fun x34 => True) vs -> ((length vs) = k) -> Forall (fun x35 => True) c_true -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_true!scale_j) = ((1%F - c)%F * (us!scale_j))%F)) /\ ((length c_true) = k)) -> Forall (fun x36 => True) c_false -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_false!scale_j) = (c * (vs!scale_j))%F)) /\ ((length c_false) = k)) -> Forall (fun x37 => True) v -> True -> ((((forall (scale_j:nat), 0%nat <= scale_j < k -> ((v!scale_j) = (c * (vs!scale_j))%F)) /\ ((length v) = k)) /\ (v = c_false)) -> ((length v) = k)).
+Proof. lia. Qed.
+
+Lemma ite_array_obligation15: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (c_true : (list F)) (c_false : (list F)) (v : (list F)), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x40 => True) us -> ((length us) = k) -> Forall (fun x41 => True) vs -> ((length vs) = k) -> Forall (fun x42 => True) c_true -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_true!scale_j) = (c * (us!scale_j))%F)) /\ ((length c_true) = k)) -> Forall (fun x43 => True) c_false -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_false!scale_j) = ((1%F - c)%F * (vs!scale_j))%F)) /\ ((length c_false) = k)) -> Forall (fun x44 => True) v -> True -> (((forall (add_j:nat), 0%nat <= add_j < k -> ((v!add_j) = ((c_true!add_j) + (c_false!add_j))%F)) /\ ((length v) = k)) -> ((((c = 1%F) -> (v = us)) /\ (~((c = 1%F)) -> (v = vs))) /\ ((length v) = k))).
+Proof. unwrap_coda. intuit; subst. 
+  exfalso. fqsatz.
+  - apply list_eq; try lia. intros. rewrite H7 by lia. rewrite H11 by lia. rewrite H5 by lia. simplify. auto.
+  - apply list_eq; try lia. intros. rewrite H7 by lia. rewrite H11 by lia. rewrite H5 by lia. replace (1-1)%F with (0%F:F) by fqsatz. simplify. auto.
+Qed.
+
+
+Lemma ite_array_obligation16_trivial: forall (k : nat) (c : F) (us : (list F)) (vs : (list F)) (c_true : (list F)) (c_false : (list F)) (v : F), ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x43 => True) us -> ((length us) = k) -> Forall (fun x44 => True) vs -> ((length vs) = k) -> Forall (fun x45 => True) c_true -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_true!scale_j) = ((1%F - c)%F * (us!scale_j))%F)) /\ ((length c_true) = k)) -> Forall (fun x46 => True) c_false -> ((forall (scale_j:nat), 0%nat <= scale_j < k -> ((c_false!scale_j) = (c * (vs!scale_j))%F)) /\ ((length c_false) = k)) -> True -> (True -> True).
+Proof. intuit. Qed.

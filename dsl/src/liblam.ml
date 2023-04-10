@@ -70,7 +70,7 @@ let pairwise_add =
   in
   Lib
     { name= "pairwise_add"
-    ; typ= Some (tfun "k" tnat (tfun "x" t_xs (tfun "ys" t_xs (t_zs k))))
+    ; typ= Some (tfun "k" tnat (tfun "xs" t_xs (tfun "ys" t_xs (t_zs k))))
     ; def=
         lamas
           [("k", tnat); ("xs", t_xs); ("ys", t_xs)]
@@ -126,6 +126,30 @@ let scale =
              ~inv:(fun i -> t_zs i)
              (lama "i" tnat
                 (lama "zs" (t_zs i) (concat zs (consts [x *% get ys i]))) ) ) }
+
+let ite_array =
+  let k = v "k" in
+  let c = v "c" in
+  let xs = v "us" in
+  let ys = v "vs" in
+  let t_xs = tarr_t_k tf k in
+  let t_zs i = tarr_t_q_k tf (ite_expr (c =. f1) (nu =. xs) (nu =. ys)) i
+  in
+  Lib
+    { name= "ite_array"
+    ; typ= Some (tfun "k" tnat
+    (tfun "c" tf_binary
+    (tfun "us" t_xs (tfun "vs" t_xs (t_zs k)))))
+    ; def=
+        lamas
+          [("k", tnat);
+          ("c", tf_binary);
+          ("us", t_xs); ("vs", t_xs)]
+          (elets [
+            ("c_true", apps (v "scale") [k; c; xs])
+            ; ("c_false", apps (v "scale") [k; f1 -% c; ys])]
+            (apps (v "pairwise_add") [k; v "c_true"; v "c_false"]))
+    }
 
 let libs = [gen_rng; pairwise_add; pairwise_mul; scale]
 

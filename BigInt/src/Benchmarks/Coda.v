@@ -14,7 +14,7 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 
-From Circom Require Import Circom DSL Util Default Tuple ListUtil LibTactics Simplify Repr ReprZ.
+From Circom Require Import Circom DSL Util Default Tuple ListUtil LibTactics Simplify Repr ReprZ Signed.
 
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.
@@ -163,8 +163,8 @@ Proof.
 Qed.
 
 
-(* Create HintDb coda discriminated.
-#[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
+
+(* #[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
 #[global]Hint Extern 10  => match goal with
    | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
    #[global]Hint Extern 10  => match goal with
@@ -187,3 +187,14 @@ Qed.
 #[global]Hint Extern 10 (_ >= _) => lia: core. 
 #[global]Hint Extern 10 (_ >= _)%nat => lia: core. 
 #[global]Hint Extern 10 (S _ = S _) => f_equal: core.  *)
+
+
+Ltac lift := apply f_equal with (f:=F.to_Z); Signed.solve_to_Z.
+Ltac lift' H := apply f_equal with (f:=F.to_Z) in H; Signed.solve_to_Z' H.
+
+Lemma list_eq: forall {A: Type} {H: Default A} (l1 l2: list A),
+  length l1 = length l2 ->
+  (forall (i: nat), 0 <= i < length l1 -> l1!i = l2!i) -> l1 = l2.
+Admitted.
+
+Ltac hammer := solve [trivial | (intuit; subst; auto)].

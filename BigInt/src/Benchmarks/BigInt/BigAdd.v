@@ -33,7 +33,6 @@ Local Notation "[| xs | n ]" := (RZ.as_le n xs).
 Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
 
 
-Create HintDb coda discriminated.
 #[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
 #[global]Hint Extern 10  => match goal with
    | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.

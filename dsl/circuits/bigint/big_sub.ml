@@ -42,11 +42,14 @@ let br = v "br"
 
 let br' = v "br'"
 
-let uf = v "underflow"
+let uf = v "uf"
+
 let no_uf = v "no_uf"
+
 let has_uf = v "has_uf"
 
 let add = v "add"
+
 let sub = v "sub"
 
 let tmp = v "tmp"
@@ -95,8 +98,7 @@ let big_sub =
         ; ("a", t_big_int k)
         ; ("b", t_big_int k) ]
     ; outputs=
-        [ ("out", t_big_int k)
-        ; ("underflow", tfq (ind_dec nu (as_le n a <. as_le n b))) ]
+        [("out", t_big_int k); ("uf", tfq (ind_dec nu (as_le n a <. as_le n b)))]
     ; dep=
         Some
           ( as_le n out
@@ -140,12 +142,8 @@ let big_sub_mod_p =
     ; outputs= [("out", t_out k)]
     ; dep= None
     ; body=
-        (match_with' ["sub"; "uf"] (call "BigSub" [n; k; a; b])
-        (elets [
-            (* add = #BigAdd n k a b *)
-           ("add", call "BigAdd" [n; k; sub; p])
-            (* lt = #BigLessThan n (k + 1) add (p ++ [0]) *)
-          ; ("no_uf", apps (v "scale") [k; f1 -% uf; sub])
-          ; ("has_uf", apps (v "scale") [k; uf; add])]
-          (apps (v "pairwise_add") [no_uf; has_uf])))
-    }
+        match_with' ["sub"; "uf"]
+          (call "BigSub" [n; k; a; b])
+          (elets
+             [(* add = #BigAdd n k a b *) ("add", call "BigAdd" [n; k; sub; p])]
+             (push (apps (v "ite_array") [k; uf; take add k; sub])) ) }

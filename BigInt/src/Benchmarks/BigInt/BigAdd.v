@@ -320,18 +320,6 @@ Lemma BigAdd_obligation20_trivial: forall (n : nat) (k : nat) (a : (list F)) (b 
 Proof. hammer. Qed.
 
 
-Lemma Zmod_once: forall a b c,
-  0 <= a < c ->
-  0 <= b < c ->
-  c <= a + b ->
-  ((a + b) mod c = (a + b) - c)%Z.
-Proof.
-  intros a b c. intros.
-  rewrite Zmod_eq by lia.
-  assert ((a+b)/c < 2). apply Zdiv_lt_upper_bound. lia. lia.
-  assert (1 <= (a+b)/c). apply Zdiv_le_lower_bound; lia.
-  nia.
-Qed.
 
 (** ** BigAddModP *)
 

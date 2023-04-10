@@ -1,6 +1,4 @@
 open Core
-open Typecheck
-open Coqgen
 open Bigint
 open Big_less_than
 module U = Test_utils.Utils

@@ -197,4 +197,38 @@ Lemma list_eq: forall {A: Type} {H: Default A} (l1 l2: list A),
   (forall (i: nat), 0 <= i < length l1 -> l1!i = l2!i) -> l1 = l2.
 Admitted.
 
+Lemma Zmod_once: forall a b c,
+  0 <= a < c ->
+  0 <= b < c ->
+  c <= a + b ->
+  ((a + b) mod c = (a + b) - c)%Z.
+Proof.
+  intros a b c. intros.
+  rewrite Zmod_eq by lia.
+  assert ((a+b)/c < 2). apply Zdiv_lt_upper_bound. lia. lia.
+  assert (1 <= (a+b)/c). apply Zdiv_le_lower_bound; lia.
+  nia.
+Qed.
+
+Lemma mod_sub_lt: forall a b c,
+  0 <= a < c ->
+  0 <= b < c ->
+  a < b ->
+  ((a-b) mod c = a-b+c)%Z.
+Proof.
+  intros a b c. intros.
+  replace ((a - b) mod c) with (((a-b)+c) mod c).
+  rewrite Zmod_small. auto.
+  lia.
+  rewrite Zplus_mod.
+  rewrite Z_mod_same_full. simplify.
+  rewrite Zmod_mod.
+  auto.
+Qed.
+
+Lemma ub_as_le: forall xs n (k:nat),
+  [| xs |n] <= 2^(n*k)-1 ->
+  (forall (i: nat), i >= k -> xs!i = 0%F).
+Admitted.
+
 Ltac hammer := solve [trivial | (intuit; subst; auto)].

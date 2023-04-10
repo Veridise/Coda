@@ -133,25 +133,22 @@ let ite_array =
   let xs = v "us" in
   let ys = v "vs" in
   let t_xs = tarr_t_k tf k in
-  let t_zs i = tarr_t_q_k tf (ite_expr (c =. f1) (nu =. xs) (nu =. ys)) i
-  in
+  let t_zs i = tarr_t_q_k tf (ite_expr (c =. f1) (nu =. xs) (nu =. ys)) i in
   Lib
     { name= "ite_array"
-    ; typ= Some (tfun "k" tnat
-    (tfun "c" tf_binary
-    (tfun "us" t_xs (tfun "vs" t_xs (t_zs k)))))
+    ; typ=
+        Some
+          (tfun "k" tnat
+             (tfun "c" tf_binary (tfun "us" t_xs (tfun "vs" t_xs (t_zs k)))) )
     ; def=
         lamas
-          [("k", tnat);
-          ("c", tf_binary);
-          ("us", t_xs); ("vs", t_xs)]
-          (elets [
-            ("c_true", apps (v "scale") [k; c; xs])
-            ; ("c_false", apps (v "scale") [k; f1 -% c; ys])]
-            (apps (v "pairwise_add") [k; v "c_true"; v "c_false"]))
-    }
+          [("k", tnat); ("c", tf_binary); ("us", t_xs); ("vs", t_xs)]
+          (elets
+             [ ("c_true", apps (v "scale") [k; c; xs])
+             ; ("c_false", apps (v "scale") [k; f1 -% c; ys]) ]
+             (apps (v "pairwise_add") [k; v "c_true"; v "c_false"]) ) }
 
-let libs = [gen_rng; pairwise_add; pairwise_mul; scale]
+let libs = [gen_rng; pairwise_add; pairwise_mul; scale; ite_array]
 
 let libs_gamma = List.map libs ~f:(fun l -> (name l, typ l))
 

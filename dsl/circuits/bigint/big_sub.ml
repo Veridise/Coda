@@ -43,10 +43,11 @@ let br = v "br"
 let br' = v "br'"
 
 let uf = v "underflow"
-
-let b_plus_c = v "b_plus_c"
+let no_uf = v "no_uf"
+let has_uf = v "has_uf"
 
 let add = v "add"
+let sub = v "sub"
 
 let tmp = v "tmp"
 
@@ -117,43 +118,34 @@ let big_sub =
 
 (* BigSubModP *)
 
-(* { F | [| v |] <= [| p |] - 1 } *)
-let q_lt_p = QExpr (leq (toUZ nu) (zsub1 (toUZ p)))
+let t_big_int_lt_p k =
+  tarr_t_q_k tf_n_bit (lift (as_le n nu <=. as_le n p -! z1)) k
 
-(* { F | [| v |] = [| a |] - [| b |] mod [| p |] *)
-let q_sub_mod_p = qeq (toUZ nu) (zmod (zsub (toUZ a) (toUZ b)) (toUZ p))
+let t_out k =
+  tarr_t_q_k tf_n_bit
+    (as_le n nu ==. zmod (as_le n a -! as_le n b) (as_le n p))
+    k
 
-(* Proper BigInts of length k with the q_lt_p property *)
-let t_big_int_lt_p k = tarr_t_q_k tf_n_bit q_lt_p k
-
-(* Proper BigInts of length k with the q_sub_mod_p property *)
-let t_big_int_sub_mod_p k = tarr_t_q_k tf_n_bit q_sub_mod_p k
-
-let lam_bsmp =
-  lama "x"
-    (ttuple [tf; tf])
-    (fadd (fmul (fsub f1 uf) (tget x 0)) (fmul uf (tget x 1)))
+let t_n' = attaches [lift (nu <=. CPLen -! z2); lift (z1 <=. nu)] tnat
 
 let big_sub_mod_p =
   Circuit
     { name= "BigSubModP"
     ; inputs=
-        [ ("n", t_n)
-        ; ("k", tpos)
+        [ ("n", t_n')
+        ; ("k", attach (lift (z1 <=. nu)) tnat)
         ; ("a", t_big_int_lt_p k)
         ; ("b", t_big_int_lt_p k)
         ; ("p", t_big_int k) ]
-    ; outputs= [("out", t_big_int_sub_mod_p k)]
+    ; outputs= [("out", t_out k)]
     ; dep= None
     ; body=
-        (* (sub, underflow) = #BigSub n k a b *)
-        elet "x"
-          (call "BigSub" [n; k; a; b])
-          (* add = #BigAdd n k sub p *)
-          (elet "add"
-             (take k (call "BigAdd" [n; k; tget x 0; p]))
-             (* tmp = zip sub add *)
-             (elet "tmp"
-                (zip (tget x 0) add)
-                (* out === map (\(s, a) => (1 - underflow) * s + underflow * a) tmp *)
-                (elet "uf" (tget x 1) (map lam_bsmp tmp)) ) ) }
+        (match_with' ["sub"; "uf"] (call "BigSub" [n; k; a; b])
+        (elets [
+            (* add = #BigAdd n k a b *)
+           ("add", call "BigAdd" [n; k; sub; p])
+            (* lt = #BigLessThan n (k + 1) add (p ++ [0]) *)
+          ; ("no_uf", apps (v "scale") [k; f1 -% uf; sub])
+          ; ("has_uf", apps (v "scale") [k; uf; add])]
+          (apps (v "pairwise_add") [no_uf; has_uf])))
+    }

@@ -102,7 +102,7 @@ let is_neg =
 
 (* Random *)
 
-let q_lt_232 x = qlt (toUZ x) (zpow z2 z32)
+let q_lt_232 x = qand (qlt (zn 15) CPrime) (qlt (toUZ x) (zpow z2 z32))
 
 let q_lt_232_arr xs = qforall "i" z0 (len xs) (q_lt_232 (get xs i))
 

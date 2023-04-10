@@ -25,27 +25,51 @@ Local Open Scope Z_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
 
+#[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
+#[global]Hint Extern 10  => match goal with
+   | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
+   #[global]Hint Extern 10  => match goal with
+   | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
+#[global]Hint Extern 10 => match goal with
+  [ |- context[length _] ] => rewrite_length end: core.
+#[global]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn: core.
+
+#[global]Hint Extern 10 (Forall _ (_ :: _)) => constructor: core.
+#[global]Hint Extern 10 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: core.
+#[global]Hint Extern 10  => repeat match goal with
+  [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end: core.
+
+#[global]Hint Extern 10 (_ < _) => lia: core.
+#[global]Hint Extern 10 (_ < _)%nat => lia: core.
+#[global]Hint Extern 10 (_ <= _) => lia: core.
+#[global]Hint Extern 10 (_ <= _)%nat => lia: core.
+#[global]Hint Extern 10 (_ > _) => lia: core.
+#[global]Hint Extern 10 (_ > _)%nat => lia: core.
+#[global]Hint Extern 10 (_ >= _) => lia: core.
+#[global]Hint Extern 10 (_ >= _)%nat => lia: core.
+#[global]Hint Extern 10 (S _ = S _) => f_equal: core.
+
 (** ** CalculateTotal *)
 
 (* print_endline (generate_lemmas calc_total (typecheck_circuit d_empty calc_total));; *)
 
 Lemma CalculateTotal_obligation0_trivial: forall (n : nat) (_in : (list F)) (v : Z), Forall (fun x0 => True) _in -> ((length _in) = n) -> True -> ((v = 0%nat) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma CalculateTotal_obligation1_trivial: forall (n : nat) (_in : (list F)) (v : Z), Forall (fun x1 => True) _in -> ((length _in) = n) -> True -> (((0%nat <= v) /\ (v = n)) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma CalculateTotal_obligation2_trivial: forall (n : nat) (_in : (list F)) (v : Z), Forall (fun x2 => True) _in -> ((length _in) = n) -> True -> (((0%nat <= v) /\ (v < n)) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma CalculateTotal_obligation3_trivial: forall (n : nat) (_in : (list F)) (i : nat) (v : F), Forall (fun x3 => True) _in -> ((length _in) = n) -> (i < n) -> True -> ((v = (sum (take i _in))) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma CalculateTotal_obligation4_trivial: forall (n : nat) (_in : (list F)) (i : nat) (x : F) (v : F), Forall (fun x4 => True) _in -> ((length _in) = n) -> (i < n) -> (x = (sum (take i _in))) -> True -> (((v = (sum (take i _in))) /\ (v = x)) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma CalculateTotal_obligation5_trivial: forall (n : nat) (_in : (list F)) (i : nat) (x : F) (v : F), Forall (fun x5 => True) _in -> ((length _in) = n) -> (i < n) -> (x = (sum (take i _in))) -> True -> ((v = (_in!i)) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma CalculateTotal_obligation6: forall (n : nat) (_in : (list F)) (i : nat) (x : F) (v : F), Forall (fun x6 => True) _in -> ((length _in) = n) -> (i < n) -> (x = (sum (take i _in))) -> True -> ((v = (x + (_in!i))%F) -> (v = (sum (take (i + 1%nat)%nat _in)))).
 Proof.
@@ -54,7 +78,7 @@ Proof.
 Qed.
 
 Lemma CalculateTotal_obligation7: forall (n : nat) (_in : (list F)) (v : F), Forall (fun x7 => True) _in -> ((length _in) = n) -> True -> ((v = 0%F) -> (v = (sum (take 0%nat _in)))).
-Proof. auto. Qed.
+Proof. hammer. Qed.
 
 Lemma CalculateTotal_obligation8: forall (n : nat) (_in : (list F)) (v : F), Forall (fun x8 => True) _in -> ((length _in) = n) -> True -> ((v = (sum (take n _in))) -> (v = (sum _in))).
 Proof.
@@ -67,58 +91,54 @@ Qed.
 (* print_endline (generate_lemmas sum_equals (typecheck_circuit (add_to_deltas d_empty [is_equal; calc_total]) sum_equals));; *)
 
 Lemma SumEquals_obligation0: forall (n : nat) (nums : (list F)) (s : F) (v : Z), Forall (fun x0 => True) nums -> ((length nums) = n) -> True -> True -> (((0%nat <= v) /\ (v = n)) -> (0%nat <= v)).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma SumEquals_obligation1: forall (n : nat) (nums : (list F)) (s : F) (v : (list F)), Forall (fun x1 => True) nums -> ((length nums) = n) -> True -> Forall (fun x2 => True) v -> True -> ((((length v) = n) /\ (v = nums)) -> ((length v) = n)).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma SumEquals_obligation2_trivial: forall (n : nat) (nums : (list F)) (s : F) (x : F) (v : F), Forall (fun x3 => True) nums -> ((length nums) = n) -> True -> (x = (sum nums)) -> True -> (((v = (sum nums)) /\ (v = x)) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma SumEquals_obligation3_trivial: forall (n : nat) (nums : (list F)) (s : F) (x : F) (v : F), Forall (fun x4 => True) nums -> ((length nums) = n) -> True -> (x = (sum nums)) -> True -> ((v = s) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma SumEquals_obligation4: forall (n : nat) (nums : (list F)) (s : F) (x : F) (v : F), Forall (fun x5 => True) nums -> ((length nums) = n) -> True -> (x = (sum nums)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (x = s)) /\ ((v = 0%F) -> ~(x = s)))) -> ((v = 0%F) \/ (v = 1%F))).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 (** ** IsNotZero *)
 
 (* print_endline (generate_lemmas is_not_zero (typecheck_circuit (add_to_deltas d_empty [cnot; is_zero]) is_not_zero));; *)
 
 Lemma IsNotZero_obligation0_trivial: forall (_in : F) (v : F), True -> True -> ((v = _in) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma IsNotZero_obligation1: forall (_in : F) (isz : F) (v : F), True -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> (((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (_in = 0%F)) /\ ((v = 0%F) -> ~(_in = 0%F)))) /\ (v = isz)) -> ((v = 0%F) \/ (v = 1%F))).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma IsNotZero_obligation2: forall (_in : F) (isz : F) (v : F), True -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (f_not isz)) /\ ((v = 0%F) -> ~(f_not isz)))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ~(_in = 0%F)) /\ ((v = 0%F) -> ~~(_in = 0%F))))).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 (** ** IsFiltered *)
 
 (* print_endline (generate_lemmas is_filtered (typecheck_circuit (add_to_deltas d_empty [is_equal; calc_total]) is_filtered));; *)
 
 Lemma IsFiltered_obligation0_trivial: forall (x : F) (y : F) (op : F) (v : F), True -> True -> True -> True -> (((v = op) /\ True) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma IsFiltered_obligation1_trivial: forall (x : F) (y : F) (op : F) (v : F), True -> True -> True -> True -> ((v = 0%F) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma IsFiltered_obligation2_trivial: forall (x : F) (y : F) (op : F) (a : F) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> True -> (((v = op) /\ True) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma IsFiltered_obligation3_trivial: forall (x : F) (y : F) (op : F) (a : F) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> True -> ((v = 1%F) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma IsFiltered_obligation4: forall (x : F) (y : F) (op : F) (a : F) (b : F) (z : (list F)) (v : Z), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> Forall (fun x0 => True) z -> (((True /\ ((z!0%nat) = (x * a)%F)) /\ ((z!1%nat) = (y * b)%F)) /\ ((length z) = 2%nat)) -> True -> ((v = 2%nat) -> (0%nat <= v)).
-Proof.
-  intuit; subst; lia.
-Qed.
+Proof. hammer. Qed.
 
 Lemma IsFiltered_obligation5: forall (x : F) (y : F) (op : F) (a : F) (b : F) (z : (list F)) (v : (list F)), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> Forall (fun x1 => True) z -> (((True /\ ((z!0%nat) = (x * a)%F)) /\ ((z!1%nat) = (y * b)%F)) /\ ((length z) = 2%nat)) -> Forall (fun x2 => True) v -> True -> (((v = z) /\ True) -> ((length v) = 2%nat)).
-Proof.
-  intuit; subst; auto.
-Qed.
+Proof. hammer. Qed.
 
 Lemma IsFiltered_obligation6_trivial: forall (x : F) (y : F) (op : F) (a : F) (b : F) (z : (list F)) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> Forall (fun x3 => True) z -> (((True /\ ((z!0%nat) = (x * a)%F)) /\ ((z!1%nat) = (y * b)%F)) /\ ((length z) = 2%nat)) -> True -> ((v = (sum z)) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.

@@ -34,6 +34,9 @@ Definition as_le_f := Repr.as_le 1%nat.
 Local Notation "[| xs | n ]" := (RZ.as_le n xs).
 Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
 
+(* TODO *)
+Definition to_le_f (n : nat) (f : F) : list F := nil.
+
 
 Definition f_and (x: F) (y: F) := x = 1%F /\ y = 1%F.
 Definition f_or (x: F) (y: F) := x = 1%F \/ y = 1%F.
@@ -47,6 +50,7 @@ Ltac unwrap_coda := unwrap_C; unfold as_le, as_be, f_and, f_or, f_nor, f_xor, f_
 
 Definition sum := DSLL.sumL_F.
 Definition take {A} i (xs : list A) := xs[:i].
+Definition drop {A} i (xs : list A) := xs[i:].
 
 
 Lemma binary_not0: forall (x:F), ((x = 0 \/ x = 1) -> x <> 0 -> x = 1)%F.
@@ -163,13 +167,33 @@ Proof.
 Qed.
 
 
+Lemma Forall_nth_default :
+  forall [A] [H : Default A] (P : A -> Prop) (xs : list A),
+    (Forall P xs <-> forall (i : nat), i < length xs -> P (xs ! i)).
+Proof.
+  unfold "!"; split; intros.
+  - rewrite nth_default_eq.
+    apply Forall_nth; auto; lia.
+  - induction xs.
+    + apply Forall_nil.
+    + apply Forall_cons.
+      * apply (H0 0%nat). simpl; lia.
+      * apply IHxs; intros.
+        assert (
+            S i < length (a :: xs)
+          ) by (simpl; lia).
+        apply H0 in H2.
+        rewrite nth_default_eq in *.
+        simpl in H2; auto.
+Qed.
+
 
 (* #[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
 #[global]Hint Extern 10  => match goal with
    | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
    #[global]Hint Extern 10  => match goal with
    | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
-#[global]Hint Extern 10 => match goal with 
+#[global]Hint Extern 10 => match goal with
   [ |- context[length _] ] => rewrite_length end: core.
 #[global]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn: core.
 
@@ -184,8 +208,8 @@ Qed.
 #[global]Hint Extern 10 (_ <= _)%nat => lia: core.
 #[global]Hint Extern 10 (_ > _) => lia: core.
 #[global]Hint Extern 10 (_ > _)%nat => lia: core.
-#[global]Hint Extern 10 (_ >= _) => lia: core. 
-#[global]Hint Extern 10 (_ >= _)%nat => lia: core. 
+#[global]Hint Extern 10 (_ >= _) => lia: core.
+#[global]Hint Extern 10 (_ >= _)%nat => lia: core.
 #[global]Hint Extern 10 (S _ = S _) => f_equal: core.  *)
 
 

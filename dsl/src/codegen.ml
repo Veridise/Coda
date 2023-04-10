@@ -15,6 +15,9 @@ type beta = string list
 (* variable environment *)
 type gamma = (string * expr) list
 
+(* variable substitution environment *)
+type subst = (string * expr) list
+
 (* circuit environment *)
 type interp = (string * int) list
 
@@ -85,6 +88,16 @@ and rbinop =
 and rcomp = REq [@printer fun fmt _ -> fprintf fmt "="] [@@deriving show]
 
 type ralpha = rexpr list [@@deriving show]
+
+let show_gamma (g : gamma) : string =
+  let rec show_gamma' (g : gamma) : string =
+    match g with
+    | [] ->
+        ""
+    | (x, v) :: g' ->
+        Format.sprintf "%s, %s -> %s" (show_gamma' g') x (show_expr v)
+  in
+  show_gamma' g
 
 (* transformation from qual to rexpr (R1CS assertion) *)
 let rec denote_expr (e : expr) : rexpr option =
@@ -271,6 +284,87 @@ let rec drop_array (l : expr) (n : int) : expr =
 
 (* codegen *)
 
+(* parrallel substitution *)
+let rec beta_reduction (s : subst) (e : expr) : expr =
+  match e with
+  | NonDet ->
+      e
+  | CPrime ->
+      e
+  | CPLen ->
+      e
+  | Const _ ->
+      e
+  | Binop (ty, op, e1, e2) ->
+      Binop (ty, op, beta_reduction s e1, beta_reduction s e2)
+  | ArrayOp (op, l) ->
+      ArrayOp (op, List.map (beta_reduction s) l)
+  | Var x -> (
+    match List.assoc_opt x s with Some e' -> e' | None -> Var x )
+  | App (e1, e2) ->
+      App (beta_reduction s e1, beta_reduction s e2)
+  | Lam (x, e) ->
+      Lam (x, beta_reduction s e)
+  | LamA (x, t, e) ->
+      LamA (x, t, beta_reduction s e)
+  | LetIn (x, e1, e2) ->
+      LetIn (x, beta_reduction s e1, beta_reduction s e2)
+  | Assert (e1, e2) ->
+      Assert (beta_reduction s e1, beta_reduction s e2)
+  | Ascribe (e, ty) ->
+      Ascribe (beta_reduction s e, ty)
+  | AscribeUnsafe (e, ty) ->
+      AscribeUnsafe (beta_reduction s e, ty)
+  | TMake l ->
+      TMake (List.map (beta_reduction s) l)
+  | TGet (e, i) ->
+      TGet (beta_reduction s e, i)
+  | Not e ->
+      Not (beta_reduction s e)
+  | Boolop (op, e1, e2) ->
+      Boolop (op, beta_reduction s e1, beta_reduction s e2)
+  | Comp (op, e1, e2) ->
+      Comp (op, beta_reduction s e1, beta_reduction s e2)
+  | Call (name, l) ->
+      Call (name, List.map (beta_reduction s) l)
+  | Sum {s= s1; e; body} ->
+      Sum
+        { s= beta_reduction s s1
+        ; e= beta_reduction s e
+        ; body= beta_reduction s body }
+  | EQual q ->
+      EQual q
+  | RSum (s1, e, ty) ->
+      RSum (beta_reduction s s1, beta_reduction s e, ty)
+  | DMake (l, q) ->
+      DMake (List.map (beta_reduction s) l, q)
+  | DMatch (e, l, e') ->
+      DMatch (beta_reduction s e, l, beta_reduction s e')
+  | Map (e1, e2) ->
+      Map (beta_reduction s e1, beta_reduction s e2)
+  | Foldl {f; acc; xs} ->
+      Foldl
+        { f= beta_reduction s f
+        ; acc= beta_reduction s acc
+        ; xs= beta_reduction s xs }
+  | Iter {s= s1; e; body; init; inv} ->
+      Iter
+        { s= beta_reduction s s1
+        ; e= beta_reduction s e
+        ; body= beta_reduction s body
+        ; init= beta_reduction s init
+        ; inv }
+  | Fn (f, l) ->
+      Fn (f, List.map (beta_reduction s) l)
+  | Push e ->
+      Push (beta_reduction s e)
+  | Pull e ->
+      Pull (beta_reduction s e)
+
+let subst_tasks = ref []
+
+let subst_task_count = ref 0
+
 let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
     (a : ralpha) (config : configuration) (e : expr) :
     gamma * beta * ralpha * expr =
@@ -351,19 +445,30 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
   | LamA (x, _, e) ->
       (g, b, a, Lam (x, e)) (* type is erased *)
   | App (e1, e2) -> (
-      let g', b', a', e1' = reify_expr prefix g b d a config e1 in
+      let previous_subst_task_count = !subst_task_count in
+      subst_task_count := 1 + !subst_task_count ;
+      let g', b', a', e2' = reify_expr prefix g b d a config e2 in
+      let g'', b'', a'', e1' = reify_expr prefix g' b' d a' config e1 in
       match e1' with
-      | Lam (x, e) ->
-          let g'', b'', a'', e2' = reify_expr prefix g' b' d a' config e2 in
+      | Lam (x, e) | LamA (x, _, e) ->
           (* evaluate e2 *)
           let e2'' =
             simplify_expr e2' (* simplify e2 before add it to environment*)
           in
           (* substitute x with e2 in e *)
-          let g''' = (x, e2'') :: g'' in
+          (* let g''' = (x, e2'') :: g'' in *)
+          subst_tasks := (x, e2'') :: !subst_tasks ;
+          let e' =
+            if previous_subst_task_count = 0 then (
+              let e' = beta_reduction !subst_tasks e in
+              subst_tasks := [] ;
+              subst_task_count := 0 ;
+              e' )
+            else e
+          in
           (* add x -> e2 to gamma *)
           let g'''', b'''', a'''', e''' =
-            reify_expr prefix g''' b'' d a'' config e
+            reify_expr prefix g'' b'' d a'' config e'
           in
           (* evaluate e *)
           (g'''', b'''', a'''', e''')
@@ -409,6 +514,7 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       let g', b', a', e' = reify_expr prefix g b d a config e in
       (g', b', a', e')
   | ArrayOp (Get, [e; i]) ->
+      (* print_endline ("TGet" ^ show_gamma g) ; *)
       let g, b, a, l = reify_expr prefix g b d a config e in
       (* get i''-th element of l *)
       let g', b', a', i' = reify_expr prefix g b d a config i in
@@ -663,16 +769,6 @@ and codegen_circuit (args : expr list) (g : gamma) (b : beta) (d : delta)
       let g''', b''', a''', final_e = reify_expr name g1 b' d a' config body in
       (g''', b''', a''', List.map (fun (x, _) -> x) outputs, final_e)
 (* get name of outputs *)
-
-let show_gamma (g : gamma) : string =
-  let rec show_gamma' (g : gamma) : string =
-    match g with
-    | [] ->
-        ""
-    | (x, v) :: g' ->
-        Format.sprintf "%s, %s -> %s" (show_gamma' g') x (show_expr v)
-  in
-  show_gamma' g
 
 let show_beta (b : beta) : string =
   let rec show_beta' (b : beta) : string =
@@ -1136,4 +1232,6 @@ let codegen (path : string) (d : delta) (config : configuration) (c : circuit) :
       ref_counter := 0 ;
       intermidiate_constraints := [] ;
       expr_mem := [] ;
+      subst_tasks := [] ;
+      subst_task_count := 0 ;
       ()

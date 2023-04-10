@@ -141,7 +141,30 @@ Proof. Admitted.
 
 (* print_endline (generate_lemmas "getValueByIndex" (typecheck_circuit (add_to_deltas d_empty [num2bits; mux3]) get_val_by_idx));; *)
 
-(* TODO *)
+Lemma getValueByIndex_obligation0: forall (claim : (list F)) (index : F) (v : Z), Forall (fun x0 => True) claim -> ((length claim) = 8%nat) -> True -> True -> ((v = 8%nat) -> (0%nat <= v)).
+Proof. lia. Qed.
+
+Lemma getValueByIndex_obligation1_trivial: forall (claim : (list F)) (index : F) (v : F), Forall (fun x1 => True) claim -> ((length claim) = 8%nat) -> True -> True -> (((v = index) /\ True) -> True).
+Proof. intuit. Qed.
+
+Lemma getValueByIndex_obligation2_trivial: forall (claim : (list F)) (index : F) (n2b : (list F)) (v : Z), Forall (fun x2 => True) claim -> ((length claim) = 8%nat) -> True -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) n2b -> (((as_le_f n2b) = index) /\ ((length n2b) = 8%nat)) -> True -> ((v = 3%nat) -> True).
+Proof. intuit. Qed.
+
+Lemma getValueByIndex_obligation3: forall (claim : (list F)) (index : F) (n2b : (list F)) (z : (list F)) (v : (list F)), Forall (fun x4 => True) claim -> ((length claim) = 8%nat) -> True -> Forall (fun x5 => ((x5 = 0%F) \/ (x5 = 1%F))) n2b -> (((as_le_f n2b) = index) /\ ((length n2b) = 8%nat)) -> Forall (fun x6 => True) z -> ((z = (n2b[:3%nat])) /\ ((length z) = 3%nat)) -> Forall (fun x7 => True) v -> True -> (((v = claim) /\ True) -> ((length v) = 8%nat)).
+Proof.
+  intuit; subst; auto.
+Qed.
+
+Lemma getValueByIndex_obligation4: forall (claim : (list F)) (index : F) (n2b : (list F)) (z : (list F)) (v : (list F)), Forall (fun x8 => True) claim -> ((length claim) = 8%nat) -> True -> Forall (fun x9 => ((x9 = 0%F) \/ (x9 = 1%F))) n2b -> (((as_le_f n2b) = index) /\ ((length n2b) = 8%nat)) -> Forall (fun x10 => True) z -> ((z = (n2b[:3%nat])) /\ ((length z) = 3%nat)) -> Forall (fun x11 => True) v -> True -> (((v = z) /\ True) -> ((length v) = 3%nat)).
+Proof.
+  intuit; subst; auto.
+Qed.
+
+Lemma getValueByIndex_obligation5: forall (claim : (list F)) (index : F) (n2b : (list F)) (z : (list F)) (v : F), Forall (fun x12 => True) claim -> ((length claim) = 8%nat) -> True -> Forall (fun x13 => ((x13 = 0%F) \/ (x13 = 1%F))) n2b -> (((as_le_f n2b) = index) /\ ((length n2b) = 8%nat)) -> Forall (fun x14 => True) z -> ((z = (n2b[:3%nat])) /\ ((length z) = 3%nat)) -> True -> (True -> ((v = 0%F) \/ (v = 1%F))).
+Proof. Admitted.
+
+Lemma getValueByIndex_obligation6: forall (claim : (list F)) (index : F) (n2b : (list F)) (z : (list F)) (v : F), Forall (fun x15 => True) claim -> ((length claim) = 8%nat) -> True -> Forall (fun x16 => ((x16 = 0%F) \/ (x16 = 1%F))) n2b -> (((as_le_f n2b) = index) /\ ((length n2b) = 8%nat)) -> Forall (fun x17 => True) z -> ((z = (n2b[:3%nat])) /\ ((length z) = 3%nat)) -> True -> ((v = (claim!(^ (as_le_f z)))) -> (v = (claim!((^ index) mod 8%nat)%Z))).
+Proof. Admitted.
 
 (** ** getIdenState *)
 
@@ -162,10 +185,51 @@ Proof. auto. Qed.
 
 (* print_endline (generate_lemmas "cutId" (typecheck_circuit (add_to_deltas d_empty [num2bits; bits2num]) cut_id));; *)
 
-(* TODO *)
+Lemma cutId_obligation0: forall (_in : F) (v : Z), True -> True -> ((v = 256%nat) -> (0%nat <= v)).
+Proof. Admitted.
+
+Lemma cutId_obligation1_trivial: forall (_in : F) (v : F), True -> True -> (((v = _in) /\ True) -> True).
+Proof. intuit. Qed.
+
+Lemma cutId_obligation2_trivial: forall (_in : F) (n2b : (list F)) (v : Z), True -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 256%nat)) -> True -> ((v = 16%nat) -> True).
+Proof. intuit. Qed.
+
+Lemma cutId_obligation3_trivial: forall (_in : F) (n2b : (list F)) (d : (list F)) (v : Z), True -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 256%nat)) -> Forall (fun x2 => True) d -> ((d = (skipn 16%nat n2b)) /\ ((length d) = ((length n2b) - 16%nat)%nat)) -> True -> ((v = 216%nat) -> True).
+Proof. intuit. Qed.
+
+Lemma cutId_obligation4: forall (_in : F) (n2b : (list F)) (d : (list F)) (t : (list F)) (v : Z), True -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 256%nat)) -> Forall (fun x4 => True) d -> ((d = (skipn 16%nat n2b)) /\ ((length d) = ((length n2b) - 16%nat)%nat)) -> Forall (fun x5 => True) t -> ((t = (d[:216%nat])) /\ ((length t) = 216%nat)) -> True -> ((v = 216%nat) -> (0%nat <= v)).
+Proof. Admitted.
+
+Lemma cutId_obligation5: forall (_in : F) (n2b : (list F)) (d : (list F)) (t : (list F)) (v : (list F)), True -> Forall (fun x6 => ((x6 = 0%F) \/ (x6 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 256%nat)) -> Forall (fun x7 => True) d -> ((d = (skipn 16%nat n2b)) /\ ((length d) = ((length n2b) - 16%nat)%nat)) -> Forall (fun x8 => True) t -> ((t = (d[:216%nat])) /\ ((length t) = 216%nat)) -> Forall (fun x9 => True) v -> True -> (((v = t) /\ True) -> ((length v) = 216%nat)).
+Proof. Admitted.
+
+Lemma cutId_obligation6: forall (_in : F) (n2b : (list F)) (d : (list F)) (t : (list F)) (v : F), True -> Forall (fun x10 => ((x10 = 0%F) \/ (x10 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 256%nat)) -> Forall (fun x11 => True) d -> ((d = (skipn 16%nat n2b)) /\ ((length d) = ((length n2b) - 16%nat)%nat)) -> Forall (fun x12 => True) t -> ((t = (d[:216%nat])) /\ ((length t) = 216%nat)) -> True -> (True -> ((v = 0%F) \/ (v = 1%F))).
+Proof. Admitted.
+
+Lemma cutId_obligation7: forall (_in : F) (n2b : (list F)) (d : (list F)) (t : (list F)) (v : F), True -> Forall (fun x13 => ((x13 = 0%F) \/ (x13 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 256%nat)) -> Forall (fun x14 => True) d -> ((d = (skipn 16%nat n2b)) /\ ((length d) = ((length n2b) - 16%nat)%nat)) -> Forall (fun x15 => True) t -> ((t = (d[:216%nat])) /\ ((length t) = 216%nat)) -> True -> ((v = (as_le_f t)) -> (v = (as_le_f (take 216%nat (drop 16%nat (to_le_f 256%nat _in)))))).
+Proof. Admitted.
 
 (** ** cutState *)
 
 (* print_endline (generate_lemmas "cutSt" (typecheck_circuit (add_to_deltas d_empty [num2bits; bits2num]) cut_st));; *)
 
-(* TODO *)
+Lemma cutState_obligation0: forall (_in : F) (v : Z), True -> True -> ((v = 256%nat) -> (0%nat <= v)).
+Proof. Admitted.
+
+Lemma cutState_obligation1_trivial: forall (_in : F) (v : F), True -> True -> (((v = _in) /\ True) -> True).
+Proof. intuit. Qed.
+
+Lemma cutState_obligation2_trivial: forall (_in : F) (n2b : (list F)) (v : Z), True -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 256%nat)) -> True -> ((v = 40%nat) -> True).
+Proof. intuit. Qed.
+
+Lemma cutState_obligation3: forall (_in : F) (n2b : (list F)) (d : (list F)) (v : Z), True -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 256%nat)) -> Forall (fun x2 => True) d -> ((d = (skipn 40%nat n2b)) /\ ((length d) = ((length n2b) - 40%nat)%nat)) -> True -> ((v = 216%nat) -> (0%nat <= v)).
+Proof. Admitted.
+
+Lemma cutState_obligation4: forall (_in : F) (n2b : (list F)) (d : (list F)) (v : (list F)), True -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 256%nat)) -> Forall (fun x4 => True) d -> ((d = (skipn 40%nat n2b)) /\ ((length d) = ((length n2b) - 40%nat)%nat)) -> Forall (fun x5 => True) v -> True -> (((v = d) /\ True) -> ((length v) = 216%nat)).
+Proof. Admitted.
+
+Lemma cutState_obligation5: forall (_in : F) (n2b : (list F)) (d : (list F)) (v : F), True -> Forall (fun x6 => ((x6 = 0%F) \/ (x6 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 256%nat)) -> Forall (fun x7 => True) d -> ((d = (skipn 40%nat n2b)) /\ ((length d) = ((length n2b) - 40%nat)%nat)) -> True -> (True -> ((v = 0%F) \/ (v = 1%F))).
+Proof. Admitted.
+
+Lemma cutState_obligation6: forall (_in : F) (n2b : (list F)) (d : (list F)) (v : F), True -> Forall (fun x8 => ((x8 = 0%F) \/ (x8 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 256%nat)) -> Forall (fun x9 => True) d -> ((d = (skipn 40%nat n2b)) /\ ((length d) = ((length n2b) - 40%nat)%nat)) -> True -> ((v = (as_le_f d)) -> (v = (as_le_f (drop 40%nat (to_le_f 256%nat _in))))).
+Proof. Admitted.

@@ -359,11 +359,11 @@ let concat xs1 xs2 = ArrayOp (Concat, [xs1; xs2])
 
 let rev xs = ArrayOp (Rev, [xs])
 
-let take n xs = ArrayOp (Take, [n; xs])
+let take xs n = ArrayOp (Take, [xs; n])
 
 let u_take n xs = unint "take" [n; xs]
 
-let drop n xs = ArrayOp (Drop, [n; xs])
+let drop xs n = ArrayOp (Drop, [xs; n])
 
 let u_drop n xs = unint "drop" [n; xs]
 

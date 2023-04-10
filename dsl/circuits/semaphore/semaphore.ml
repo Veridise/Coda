@@ -15,6 +15,8 @@ let i = v "i"
 
 let j = v "j"
 
+let m = v "m"
+
 let s = v "s"
 
 let x = v "x"
@@ -95,37 +97,6 @@ let calc_null_hash =
         call "Poseidon"
           [z2; const_array tf [externalNullifier; identityNullifier]] }
 
-(* { Array<F> | length v = 2 } *)
-let tarr_tf_2 = tarr_t_k tf z2
-
-(* { Array<{ Array<F> | length nu = 2 }> | length nu = n } *)
-let t_c = tarr_t_k tarr_tf_2 n
-
-let q_out =
-  qforall "i" z0 (len out)
-    (qeq (get out i)
-       (fadd
-          (fmul (fsub (tget (get c i) 1) (tget (get c i) 0)) s)
-          (tget (get c i) 0) ) )
-
-(* { Array<F> | q_out nu /\ length nu = n } *)
-let t_out = tarr_t_q_k tf q_out n
-
-let lam_mm1 =
-  lama "x" tarr_tf_2
-    (elet "a" (get x z0) (elet "b" (get x z1) (fadd (fmul (fsub b a) s) a)))
-
-let multi_mux_1 =
-  Circuit
-    { name= "MultiMux1"
-    ; inputs= [("n", tnat); ("c", t_c); ("s", tf)]
-    ; outputs= [("out", t_out)]
-    ; dep= None
-    ; body= (* out === map (\[a; b] => (b - a) * s + a) c *)
-            map lam_mm1 c }
-
-(* let check_multi_mux_1 = typecheck_circuit d_empty multi_mux_1 *)
-
 (* MerkleTreeInclusionProof *)
 
 let lam_mtip z =
@@ -139,14 +110,15 @@ let lam_mtip z =
                 (* pathIndices[i] binary *)
                 (assert_eq (fmul j (fsub f1 j)) f0)
                 (elet "c"
-                   (cons
-                      (cons x (cons s cnil))
-                      (cons (cons s (cons x cnil)) cnil) )
-                   (call "Poseidon" [z2; call "MultiMux1" [z2; c; j]]) ) ) ) ) )
+                   (const_array (tarr_tf z2)
+                      [const_array tf [x; s]; const_array tf [s; x]] )
+                   (elet "m"
+                      (call "MultiMux1" [z2; c; j])
+                      (call "Poseidon" [z2; m]) ) ) ) ) ) )
 
 let rec hasher z init =
   iter z0 (len z) (lam_mtip z) ~init ~inv:(fun i ->
-      tfq (qeq nu (hasher (take i z) init)) )
+      tfq (qeq nu (hasher (take z i) init)) )
 
 let t_r = tfq (qeq nu (hasher (zip pathIndices siblings) leaf))
 

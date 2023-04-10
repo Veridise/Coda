@@ -15,6 +15,7 @@ open Semaphore
 open Hydra
 open Darkforest
 open Zk_sbt
+open Circomlib.Mux1
 open Circomlib.Mux3
 open Circomlib.Sign
 open Zk_sql
@@ -29,7 +30,7 @@ let g =
     ; bits2num
     ; c_big_is_zero
     ; c_big_is_equal
-    ; c_big_lt
+    ; big_lt
     ; cand
     ; split
     ; cnot
@@ -124,7 +125,7 @@ let _ = test_circuit [("n", 100); ("m", 100); ("k", 100)] split_three
 
 let _ = test_circuit [("n", 10); ("k", 5)] big_add
 
-let _ = test_circuit [("n", 10); ("k", 5)] c_big_lt
+let _ = test_circuit [("n", 10); ("k", 5)] big_lt
 
 let _ = test_circuit [("n", 10); ("k", 5)] big_add_mod_p
 

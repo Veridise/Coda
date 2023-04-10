@@ -113,6 +113,16 @@ end.
 
 
 Ltac pose_as_le_nonneg := repeat match goal with
+| [ H: context[RZ.as_le ?n ?xs ] |- _ ] =>
+let t := type of (RZU.as_le_nonneg n xs) in
+lazymatch goal with
+(* already posed *)
+| [ _: t |- _] => fail
+| _ => 
+  let Hnonneg := fresh "_Hnonneg" in
+  pose proof (RZU.as_le_nonneg n xs) as Hnonneg
+  ;move Hnonneg at top
+end
 | [ |- context[RZ.as_le ?n ?xs ] ] =>
   let t := type of (RZU.as_le_nonneg n xs) in
   lazymatch goal with
@@ -153,7 +163,7 @@ Proof.
 Qed.
 
 
-Create HintDb coda discriminated.
+(* Create HintDb coda discriminated.
 #[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
 #[global]Hint Extern 10  => match goal with
    | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
@@ -176,4 +186,4 @@ Create HintDb coda discriminated.
 #[global]Hint Extern 10 (_ > _)%nat => lia: core.
 #[global]Hint Extern 10 (_ >= _) => lia: core. 
 #[global]Hint Extern 10 (_ >= _)%nat => lia: core. 
-#[global]Hint Extern 10 (S _ = S _) => f_equal: core. 
+#[global]Hint Extern 10 (S _ = S _) => f_equal: core.  *)

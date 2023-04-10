@@ -20,11 +20,11 @@ src/CircomLib/Gates.v
 src/CircomLib/Multiplexer.v
 src/Benchmarks/Liblam.v
 src/Benchmarks/Coda.v
-src/Benchmarks/Circomlib/Bitify.v
-src/Benchmarks/Circomlib/Comparators.v
-src/Benchmarks/Circomlib/Gates.v
-src/Benchmarks/Circomlib/Multiplexer.v
-src/Benchmarks/Circomlib/Mux1.v
+# src/Benchmarks/Circomlib/Bitify.v
+# src/Benchmarks/Circomlib/Comparators.v
+# src/Benchmarks/Circomlib/Gates.v
+# src/Benchmarks/Circomlib/Multiplexer.v
+# src/Benchmarks/Circomlib/Mux1.v
 src/Benchmarks/BigInt/BigAdd.v
 src/Benchmarks/BigInt/BigIsEqual.v
 src/Benchmarks/BigInt/BigIsZero.v

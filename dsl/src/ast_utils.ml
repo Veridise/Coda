@@ -54,6 +54,8 @@ let show_aop = function
       "drop"
   | Zip ->
       "zip"
+  | Rev ->
+      "rev"
 
 let ppf_base ppf tb = Fmt.string ppf (show_base tb)
 

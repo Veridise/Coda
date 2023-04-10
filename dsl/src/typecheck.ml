@@ -330,12 +330,12 @@ let rec synthesize (e : expr) : typ S.t =
                    (tfun "_body"
                       ((* assume s <= i < e *)
                        tfun "_i" (z_range_co s e)
-                         (* assume inv(i,x) holds *)
+                         (* assume inv(i) holds *)
                          (tfun "_x"
                             (inv (v "_i"))
-                            (* prove inv(i+1,output) holds *)
+                            (* prove inv(i+1) holds *)
                             (inv (v "_i" +. z1)) ) )
-                      (* prove inv(s,init) holds *)
+                      (* prove inv(s) holds for init *)
                       (tfun "_init"
                          (inv (v "_s"))
                          (* conclude inv(e,output) holds *)
@@ -368,7 +368,7 @@ let rec synthesize (e : expr) : typ S.t =
             match skeleton t1 with
             | TArr te ->
                 let%bind () = check e2 tint in
-                return (tarr_t_q_k te (nu ==. e) (e2))
+                return (tarr_t_q_k te (nu ==. e) e2)
             | _ ->
                 failwith "[synthesize] take: not an array" )
         | ArrayOp (Drop, [e1; e2]) -> (
@@ -377,6 +377,13 @@ let rec synthesize (e : expr) : typ S.t =
             | TArr te ->
                 let%bind () = check e2 tint in
                 return (tarr_t_q_k te (nu ==. e) (len e1 -. e2))
+            | _ ->
+                failwith "[synthesize] drop: not an array" )
+        | ArrayOp (Rev, [e']) -> (
+            let%bind t1 = synthesize e' in
+            match skeleton t1 with
+            | TArr te ->
+                return (tarr_t_q_k te (nu ==. e) (len e'))
             | _ ->
                 failwith "[synthesize] drop: not an array" )
         | ArrayOp (Cons, [e1; Const CNil]) ->

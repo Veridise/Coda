@@ -88,7 +88,7 @@ and binop = Add | Sub | Mul | Pow | Mod
 
 and boolop = And | Or | Imply
 
-and aop = Length | Cons | Get | Concat | Scale | Take | Drop | Zip
+and aop = Length | Cons | Get | Concat | Scale | Take | Drop | Zip | Rev
 
 and func = Id | Unint of string | ToUZ | ToSZ | ToBigUZ | ToBigSZ
 

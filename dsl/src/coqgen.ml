@@ -169,6 +169,8 @@ and expr_to_coq (e : expr) : string =
     )
   | ArrayOp (Length, [e]) ->
       spf "(length %s)" (expr_to_coq e)
+  | ArrayOp (Rev, [e']) ->
+      spf "(rev %s)" (expr_to_coq e')
   | ArrayOp (aop, _) ->
       failwith (spf "[expr_to_coq] ArrayOp %s wrong arity" (show_aop aop))
   | TGet (e1, 0) ->

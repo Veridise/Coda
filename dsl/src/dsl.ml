@@ -357,6 +357,8 @@ let cons x xs = ArrayOp (Cons, [x; xs])
 
 let concat xs1 xs2 = ArrayOp (Concat, [xs1; xs2])
 
+let rev xs = ArrayOp (Rev, [xs])
+
 let take n xs = ArrayOp (Take, [n; xs])
 
 let u_take n xs = unint "take" [n; xs]

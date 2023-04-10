@@ -23,23 +23,22 @@ Require Import Coq.Logic.PropExtensionality.
 
 From Circom Require Import Circom Default Util DSL Tuple ListUtil LibTactics Simplify.
 From Circom Require Import Repr ReprZ Coda.
-From Circom.CircomLib Require Import Bitify Comparators Gates.
 
 Module RZU := ReprZUnsigned.
 Module RZ := RZU.RZ.
 
-Local Open Scope list_scope.
-Local Open Scope F_scope.
-Local Open Scope Z_scope.
-Local Open Scope circom_scope.
-Local Open Scope tuple_scope.
+Global Open Scope list_scope.
+Global Open Scope F_scope.
+Global Open Scope Z_scope.
+Global Open Scope circom_scope.
+Global Open Scope tuple_scope.
 
-Local Coercion Z.of_nat: nat >-> Z.
-Local Coercion N.of_nat: nat >-> N.
+Global Coercion Z.of_nat: nat >-> Z.
+Global Coercion N.of_nat: nat >-> N.
 
 (* interpret a tuple of weights as representing a little-endian base-2^n number *)
-Local Notation "[| xs | n ]" := (RZ.as_le n xs).
-Local Notation "[\ xs \ n ]" := (RZ.as_be n xs).
+Global Notation "[| xs | n ]" := (RZ.as_le n xs).
+Global Notation "[\ xs \ n ]" := (RZ.as_be n xs).
 
 Lemma big_lt_step: forall xs ys i n,
 [\ xs[:i+1] \n] < [\ ys[:i+1] \n] <->
@@ -57,30 +56,9 @@ Proof.
 Admitted.
 
 
-#[local]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn : core.
-#[local]Hint Extern 10  => match goal with
-   | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
-   #[local]Hint Extern 10  => match goal with
-   | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
-#[local]Hint Extern 10 => match goal with 
-  [ |- context[length _] ] => rewrite_length end : core.
-#[local]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn : core.
-#[local]Hint Extern 10 (Forall _ (rev _)) => apply Forall_rev : core.
-#[local]Hint Extern 10 (Forall _ (_ :: _)) => constructor : core.
-#[local]Hint Extern 10 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z : core.
+#[local]Hint Extern 10 (Forall _ (rev _)) => apply Forall_rev: coda.
 #[local]Hint Extern 10  => repeat match goal with
-  [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end : core.
-  #[local]Hint Extern 10  => repeat match goal with
-  [ |- context[length (rev _)] ] => rewrite rev_length end : core.
-#[local]Hint Extern 10 (_ < _) => lia : core.
-#[local]Hint Extern 10 (_ < _)%nat => lia : core.
-#[local]Hint Extern 10 (_ <= _) => lia : core.
-#[local]Hint Extern 10 (_ <= _)%nat => lia : core.
-#[local]Hint Extern 10 (_ > _) => lia : core.
-#[local]Hint Extern 10 (_ > _)%nat => lia : core.
-#[local]Hint Extern 10 (_ >= _) => lia : core. 
-#[local]Hint Extern 10 (_ >= _)%nat => lia : core. 
-#[local]Hint Extern 10 (S _ = S _) => f_equal : core. 
+[ |- context[length (rev _)] ] => rewrite rev_length end: coda.
 
 Ltac extract v := match goal with
    | [ H: context[v = ?u] |- context[v] ] =>
@@ -142,7 +120,8 @@ Proof. intuit; subst; auto. Qed.
 
 Lemma BigLessThan_obligation17: forall (n : nat) (k : nat) (xs : (list F)) (ys : (list F)) (xs' : (list F)) (ys' : (list F)) (i : nat) (lt_eq : (F * F)) (eq : F) (lt : F) (_u0 : (F * F)) (x : F) (y : F) (x_lt_y : F) (xs_lt_ys : F) (x_eq_y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> (2%nat <= k) -> Forall (fun x117 => ((^ x117) <= ((2%nat ^ n)%Z - 1%nat)%Z)) xs -> ((length xs) = k) -> Forall (fun x118 => ((^ x118) <= ((2%nat ^ n)%Z - 1%nat)%Z)) ys -> ((length ys) = k) -> Forall (fun x119 => True) xs' -> ((xs' = (rev xs)) /\ ((length xs') = (length xs))) -> Forall (fun x120 => True) ys' -> ((ys' = (rev ys)) /\ ((length ys') = (length ys))) -> (i < k) -> match lt_eq with (x121,x122) => (((x121 = 0%F) \/ (x121 = 1%F)) /\ (((x121 = 1%F) -> ((as_be n (xs'[:i])) < (as_be n (ys'[:i])))) /\ ((x121 = 0%F) -> ~((as_be n (xs'[:i])) < (as_be n (ys'[:i])))))) end -> match lt_eq with (x121,x122) => (((x122 = 0%F) \/ (x122 = 1%F)) /\ (((x122 = 1%F) -> ((as_be n (xs'[:i])) = (as_be n (ys'[:i])))) /\ ((x122 = 0%F) -> ~((as_be n (xs'[:i])) = (as_be n (ys'[:i])))))) end -> match lt_eq with (x121,x122) => True end -> (eq = (snd lt_eq)) -> (lt = (fst lt_eq)) -> match _u0 with (x123,x124) => True end -> match _u0 with (x123,x124) => True end -> match _u0 with (x123,x124) => ((lt_eq = lt_eq) /\ True) end -> (x = (xs'!i)) -> (y = (ys'!i)) -> (((x_lt_y = 0%F) \/ (x_lt_y = 1%F)) /\ (((x_lt_y = 1%F) -> ((^ x) < (^ y))) /\ ((x_lt_y = 0%F) -> ~((^ x) < (^ y))))) -> (((xs_lt_ys = 0%F) \/ (xs_lt_ys = 1%F)) /\ (((xs_lt_ys = 1%F) -> (f_and eq x_lt_y)) /\ ((xs_lt_ys = 0%F) -> ~(f_and eq x_lt_y)))) -> (((x_eq_y = 0%F) \/ (x_eq_y = 1%F)) /\ (((x_eq_y = 1%F) -> (x = y)) /\ ((x_eq_y = 0%F) -> ~(x = y)))) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (f_and eq x_eq_y)) /\ ((v = 0%F) -> ~(f_and eq x_eq_y)))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((as_be n (xs'[:(i + 1%nat)%nat])) = (as_be n (ys'[:(i + 1%nat)%nat])))) /\ ((v = 0%F) -> ~((as_be n (xs'[:(i + 1%nat)%nat])) = (as_be n (ys'[:(i + 1%nat)%nat]))))))).
 Proof. 
-   intros. unfold f_or, f_and, as_le, as_be in *.
+   unwrap_coda.
+   intros. 
    destruct lt_eq as [_lt _eq]. simpl in *. subst _lt _eq.
    (* repeat rewrite firstn_plus1 by lia. *)
    (* repeat rewrite RZ.as_be_app. *)
@@ -179,7 +158,7 @@ Proof. intuit. Qed.
 
 Lemma BigLessThan_obligation22: forall (n : nat) (k : nat) (xs : (list F)) (ys : (list F)) (xs' : (list F)) (ys' : (list F)) (v : F), (n <= (C.k - 1%nat)%Z) -> (2%nat <= k) -> Forall (fun x145 => ((^ x145) <= ((2%nat ^ n)%Z - 1%nat)%Z)) xs -> ((length xs) = k) -> Forall (fun x146 => ((^ x146) <= ((2%nat ^ n)%Z - 1%nat)%Z)) ys -> ((length ys) = k) -> Forall (fun x147 => True) xs' -> ((xs' = (rev xs)) /\ ((length xs') = (length xs))) -> Forall (fun x148 => True) ys' -> ((ys' = (rev ys)) /\ ((length ys') = (length ys))) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((as_be n (xs'[:k])) < (as_be n (ys'[:k])))) /\ ((v = 0%F) -> ~((as_be n (xs'[:k])) < (as_be n (ys'[:k])))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((as_le n xs) < (as_le n ys))) /\ ((v = 0%F) -> ~((as_le n xs) < (as_le n ys)))))).
 Proof.
-   unfold as_be, as_le.
+   unwrap_coda.
    intuit; 
    repeat rewrite firstn_all2 in * by lia;
    repeat rewrite RZ.be__rev_le in *;

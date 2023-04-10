@@ -42,6 +42,8 @@ Definition f_nand (x: F) (y: F) := ~(x = 1%F /\ y = 1%F).
 Definition f_nor (x: F) (y: F) := ~(x = 1%F \/ y = 1%F).
 Definition f_xor (x: F) (y: F) := x <> y.
 
+Ltac unwrap_coda := unwrap_C; unfold as_le, as_be, f_and, f_or, f_nor, f_xor, f_not in *.
+
 
 Definition sum := DSLL.sumL_F.
 Definition take {A} i (xs : list A) := xs[:i].
@@ -135,3 +137,29 @@ Proof.
   rewrite <- IHxs; auto.
   fqsatz.
 Qed.
+
+
+Create HintDb coda discriminated.
+#[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: coda.
+#[global]Hint Extern 10  => match goal with
+   | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
+   #[global]Hint Extern 10  => match goal with
+   | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
+#[global]Hint Extern 10 => match goal with 
+  [ |- context[length _] ] => rewrite_length end: coda.
+#[global]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn: coda.
+
+#[global]Hint Extern 10 (Forall _ (_ :: _)) => constructor: coda.
+#[global]Hint Extern 10 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: coda.
+#[global]Hint Extern 10  => repeat match goal with
+  [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end: coda.
+
+#[global]Hint Extern 10 (_ < _) => lia: coda.
+#[global]Hint Extern 10 (_ < _)%nat => lia: coda.
+#[global]Hint Extern 10 (_ <= _) => lia: coda.
+#[global]Hint Extern 10 (_ <= _)%nat => lia: coda.
+#[global]Hint Extern 10 (_ > _) => lia: coda.
+#[global]Hint Extern 10 (_ > _)%nat => lia: coda.
+#[global]Hint Extern 10 (_ >= _) => lia: coda. 
+#[global]Hint Extern 10 (_ >= _)%nat => lia: coda. 
+#[global]Hint Extern 10 (S _ = S _) => f_equal: coda. 

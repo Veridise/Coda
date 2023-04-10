@@ -21,6 +21,8 @@ let r2 = v "r2"
 
 let s = v "s"
 
+let t = v "t"
+
 let x = v "x"
 
 let y = v "y"
@@ -162,15 +164,14 @@ let u_hasher xs init = unint "VerifyMerklePathHash" [xs; init]
 let lam_vmp z =
   lama "i" tint
     (lama "x" tf
-       (elet "elem"
-          (tget (get z i) 0)
-          (elet "s"
-             (tget (get z i) 1)
-             (elet "c"
-                (const_array tf [x; elem])
-                (elet "y"
-                   (call "PositionSwitcher" [c; s])
-                   (call "Poseidon" [z2; y]) ) ) ) ) )
+       (elet "t" (get z i)
+          (elet "elem" (tget t 0)
+             (elet "s" (tget t 1)
+                (elet "c"
+                   (const_array tf [x; elem])
+                   (elet "y"
+                      (call "PositionSwitcher" [c; s])
+                      (call "Poseidon" [z2; y]) ) ) ) ) ) )
 
 (* Compute the Poseidon hash over z (list of pairs of F suitable for
    PositionSwitcher) from initial value init *)

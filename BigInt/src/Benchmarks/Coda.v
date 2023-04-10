@@ -112,6 +112,20 @@ Ltac pose_nonneg := repeat match goal with
 end.
 
 
+Ltac pose_as_le_nonneg := repeat match goal with
+| [ |- context[RZ.as_le ?n ?xs ] ] =>
+  let t := type of (RZU.as_le_nonneg n xs) in
+  lazymatch goal with
+  (* already posed *)
+  | [ _: t |- _] => fail
+  | _ => 
+    let Hnonneg := fresh "_Hnonneg" in
+    pose proof (RZU.as_le_nonneg n xs) as Hnonneg
+    ;move Hnonneg at top
+  end
+| _ => fail
+end.
+
 Ltac switch dst l :=
   let H := fresh "H" in
   match goal with
@@ -140,26 +154,26 @@ Qed.
 
 
 Create HintDb coda discriminated.
-#[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: coda.
+#[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
 #[global]Hint Extern 10  => match goal with
    | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
    #[global]Hint Extern 10  => match goal with
    | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
 #[global]Hint Extern 10 => match goal with 
-  [ |- context[length _] ] => rewrite_length end: coda.
-#[global]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn: coda.
+  [ |- context[length _] ] => rewrite_length end: core.
+#[global]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn: core.
 
-#[global]Hint Extern 10 (Forall _ (_ :: _)) => constructor: coda.
-#[global]Hint Extern 10 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: coda.
+#[global]Hint Extern 10 (Forall _ (_ :: _)) => constructor: core.
+#[global]Hint Extern 10 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: core.
 #[global]Hint Extern 10  => repeat match goal with
-  [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end: coda.
+  [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end: core.
 
-#[global]Hint Extern 10 (_ < _) => lia: coda.
-#[global]Hint Extern 10 (_ < _)%nat => lia: coda.
-#[global]Hint Extern 10 (_ <= _) => lia: coda.
-#[global]Hint Extern 10 (_ <= _)%nat => lia: coda.
-#[global]Hint Extern 10 (_ > _) => lia: coda.
-#[global]Hint Extern 10 (_ > _)%nat => lia: coda.
-#[global]Hint Extern 10 (_ >= _) => lia: coda. 
-#[global]Hint Extern 10 (_ >= _)%nat => lia: coda. 
-#[global]Hint Extern 10 (S _ = S _) => f_equal: coda. 
+#[global]Hint Extern 10 (_ < _) => lia: core.
+#[global]Hint Extern 10 (_ < _)%nat => lia: core.
+#[global]Hint Extern 10 (_ <= _) => lia: core.
+#[global]Hint Extern 10 (_ <= _)%nat => lia: core.
+#[global]Hint Extern 10 (_ > _) => lia: core.
+#[global]Hint Extern 10 (_ > _)%nat => lia: core.
+#[global]Hint Extern 10 (_ >= _) => lia: core. 
+#[global]Hint Extern 10 (_ >= _)%nat => lia: core. 
+#[global]Hint Extern 10 (S _ = S _) => f_equal: core. 

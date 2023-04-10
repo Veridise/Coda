@@ -99,7 +99,7 @@ let big_sub =
     ; dep=
         Some
           ( as_le n out
-          ==. as_le n a -! as_le n b +! ((z2 ^! (n *! i)) *! toUZ uf) )
+          ==. as_le n a -! as_le n b +! ((z2 ^! (n *! k)) *! toUZ uf) )
     ; body=
         match_with' ["s"; "br"]
           (iter z0 k

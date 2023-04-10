@@ -56,9 +56,34 @@ Proof.
 Admitted.
 
 
-#[local]Hint Extern 10 (Forall _ (rev _)) => apply Forall_rev: coda.
-#[local]Hint Extern 10  => repeat match goal with
-[ |- context[length (rev _)] ] => rewrite rev_length end: coda.
+
+#[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
+#[global]Hint Extern 10  => match goal with
+   | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
+   #[global]Hint Extern 10  => match goal with
+   | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
+#[global]Hint Extern 10 => match goal with 
+  [ |- context[length _] ] => rewrite_length end: core.
+#[global]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn: core.
+
+#[global]Hint Extern 10 (Forall _ (_ :: _)) => constructor: core.
+#[global]Hint Extern 10 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: core.
+#[global]Hint Extern 10  => repeat match goal with
+  [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end: core.
+
+#[global]Hint Extern 10 (_ < _) => lia: core.
+#[global]Hint Extern 10 (_ < _)%nat => lia: core.
+#[global]Hint Extern 10 (_ <= _) => lia: core.
+#[global]Hint Extern 10 (_ <= _)%nat => lia: core.
+#[global]Hint Extern 10 (_ > _) => lia: core.
+#[global]Hint Extern 10 (_ > _)%nat => lia: core.
+#[global]Hint Extern 10 (_ >= _) => lia: core. 
+#[global]Hint Extern 10 (_ >= _)%nat => lia: core. 
+#[global]Hint Extern 10 (S _ = S _) => f_equal: core. 
+
+#[global]Hint Extern 10 (Forall _ (rev _)) => apply Forall_rev: core.
+#[global]Hint Extern 10  => repeat match goal with
+[ |- context[length (rev _)] ] => rewrite rev_length end: core.
 
 Ltac extract v := match goal with
    | [ H: context[v = ?u] |- context[v] ] =>

@@ -85,7 +85,7 @@ let big_add =
     { name= "BigAdd"
     ; inputs=
         [ ("n", t_n)
-        ; ("k", refine_expr tnat (z1 <=. nu))
+        ; ("k", attach (lift (z1 <=. nu)) tnat)
         ; ("a", t_big_int k)
         ; ("b", t_big_int k) ]
     ; outputs=
@@ -136,14 +136,18 @@ let big_add_mod_p =
     ; dep= None
     ; body=
         elets
-          [ (* add = #BigAdd n k a b *)
-            ("add", call "BigAdd" [n; k; a; b])
-          ; (* lt = #BigLessThan n (k + 1) add (p ++ [0]) *)
-            ("lt", call "BigLessThan" [n; k +. z1; add; concat p (consts [f0])])
-          ; (* p' = scale (k+1) (1 - lt) (p ++ [0]) *)
-            ("p'", apps (v "scale") [k +. z1; f1 -% lt; concat p (consts [f0])])
-          ; (* sub = #BigSub n (k + 1) add p' *)
-            ("sub", tfst (call "BigSub" [n; k +. z1; add; p']))
+          [ 
+          ("add", call "BigAdd" [n; k; a; b])
+            (* add = #BigAdd n k a b *)
+          ; ("lt", call "BigLessThan" [n; k +. z1; add; concat p (consts [f0])])
+            (* lt = #BigLessThan n (k + 1) add (p ++ [0]) *)
+          ; ("p'", apps (v "scale") [k +. z1; f1 -% lt; concat p (consts [f0])])]
+
+        (match_with' ["sub"; "uf"]
+            (* p' = scale (k+1) (1 - lt) (p ++ [0]) *)
+            (call "BigSub" [n; k +. z1; add; push p'])
+            (* sub = #BigSub n (k + 1) add p' *)
             (* ("u0", assert_eq (get sub k) f0) <- already implied by BigLessThan *)
-          ]
-          (take sub k) }
+          (push (take sub k)))
+          (* (consts [f0]) *)
+           }

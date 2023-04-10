@@ -214,7 +214,7 @@ let rec synthesize (e : expr) : typ S.t =
                 | TFun _ ->
                     return t
                 | _ ->
-                    return (attaches [QExpr (nu =. v x)] (skeleton t)) )
+                    return (attach (nu ==. v x) t))
               | None ->
                   failwith ("[synthesize] No such variable: " ^ x)
               (* let%bind g = get_gamma in

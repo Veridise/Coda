@@ -70,7 +70,7 @@ let pairwise_add =
   in
   Lib
     { name= "pairwise_add"
-    ; typ= None
+    ; typ= Some (tfun "k" tnat (tfun "x" t_xs (tfun "ys" t_xs (t_zs k))))
     ; def=
         lamas
           [("k", tnat); ("xs", t_xs); ("ys", t_xs)]
@@ -94,8 +94,8 @@ let pairwise_mul =
       i
   in
   Lib
-    { name= "pairwise_add"
-    ; typ= None
+    { name= "pairwise_mul"
+    ; typ= Some (tfun "k" tnat (tfun "x" t_xs (tfun "ys" t_xs (t_zs k))))
     ; def=
         lamas
           [("k", tnat); ("xs", t_xs); ("ys", t_xs)]
@@ -118,7 +118,7 @@ let scale =
   in
   Lib
     { name= "scale"
-    ; typ= None
+    ; typ= Some (tfun "k" tnat (tfun "x" tf (tfun "ys" t_ys (t_zs k))))
     ; def=
         lamas
           [("k", tnat); ("x", tf); ("ys", t_ys)]

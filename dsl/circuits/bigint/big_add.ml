@@ -146,4 +146,4 @@ let big_add_mod_p =
             ("sub", tfst (call "BigSub" [n; k +. z1; add; p']))
             (* ("u0", assert_eq (get sub k) f0) <- already implied by BigLessThan *)
           ]
-          (take k sub) }
+          (take sub k) }

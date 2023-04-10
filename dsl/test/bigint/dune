@@ -8,7 +8,6 @@
  (libraries zarith lib coqgen circomlib test_utils bigint)
  (modules test_big_less_than))
 
-
 (executable
  (name test_big_add)
  (libraries zarith lib coqgen circomlib test_utils bigint)

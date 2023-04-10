@@ -282,6 +282,13 @@ let rec drop_array (l : expr) (n : int) : expr =
   | _ ->
       failwith ("drop_array: not an array :" ^ show_expr l)
 
+let rec rev_array (l : expr) : expr =
+  match l with
+  | ArrayOp (Cons, [e1; e2]) ->
+      concat_array (rev_array e2) (ArrayOp (Cons, [e1; Const CNil]))
+  | _ ->
+      l
+
 (* codegen *)
 
 (* parrallel substitution *)
@@ -533,12 +540,12 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
         expr_array_zip prefix g' b' d a' config e1' e2'
       in
       (g'', b'', a'', ziped_expr)
-  | ArrayOp (Take, [n; e]) ->
+  | ArrayOp (Take, [e; n]) ->
       let g, b, a, n' = reify_expr prefix g b d a config n in
       let g', b', a', e' = reify_expr prefix g b d a config e in
       let n'' = eval_int n' config in
       (g', b', a', take_array e' (int_of_big_int n''))
-  | ArrayOp (Drop, [n; e]) ->
+  | ArrayOp (Drop, [e; n]) ->
       let g, b, a, n' = reify_expr prefix g b d a config n in
       let g', b', a', e' = reify_expr prefix g b d a config e in
       let n'' = eval_int n' config in
@@ -550,6 +557,9 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
   | ArrayOp (Length, [e]) ->
       let g, b, a, e' = reify_expr prefix g b d a config e in
       (g, b, a, Const (CInt (big_int_of_int (length_of e'))))
+  | ArrayOp (Rev, [xs]) ->
+      let g, b, a, xs' = reify_expr prefix g b d a config xs in
+      (g, b, a, rev_array xs')
   | Map (e1, e2) ->
       let g, b, a, e2' = reify_expr prefix g b d a config e2 in
       (* e2' is an array *)

@@ -163,6 +163,26 @@ Proof.
 Qed.
 
 
+Lemma Forall_nth_default :
+  forall [A] [H : Default A] (P : A -> Prop) (xs : list A),
+    (Forall P xs <-> forall (i : nat), i < length xs -> P (xs ! i)).
+Proof.
+  unfold "!"; split; intros.
+  - rewrite nth_default_eq.
+    apply Forall_nth; auto; lia.
+  - induction xs.
+    + apply Forall_nil.
+    + apply Forall_cons.
+      * apply (H0 0%nat). simpl; lia.
+      * apply IHxs; intros.
+        assert (
+            S i < length (a :: xs)
+          ) by (simpl; lia).
+        apply H0 in H2.
+        rewrite nth_default_eq in *.
+        simpl in H2; auto.
+Qed.
+
 
 (* #[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
 #[global]Hint Extern 10  => match goal with

@@ -214,7 +214,7 @@ let rec synthesize (e : expr) : typ S.t =
                 | TFun _ ->
                     return t
                 | _ ->
-                    return (attach (nu ==. v x) t))
+                    return (attach (nu ==. v x) t) )
               | None ->
                   failwith ("[synthesize] No such variable: " ^ x)
               (* let%bind g = get_gamma in

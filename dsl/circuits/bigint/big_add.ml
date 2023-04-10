@@ -136,18 +136,15 @@ let big_add_mod_p =
     ; dep= None
     ; body=
         elets
-          [ 
-          ("add", call "BigAdd" [n; k; a; b])
-            (* add = #BigAdd n k a b *)
+          [ ("add", call "BigAdd" [n; k; a; b]) (* add = #BigAdd n k a b *)
           ; ("lt", call "BigLessThan" [n; k +. z1; add; concat p (consts [f0])])
             (* lt = #BigLessThan n (k + 1) add (p ++ [0]) *)
-          ; ("p'", apps (v "scale") [k +. z1; f1 -% lt; concat p (consts [f0])])]
-
-        (match_with' ["sub"; "uf"]
-            (* p' = scale (k+1) (1 - lt) (p ++ [0]) *)
-            (call "BigSub" [n; k +. z1; add; push p'])
-            (* sub = #BigSub n (k + 1) add p' *)
-            (* ("u0", assert_eq (get sub k) f0) <- already implied by BigLessThan *)
-          (push (take sub k)))
-          (* (consts [f0]) *)
-           }
+          ; ("p'", apps (v "scale") [k +. z1; f1 -% lt; concat p (consts [f0])])
+          ]
+          (match_with' ["sub"; "uf"]
+             (* p' = scale (k+1) (1 - lt) (p ++ [0]) *)
+             (call "BigSub" [n; k +. z1; add; push p'])
+             (* sub = #BigSub n (k + 1) add p' *)
+             (* ("u0", assert_eq (get sub k) f0) <- already implied by BigLessThan *)
+             (push (take sub k)) )
+        (* (consts [f0]) *) }

@@ -151,7 +151,7 @@ let big_sub_mod_p =
           (call "BigSub" [n; k; a; b])
           (* add = #BigAdd n k sub p *)
           (elet "add"
-             (take k (call "BigAdd" [n; k; tget x 0; p]))
+             (take (call "BigAdd" [n; k; tget x 0; p]) k)
              (* tmp = zip sub add *)
              (elet "tmp"
                 (zip (tget x 0) add)

@@ -533,12 +533,12 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
         expr_array_zip prefix g' b' d a' config e1' e2'
       in
       (g'', b'', a'', ziped_expr)
-  | ArrayOp (Take, [n; e]) ->
+  | ArrayOp (Take, [e; n]) ->
       let g, b, a, n' = reify_expr prefix g b d a config n in
       let g', b', a', e' = reify_expr prefix g b d a config e in
       let n'' = eval_int n' config in
       (g', b', a', take_array e' (int_of_big_int n''))
-  | ArrayOp (Drop, [n; e]) ->
+  | ArrayOp (Drop, [e; n]) ->
       let g, b, a, n' = reify_expr prefix g b d a config n in
       let g', b', a', e' = reify_expr prefix g b d a config e in
       let n'' = eval_int n' config in

@@ -29,6 +29,7 @@ Local Open Scope tuple_scope.
 Module RZU := ReprZUnsigned.
 Module RZ := RZU.RZ.
 Definition as_le := RZ.as_le.
+Definition as_be := RZ.as_be.
 Definition as_le_f := Repr.as_le 1%nat.
 Local Notation "[| xs | n ]" := (RZ.as_le n xs).
 Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).

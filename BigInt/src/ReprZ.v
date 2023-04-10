@@ -149,6 +149,7 @@ Proof.
   apply rev_involutive.
 Qed.
 
+
 End Endianness.
 
 Section BigEndian.
@@ -321,6 +322,20 @@ Proof.
   lia. lia.
 Qed.
 
+
+(* Notation "[\ xs \]" := (as_be xs). *)
+
+Lemma as_be_app: forall ws1 ws2,
+  [\ ws1 ++ ws2 \] = 2^(n * length ws2)*[\ ws1 \] +  [\ ws2 \].
+Proof.
+  intros.
+  rewrite be__rev_le.
+  rewrite rev_app_distr. rewrite as_le_app.
+  rewrite rev_length.
+  repeat rewrite le__rev_be.
+  repeat rewrite rev_involutive.
+  lia.
+Qed.
 
 End Representation.
 
@@ -501,6 +516,19 @@ Proof.
   rewrite H0 in *. nia.
 Qed.
 
+
+Lemma big_lt_complete': forall xs ys,
+  length xs = length ys ->
+  xs |: (n) ->
+  ys |: (n) ->
+  big_lt xs ys = false ->
+  [\xs\] >= [\ys\].
+Proof.
+  intros.
+  assert ([\xs \] < [\ys \] -> False). intro. apply big_lt_complete in H3; auto. rewrite H2 in H3. discriminate.
+  lia.
+Qed.
+
 Lemma big_lt_dec: forall xs ys,
   length xs = length ys ->
   xs |: (n) ->
@@ -512,8 +540,6 @@ Proof.
   apply big_lt_complete; auto.
 Qed.
 
-(* Lemma iff_trans: forall P Q R, *)
-  (* P <-> Q -> *)
 
 
 Lemma big_lt_dec_le: forall xs ys x y,
@@ -658,6 +684,29 @@ Proof.
     | simpl
   ].
 Qed.
+
+
+
+Lemma big_lt_dec_be: forall xs ys x y,
+ length xs = length ys ->
+  xs |: (n) ->
+  x | (n) ->
+  ys |: (n) ->
+  y | (n) ->
+  [\xs ++ x :: nil\] < [\ys ++ y :: nil\] <-> 
+  ([\xs\] < [\ys\] \/ ([\xs\] = [\ys\]  /\ ^x < ^y )).
+Proof.
+  intros.
+  pose proof big_lt_dec. symmetry in H4.
+  rewrite H4; auto.
+  pose proof big_lt_app. symmetry in H5.
+  rewrite H5; auto.
+  assert (big_lt xs ys = true \/ big_lt xs ys = false) by admit.
+  destruct H6; rewrite H6; simpl.
+  intuit. left. apply big_lt_sound; auto.
+  split_dec; intuit.
+Admitted.
+
 
 End _ReprZUnsigned.
 

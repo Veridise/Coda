@@ -1,5 +1,6 @@
 open Ast
 open Dsl
+open Notation
 
 let k = v "k"
 
@@ -7,9 +8,15 @@ let n = v "n"
 
 let i = v "i"
 
+let j = v "j"
+
 let xs = v "xs"
 
+let xs' = v "xs'"
+
 let ys = v "ys"
+
+let ys' = v "ys'"
 
 let x = v "x"
 
@@ -25,50 +32,47 @@ let y = v "y"
          zip(xs, ys)
    } *)
 
-(* let to_big k = to_big_int TInt n k *)
-let to_big xs = Fn (ToBigUZ, [n; xs])
+let as_le xs = as_le n xs
 
-let big_op op xs ys = tfq (ind_dec nu (op (to_big xs) (to_big ys)))
+let as_be xs = as_be n xs
 
-let t_out = big_op lt xs ys
+let op_le op xs ys = tfq (ind_dec nu (op (as_le xs) (as_le ys)))
 
-let tf_big_digit = tfe (leq (toUZ nu) (zsub1 (zpow z2 CPLen)))
+let op_be op xs ys = tfq (ind_dec nu (op (as_be xs) (as_be ys)))
 
-let t_in = tarr_t_k tf_big_digit k
+let t_out = op_le lt xs ys
 
-let lam_big_lt =
-  lama "i" tint
-    (lama "lt_eq" (tpair tf tf)
-       (elet "lt"
-          (tfst (v "lt_eq"))
-          (elet "eq"
-             (tsnd (v "lt_eq"))
-             (elet "x" (get xs i)
-                (elet "y" (get ys i)
-                   (elet "x_lt_y"
-                      (call "LessThan" [n; x; y])
-                      (elet "xs_lt_ys"
-                         (call "And" [v "eq"; v "x_lt_y"])
-                         (elet "x_eq_y"
-                            (call "IsEqual" [x; y])
-                            (make
-                               [ call "Or" [v "lt"; v "xs_lt_ys"]
-                               ; call "And" [v "eq"; v "x_eq_y"] ] ) ) ) ) ) ) ) ) )
+let t_in = tarr_t_k (tfe (toUZ nu <=. (z2 ^! n) -! z1)) k
 
 let inv_big_lt i =
-  tpair (big_op lt (take xs i) (take ys i)) (big_op eq (take xs i) (take ys i))
+  tpair
+    (op_be lt (take xs' i) (take ys' i))
+    (op_be eq (take xs' i) (take ys' i))
 
-let c_big_lt =
+let big_lt =
   Circuit
     { name= "BigLessThan"
     ; inputs=
-        [ ("n", tnat_e (leq nu (zsub1 CPLen)))
-        ; ("k", tnat_e (leq z2 nu))
+        [ ("n", tnat_e (nu <=. zsub1 CPLen))
+        ; ("k", tnat_e (z2 <=. nu))
         ; ("xs", t_in)
         ; ("ys", t_in) ]
     ; outputs= [("out", t_out)]
     ; dep= None
     ; body=
-        elet "lt"
-          (tget (iter z0 k lam_big_lt ~init:(pair f0 f1) ~inv:inv_big_lt) 0)
-          (v "lt") }
+        elets
+          [("xs'", rev xs); ("ys'", rev ys)]
+          (tfst
+             (iter z0 k ~init:(pair f0 f1) ~inv:inv_big_lt
+                (lama "i" tnat
+                   (lama_match
+                      [("lt", tf); ("eq", tf)]
+                      (elets
+                         [ ("x", get xs' i)
+                         ; ("y", get ys' i)
+                         ; ("x_lt_y", call "LessThan" [n; x; y])
+                         ; ("xs_lt_ys", call "And" [v "eq"; v "x_lt_y"])
+                         ; ("x_eq_y", call "IsEqual" [x; y]) ]
+                         (pair
+                            (call "Or" [v "lt"; v "xs_lt_ys"])
+                            (call "And" [v "eq"; v "x_eq_y"]) ) ) ) ) ) ) }

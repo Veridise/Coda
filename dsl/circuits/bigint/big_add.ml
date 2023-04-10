@@ -113,14 +113,15 @@ let big_add =
 
 (* BigAddModP *)
 
-let q_lt_p = QExpr (toUZ nu <=. toUZ p -! z1)
-
-let t_big_int_lt_p k = tarr_t_q_k tf_n_bit q_lt_p k
+let t_big_int_lt_p k =
+  tarr_t_q_k tf_n_bit (lift (as_le n nu <=. as_le n p -! z1)) k
 
 let t_big_int_add_mod_p k =
-  tarr_t_q_k tf_n_bit (toUZ nu ==. zmod (toUZ a +! toUZ b) (toUZ p)) k
+  tarr_t_q_k tf_n_bit
+    (as_le n nu ==. zmod (as_le n a +! as_le n b) (as_le n p))
+    k
 
-let t_n' = z_range z1 (zsub2 CPLen)
+let t_n' = attaches [lift (nu <=. CPLen -! z2); lift (z1 <=. nu)] tnat
 
 let big_add_mod_p =
   Circuit

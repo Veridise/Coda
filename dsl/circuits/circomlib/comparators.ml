@@ -55,7 +55,7 @@ let is_equal =
 (* LessThan *)
 let t_lt = tfq (ind_dec nu (lt (toUZ x) (toUZ y)))
 
-let input_t = attach (lift (toUZ nu <. z2 ^! n)) tf
+let input_t = attach (lift (toUZ nu <=. (z2 ^! n) -! z1)) tf
 
 let less_than =
   Circuit

@@ -259,14 +259,22 @@ Lemma Random_obligation19: forall (_in : (list F)) (KEY : F) (mimc : (list F)) (
 Proof.
   unwrap_C; intros; subst.
   destruct H1, H6.
-  assert (
+  (* assert (
       H' : forall (i : nat), i < 4 -> n2b ! i = 0%F \/ n2b ! i = 1%F
     ). {
     intros. pattern (n2b ! i).
     assert (i < length n2b) by lia.
     clear H8; revert H9; revert i.
     rewrite <- Forall_nth_default; auto.
-  }
+  } *)
+  assert (^n2b ! 0 <= 1). apply Repr.in_range_binary. auto.
+  assert (^n2b ! 1 <= 1). apply Repr.in_range_binary. auto.
+  assert (^n2b ! 2 <= 1). apply Repr.in_range_binary. auto.
+  assert (^n2b ! 3 <= 1). apply Repr.in_range_binary. auto.
+  repeat (autorewrite with F_to_Z; pose_nonneg; try (lia || nia)).
+  (* simpl.
+  pose_nonneg. lia.
+
   assert (n2b ! 0 = 0%F \/ n2b ! 0 = 1%F) by (apply H'; lia).
   assert (n2b ! 1 = 0%F \/ n2b ! 1 = 1%F) by (apply H'; lia).
   assert (n2b ! 2 = 0%F \/ n2b ! 2 = 1%F) by (apply H'; lia).
@@ -277,5 +285,5 @@ Proof.
     try (repeat rewrite Fmul_1_r);
     try (repeat rewrite Fadd_0_r);
     try (repeat rewrite Fadd_0_l);
-    split; Signed.solve_to_Z.
+    split; Signed.solve_to_Z. *)
 Qed.

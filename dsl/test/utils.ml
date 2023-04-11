@@ -5,11 +5,12 @@ let test_ty c lib =
   typecheck_circuit (add_to_deltas [] lib) ~liblam:Liblam.libs_gamma c
 
 let test (Circuit c' as c : Ast.circuit) lib =
-  let cs = test_ty c lib in 
-  cs |> Coqgen.generate_lemmas c'.name |> print_endline;
+  let cs = test_ty c lib in
+  cs |> Coqgen.generate_lemmas c'.name |> print_endline ;
   let num_nontriv = cs |> List.filter is_really_non_trivial |> List.length in
-  Printf.printf "# trivial: %d\t# non-trivial: %d\n" (List.length cs - num_nontriv) num_nontriv
-
+  Printf.printf "# trivial: %d\t# non-trivial: %d\n"
+    (List.length cs - num_nontriv)
+    num_nontriv
 
 let testlam_ty liblam e = run_synthesis ~gamma:liblam e
 

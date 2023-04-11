@@ -53,11 +53,12 @@ let is_non_trivial = function
       true
 
 let is_really_non_trivial = function
-| CheckCons (_, _, QTrue) ->
-    false
-| CheckCons (_, _, QImply (_, QTrue)) -> false
-| _ ->
-    true
+  | CheckCons (_, _, QTrue) ->
+      false
+  | CheckCons (_, _, QImply (_, QTrue)) ->
+      false
+  | _ ->
+      true
 
 let filter_nontrivial cs = List.filter cs ~f:is_non_trivial
 

@@ -1239,6 +1239,8 @@ let codegen (path : string) (d : delta) (config : configuration) (c : circuit) :
       print_endline (Format.sprintf "=============================") ;
       print_endline_to_file (show_list_r1cs r1cs_all) ;
       flush_to_file (path ^ name ^ ".r1cs") ;
+      print_endline_to_file (r1cs_list_to_json r1cs_all) ;
+      flush_to_file (path ^ name ^ ".json") ;
       ref_counter := 0 ;
       intermidiate_constraints := [] ;
       expr_mem := [] ;

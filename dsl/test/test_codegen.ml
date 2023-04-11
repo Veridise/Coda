@@ -147,50 +147,62 @@ let _ = path := "./test/codegen_results/bigint/"
 let _ = test_circuit [("k", 6)] c_big_is_equal
 (* 14 + 7 = 21*)
 (* 15 *)
+(* 14 + 0 = 14 *)
 
 let _ = test_circuit [("k", 6)] c_big_is_zero
 (* 14 + 1 = 15*)
 (* 15 *)
+(* 14 + 0 = 14 *)
 
 let _ = test_circuit [("n", 43)] mod_sub_three
 (* 45 + 5 = 50*)
 (* 48 *)
+(* 45 + 0 = 45 *)
 
 let _ = test_circuit [("n", 43)] mod_sum_three
 (* 45 + 4 = 49*)
 (* 46 *)
+(* 45 + 0 = 45 *)
 
 let _ = test_circuit [("n", 43)] mod_prod
 (* 87 + 3 = 90 *)
 (* 89 *)
+(* 87 + 0 = 87 *)
 
 let _ = test_circuit [("n", 43); ("m", 43)] split
 (* 86 + 3 = 89 *)
 (* 89 *)
+(* 86 + 0 = 86 *)
 
 let _ = test_circuit [("n", 43); ("m", 43); ("k", 43)] split_three
 (* 129 + 4 = 133 *)
 (* 134 *)
+(* 129 + 0 = 129 *)
 
 let _ = test_circuit [("n", 43); ("k", 6)] big_add
 (* 269 + 23 = 292 *)
 (* 277 *)
+(* 269 + 0 = 269 *)
 
 let _ = test_circuit [("n", 43); ("k", 6)] big_lt
 (* 291 + 24 = 315 *)
 (* 302 *)
+(* 291 + 0 = 291 *)
 
 let _ = test_circuit [("n", 43); ("k", 6)] big_add_mod_p
 (* 929 + 85 = 1014 *)
 (* 950 *)
+(* 929 + 0 = 929 *)
 
 let _ = test_circuit [("n", 43); ("k", 6)] big_sub
 (* 269 + 29 = 298 *)
 (* 283 *)
+(* 269 + 0 = 269 *)
 
 let _ = test_circuit [("n", 43); ("k", 6)] big_sub_mod_p
 (* 550 + 52 = 602 *)
 (* 564 *)
+(* 550 + 0 = 550 *)
 
 let _ = test_circuit [("n", 43); ("k", 6); ("m_out", 2)] big_mult_short_long
 

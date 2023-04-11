@@ -338,3 +338,32 @@ let show_r1cs (r1cs : r1cs) : string =
   in
   Printf.sprintf "( %s )    *    ( %s )    -    ( %s ) = 0"
     (show_coefficients a) (show_coefficients b) (show_coefficients c)
+
+let var_id_map = ref [("1", 0)]
+
+let count = ref 1 (* 0 maps to the const number 1 *)
+
+let coeff_to_json (coeff : symbol * bigint) : string =
+  let x, n = coeff in
+  match List.Assoc.find !var_id_map x ~equal:String.equal with
+  | Some id ->
+      Printf.sprintf "{\"var\": \"%d\", \"value\": \"%s\"}" id
+        (string_of_big_int (cast_bigint_to_field n))
+  | None ->
+      var_id_map := (x, !count) :: !var_id_map ;
+      count := !count + 1 ;
+      Printf.sprintf "{\"var\": \"%d\", \"value\": \"%s\"}" (!count - 1)
+        (string_of_big_int (cast_bigint_to_field n))
+
+let r1cs_to_json (r1cs : r1cs) : string =
+  let a, b, c = r1cs in
+  Printf.sprintf "{\"a\": [%s], \"b\": [%s], \"c\": [%s]}"
+    (List.map a ~f:coeff_to_json |> String.concat ~sep:", ")
+    (List.map b ~f:coeff_to_json |> String.concat ~sep:", ")
+    (List.map c ~f:coeff_to_json |> String.concat ~sep:", ")
+
+let r1cs_list_to_json (r1cs_list : r1cs list) : string =
+  var_id_map := [("1", 0)] ;
+  count := 1 ;
+  Printf.sprintf "{\"constraints\": [%s]}"
+    (List.map r1cs_list ~f:r1cs_to_json |> String.concat ~sep:", ")

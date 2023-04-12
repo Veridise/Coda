@@ -48,6 +48,14 @@ let index = v "index"
 
 let mimc = v "mimc"
 
+let bits = v "bits"
+
+let max_abs_value = v "max_abs_value"
+
+let lt1 = v "lt1"
+
+let lt2 = v "lt2"
+
 (* CalculateTotal *)
 
 let t_ct = tfq (qeq nu (u_sum vin))
@@ -137,3 +145,50 @@ let random =
                    (fadd
                       (fmul f4 (get n2b z2))
                       (fadd (fmul f2 (get n2b z1)) (get n2b z0)) ) ) ) ) }
+
+(* RangeProof *)
+
+let t_mav = tfq (lift (z0 <=. toSZ nu))
+
+(* t_rp = { () | numbits(in, bits + 1) /\ numbits(max_abs_value, bits) /\ |in| <= max_abs_value } *)
+
+(* range_proof (bits : { Z | 0 < nu }) (in : F) (max_abs_value : { F | 0 <= toSZ nu }) : t_rp *)
+let range_proof =
+  Circuit
+    { name= "RangeProof"
+    ; inputs= [("bits", tpos); ("in", tf); ("max_abs_value", t_mav)]
+    ; outputs= []
+    ; dep= None
+    ; body=
+        elet "x"
+          (vin +% fpow f2 bits)
+          (elet "n2b1"
+             (call2 "Num2Bits" (zadd1 bits) x)
+             (elet "n2b2"
+                (call2 "Num2Bits" bits max_abs_value)
+                (elet "lt1"
+                   (call "LessThan" [zadd1 bits; max_abs_value +% vin; f0])
+                   (elet "u0" (assert_eq lt1 f0)
+                      (elet "lt2"
+                         (call "LessThan"
+                            [ zadd1 bits
+                            ; f2 *% max_abs_value
+                            ; max_abs_value +% vin ] )
+                         (assert_eq lt2 f0) ) ) ) ) ) }
+
+(* MultiRangeProof (broken) *)
+
+let lam_mrp =
+  lama "z" tf (elet "_y" (call "RangeProof" [bits; z; max_abs_value]) f0)
+
+let multi_range_proof =
+  Circuit
+    { name= "MultiRangeProof"
+    ; inputs=
+        [ ("n", tnat)
+        ; ("bits", tpos)
+        ; ("in", tarr_tf n)
+        ; ("max_abs_value", t_mav) ]
+    ; outputs= []
+    ; dep= None
+    ; body= elet "_x" (map lam_mrp vin) unit_val }

@@ -179,3 +179,86 @@ Proof.
   assert (^n2b ! 3 <= 1). apply Repr.in_range_binary; auto.
   repeat (autorewrite with F_to_Z; pose_nonneg; try (lia || nia)).
 Qed.
+
+(** ** RangeProof *)
+
+Lemma RangeProof_obligation0_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> True -> ((v = _in) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation1_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> True -> ((v = 2%F) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation2: forall (bits : Z) (_in : F) (max_abs_value : F) (v : Z), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> True -> (((0%nat < v) /\ (v = bits)) -> (0%nat <= v)).
+Proof. Admitted.
+
+Lemma RangeProof_obligation3_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> True -> ((v = (2%F ^ bits)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation4_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (v : Z), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> True -> (((0%nat < v) /\ (v = bits)) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation5_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (v : Z), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> True -> ((v = 1%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation6: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (v : Z), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> True -> ((v = (bits + 1%nat)%Z) -> (0%nat <= v)).
+Proof. Admitted.
+
+Lemma RangeProof_obligation7_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> True -> (((v = (_in + (2%F ^ bits)%F)%F) /\ (v = x)) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation8: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (v : Z), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> True -> (((0%nat < v) /\ (v = bits)) -> (0%nat <= v)).
+Proof. Admitted.
+
+Lemma RangeProof_obligation9_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> True -> (((0%nat <= (Signed.to_Z v)) /\ (v = max_abs_value)) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation10_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (v : Z), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x2 => ((x2 = 0%F) \/ (x2 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> True -> (((0%nat < v) /\ (v = bits)) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation11_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (v : Z), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x4 => ((x4 = 0%F) \/ (x4 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x5 => ((x5 = 0%F) \/ (x5 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> True -> ((v = 1%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation12: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (v : Z), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x6 => ((x6 = 0%F) \/ (x6 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x7 => ((x7 = 0%F) \/ (x7 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> True -> ((v = (bits + 1%nat)%Z) -> ((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z))).
+Proof. Admitted.
+
+Lemma RangeProof_obligation13_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x8 => ((x8 = 0%F) \/ (x8 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x9 => ((x9 = 0%F) \/ (x9 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> True -> (((0%nat <= (Signed.to_Z v)) /\ (v = max_abs_value)) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation14_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x10 => ((x10 = 0%F) \/ (x10 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x11 => ((x11 = 0%F) \/ (x11 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> True -> ((v = _in) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation15: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x12 => ((x12 = 0%F) \/ (x12 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x13 => ((x13 = 0%F) \/ (x13 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> True -> ((v = (max_abs_value + _in)%F) -> ((^ v) <= ((2%nat ^ (bits + 1%nat)%Z)%Z - 1%nat)%Z)).
+Proof. Admitted.
+
+Lemma RangeProof_obligation16: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x14 => ((x14 = 0%F) \/ (x14 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x15 => ((x15 = 0%F) \/ (x15 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> True -> ((v = 0%F) -> ((^ v) <= ((2%nat ^ (bits + 1%nat)%Z)%Z - 1%nat)%Z)).
+Proof. Admitted.
+
+Lemma RangeProof_obligation17_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (lt1 : F) (u0 : unit) (v : Z), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x16 => ((x16 = 0%F) \/ (x16 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x17 => ((x17 = 0%F) \/ (x17 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> (((lt1 = 0%F) \/ (lt1 = 1%F)) /\ (((lt1 = 1%F) -> ((^ (max_abs_value + _in)%F) < (^ 0%F))) /\ ((lt1 = 0%F) -> ~((^ (max_abs_value + _in)%F) < (^ 0%F))))) -> (lt1 = 0%F) -> True -> (((0%nat < v) /\ (v = bits)) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation18_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (lt1 : F) (u0 : unit) (v : Z), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x18 => ((x18 = 0%F) \/ (x18 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x19 => ((x19 = 0%F) \/ (x19 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> (((lt1 = 0%F) \/ (lt1 = 1%F)) /\ (((lt1 = 1%F) -> ((^ (max_abs_value + _in)%F) < (^ 0%F))) /\ ((lt1 = 0%F) -> ~((^ (max_abs_value + _in)%F) < (^ 0%F))))) -> (lt1 = 0%F) -> True -> ((v = 1%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation19: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (lt1 : F) (u0 : unit) (v : Z), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x20 => ((x20 = 0%F) \/ (x20 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x21 => ((x21 = 0%F) \/ (x21 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> (((lt1 = 0%F) \/ (lt1 = 1%F)) /\ (((lt1 = 1%F) -> ((^ (max_abs_value + _in)%F) < (^ 0%F))) /\ ((lt1 = 0%F) -> ~((^ (max_abs_value + _in)%F) < (^ 0%F))))) -> (lt1 = 0%F) -> True -> ((v = (bits + 1%nat)%Z) -> ((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z))).
+Proof. Admitted.
+
+Lemma RangeProof_obligation20_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (lt1 : F) (u0 : unit) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x22 => ((x22 = 0%F) \/ (x22 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x23 => ((x23 = 0%F) \/ (x23 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> (((lt1 = 0%F) \/ (lt1 = 1%F)) /\ (((lt1 = 1%F) -> ((^ (max_abs_value + _in)%F) < (^ 0%F))) /\ ((lt1 = 0%F) -> ~((^ (max_abs_value + _in)%F) < (^ 0%F))))) -> (lt1 = 0%F) -> True -> ((v = 2%F) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation21_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (lt1 : F) (u0 : unit) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x24 => ((x24 = 0%F) \/ (x24 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x25 => ((x25 = 0%F) \/ (x25 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> (((lt1 = 0%F) \/ (lt1 = 1%F)) /\ (((lt1 = 1%F) -> ((^ (max_abs_value + _in)%F) < (^ 0%F))) /\ ((lt1 = 0%F) -> ~((^ (max_abs_value + _in)%F) < (^ 0%F))))) -> (lt1 = 0%F) -> True -> (((0%nat <= (Signed.to_Z v)) /\ (v = max_abs_value)) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation22: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (lt1 : F) (u0 : unit) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x26 => ((x26 = 0%F) \/ (x26 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x27 => ((x27 = 0%F) \/ (x27 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> (((lt1 = 0%F) \/ (lt1 = 1%F)) /\ (((lt1 = 1%F) -> ((^ (max_abs_value + _in)%F) < (^ 0%F))) /\ ((lt1 = 0%F) -> ~((^ (max_abs_value + _in)%F) < (^ 0%F))))) -> (lt1 = 0%F) -> True -> ((v = (2%F * max_abs_value)%F) -> ((^ v) <= ((2%nat ^ (bits + 1%nat)%Z)%Z - 1%nat)%Z)).
+Proof. Admitted.
+
+Lemma RangeProof_obligation23_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (lt1 : F) (u0 : unit) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x28 => ((x28 = 0%F) \/ (x28 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x29 => ((x29 = 0%F) \/ (x29 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> (((lt1 = 0%F) \/ (lt1 = 1%F)) /\ (((lt1 = 1%F) -> ((^ (max_abs_value + _in)%F) < (^ 0%F))) /\ ((lt1 = 0%F) -> ~((^ (max_abs_value + _in)%F) < (^ 0%F))))) -> (lt1 = 0%F) -> True -> (((0%nat <= (Signed.to_Z v)) /\ (v = max_abs_value)) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation24_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (lt1 : F) (u0 : unit) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x30 => ((x30 = 0%F) \/ (x30 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x31 => ((x31 = 0%F) \/ (x31 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> (((lt1 = 0%F) \/ (lt1 = 1%F)) /\ (((lt1 = 1%F) -> ((^ (max_abs_value + _in)%F) < (^ 0%F))) /\ ((lt1 = 0%F) -> ~((^ (max_abs_value + _in)%F) < (^ 0%F))))) -> (lt1 = 0%F) -> True -> ((v = _in) -> True).
+Proof. hammer. Qed.
+
+Lemma RangeProof_obligation25: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (lt1 : F) (u0 : unit) (v : F), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x32 => ((x32 = 0%F) \/ (x32 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x33 => ((x33 = 0%F) \/ (x33 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> (((lt1 = 0%F) \/ (lt1 = 1%F)) /\ (((lt1 = 1%F) -> ((^ (max_abs_value + _in)%F) < (^ 0%F))) /\ ((lt1 = 0%F) -> ~((^ (max_abs_value + _in)%F) < (^ 0%F))))) -> (lt1 = 0%F) -> True -> ((v = (max_abs_value + _in)%F) -> ((^ v) <= ((2%nat ^ (bits + 1%nat)%Z)%Z - 1%nat)%Z)).
+Proof. Admitted.
+
+Lemma RangeProof_obligation26_trivial: forall (bits : Z) (_in : F) (max_abs_value : F) (x : F) (n2b1 : (list F)) (n2b2 : (list F)) (lt1 : F) (u0 : unit) (lt2 : F) (v : unit), (0%nat < bits) -> True -> (0%nat <= (Signed.to_Z max_abs_value)) -> (x = (_in + (2%F ^ bits)%F)%F) -> Forall (fun x34 => ((x34 = 0%F) \/ (x34 = 1%F))) n2b1 -> (((as_le_f n2b1) = x) /\ ((length n2b1) = (bits + 1%nat)%Z)) -> Forall (fun x35 => ((x35 = 0%F) \/ (x35 = 1%F))) n2b2 -> (((as_le_f n2b2) = max_abs_value) /\ ((length n2b2) = bits)) -> (((lt1 = 0%F) \/ (lt1 = 1%F)) /\ (((lt1 = 1%F) -> ((^ (max_abs_value + _in)%F) < (^ 0%F))) /\ ((lt1 = 0%F) -> ~((^ (max_abs_value + _in)%F) < (^ 0%F))))) -> (lt1 = 0%F) -> (((lt2 = 0%F) \/ (lt2 = 1%F)) /\ (((lt2 = 1%F) -> ((^ (2%F * max_abs_value)%F) < (^ (max_abs_value + _in)%F))) /\ ((lt2 = 0%F) -> ~((^ (2%F * max_abs_value)%F) < (^ (max_abs_value + _in)%F))))) -> True -> ((lt2 = 0%F) -> True).
+Proof. hammer. Qed.

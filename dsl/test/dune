@@ -75,3 +75,8 @@
  (name test_hydra)
  (libraries zarith lib coqgen circomlib test_utils hydra)
  (modules test_hydra))
+
+(executable
+ (name test_semaphore)
+ (libraries zarith lib coqgen circomlib test_utils semaphore)
+ (modules test_semaphore))

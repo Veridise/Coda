@@ -99,6 +99,10 @@ let calc_null_hash =
 
 (* MerkleTreeInclusionProof *)
 
+let u_hasher z init = unint "MrklTreeInclPfHash" [z; init]
+
+let u_zip xs ys = unint "zip" [xs; ys]
+
 let lam_mtip z =
   lama "i" tint
     (lama "x" tf
@@ -116,12 +120,16 @@ let lam_mtip z =
                       (call "MultiMux1" [z2; c; j])
                       (call "Poseidon" [z2; m]) ) ) ) ) ) )
 
-let rec hasher z init =
-  iter z0 (len z) (lam_mtip z) ~init ~inv:(fun i ->
-      tfq (qeq nu (hasher (take z i) init)) )
+let hasher z len init =
+  iter z0 len (lam_mtip z) ~init ~inv:(fun i ->
+      tfq (qeq nu (u_hasher (u_take i z) init)) )
 
-let t_r = tfq (qeq nu (hasher (zip pathIndices siblings) leaf))
+(* {F | nu = #MrklTreeInclPfHash (zip pathIndices siblings) leaf } *)
+let t_r = tfq (qeq nu (u_hasher (u_zip pathIndices siblings) leaf))
 
+(* mrkl_tree_incl_pf (nLevels : {Z | 0 <= nu }) (leaf : F)
+   (pathIndices : { Array<F> | length nu = nLevels })
+   (siblings : { Array<F> | length nu = nLevels }) : t_r *)
 let mrkl_tree_incl_pf =
   Circuit
     { name= "MerkleTreeInclusionProof"
@@ -132,26 +140,37 @@ let mrkl_tree_incl_pf =
         ; ("siblings", tarr_tf nLevels) ]
     ; outputs= [("root", t_r)]
     ; dep= None
-    ; body= elet "z" (zip pathIndices siblings) (assert_eq root (hasher z leaf))
-    }
+    ; body= elet "z" (zip pathIndices siblings) (hasher z nLevels leaf) }
 
 (* Semaphore *)
 
+let u_calc_id_commit x = unint "CalculateIdentityCommitment" [x]
+
+let u_calc_secret x y = unint "CalculateSecret" [x; y]
+
+let u_calc_null_hash x y = unint "CalculateNullifierHash" [x; y]
+
+let u_mrkl_tree_incl_pf n xs i s = unint "MerkleTreeInclusionProof" [n; xs; i; s]
+
+(* { F | nu = #MerkleTreeInclusionProof nLevels
+         (#CalculateIdentityCommitment (#CalculateSecret identityNullifier identityTrapdoor))
+         treePathIndices treeSiblings } *)
 let t_semaphore_root =
   tfq
     (qeq nu
-       (call "MerkleTreeInclusionProof"
-          [ nLevels
-          ; call "CalculateIdentityCommitment"
-              [call "CalculateSecret" [identityNullifier; identityTrapdoor]]
-          ; treePathIndices
-          ; treeSiblings ] ) )
+       (u_mrkl_tree_incl_pf nLevels
+          (u_calc_id_commit (u_calc_secret identityNullifier identityTrapdoor))
+          treePathIndices treeSiblings ) )
 
+(* { F | nu =  #CalculateNullifierHash externalNullifier identityNullifier } *)
 let t_semaphore_null_hash =
-  tfq
-    (qeq nu
-       (call "CalculateNullifierHash" [externalNullifier; identityNullifier]) )
+  tfq (qeq nu (u_calc_null_hash externalNullifier identityNullifier))
 
+(* semaphore
+     (nLevels : { Z | 0 <= nu }) (identityNullifier : F) (identityTrapdoor : F)
+     (treePathIndices : { Array<F> | length nu = nLevels })
+     (treeSiblings : { Array<F> | length nu = nLevels })
+     (signalHash : F) (externalNullifer : F) : tpair t_semaphore_root t_semaphore_null_hash *)
 let semaphore =
   Circuit
     { name= "Semaphore"

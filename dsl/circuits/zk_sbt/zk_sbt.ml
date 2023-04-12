@@ -27,7 +27,7 @@ let z = v "z"
 
 let eq = v "eq"
 
-let lt = v "lt"
+let l = v "lt"
 
 let gt = v "gt"
 
@@ -61,28 +61,34 @@ let rootsTreeRoot = v "rootsTreeRoot"
 
 (* IN *)
 
-(* ~(forall 0 <= i < len value, value[i] <> in) *)
-let q_out = qexists_e "i" z0 (len value) (get value i =. vin)
+let t_sz =
+  TRef
+    ( tint
+    , qand
+        (lift (z2 <. CPrime))
+        (qand (lift (z252 <=. zsub1 CPLen)) (lift (z0 <. nu))) )
 
-let t_out = tfq (q_ind_dec nu q_out)
+let q_IN = qexists_e "i" z0 valueArraySize (get value i =. vin)
 
-let lam_in =
+let t_IN = tfq (q_ind_dec nu q_IN)
+
+let lam_IN =
   lama "i" tint
     (lama "x" tf
        (elet "ise" (call "IsEqual" [vin; get value i]) (fadd x (v "ise"))) )
 
-let inv_in i = tfq (q_ind_dec nu (qexists_e "j" z0 i (get value j =. vin)))
+let inv_IN i = tfq (q_ind_dec nu (qexists_e "j" z0 i (get value j =. vin)))
 
 let c_in =
   Circuit
     { name= "IN"
     ; inputs=
-        [("valueArraySize", tnat); ("in", tf); ("value", tarr_tf valueArraySize)]
-    ; outputs= [("out", t_out)]
+        [("valueArraySize", t_sz); ("in", tf); ("value", tarr_tf valueArraySize)]
+    ; outputs= [("out", t_IN)]
     ; dep= None
     ; body=
         elet "count"
-          (iter z0 valueArraySize lam_in ~init:f0 ~inv:inv_in)
+          (iter z0 valueArraySize lam_IN ~init:f0 ~inv:inv_IN)
           (call "GreaterThan" [z252; count; f0]) }
 
 (* Query *)
@@ -96,7 +102,14 @@ let is_gt x y = call "GreaterThan" [z252; x; y]
 (* [1; e; l; g; i; 1 - i; 0; 0] *)
 let mux_query e l g i = const_array tf [f1; e; l; g; i; f1 -% i; f0; f0]
 
-let t_out =
+let t_vas =
+  TRef
+    ( tint
+    , qand
+        (lift (z2 <. CPrime))
+        (qand (lift (z252 <=. zsub1 CPLen)) (lift (z0 <. nu))) )
+
+let t_query =
   tfq
     (ites_expr
        [ (op =. fn 0, nu ==. f1)
@@ -115,11 +128,11 @@ let query =
   Circuit
     { name= "Query"
     ; inputs=
-        [ ("valueArraySize", tpos)
+        [ ("valueArraySize", t_vas)
         ; ("in", tf)
         ; ("value", tarr_tf valueArraySize)
         ; ("operator", tf) ]
-    ; outputs= [("out", t_out)]
+    ; outputs= [("out", t_query)]
     ; dep= None
     ; body=
         elet "x" (get value z0)
@@ -130,7 +143,7 @@ let query =
                       (call "IN" [valueArraySize; vin; value])
                       (elet "n2b"
                          (call "Num2Bits" [z3; op])
-                         (call "Mux3" [mux_query eq lt gt iN; n2b]) ) ) ) ) ) }
+                         (call "Mux3" [mux_query eq l gt iN; n2b]) ) ) ) ) ) }
 
 (* getValueByIndex *)
 

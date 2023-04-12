@@ -362,7 +362,9 @@ End ToZUnsigned.
 
 Module ReprZUnsigned.
 
-Module RZ := (ReprZ ToZUnsigned).
+Module ToZ := ToZUnsigned.
+Module RZFactory := ReprZ.
+Module RZ := RZFactory ToZ.
 
 Import RZ.
 
@@ -732,7 +734,9 @@ End ToZSigned.
 
 Module ReprZSigned.
 
-Module RZ := (ReprZ ToZSigned).
+Module ToZ := ToZSigned.
+Module RZFactory := ReprZ.
+Module RZ := RZFactory ToZ.
 
 Import RZ.
 

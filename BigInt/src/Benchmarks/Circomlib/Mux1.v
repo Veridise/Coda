@@ -26,25 +26,25 @@ Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
 
 Lemma MultiMux1_obligation0_trivial: forall (n : nat) (c : (list (list F))) (s : F) (x : (list F)) (a : F) (b : F) (v : F), Forall (fun x1 => Forall (fun x0 => True) x1) c -> Forall (fun x1 => ((length x1) = 2%nat)) c -> ((length c) = n) -> True -> Forall (fun x2 => True) x -> ((length x) = 2%nat) -> (a = (x!0%nat)) -> (b = (x!1%nat)) -> True -> (((v = b) /\ True) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma MultiMux1_obligation1_trivial: forall (n : nat) (c : (list (list F))) (s : F) (x : (list F)) (a : F) (b : F) (v : F), Forall (fun x4 => Forall (fun x3 => True) x4) c -> Forall (fun x4 => ((length x4) = 2%nat)) c -> ((length c) = n) -> True -> Forall (fun x5 => True) x -> ((length x) = 2%nat) -> (a = (x!0%nat)) -> (b = (x!1%nat)) -> True -> (((v = a) /\ True) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma MultiMux1_obligation2_trivial: forall (n : nat) (c : (list (list F))) (s : F) (x : (list F)) (a : F) (b : F) (y : F) (v : F), Forall (fun x7 => Forall (fun x6 => True) x7) c -> Forall (fun x7 => ((length x7) = 2%nat)) c -> ((length c) = n) -> True -> Forall (fun x8 => True) x -> ((length x) = 2%nat) -> (a = (x!0%nat)) -> (b = (x!1%nat)) -> (y = (b - a)%F) -> True -> (((v = y) /\ True) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma MultiMux1_obligation3_trivial: forall (n : nat) (c : (list (list F))) (s : F) (x : (list F)) (a : F) (b : F) (y : F) (v : F), Forall (fun x10 => Forall (fun x9 => True) x10) c -> Forall (fun x10 => ((length x10) = 2%nat)) c -> ((length c) = n) -> True -> Forall (fun x11 => True) x -> ((length x) = 2%nat) -> (a = (x!0%nat)) -> (b = (x!1%nat)) -> (y = (b - a)%F) -> True -> (((v = s) /\ True) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma MultiMux1_obligation4_trivial: forall (n : nat) (c : (list (list F))) (s : F) (x : (list F)) (a : F) (b : F) (y : F) (z : F) (v : F), Forall (fun x13 => Forall (fun x12 => True) x13) c -> Forall (fun x13 => ((length x13) = 2%nat)) c -> ((length c) = n) -> True -> Forall (fun x14 => True) x -> ((length x) = 2%nat) -> (a = (x!0%nat)) -> (b = (x!1%nat)) -> (y = (b - a)%F) -> (z = (y * s)%F) -> True -> (((v = z) /\ True) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma MultiMux1_obligation5_trivial: forall (n : nat) (c : (list (list F))) (s : F) (x : (list F)) (a : F) (b : F) (y : F) (z : F) (v : F), Forall (fun x16 => Forall (fun x15 => True) x16) c -> Forall (fun x16 => ((length x16) = 2%nat)) c -> ((length c) = n) -> True -> Forall (fun x17 => True) x -> ((length x) = 2%nat) -> (a = (x!0%nat)) -> (b = (x!1%nat)) -> (y = (b - a)%F) -> (z = (y * s)%F) -> True -> (((v = a) /\ True) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma MultiMux1_obligation6_trivial: forall (n : nat) (c : (list (list F))) (s : F) (x : (list F)) (a : F) (b : F) (y : F) (z : F) (v : F), Forall (fun x19 => Forall (fun x18 => True) x19) c -> Forall (fun x19 => ((length x19) = 2%nat)) c -> ((length c) = n) -> True -> Forall (fun x20 => True) x -> ((length x) = 2%nat) -> (a = (x!0%nat)) -> (b = (x!1%nat)) -> (y = (b - a)%F) -> (z = (y * s)%F) -> True -> ((v = (z + a)%F) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma MultiMux1_obligation7: forall (n : nat) (c : (list (list F))) (s : F) (v : (list F)), Forall (fun x22 => Forall (fun x21 => True) x22) c -> Forall (fun x22 => ((length x22) = 2%nat)) c -> ((length c) = n) -> True -> Forall (fun x23 => True) v -> True -> (True -> ((length v) = 2%nat)).
 Proof. Admitted.

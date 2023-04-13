@@ -337,3 +337,40 @@ Proof.
   intros. replace (i+1)%nat with (S i) by lia.
   rewrite firstn_S with (d:=default). fold_default. reflexivity. lia.
 Qed.
+
+Lemma list_combine_eq_forall:
+  forall (l1 l2:list Circom.F) z,
+    (forall (i:nat), 0 <= i < length l1 -> fst (z!i) = l1!i /\ snd (z!i) = l2!i) ->
+    (length l1 = length l2) ->
+    (length z = length l1) ->
+    z = combine l1 l2.
+Proof.
+  induction l1; intros; destruct l2; simpl in *; try easy.
+  destruct z;try easy.
+  inversion H0. destruct z;try easy.
+  assert (p = (a, f)). 
+  { assert ( fst ((p :: z) ! 0) = (a :: l1) ! 0). specialize (H 0%nat). destruct H;try lia;auto.
+    assert ( snd ((p :: z) ! 0) = (f :: l2) ! 0). specialize (H 0%nat). destruct H;try lia;auto.
+    destruct p;simpl in *. f_equal;auto. }
+  subst;f_equal. apply IHl1;auto. 
+  intros. specialize (H (S i)). 
+  assert ( fst (((a, f) :: z) ! S i) = (a :: l1) ! S i /\ snd (((a, f) :: z) ! S i) = (f :: l2) ! S i). destruct H;try lia;auto.
+  assert ( l1 = (a::l1)[1:]). { auto. }
+  assert ( l2 = (f::l2)[1:]). { auto. }
+  assert ( z = ((a, f) :: z)[1:]). { auto. } rewrite H5, H6, H7. unfold_default.
+  do 3 rewrite skipn_nth. fold_default;simpl;try lia.
+  destruct H;try lia;auto.
+Qed.
+
+Lemma fold_left_firstn_S:
+  forall (l: list (Circom.F*Circom.F))(i: nat)(b: Circom.F)f,
+  i < length l ->
+  fold_left f  (l [:S i]) b = 
+  f (fold_left f (l [:i]) b) (l ! i).
+Proof.
+  intros. 
+  assert(l [:S i] = l [:i] ++ ((l ! i)::nil)).
+  { erewrite firstn_S;try lia. unfold_default. auto. }
+  rewrite H0.
+  apply fold_left_app.
+Qed.

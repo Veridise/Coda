@@ -58,49 +58,6 @@ Axiom Poseidon_2 : forall inputs : list F,
 
 Definition zip {A B} (xs : list A) (ys : list B) := combine xs ys.
 
-(* Lemma list_eq_forall:
-  forall (l1 l2:list F),
-    (forall (i:nat), 0 <= i < length l1 -> l1!i = l2!i) ->
-    (length l1 = length l2) ->
-    l1 = l2.
-Proof.
-  induction l1; intros; destruct l2; simpl in *; try easy.
-  inversion H0. 
-  assert (a = f). 
-  { assert ( (a :: l1) ! 0 = (f :: l2) ! 0). specialize (H 0%nat). destruct H;try lia;auto.
-    auto. }
-  subst;f_equal. apply IHl1;intuition. specialize (H (S i)). 
-  assert ( (f :: l1) ! (S i) = (f :: l2) ! (S i)). destruct H;try lia;auto.
-  assert ( l1 = (f::l1)[1:]). { auto. }
-  assert ( l2 = (f::l2)[1:]). { auto. } rewrite H5, H6. unfold_default.
-  do 2 rewrite skipn_nth. fold_default;simpl;try lia.
-  destruct H;try lia;auto.
-Qed. *)
-
-Lemma list_combine_eq_forall:
-  forall (l1 l2:list F) z,
-    (forall (i:nat), 0 <= i < length l1 -> fst (z!i) = l1!i /\ snd (z!i) = l2!i) ->
-    (length l1 = length l2) ->
-    (length z = length l1) ->
-    z = combine l1 l2.
-Proof.
-  induction l1; intros; destruct l2; simpl in *; try easy.
-  destruct z;try easy.
-  inversion H0. destruct z;try easy.
-  assert (p = (a, f)). 
-  { assert ( fst ((p :: z) ! 0) = (a :: l1) ! 0). specialize (H 0%nat). destruct H;try lia;auto.
-    assert ( snd ((p :: z) ! 0) = (f :: l2) ! 0). specialize (H 0%nat). destruct H;try lia;auto.
-    destruct p;simpl in *. f_equal;auto. }
-  subst;f_equal. apply IHl1;auto. 
-  intros. specialize (H (S i)). 
-  assert ( fst (((a, f) :: z) ! S i) = (a :: l1) ! S i /\ snd (((a, f) :: z) ! S i) = (f :: l2) ! S i). destruct H;try lia;auto.
-  assert ( l1 = (a::l1)[1:]). { auto. }
-  assert ( l2 = (f::l2)[1:]). { auto. }
-  assert ( z = ((a, f) :: z)[1:]). { auto. } rewrite H5, H6, H7. unfold_default.
-  do 3 rewrite skipn_nth. fold_default;simpl;try lia.
-  destruct H;try lia;auto.
-Qed.
-
 (* Note: This is a placeholder implementation that lets us prove many
 trivial and even some nontrivial MerkleTreeInclusionProof obligations *)
 Definition MrklTreeInclPfHash (xs : list (F * F)) (init : F) := 
@@ -149,37 +106,6 @@ Lemma CalculateNullifierHash_obligation2: forall (externalNullifier : F) (identi
 Proof. hammer. Qed.
 
 (** ** MerkleTreeInclusionProof *)
-
-Lemma fold_left_firstn_S:
-  forall (l: list (F*F))(i: nat)(b: F)f,
-  i < length l ->
-  fold_left f  (l [:S i]) b = 
-  f (fold_left f (l [:i]) b) (l ! i).
-Proof.
-  intros. 
-  assert(l [:S i] = l [:i] ++ ((l ! i)::nil)).
-  { erewrite firstn_S;try lia. unfold_default. auto. }
-  rewrite H0.
-  apply fold_left_app.
-Qed.
-
-Lemma combine_fst_n: forall n (j:nat) (l1 l2: list F),
-  length l1 = length l2 ->
-  j < n ->
-  fst ((combine (l1) (l2)) ! j) = l1 ! j.
-Proof.
-  intros. 
-  unfold_default. simpl. rewrite combine_nth;simpl;auto.
-Qed.
-
-Lemma combine_snd_n: forall n (j:nat) (l1 l2: list F),
-  length l1 = length l2 ->
-  j < n ->
-  fst ((combine (l1) (l2)) ! j) = l1 ! j.
-Proof.
-  intros. 
-  unfold_default. simpl. rewrite combine_nth;simpl;auto.
-Qed.
 
 Lemma MerkleTreeInclusionProof_obligation0_trivial: forall (nLevels : nat) (leaf : F) (pathIndices : (list F)) (siblings : (list F)) (z : (list (F * F))) (v : Z), True -> Forall (fun x3 => True) pathIndices -> ((length pathIndices) = nLevels) -> Forall (fun x4 => True) siblings -> ((length siblings) = nLevels) -> Forall (fun x7 => match x7 with (x5,x6) => True end) z -> Forall (fun x7 => match x7 with (x5,x6) => True end) z -> Forall (fun x7 => match x7 with (x5,x6) => True end) z -> ((forall (iz:nat), 0%nat <= iz < (length pathIndices) -> (((fst (z!iz)) = (pathIndices!iz)) /\ ((snd (z!iz)) = (siblings!iz)))) /\ ((length z) = (length pathIndices))) -> True -> ((v = 0%nat) -> True).
 Proof. hammer. Qed.

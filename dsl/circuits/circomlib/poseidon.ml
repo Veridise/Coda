@@ -17,6 +17,22 @@ let poseidon =
     ; dep= None
     ; body= star }
 
+let u_eddsa_poseidon xs = unint "EdDSAPoseidonVerifier" xs
+
+let enabled = v "enabled"
+
+let ax = v "Ax"
+
+let ay = v "Ay"
+
+let s = v "S"
+
+let r8x = v "R8x"
+
+let r8y = v "R8y"
+
+let m = v "M"
+
 let vrfy_eddsa_poseidon =
   Circuit
     { name= "EdDSAPoseidonVerifier"
@@ -29,5 +45,8 @@ let vrfy_eddsa_poseidon =
         ; ("R8y", tf)
         ; ("M", tf) ]
     ; outputs= []
-    ; dep= None
+    ; dep=
+        Some
+          (qimply (qeq enabled f1)
+             (lift (u_eddsa_poseidon [ax; ay; s; r8x; r8y; m])) )
     ; body= unit_val }

@@ -1,4 +1,4 @@
 (library
  (name hydra)
- (libraries lib typecheck)
+ (libraries circomlib lib typecheck)
  (modules hydra))

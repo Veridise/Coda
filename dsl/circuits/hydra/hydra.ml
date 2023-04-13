@@ -1,5 +1,6 @@
 open Ast
 open Dsl
+open Circomlib__Poseidon
 
 let va = v "a"
 
@@ -28,6 +29,8 @@ let x = v "x"
 let y = v "y"
 
 let z = v "z"
+
+let hasher_out = v "hasher_out"
 
 let vin = v "in"
 
@@ -127,9 +130,9 @@ let q_switch i o =
     (qand (qleq z2 (len i)) (qleq z2 (len o)))
     (qand (qeq (get o z0) (get i z1)) (qeq (get o z1) (get i z0)))
 
-(* forall s in nu, binary(s) -> (s = 1 -> q_switch in nu) /\ (s = 0 -> q_same in nu) *)
+(* forall s in nu, binary(s) /\ (s = 1 -> q_switch in nu) /\ (s = 0 -> q_same in nu) *)
 let q_out =
-  qimply (QExpr (is_binary s)) (q_ind s (q_switch vin nu) (q_same vin nu))
+  qand (QExpr (is_binary s)) (q_ind s (q_switch vin nu) (q_same vin nu))
 
 (* { Array<F> | q_out(v) /\ length v = 2 } *)
 let t_out = tarr_t_q_k tf q_out z2
@@ -155,17 +158,16 @@ let position_switcher =
 
 let u_hasher xs init = unint "VerifyMerklePathHash" [xs; init]
 
+let u_mrkl_tree_incl_pf xs i s = unint "VerifyMerklePathHashProof" [xs; i; s]
+
 (* \i x => #Poseidon 2 (#PositionSwitcher [x; (z[i]).0] (z[i]).1) *)
 let lam_vmp z =
   lama "i" tint
     (lama "x" tf
-       (elet "elem"
-          (tget (get z i) 0)
-          (elet "s"
-             (tget (get z i) 1)
-             (elet "y"
-                (call "PositionSwitcher" [const_array tf [x; elem]; s])
-                (call "Poseidon" [z2; y]) ) ) ) )
+       (elet "y"
+          (call "PositionSwitcher"
+             [const_array tf [x; tget (get z i) 0]; tget (get z i) 1] )
+          (call "Poseidon" [z2; y]) ) )
 
 (* Compute the Poseidon hash over z (list of pairs of F suitable for
    PositionSwitcher) from initial value init *)
@@ -181,21 +183,27 @@ let vrfy_mrkl_path =
   Circuit
     { name= "VerifyMerklePath"
     ; inputs=
-        [ ("levels", tpos)
+        [ ("levels", tnat)
         ; ("leaf", tf)
         ; ("root", tf)
         ; ("pathElements", tarr_tf levels)
         ; ("pathIndices", tarr_tf levels) ]
     ; outputs= []
-    ; dep= None
+    ; dep= Some (qeq root (u_mrkl_tree_incl_pf leaf pathElements pathIndices))
     ; body=
         (* z = zip pathElements pathIndices *)
         elet "z"
           (zip pathElements pathIndices)
           (* root === hasher z leaf *)
-          (elet "u" (assert_eq root (hasher z levels leaf)) unit_val) }
+          (elet "hasher_out" (hasher z levels leaf)
+             (elet "u" (assert_eq root hasher_out) unit_val) ) }
 
 (** VerifyHydraCommitment *)
+
+let u_hydra_commitment_verifier address secret commitmentMapperPubKey
+    commitmentReceipt =
+  unint "VerifyHydraCommitment"
+    [address; secret; commitmentMapperPubKey; commitmentReceipt]
 
 (* vrfy_hydra_commit
      (address : F) (secret : F)
@@ -210,7 +218,11 @@ let vrfy_hydra_commit =
         ; ("commitmentMapperPubKey", tarr_tf z2)
         ; ("commitmentReceipt", tarr_tf z3) ]
     ; outputs= []
-    ; dep= None
+    ; dep=
+        Some
+          (lift
+             (u_hydra_commitment_verifier address secret commitmentMapperPubKey
+                commitmentReceipt ) )
     ; body=
         elet "commitment"
           (call "Poseidon" [z1; const_array tf [secret]])
@@ -230,7 +242,7 @@ let vrfy_hydra_commit =
 (* hydraS1 *)
 
 (* { Z | 252 <= C.k - 1 /\ 0 < nu } *)
-let t_h = TRef (tint, qand (lift (leq z252 (zsub1 CPLen))) (lift (lt z0 nu)))
+let t_h = TRef (tnat, qand (lift (leq z252 (zsub1 CPLen))) (lift (lt z0 nu)))
 
 (* { F | toUZ nu < 2 ^ 252 } *)
 let t_claimedValue = tfq (lift (lt (toUZ nu) (zpow z2 z252)))
@@ -265,7 +277,35 @@ let hydra_s1 =
         ; ("accountsTreeValue", tf)
         ; ("isStrict", tf) ]
     ; outputs= []
-    ; dep= None
+    ; dep=
+        Some
+          (ands
+             [ (* isStrict = 1 -> claimedValue = sourceValue *)
+               qimply (qeq isStrict f1) (qeq claimedValue sourceValue)
+             ; (* claimedValue <= sourceValue *)
+               qleq (toUZ claimedValue) (toUZ sourceValue)
+             ; lift
+                 (u_hydra_commitment_verifier sourceIdentifier sourceSecret
+                    commitmentMapperPubKey sourceCommitmentReceipt )
+             ; lift
+                 (u_hydra_commitment_verifier destinationIdentifier
+                    destinationSecret commitmentMapperPubKey
+                    destinationCommitmentReceipt )
+             ; qeq registryTreeRoot
+                 (u_mrkl_tree_incl_pf
+                    (u_poseidon z2
+                       (const_array tf [accountsTreeRoot; accountsTreeValue]) )
+                    registryMerklePathElements registryMerklePathIndices )
+             ; qeq accountsTreeRoot
+                 (u_mrkl_tree_incl_pf
+                    (u_poseidon z2
+                       (const_array tf [sourceIdentifier; sourceValue]) )
+                    accountMerklePathElements accountMerklePathIndices )
+             ; qeq nullifier
+                 (u_poseidon z2
+                    (const_array tf
+                       [ u_poseidon z2 (const_array tf [sourceSecret; f1])
+                       ; externalNullifier ] ) ) ] )
     ; body=
         elet "u0"
           (call "VerifyHydraCommitment"

@@ -14,7 +14,7 @@ Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
 Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
 Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
 
-From Circom Require Import Circom Util Default Tuple ListUtil LibTactics Simplify Repr Coda.
+From Circom Require Import Circom Util Default Tuple ListUtil LibTactics Simplify Repr Coda Signed.
 
 Local Coercion N.of_nat : nat >-> N.
 Local Coercion Z.of_nat : nat >-> Z.
@@ -24,6 +24,31 @@ Local Open Scope F_scope.
 Local Open Scope Z_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
+
+
+#[local]Hint Extern 1 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
+#[local]Hint Extern 1  => match goal with
+   | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
+   #[local]Hint Extern 1  => match goal with
+   | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
+#[local]Hint Extern 1 => match goal with
+  [ |- context[length _] ] => rewrite_length end: core.
+#[local]Hint Extern 1 (Forall _ (skipn _ _)) => apply Forall_skipn: core.
+
+#[local]Hint Extern 1 (Forall _ (_ :: _)) => constructor: core.
+#[local]Hint Extern 1 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: core.
+#[local]Hint Extern 1  => repeat match goal with
+  [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end: core.
+
+#[local]Hint Extern 1 (_ < _) => lia: core.
+#[local]Hint Extern 1 (_ < _)%nat => lia: core.
+#[local]Hint Extern 1 (_ <= _) => lia: core.
+#[local]Hint Extern 1 (_ <= _)%nat => lia: core.
+#[local]Hint Extern 1 (_ > _) => lia: core.
+#[local]Hint Extern 1 (_ > _)%nat => lia: core.
+#[local]Hint Extern 1 (_ >= _) => lia: core.
+#[local]Hint Extern 1 (_ >= _)%nat => lia: core.
+#[local]Hint Extern 1 (S _ = S _) => f_equal: core. 
 
 
 Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
@@ -68,16 +93,16 @@ Qed.
 (** ** IsEqual *)
 
 
-Lemma IsEqual_obligation0: forall (x : F) (y : F) (v : F), True -> True -> True -> ((v = x) -> True).
-Proof. intuition. Qed.
+Lemma IsEqual_obligation0_trivial: forall (x : F) (y : F) (v : F), True -> True -> True -> ((v = x) -> True).
+Proof. hammer. Qed.
 
-Lemma IsEqual_obligation1: forall (x : F) (y : F) (v : F), True -> True -> True -> ((v = y) -> True).
-Proof. intuition. Qed.
+Lemma IsEqual_obligation1_trivial: forall (x : F) (y : F) (v : F), True -> True -> True -> ((v = y) -> True).
+Proof. hammer. Qed.
 
-Lemma IsEqual_obligation2: forall (x : F) (y : F) (v : F), True -> True -> True -> ((v = (x - y)%F) -> True).
-Proof. intuition. Qed.
+Lemma IsEqual_obligation2_trivial: forall (x : F) (y : F) (v : F), True -> True -> True -> ((v = (x - y)%F) -> True).
+Proof. hammer. Qed.
 
-Lemma IsEqual_obligation3: forall (x : F) (y : F) (v : F), True -> True -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((x - y)%F = 0%F)) /\ ((v = 0%F) -> ~((x - y)%F = 0%F)))) -> (True -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (x = y)) /\ ((v = 0%F) -> ~(x = y))))).
+Lemma IsEqual_obligation3: forall (x : F) (y : F) (v : F), True -> True -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((x - y)%F = 0%F)) /\ ((v = 0%F) -> ~((x - y)%F = 0%F)))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (x = y)) /\ ((v = 0%F) -> ~(x = y))))).
 Proof.
   unwrap_C. intros. subst.
   destruct H1 as [H1 [H1' H1'']].
@@ -86,49 +111,42 @@ Proof.
   - fqsatz.
 Qed.
 
-Lemma IsEqual_obligation4: forall (x : F) (y : F) (v : F), True -> True -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((x - y)%F = 0%F)) /\ ((v = 0%F) -> ~((x - y)%F = 0%F)))) -> True).
-Proof. intuition. Qed.
-
 (** ** LessThan *)
 
-Lemma LessThan_obligation0_trivial: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> True).
-Proof. intuit. Qed.
+Lemma LessThan_obligation0_trivial: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> True).
+Proof. hammer. Qed.
 
-Lemma LessThan_obligation1_trivial: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = 1%nat) -> True).
-Proof. intuit. Qed.
+Lemma LessThan_obligation1_trivial: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((v = 1%nat) -> True).
+Proof. hammer. Qed.
 
-Lemma LessThan_obligation2: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = (n + 1%nat)%nat) -> (0%nat <= v)).
-Proof. lia. Qed.
+Lemma LessThan_obligation2: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((v = (n + 1%nat)%nat) -> (0%nat <= v)).
+Proof. hammer. Qed.
 
-Lemma LessThan_obligation3_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((^ v) < (2%nat ^ n)%Z) /\ (v = x)) -> True).
-Proof. intuit. Qed.
+Lemma LessThan_obligation3_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) /\ (v = x)) -> True).
+Proof. hammer. Qed.
 
-Lemma LessThan_obligation4_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((^ v) < (2%nat ^ n)%Z) /\ (v = y)) -> True).
-Proof. intuit. Qed.
+Lemma LessThan_obligation4_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) /\ (v = y)) -> True).
+Proof. hammer. Qed.
 
-Lemma LessThan_obligation5_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = (x - y)%F) -> True).
-Proof. intuit. Qed.
+Lemma LessThan_obligation5_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((v = (x - y)%F) -> True).
+Proof. hammer. Qed.
 
-Lemma LessThan_obligation6_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = 2%F) -> True).
-Proof. intuit. Qed.
+Lemma LessThan_obligation6_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((v = 2%F) -> True).
+Proof. hammer. Qed.
 
-Lemma LessThan_obligation7: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> (0%nat <= v)).
-Proof. lia. Qed.
+Lemma LessThan_obligation7: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> (0%nat <= v)).
+Proof. hammer. Qed.
 
-Lemma LessThan_obligation8_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = (2%F ^ n)%F) -> True).
-Proof. intuit. Qed.
+Lemma LessThan_obligation8_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((v = (2%F ^ n)%F) -> True).
+Proof. hammer. Qed.
 
-Lemma LessThan_obligation9_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((v = ((x - y)%F + (2%F ^ n)%F)%F) -> True).
-Proof. intuit. Qed.
+Lemma LessThan_obligation9_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((v = ((x - y)%F + (2%F ^ n)%F)%F) -> True).
+Proof. hammer. Qed.
 
-Lemma LessThan_obligation10: forall (n : nat) (x : F) (y : F) (z : (list F)) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) z -> (((as_le_f z) = ((x - y)%F + (2%F ^ n)%F)%F) /\ ((length z) = (n + 1%nat)%nat)) -> True -> ((v = (z!n)) -> ((v = 0%F) \/ (v = 1%F))).
-Proof. 
-  intros.
-  subst.
-  unfold_default. apply Forall_nth; auto. lia.
-Qed.
-  
-Lemma LessThan_obligation11: forall (n : nat) (x : F) (y : F) (z : (list F)) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) z -> (((as_le_f z) = ((x - y)%F + (2%F ^ n)%F)%F) /\ ((length z) = (n + 1%nat)%nat)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (f_not (z!n))) /\ ((v = 0%F) -> ~(f_not (z!n))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ x) < (^ y))) /\ ((v = 0%F) -> ~((^ x) < (^ y)))))).
+Lemma LessThan_obligation10: forall (n : nat) (x : F) (y : F) (z : (list F)) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) z -> (((as_le_f z) = ((x - y)%F + (2%F ^ n)%F)%F) /\ ((length z) = (n + 1%nat)%nat)) -> True -> ((v = (z!n)) -> ((v = 0%F) \/ (v = 1%F))).
+Proof. hammer. Qed.
+
+Lemma LessThan_obligation11: forall (n : nat) (x : F) (y : F) (z : (list F)) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ x) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) z -> (((as_le_f z) = ((x - y)%F + (2%F ^ n)%F)%F) /\ ((length z) = (n + 1%nat)%nat)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (f_not (z!n))) /\ ((v = 0%F) -> ~(f_not (z!n))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ x) < (^ y))) /\ ((v = 0%F) -> ~((^ x) < (^ y)))))).
 Proof.
   unwrap_C.
   intros. unfold f_not, as_le_f in *.
@@ -145,7 +163,7 @@ Proof.
   split; intuit; subst v.
   (* MSB = 1 -> out = 0 -> x >= y *)
   - assert (z!n = 1)%F. {
-      unfold_default. apply binary_not0. apply Forall_nth; eauto. lia. 
+      unfold_default. apply binary_not0. apply Forall_nth; eauto.
       fold_default. intuit.
     }
     generalize H10. switch (^x >= ^y) lia.
@@ -172,78 +190,69 @@ Proof.
     rewrite firstn_length_le; lia.
   }
   apply f_equal with (f:=F.to_Z) in H6. lia.
-Qed.
+ Qed.
+
+
 
 
 (** ** GreaterThan *)
 
-Lemma GreaterThan_obligation0: forall (n : nat) (a : F) (b : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ a) < (2%nat ^ n)%Z) -> ((^ b) < (2%nat ^ n)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> ((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z))).
-Proof. intuit. Qed.
+Lemma GreaterThan_obligation0: forall (n : nat) (a : F) (b : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> ((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z))).
+Proof. hammer. Qed.
 
-Lemma GreaterThan_obligation1: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) < (2%nat ^ n)%Z) -> ((^ b) < (2%nat ^ n)%Z) -> True -> ((((^ v) < (2%nat ^ n)%Z) /\ (v = b)) -> ((^ v) < (2%nat ^ n)%Z)).
-Proof. intuit. Qed.
+Lemma GreaterThan_obligation1: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) /\ (v = b)) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
+Proof. hammer. Qed.
 
-Lemma GreaterThan_obligation2: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) < (2%nat ^ n)%Z) -> ((^ b) < (2%nat ^ n)%Z) -> True -> ((((^ v) < (2%nat ^ n)%Z) /\ (v = a)) -> ((^ v) < (2%nat ^ n)%Z)).
-Proof. intuit. Qed.
+Lemma GreaterThan_obligation2: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) /\ (v = a)) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
+Proof. hammer. Qed.
 
-Lemma GreaterThan_obligation3_trivial: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) < (2%nat ^ n)%Z) -> ((^ b) < (2%nat ^ n)%Z) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ b) < (^ a))) /\ ((v = 0%F) -> ~((^ b) < (^ a))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ b) < (^ a))) /\ ((v = 0%F) -> ~((^ b) < (^ a)))))).
-Proof. intuit. Qed.
+Lemma GreaterThan_obligation3: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ b) < (^ a))) /\ ((v = 0%F) -> ~((^ b) < (^ a))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ b) < (^ a))) /\ ((v = 0%F) -> ~((^ b) < (^ a)))))).
+Proof. hammer. Qed.
+
 
 (** ** LessEqThan *)
 
-Lemma LessEqThan_obligation0: forall (n : nat) (a : F) (b : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ a) < (2%nat ^ n)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> ((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z))).
-Proof. intuit. Qed.
+Lemma LessEqThan_obligation0: forall (n : nat) (a : F) (b : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> ((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z))).
+Proof. hammer. Admitted.
 
-Lemma LessEqThan_obligation1: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) < (2%nat ^ n)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> ((((^ v) < (2%nat ^ n)%Z) /\ (v = a)) -> ((^ v) < (2%nat ^ n)%Z)).
-Proof. intuit. Qed.
+Lemma LessEqThan_obligation1: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> ((((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) /\ (v = a)) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
+Proof. hammer. Admitted.
 
-Lemma LessEqThan_obligation2_trivial: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) < (2%nat ^ n)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> (((((^ v) + 1%nat)%Z < (2%nat ^ n)%Z) /\ (v = b)) -> True).
-Proof. intuit. Qed.
+Lemma LessEqThan_obligation2_trivial: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> (((((^ v) + 1%nat)%Z < (2%nat ^ n)%Z) /\ (v = b)) -> True).
+Proof. hammer. Qed.
 
-Lemma LessEqThan_obligation3_trivial: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) < (2%nat ^ n)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> ((v = 1%F) -> True).
-Proof. intuit. Qed.
+Lemma LessEqThan_obligation3_trivial: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> ((v = 1%F) -> True).
+Proof. hammer. Qed.
 
-Lemma LessEqThan_obligation4: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) < (2%nat ^ n)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> ((v = (b + 1%F)%F) -> ((^ v) < (2%nat ^ n)%Z)).
+Lemma LessEqThan_obligation4: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> ((v = (b + 1%F)%F) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
 Proof. 
   unwrap_C. intuit. subst v.
   assert (^(b+1) = ^b + 1). {
-    assert (H_pow_nk: (2 * 2^n <= 2^k)%Z). {
-      replace (2 * 2^n)%Z with (2 ^ (n + 1))%Z by (rewrite Zpower_exp; lia).
-      apply Zpow_facts.Zpower_le_monotone; lia.
-    }
-    repeat autorewrite with F_to_Z; try lia.
-    assert (H_y_nonneg: (0 <= F.to_Z b)%Z). apply F.to_Z_range. lia.
-    lia.
+    assert (H_pow_nk: (2^n * 2^1 <= 2^k)%Z) by (apply Signed.le_sub_r_pow; lia).
+    Signed.solve_to_Z; pose_nonneg; lia.
   }
   lia.
 Qed.
 
-Lemma LessEqThan_obligation5: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) < (2%nat ^ n)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ a) < (^ (b + 1%F)%F))) /\ ((v = 0%F) -> ~((^ a) < (^ (b + 1%F)%F))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ a) <= (^ b))) /\ ((v = 0%F) -> ~((^ a) <= (^ b)))))).
-Proof. 
+
+Lemma LessEqThan_obligation5: forall (n : nat) (a : F) (b : F) (v : F), (n <= (C.k - 1%nat)%Z) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> (((^ b) + 1%nat)%Z < (2%nat ^ n)%Z) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ a) < (^ (b + 1%F)%F))) /\ ((v = 0%F) -> ~((^ a) < (^ (b + 1%F)%F))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ a) <= (^ b))) /\ ((v = 0%F) -> ~((^ a) <= (^ b)))))).
+Proof.
   unwrap_C. intros.
   assert (^(b+1) = ^b + 1). {
-    assert (H_pow_nk: (2 * 2^n <= 2^k)%Z). {
-      replace (2 * 2^n)%Z with (2 ^ (n + 1))%Z by (rewrite Zpower_exp; lia).
-      apply Zpow_facts.Zpower_le_monotone; lia.
-    }
-    repeat autorewrite with F_to_Z; try lia.
-    assert (H_y_nonneg: (0 <= F.to_Z b)%Z). apply F.to_Z_range. lia.
-    lia.
+    assert (H_pow_nk: (2^n * 2^1 <= 2^k)%Z) by (apply Signed.le_sub_r_pow; lia).
+    Signed.solve_to_Z; pose_nonneg; lia.
   }
-  intuit. subst v.
-  lia.
-  lia.
+  hammer.
 Qed.
 
+Lemma GreaterEqThan_obligation0: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> (((^ x) + 1%nat)%Z < (2%nat ^ n)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> ((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z))).
+Proof. hammer. Qed.
 
-Lemma GreaterEqThan_obligation0: forall (n : nat) (x : F) (y : F) (v : Z), (n <= (C.k - 1%nat)%Z) -> (((^ x) + 1%nat)%Z < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z)) /\ (v = n)) -> ((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z))).
-Proof. intuit. Qed.
+Lemma GreaterEqThan_obligation1: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> (((^ x) + 1%nat)%Z < (2%nat ^ n)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) /\ (v = y)) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
+Proof. hammer. Qed.
 
-Lemma GreaterEqThan_obligation1: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> (((^ x) + 1%nat)%Z < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((^ v) < (2%nat ^ n)%Z) /\ (v = y)) -> ((^ v) < (2%nat ^ n)%Z)).
-Proof. intuit. Qed.
+Lemma GreaterEqThan_obligation2: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> (((^ x) + 1%nat)%Z < (2%nat ^ n)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> (((((^ v) + 1%nat)%Z < (2%nat ^ n)%Z) /\ (v = x)) -> (((^ v) + 1%nat)%Z < (2%nat ^ n)%Z)).
+Proof. hammer. Qed.
 
-Lemma GreaterEqThan_obligation2: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> (((^ x) + 1%nat)%Z < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> (((((^ v) + 1%nat)%Z < (2%nat ^ n)%Z) /\ (v = x)) -> (((^ v) + 1%nat)%Z < (2%nat ^ n)%Z)).
-Proof. intuit. Qed.
-
-Lemma GreaterEqThan_obligation3_trivial: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> (((^ x) + 1%nat)%Z < (2%nat ^ n)%Z) -> ((^ y) < (2%nat ^ n)%Z) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ y) <= (^ x))) /\ ((v = 0%F) -> ~((^ y) <= (^ x))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ y) <= (^ x))) /\ ((v = 0%F) -> ~((^ y) <= (^ x)))))).
-Proof. intuit. Qed.
+Lemma GreaterEqThan_obligation3: forall (n : nat) (x : F) (y : F) (v : F), (n <= (C.k - 1%nat)%Z) -> (((^ x) + 1%nat)%Z < (2%nat ^ n)%Z) -> ((^ y) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ y) <= (^ x))) /\ ((v = 0%F) -> ~((^ y) <= (^ x))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ y) <= (^ x))) /\ ((v = 0%F) -> ~((^ y) <= (^ x)))))).
+Proof. hammer. Qed.

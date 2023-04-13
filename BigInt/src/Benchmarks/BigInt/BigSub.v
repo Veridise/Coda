@@ -31,29 +31,31 @@ Definition as_le := RZ.as_le.
 Local Notation "[| xs | n ]" := (RZ.as_le n xs).
 Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
 
-#[local]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
-#[local]Hint Extern 10  => match goal with
-   | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
-   #[local]Hint Extern 10  => match goal with
-   | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
-#[local]Hint Extern 10 => match goal with 
-  [ |- context[length _] ] => rewrite_length end: core.
-#[local]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn: core.
 
-#[local]Hint Extern 10 (Forall _ (_ :: _)) => constructor: core.
-#[local]Hint Extern 10 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: core.
-#[local]Hint Extern 10  => repeat match goal with
+#[local]Hint Extern 1 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
+#[local]Hint Extern 1  => match goal with
+   | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
+   #[local]Hint Extern 1  => match goal with
+   | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
+#[local]Hint Extern 1 => match goal with
+  [ |- context[length _] ] => rewrite_length end: core.
+#[local]Hint Extern 1 (Forall _ (skipn _ _)) => apply Forall_skipn: core.
+
+#[local]Hint Extern 1 (Forall _ (_ :: _)) => constructor: core.
+#[local]Hint Extern 1 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: core.
+#[local]Hint Extern 1  => repeat match goal with
   [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end: core.
 
-#[local]Hint Extern 10 (_ < _) => lia: core.
-#[local]Hint Extern 10 (_ < _)%nat => lia: core.
-#[local]Hint Extern 10 (_ <= _) => lia: core.
-#[local]Hint Extern 10 (_ <= _)%nat => lia: core.
-#[local]Hint Extern 10 (_ > _) => lia: core.
-#[local]Hint Extern 10 (_ > _)%nat => lia: core.
-#[local]Hint Extern 10 (_ >= _) => lia: core. 
-#[local]Hint Extern 10 (_ >= _)%nat => lia: core. 
-#[local]Hint Extern 10 (S _ = S _) => f_equal: core. 
+#[local]Hint Extern 1 (_ < _) => lia: core.
+#[local]Hint Extern 1 (_ < _)%nat => lia: core.
+#[local]Hint Extern 1 (_ <= _) => lia: core.
+#[local]Hint Extern 1 (_ <= _)%nat => lia: core.
+#[local]Hint Extern 1 (_ > _) => lia: core.
+#[local]Hint Extern 1 (_ > _)%nat => lia: core.
+#[local]Hint Extern 1 (_ >= _) => lia: core.
+#[local]Hint Extern 1 (_ >= _)%nat => lia: core.
+#[local]Hint Extern 1 (S _ = S _) => f_equal: core.  
+#[local]Hint Extern 1 (@eq (F.F q) _ _) => fqsatz: core. 
 
 Lemma ModSubThree_obligation0_trivial: forall (n : nat) (a : F) (b : F) (c : F) (v : Z), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> True -> (((v = n) /\ True) -> True).
 Proof. hammer. Qed.
@@ -80,11 +82,9 @@ Proof. hammer. Qed.
 Lemma ModSubThree_obligation6: forall (n : nat) (a : F) (b : F) (c : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> True -> ((v = (b + c)%F) -> ((^ v) < (2%nat ^ (n + 1%nat)%nat)%Z)).
 Proof.
   unwrap_C. intros. subst. 
-  assert (H_pow_nk: (2 * 2^n <= 2^k)%Z). {
-    replace (2 * 2^n)%Z with (2 ^ (n + 1))%Z by (rewrite Zpower_exp; lia).
-    apply Zpow_facts.Zpower_le_monotone; lia.
-  }
-  replace (Z.of_N (N.of_nat (Init.Nat.add n (S O)))) with (n+1)%Z by lia. rewrite Zpower_exp by lia. simplify.
+  assert (H_pow_nk: (2^n * 2^1 <= 2^k)%Z) by (apply Signed.le_sub_r_pow; try lia).
+  replace (Z.of_N (N.of_nat (Init.Nat.add n (S O)))) with (n+1)%Z by lia. 
+  rewrite Zpower_exp by lia. simplify.
   pose proof (F_to_Z_nonneg b). pose proof (F_to_Z_nonneg c).
   apply Repr.in_range_binary in H2.
   autorewrite with F_to_Z; try lia.
@@ -158,16 +158,10 @@ Lemma BigSub_obligation7: forall (n : nat) (k : nat) (a : (list F)) (b : (list F
 Proof. hammer. Qed.
 
 Lemma BigSub_obligation8: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (s'_br' : ((list F) * F)) (br' : F) (s' : (list F)) (_u0 : ((list F) * F)) (ai : F) (bi : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x30 => ((^ x30) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x31 => ((^ x31) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match s'_br' with (x33,x34) => Forall (fun x32 => ((^ x32) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x33 end -> match s'_br' with (x33,x34) => ((length x33) = i) end -> match s'_br' with (x33,x34) => (((x34 = 0%F) \/ (x34 = 1%F)) /\ (((x34 = 1%F) -> ((as_le n (a[:i])) < (as_le n (b[:i])))) /\ ((x34 = 0%F) -> ~((as_le n (a[:i])) < (as_le n (b[:i])))))) end -> match s'_br' with (x33,x34) => ((as_le n x33) = (((as_le n (a[:i])) - (as_le n (b[:i])))%Z + ((2%nat ^ n)%Z * (^ x34))%Z)%Z) end -> (br' = (snd s'_br')) -> Forall (fun x35 => True) s' -> (s' = (fst s'_br')) -> match _u0 with (x37,x38) => Forall (fun x36 => True) x37 end -> match _u0 with (x37,x38) => True end -> match _u0 with (x37,x38) => True end -> match _u0 with (x37,x38) => ((s'_br' = s'_br') /\ True) end -> (ai = (a!i)) -> (bi = (b!i)) -> True -> (((v = ai) /\ True) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
-Proof.
-  intros.
-  destruct H20. subst. unfold_default. apply Forall_nth; auto; lia.
-Qed.
+Proof. hammer. Qed.
 
 Lemma BigSub_obligation9: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (s'_br' : ((list F) * F)) (br' : F) (s' : (list F)) (_u0 : ((list F) * F)) (ai : F) (bi : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x39 => ((^ x39) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x40 => ((^ x40) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match s'_br' with (x42,x43) => Forall (fun x41 => ((^ x41) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x42 end -> match s'_br' with (x42,x43) => ((length x42) = i) end -> match s'_br' with (x42,x43) => (((x43 = 0%F) \/ (x43 = 1%F)) /\ (((x43 = 1%F) -> ((as_le n (a[:i])) < (as_le n (b[:i])))) /\ ((x43 = 0%F) -> ~((as_le n (a[:i])) < (as_le n (b[:i])))))) end -> match s'_br' with (x42,x43) => ((as_le n x42) = (((as_le n (a[:i])) - (as_le n (b[:i])))%Z + ((2%nat ^ n)%Z * (^ x43))%Z)%Z) end -> (br' = (snd s'_br')) -> Forall (fun x44 => True) s' -> (s' = (fst s'_br')) -> match _u0 with (x46,x47) => Forall (fun x45 => True) x46 end -> match _u0 with (x46,x47) => True end -> match _u0 with (x46,x47) => True end -> match _u0 with (x46,x47) => ((s'_br' = s'_br') /\ True) end -> (ai = (a!i)) -> (bi = (b!i)) -> True -> (((v = bi) /\ True) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
-Proof.
-  intros.
-  destruct H20. subst. unfold_default. apply Forall_nth; auto; lia.
-Qed.
+Proof. hammer. Qed.
 
 Lemma BigSub_obligation10: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (s'_br' : ((list F) * F)) (br' : F) (s' : (list F)) (_u0 : ((list F) * F)) (ai : F) (bi : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x48 => ((^ x48) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x49 => ((^ x49) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match s'_br' with (x51,x52) => Forall (fun x50 => ((^ x50) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x51 end -> match s'_br' with (x51,x52) => ((length x51) = i) end -> match s'_br' with (x51,x52) => (((x52 = 0%F) \/ (x52 = 1%F)) /\ (((x52 = 1%F) -> ((as_le n (a[:i])) < (as_le n (b[:i])))) /\ ((x52 = 0%F) -> ~((as_le n (a[:i])) < (as_le n (b[:i])))))) end -> match s'_br' with (x51,x52) => ((as_le n x51) = (((as_le n (a[:i])) - (as_le n (b[:i])))%Z + ((2%nat ^ n)%Z * (^ x52))%Z)%Z) end -> (br' = (snd s'_br')) -> Forall (fun x53 => True) s' -> (s' = (fst s'_br')) -> match _u0 with (x55,x56) => Forall (fun x54 => True) x55 end -> match _u0 with (x55,x56) => True end -> match _u0 with (x55,x56) => True end -> match _u0 with (x55,x56) => ((s'_br' = s'_br') /\ True) end -> (ai = (a!i)) -> (bi = (b!i)) -> True -> (((v = br') /\ True) -> ((v = 0%F) \/ (v = 1%F))).
 Proof. hammer. Qed.
@@ -185,14 +179,10 @@ Proof.
 
   destruct H20. apply Repr.in_range_binary in H20.
   destruct H8. apply Repr.in_range_binary in H8.
-  assert (H_pow_nk: (4 * 2^n <= 2^k)%Z). {
-    replace (4 * 2^n)%Z with (2 ^ (n + 2))%Z by (rewrite Zpower_exp; lia).
-    apply Zpow_facts.Zpower_le_monotone; lia.
-  }
-  assert (Hbi: ^bi <= 2^n - 1). { subst. unfold_default. apply Forall_nth. auto. lia. }
-  assert (Hai: ^ai <= 2^n - 1). { subst. unfold_default. apply Forall_nth. auto. lia. }
+  assert (H_pow_nk: (2^n * 2^2 <= 2^k)%Z) by (apply Signed.le_sub_r_pow; try lia).
+  assert (Hbi: ^bi <= 2^n - 1) by (subst; auto).
+  assert (Hai: ^ai <= 2^n - 1) by (subst; auto).
   pose proof H20. apply Repr.in_range_binary in H23. destruct H23; intuit; subst br; simplify; autorewrite with F_to_Z in H30; try (pose_nonneg; lia);
-  (* apply f_equal with (f:=F.to_Z). *)
   autorewrite with F_to_Z; try lia;
   repeat autorewrite with F_to_Z; simpl; try (pose_nonneg; (lia || nia)).
 Qed.
@@ -200,25 +190,6 @@ Qed.
 Lemma BigSub_obligation12_trivial: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (s'_br' : (list F) * F) (br' : F) (s' : (list F)) (_u0 : (list F) * F) (ai : F) (bi : F) (s_br : F * F) (br : F) (s : F) (_u1 : F * F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x71 => ((^ x71) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x72 => ((^ x72) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match s'_br' with (x74,x75) => Forall (fun x73 => ((^ x73) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x74 end -> match s'_br' with (x74,x75) => ((length x74) = i) end -> match s'_br' with (x74,x75) => (((x75 = 0%F) \/ (x75 = 1%F)) /\ (((x75 = 1%F) -> ((as_le n (a[:i])) < (as_le n (b[:i])))) /\ ((x75 = 0%F) -> ~((as_le n (a[:i])) < (as_le n (b[:i])))))) end -> match s'_br' with (x74,x75) => ((as_le n x74) = (((as_le n (a[:i])) - (as_le n (b[:i])))%Z + ((2%nat ^ n)%Z * (^ x75))%Z)%Z) end -> (br' = (snd s'_br')) -> Forall (fun x76 => True) s' -> (s' = (fst s'_br')) -> match _u0 with (x78,x79) => Forall (fun x77 => True) x78 end -> match _u0 with (x78,x79) => True end -> match _u0 with (x78,x79) => True end -> match _u0 with (x78,x79) => ((s'_br' = s'_br') /\ True) end -> (ai = (a!i)) -> (bi = (b!i)) -> match s_br with (x80,x81) => True end -> match s_br with (x80,x81) => (((x81 = 0%F) \/ (x81 = 1%F)) /\ (((x81 = 1%F) -> ((^ ai) < (^ (bi + br')%F))) /\ ((x81 = 0%F) -> ~((^ ai) < (^ (bi + br')%F))))) end -> match s_br with (x80,x81) => (x80 = ((((x81 * 2%F)%F ^ n)%F + ai)%F - (bi + br')%F)%F) end -> (br = (snd s_br)) -> (s = (fst s_br)) -> match _u1 with (x82,x83) => True end -> match _u1 with (x82,x83) => True end -> match _u1 with (x82,x83) => ((s_br = s_br) /\ True) end -> True -> (True -> True).
 Proof. hammer. Qed.
 
-#[local]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn : core.
-#[local]Hint Extern 10 (Forall _ (nth_Default _ _)) => unfold_default; apply Forall_nth: core.
-#[local]Hint Extern 10 => match goal with 
-  [ |- context[length _] ] => rewrite_length end : core.
-#[local]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn : core.
-#[local]Hint Extern 10 (Forall _ (rev _)) => apply Forall_rev : core.
-#[local]Hint Extern 10 (Forall _ (_ :: _)) => constructor : core.
-#[local]Hint Extern 10 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z : core.
-#[local]Hint Extern 10  => repeat match goal with
-  [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end : core.
-#[local]Hint Extern 10 (_ < _) => lia : core.
-#[local]Hint Extern 10 (_ < _)%nat => lia : core.
-#[local]Hint Extern 10 (_ <= _) => lia : core.
-#[local]Hint Extern 10 (_ <= _)%nat => lia : core.
-#[local]Hint Extern 10 (_ > _) => lia : core.
-#[local]Hint Extern 10 (_ > _)%nat => lia : core.
-#[local]Hint Extern 10 (_ >= _) => lia : core. 
-#[local]Hint Extern 10 (_ >= _)%nat => lia : core. 
-#[local]Hint Extern 10 (S _ = S _) => f_equal : core. 
 
 Ltac ind' x :=
     let Hbin := fresh "Hin" in
@@ -231,12 +202,9 @@ Proof.
   unfold as_le.
   unwrap_C.
   intros. 
-  assert (H_pow_nk: (4 * 2^n <= 2^k)%Z). {
-    replace (4 * 2^n)%Z with (2 ^ (n + 2))%Z by (rewrite Zpower_exp; lia).
-    apply Zpow_facts.Zpower_le_monotone; lia.
-  }
-  assert (Hbi: ^bi <= 2^n - 1). { subst.  unfold_default. apply Forall_nth. auto. auto. }
-  assert (Hai: ^ai <= 2^n - 1). { subst. unfold_default. apply Forall_nth. auto. lia. }
+  assert (H_pow_nk: (2^n * 2^2 <= 2^k)%Z) by (apply Signed.le_sub_r_pow; try lia).
+  assert (Hbi: ^bi <= 2^n - 1) by (subst; auto).
+  assert (Hai: ^ai <= 2^n - 1) by (subst; auto).
   destruct s_br as [_s _br]. destruct s'_br' as [_s' _br']. destruct _u0. destruct _u1. cbn -[F.to_Z Z.pow Z.mul] in *. subst _s' _br' _br _s.
   destruct H28. subst v.
   split. intuit.
@@ -249,15 +217,11 @@ Proof.
 Qed.
 
 Lemma BigSub_obligation14: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (s'_br' : ((list F) * F)) (br' : F) (s' : (list F)) (_u0 : ((list F) * F)) (ai : F) (bi : F) (s_br : (F * F)) (br : F) (s : F) (_u1 : (F * F)), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x97 => ((^ x97) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x98 => ((^ x98) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match s'_br' with (x100,x101) => Forall (fun x99 => ((^ x99) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x100 end -> match s'_br' with (x100,x101) => ((length x100) = i) end -> match s'_br' with (x100,x101) => (((x101 = 0%F) \/ (x101 = 1%F)) /\ (((x101 = 1%F) -> ((as_le n (a[:i])) < (as_le n (b[:i])))) /\ ((x101 = 0%F) -> ~((as_le n (a[:i])) < (as_le n (b[:i])))))) end -> match s'_br' with (x100,x101) => ((as_le n x100) = (((as_le n (a[:i])) - (as_le n (b[:i])))%Z + ((2%nat ^ (n * i)%Z)%Z * (^ x101))%Z)%Z) end -> (br' = (snd s'_br')) -> Forall (fun x102 => True) s' -> (s' = (fst s'_br')) -> match _u0 with (x104,x105) => Forall (fun x103 => True) x104 end -> match _u0 with (x104,x105) => True end -> match _u0 with (x104,x105) => True end -> match _u0 with (x104,x105) => ((s'_br' = s'_br') /\ True) end -> (ai = (a!i)) -> (bi = (b!i)) -> match s_br with (x106,x107) => True end -> match s_br with (x106,x107) => (((x107 = 0%F) \/ (x107 = 1%F)) /\ (((x107 = 1%F) -> ((^ ai) < (^ (bi + br')%F))) /\ ((x107 = 0%F) -> ~((^ ai) < (^ (bi + br')%F))))) end -> match s_br with (x106,x107) => (x106 = (((x107 * (2%F ^ n)%F)%F + ai)%F - (bi + br')%F)%F) end -> (br = (snd s_br)) -> (s = (fst s_br)) -> match _u1 with (x108,x109) => True end -> match _u1 with (x108,x109) => True end -> match _u1 with (x108,x109) => ((s_br = s_br) /\ True) end -> (True -> ((as_le n (s' ++ (s :: nil))) = (((as_le n (a[:(i + 1%nat)%nat])) - (as_le n (b[:(i + 1%nat)%nat])))%Z + ((2%nat ^ (n * (i + 1%nat)%nat)%Z)%Z * (^ br))%Z)%Z)).
-
 Proof.
   unwrap_C. unfold as_le. intros. 
-  assert (H_pow_nk: (4 * 2^n <= 2^k)%Z). {
-    replace (4 * 2^n)%Z with (2 ^ (n + 2))%Z by (rewrite Zpower_exp; lia).
-    apply Zpow_facts.Zpower_le_monotone; lia.
-  }
-  assert (Hbi: ^bi <= 2^n - 1). { subst.  unfold_default. apply Forall_nth. auto. auto. }
-  assert (Hai: ^ai <= 2^n - 1). { subst. unfold_default. apply Forall_nth. auto. lia. }
+  assert (H_pow_nk: (2^n * 2^2 <= 2^k)%Z) by (apply Signed.le_sub_r_pow; try lia).
+  assert (Hbi: ^bi <= 2^n - 1) by (subst; auto).
+  assert (Hai: ^ai <= 2^n - 1) by (subst; auto).
   destruct s_br as [_s _br]. destruct s'_br' as [_s' _br']. destruct _u0. destruct _u1. cbn -[F.to_Z Z.pow Z.mul] in *. subst _s' _br' _br _s ai bi.
   destruct H8. apply Repr.in_range_binary in H8.
   destruct H20. apply Repr.in_range_binary in H12.
@@ -285,19 +249,14 @@ Qed.
   
 
 Lemma BigSub_obligation15: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (v : (list F)), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x110 => ((^ x110) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x111 => ((^ x111) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> Forall (fun x112 => True) v -> True -> ((v = nil) -> (((length v) = 0%nat) /\ (forall (i0:nat), 0%nat <= i0 < (length v) -> ((^ (v!i0)) <= ((2%nat ^ n)%Z - 1%nat)%Z)))).
-Proof.
-  intros. subst. simpl. split. auto.
-  intros. lia.
-Qed.
+Proof. hammer. Qed.
 
 
 Lemma BigSub_obligation16_trivial: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x113 => ((^ x113) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x114 => ((^ x114) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> True -> (True -> True).
 Proof. hammer. Qed.
 
 Lemma BigSub_obligation17: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x115 => ((^ x115) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x116 => ((^ x116) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> True -> ((v = 0%F) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((as_le n (a[:0%nat])) < (as_le n (b[:0%nat])))) /\ ((v = 0%F) -> ~((as_le n (a[:0%nat])) < (as_le n (b[:0%nat]))))))).
-Proof.
-  unwrap_C. simpl. intros. subst v. intuit. fqsatz. lia.
-Qed.
+Proof. unwrap_coda. simpl. intuit. exfalso. fqsatz. lia. Qed.
 
 Lemma BigSub_obligation18: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x117 => ((^ x117) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x118 => ((^ x118) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (True -> ((as_le n nil) = (((as_le n (a[:0%nat])) - (as_le n (b[:0%nat])))%Z + ((2%nat ^ n)%Z * (^ 0%F))%Z)%Z)).
 Proof.
@@ -387,7 +346,7 @@ Lemma BigSubModP_obligation16: forall (n : nat) (k : nat) (a : (list F)) (b : (l
 Proof. hammer. Qed.
 
 Lemma BigSubModP_obligation17_trivial: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (p : (list F)) (sub_uf : ((list F) * F)) (uf : F) (sub : (list F)) (_u0 : ((list F) * F)) (add : (list F)) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x140 => ((^ x140) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> (((as_le n a) <= ((as_le n p) - 1%nat)%Z) /\ ((length a) = k)) -> Forall (fun x141 => ((^ x141) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> (((as_le n b) <= ((as_le n p) - 1%nat)%Z) /\ ((length b) = k)) -> Forall (fun x142 => ((^ x142) <= ((2%nat ^ n)%Z - 1%nat)%Z)) p -> ((length p) = k) -> match sub_uf with (x144,x145) => Forall (fun x143 => ((^ x143) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x144 end -> match sub_uf with (x144,x145) => ((length x144) = k) end -> match sub_uf with (x144,x145) => (((x145 = 0%F) \/ (x145 = 1%F)) /\ (((x145 = 1%F) -> ((as_le n a) < (as_le n b))) /\ ((x145 = 0%F) -> ~((as_le n a) < (as_le n b))))) end -> match sub_uf with (x144,x145) => ((as_le n x144) = (((as_le n a) - (as_le n b))%Z + ((2%nat ^ (n * k)%Z)%Z * (^ x145))%Z)%Z) end -> ((((uf = 0%F) \/ (uf = 1%F)) /\ (((uf = 1%F) -> ((as_le n a) < (as_le n b))) /\ ((uf = 0%F) -> ~((as_le n a) < (as_le n b))))) /\ (uf = (snd sub_uf))) -> Forall (fun x146 => ((^ x146) <= ((2%nat ^ n)%Z - 1%nat)%Z)) sub -> (((length sub) = k) /\ (sub = (fst sub_uf))) -> match _u0 with (x148,x149) => Forall (fun x147 => True) x148 end -> match _u0 with (x148,x149) => True end -> match _u0 with (x148,x149) => True end -> match _u0 with (x148,x149) => (((as_le n sub) = (((as_le n a) - (as_le n b))%Z + ((2%nat ^ (n * k)%Z)%Z * (^ uf))%Z)%Z) /\ (sub_uf = sub_uf)) end -> Forall (fun x150 => ((^ x150) <= ((2%nat ^ n)%Z - 1%nat)%Z)) add -> (((length add) = (k + 1%nat)%nat) /\ ((as_le n add) = ((as_le n sub) + (as_le n p))%Z)) -> True -> (((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> True).
-Proof. intuit. Qed.
+Proof. hammer. Qed.
 
 Lemma f_equal_inv: forall {A: Type} (f: A -> A) x y, f x = x /\ f y = y -> f x = f y -> x = y.
 Proof. intuit. rewrite <- H1, <- H2. auto. Qed.
@@ -424,7 +383,3 @@ Proof.
     - lia.
     - intros. intuit; cbn in *; subst v _sub _uf; auto.
 Qed.
-    
-
-
- Admitted.

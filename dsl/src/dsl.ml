@@ -157,6 +157,10 @@ let nmod = bmod BNat
 
 let zmod = bmod BZ
 
+let bdiv b e1 e2 = Binop (b, Div, e1, e2)
+
+let zdiv = bdiv BZ
+
 let eq e1 e2 = Comp (Eq, e1, e2)
 
 let leq e1 e2 = Comp (Leq, e1, e2)

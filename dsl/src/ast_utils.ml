@@ -18,6 +18,8 @@ let show_binop = function
       "^"
   | Mod ->
       "mod"
+  | Div ->
+      "/"
 
 let show_boolop = function And -> "/\\" | Or -> "\\/" | Imply -> "->"
 

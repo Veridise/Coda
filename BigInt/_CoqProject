@@ -30,6 +30,7 @@ src/Benchmarks/BigInt/BigIsEqual.v
 src/Benchmarks/BigInt/BigIsZero.v
 src/Benchmarks/BigInt/BigLessThan.v
 src/Benchmarks/DarkForest.v
+src/Benchmarks/Ed25519.v
 src/Benchmarks/Hydra.v
 src/Benchmarks/Semaphore.v
 src/Benchmarks/ZKML.v

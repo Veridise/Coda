@@ -84,7 +84,7 @@ and expr =
 
 and binop_type = BNat | BZ | BF
 
-and binop = Add | Sub | Mul | Pow | Mod
+and binop = Add | Sub | Mul | Pow | Mod | Div
 
 and boolop = And | Or | Imply
 

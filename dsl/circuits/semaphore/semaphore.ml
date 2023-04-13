@@ -13,6 +13,8 @@ let c = v "c"
 
 let i = v "i"
 
+let _i = v "_i"
+
 let j = v "j"
 
 let m = v "m"
@@ -103,22 +105,22 @@ let u_hasher z init = unint "MrklTreeInclPfHash" [z; init]
 
 let u_zip xs ys = unint "zip" [xs; ys]
 
+let z_i_0 z = tget (get z _i) 0
+
+let z_i_1 z = tget (get z _i) 1
+
 let lam_mtip z =
-  lama "i" tint
+  lama "_i" tint
     (lama "x" tf
-       (elet "j"
-          (tget (get z i) 0)
-          (elet "s"
-             (tget (get z i) 1)
-             (elet "u0"
-                (* pathIndices[i] binary *)
-                (assert_eq (fmul j (fsub f1 j)) f0)
-                (elet "c"
-                   (const_array (tarr_tf z2)
-                      [const_array tf [x; s]; const_array tf [s; x]] )
-                   (elet "m"
-                      (call "MultiMux1" [z2; c; j])
-                      (call "Poseidon" [z2; m]) ) ) ) ) ) )
+       (elet "u0"
+          (* pathIndices[i] binary *)
+          (assert_eq (fmul (z_i_0 z) (fsub f1 (z_i_0 z))) f0)
+          (elet "c"
+             (const_array (tarr_tf z2)
+                [const_array tf [x; z_i_1 z]; const_array tf [z_i_1 z; x]] )
+             (elet "m"
+                (call "MultiMux1" [z2; c; z_i_0 z])
+                (call "Poseidon" [z2; m]) ) ) ) )
 
 let hasher z len init =
   iter z0 len (lam_mtip z) ~init ~inv:(fun i ->
@@ -150,15 +152,15 @@ let u_calc_secret x y = unint "CalculateSecret" [x; y]
 
 let u_calc_null_hash x y = unint "CalculateNullifierHash" [x; y]
 
-let u_mrkl_tree_incl_pf n xs i s = unint "MerkleTreeInclusionProof" [n; xs; i; s]
+let u_mrkl_tree_incl_pf xs i s = unint "MerkleTreeInclusionProof" [xs; i; s]
 
-(* { F | nu = #MerkleTreeInclusionProof nLevels
+(* { F | nu = #MerkleTreeInclusionProof
          (#CalculateIdentityCommitment (#CalculateSecret identityNullifier identityTrapdoor))
          treePathIndices treeSiblings } *)
 let t_semaphore_root =
   tfq
     (qeq nu
-       (u_mrkl_tree_incl_pf nLevels
+       (u_mrkl_tree_incl_pf
           (u_calc_id_commit (u_calc_secret identityNullifier identityTrapdoor))
           treePathIndices treeSiblings ) )
 

@@ -51,8 +51,6 @@ Local Open Scope tuple_scope.
 
 (** ** CalculateTotal *)
 
-(* print_endline (generate_lemmas calc_total (typecheck_circuit d_empty calc_total));; *)
-
 Lemma CalculateTotal_obligation0_trivial: forall (n : nat) (_in : (list F)) (v : Z), Forall (fun x0 => True) _in -> ((length _in) = n) -> True -> ((v = 0%nat) -> True).
 Proof. hammer. Qed.
 
@@ -83,12 +81,10 @@ Proof. hammer. Qed.
 Lemma CalculateTotal_obligation8: forall (n : nat) (_in : (list F)) (v : F), Forall (fun x8 => True) _in -> ((length _in) = n) -> True -> ((v = (sum (take n _in))) -> (v = (sum _in))).
 Proof.
   unfold take; intros; subst.
-  rewrite firstn_all; auto.
+  rewrite firstn_all. auto.
 Qed.
 
 (** ** SumEquals *)
-
-(* print_endline (generate_lemmas sum_equals (typecheck_circuit (add_to_deltas d_empty [is_equal; calc_total]) sum_equals));; *)
 
 Lemma SumEquals_obligation0: forall (n : nat) (nums : (list F)) (s : F) (v : Z), Forall (fun x0 => True) nums -> ((length nums) = n) -> True -> True -> (((0%nat <= v) /\ (v = n)) -> (0%nat <= v)).
 Proof. hammer. Qed.
@@ -107,8 +103,6 @@ Proof. hammer. Qed.
 
 (** ** IsNotZero *)
 
-(* print_endline (generate_lemmas is_not_zero (typecheck_circuit (add_to_deltas d_empty [cnot; is_zero]) is_not_zero));; *)
-
 Lemma IsNotZero_obligation0_trivial: forall (_in : F) (v : F), True -> True -> ((v = _in) -> True).
 Proof. hammer. Qed.
 
@@ -120,25 +114,23 @@ Proof. hammer. Qed.
 
 (** ** IsFiltered *)
 
-(* print_endline (generate_lemmas is_filtered (typecheck_circuit (add_to_deltas d_empty [is_equal; calc_total]) is_filtered));; *)
-
-Lemma IsFiltered_obligation0_trivial: forall (x : F) (y : F) (op : F) (v : F), True -> True -> True -> True -> (((v = op) /\ True) -> True).
+Lemma IsFiltered_obligation0_trivial: forall (x : F) (y : F) (op : F) (v : F), True -> True -> True -> True -> ((v = op) -> True).
 Proof. hammer. Qed.
 
 Lemma IsFiltered_obligation1_trivial: forall (x : F) (y : F) (op : F) (v : F), True -> True -> True -> True -> ((v = 0%F) -> True).
 Proof. hammer. Qed.
 
-Lemma IsFiltered_obligation2_trivial: forall (x : F) (y : F) (op : F) (a : F) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> True -> (((v = op) /\ True) -> True).
+Lemma IsFiltered_obligation2_trivial: forall (x : F) (y : F) (op : F) (a : F) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> True -> ((v = op) -> True).
 Proof. hammer. Qed.
 
 Lemma IsFiltered_obligation3_trivial: forall (x : F) (y : F) (op : F) (a : F) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> True -> ((v = 1%F) -> True).
 Proof. hammer. Qed.
 
-Lemma IsFiltered_obligation4: forall (x : F) (y : F) (op : F) (a : F) (b : F) (z : (list F)) (v : Z), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> Forall (fun x0 => True) z -> (((True /\ ((z!0%nat) = (x * a)%F)) /\ ((z!1%nat) = (y * b)%F)) /\ ((length z) = 2%nat)) -> True -> ((v = 2%nat) -> (0%nat <= v)).
+Lemma IsFiltered_obligation4: forall (x : F) (y : F) (op : F) (a : F) (b : F) (v : Z), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> True -> ((v = 2%nat) -> (0%nat <= v)).
 Proof. hammer. Qed.
 
-Lemma IsFiltered_obligation5: forall (x : F) (y : F) (op : F) (a : F) (b : F) (z : (list F)) (v : (list F)), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> Forall (fun x1 => True) z -> (((True /\ ((z!0%nat) = (x * a)%F)) /\ ((z!1%nat) = (y * b)%F)) /\ ((length z) = 2%nat)) -> Forall (fun x2 => True) v -> True -> (((v = z) /\ True) -> ((length v) = 2%nat)).
+Lemma IsFiltered_obligation5: forall (x : F) (y : F) (op : F) (a : F) (b : F) (v : (list F)), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> Forall (fun x0 => True) v -> True -> ((((True /\ ((v!0%nat) = (x * a)%F)) /\ ((v!1%nat) = (y * b)%F)) /\ ((length v) = 2%nat)) -> ((length v) = 2%nat)).
 Proof. hammer. Qed.
 
-Lemma IsFiltered_obligation6_trivial: forall (x : F) (y : F) (op : F) (a : F) (b : F) (z : (list F)) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> Forall (fun x3 => True) z -> (((True /\ ((z!0%nat) = (x * a)%F)) /\ ((z!1%nat) = (y * b)%F)) /\ ((length z) = 2%nat)) -> True -> ((v = (sum z)) -> True).
+Lemma IsFiltered_obligation6_trivial: forall (x : F) (y : F) (op : F) (a : F) (b : F) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> True -> ((v = (sum ((x * a)%F :: ((y * b)%F :: nil)))) -> True).
 Proof. hammer. Qed.

@@ -48,10 +48,19 @@ let index = v "index"
 
 let mimc = v "mimc"
 
+let bits = v "bits"
+
+let max_abs_value = v "max_abs_value"
+
+let lt1 = v "lt1"
+
+let lt2 = v "lt2"
+
 (* CalculateTotal *)
 
 let t_ct = tfq (qeq nu (u_sum vin))
 
+(* calc_total (n : {Z | 0 <= nu }) (in : { Array<F> | length nu = n}) : { F | nu = sum in } *)
 let calc_total =
   Circuit
     { name= "CalculateTotal"
@@ -62,14 +71,18 @@ let calc_total =
 
 (* QuinSelector *)
 
+(* { F | 4 < C.k - 1 /\ toUZ nu < 2 ^ 4 } *)
 let t_choices =
   tfq (qand (lift (z4 <. zsub1 CPLen)) (lift (toUZ nu <. zpow z2 z4)))
 
+(* { F | toUZ nu < toUZ choices } *)
 let t_index = tfq (lift (toUZ nu <. toUZ choices))
 
+(* { F | toUZ index < toUZ choices -> nu = in[toUZ index] } *)
 let t_qs =
   tfq (qimply (lift (toUZ index <. toUZ choices)) (nu ==. get vin (toUZ index)))
 
+(* quin_selector (choices : t_choices) (in : { Array<F> | length nu = toUZ choices }) (index : t_index) : t_qs *)
 let quin_selector =
   Circuit
     { name= "QuinSelector"
@@ -92,6 +105,7 @@ let quin_selector =
 
 let t_is_neg = tfq (ind_dec nu (lt (toSZ vin) z0))
 
+(* is_neg (in : F) : { F | binary nu /\ nu = 1 -> toSZ in < 0 /\ nu = 0 -> ~(toSZ in < 0) } *)
 let is_neg =
   Circuit
     { name= "IsNegative"
@@ -102,12 +116,16 @@ let is_neg =
 
 (* Random *)
 
+(* 15 < C.q /\ toUZ x < 2 ^ 32 *)
 let q_lt_232 x = qand (qlt (zn 15) CPrime) (qlt (toUZ x) (zpow z2 z32))
 
+(* forall i, 0 <= i < length xs -> q_lt_233 xs[i] *)
 let q_lt_232_arr xs = qforall "i" z0 (len xs) (q_lt_232 (get xs i))
 
-let t_rand = tfq (qand (qleq z0 (toUZ nu)) (qleq (toUZ nu) z15))
+(* { F | 0 <= toUZ nu <= 15 } *)
+let t_rand = tfq (qleq (toUZ nu) z15)
 
+(* random (in : { Array<F> | q_lt_232_arr nu /\ length nu = 3 }) (KEY : { F | q_lt_232 nu }) : t_rand *)
 let random =
   Circuit
     { name= "Random"
@@ -121,11 +139,56 @@ let random =
           (elet "z" (get mimc z0)
              (elet "n2b"
                 (call "Num2Bits" [z254; z])
-                (elet "n2b3" (get n2b z3)
-                   (elet "n2b2" (get n2b z2)
-                      (elet "n2b1" (get n2b z1)
-                         (elet "n2b0" (get n2b z0)
-                            (* 8 * n2b[3] + 4 * n2b[2] + 2 * n2b[1] + n2b[0] *)
-                            (fadd (fmul f8 n2b3)
-                               (fadd (fmul f4 n2b2) (fadd (fmul f2 n2b1) n2b0)) ) ) ) ) ) ) )
-    }
+                (* 8 * n2b[3] + 4 * n2b[2] + 2 * n2b[1] + n2b[0] *)
+                (fadd
+                   (fmul f8 (get n2b z3))
+                   (fadd
+                      (fmul f4 (get n2b z2))
+                      (fadd (fmul f2 (get n2b z1)) (get n2b z0)) ) ) ) ) }
+
+(* RangeProof *)
+
+let t_mav = tfq (lift (z0 <=. toSZ nu))
+
+(* t_rp = { () | numbits(in, bits + 1) /\ numbits(max_abs_value, bits) /\ |in| <= max_abs_value } *)
+
+(* range_proof (bits : { Z | 0 < nu }) (in : F) (max_abs_value : { F | 0 <= toSZ nu }) : t_rp *)
+let range_proof =
+  Circuit
+    { name= "RangeProof"
+    ; inputs= [("bits", tpos); ("in", tf); ("max_abs_value", t_mav)]
+    ; outputs= []
+    ; dep= None
+    ; body=
+        elet "x"
+          (vin +% fpow f2 bits)
+          (elet "n2b1"
+             (call2 "Num2Bits" (zadd1 bits) x)
+             (elet "n2b2"
+                (call2 "Num2Bits" bits max_abs_value)
+                (elet "lt1"
+                   (call "LessThan" [zadd1 bits; max_abs_value +% vin; f0])
+                   (elet "u0" (assert_eq lt1 f0)
+                      (elet "lt2"
+                         (call "LessThan"
+                            [ zadd1 bits
+                            ; f2 *% max_abs_value
+                            ; max_abs_value +% vin ] )
+                         (assert_eq lt2 f0) ) ) ) ) ) }
+
+(* MultiRangeProof (broken) *)
+
+let lam_mrp =
+  lama "z" tf (elet "_y" (call "RangeProof" [bits; z; max_abs_value]) f0)
+
+let multi_range_proof =
+  Circuit
+    { name= "MultiRangeProof"
+    ; inputs=
+        [ ("n", tnat)
+        ; ("bits", tpos)
+        ; ("in", tarr_tf n)
+        ; ("max_abs_value", t_mav) ]
+    ; outputs= []
+    ; dep= None
+    ; body= elet "_x" (map lam_mrp vin) unit_val }

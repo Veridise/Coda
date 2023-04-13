@@ -41,7 +41,8 @@ let lam_mm1 =
        (elet "a" (get x z0)
           (elet "b" (get x z1)
              (elet "y" (fsub b a) (elet "z" (fmul y s) (fadd z a))) ) )
-       tf )
+       (refine tf
+          (qeq nu (fadd (fmul (fsub (get x z1) (get x z0)) s) (get x z0))) ) )
 
 let multi_mux_1 =
   Circuit

@@ -26,27 +26,93 @@ Local Open Scope Z_scope.
 Local Open Scope circom_scope.
 Local Open Scope tuple_scope.
 
-(** ** Sign *)
+#[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
+#[global]Hint Extern 10  => match goal with
+   | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
+   #[global]Hint Extern 10  => match goal with
+   | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
+#[global]Hint Extern 10 => match goal with
+  [ |- context[length _] ] => rewrite_length end: core.
+#[global]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn: core.
 
-(* print_endline (generate_lemmas sign (typecheck_circuit d_empty sign));; *)
+#[global]Hint Extern 10 (Forall _ (_ :: _)) => constructor: core.
+#[global]Hint Extern 10 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: core.
+#[global]Hint Extern 10  => repeat match goal with
+  [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end: core.
 
-(* TODO *)
+#[global]Hint Extern 10 (_ < _) => lia: core.
+#[global]Hint Extern 10 (_ < _)%nat => lia: core.
+#[global]Hint Extern 10 (_ <= _) => lia: core.
+#[global]Hint Extern 10 (_ <= _)%nat => lia: core.
+#[global]Hint Extern 10 (_ > _) => lia: core.
+#[global]Hint Extern 10 (_ > _)%nat => lia: core.
+#[global]Hint Extern 10 (_ >= _) => lia: core.
+#[global]Hint Extern 10 (_ >= _)%nat => lia: core.
+#[global]Hint Extern 10 (S _ = S _) => f_equal: core.
 
 (** ** IsNegative *)
 
-(* print_endline (generate_lemmas is_negative (typecheck_circuit (add_to_delta d_empty sign) is_negative));; *)
+Lemma IsNegative_obligation0: forall (_in : F) (v : Z), True -> True -> ((v = 254%nat) -> (0%nat <= v)).
+Proof. hammer. Qed.
 
-(* TODO *)
+Lemma IsNegative_obligation1_trivial: forall (_in : F) (v : F), True -> True -> ((v = _in) -> True).
+Proof. hammer. Qed.
+
+Lemma IsNegative_obligation2: forall (_in : F) (n2b : (list F)) (v : (list F)), True -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) v -> True -> (((((as_le_f v) = _in) /\ ((length v) = 254%nat)) /\ (v = n2b)) -> ((length v) = 254%nat)).
+Proof. hammer. Qed.
+
+Lemma IsNegative_obligation3: forall (_in : F) (n2b : (list F)) (v : F), True -> Forall (fun x2 => ((x2 = 0%F) \/ (x2 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> True -> (((v = 0%F) \/ (v = 1%F)) -> ((v = 0%F) \/ (v = 1%F))).
+Proof. hammer. Qed.
+
+Lemma IsNegative_obligation4: forall (_in : F) (n2b : (list F)) (v : F), True -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((v = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((Signed.to_Z _in) < 0%nat)) /\ ((v = 0%F) -> ~((Signed.to_Z _in) < 0%nat))))).
+Proof. hammer. Qed.
 
 (** ** IsPositive (fixed) *)
 
-(* print_endline (generate_lemmas is_positive (typecheck_circuit (add_to_deltas d_empty [c_is_zero; sign]) is_positive));; *)
+Lemma IsPositive_obligation0: forall (_in : F) (v : Z), True -> True -> ((v = 254%nat) -> (0%nat <= v)).
+Proof. hammer. Qed.
 
-(* TODO *)
+Lemma IsPositive_obligation1_trivial: forall (_in : F) (v : F), True -> True -> ((v = _in) -> True).
+Proof. hammer. Qed.
+
+Lemma IsPositive_obligation2: forall (_in : F) (n2b : (list F)) (v : (list F)), True -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) v -> True -> (((((as_le_f v) = _in) /\ ((length v) = 254%nat)) /\ (v = n2b)) -> ((length v) = 254%nat)).
+Proof. hammer. Qed.
+
+Lemma IsPositive_obligation3: forall (_in : F) (n2b : (list F)) (v : F), True -> Forall (fun x2 => ((x2 = 0%F) \/ (x2 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> True -> (((v = 0%F) \/ (v = 1%F)) -> ((v = 0%F) \/ (v = 1%F))).
+Proof. hammer. Qed.
+
+Lemma IsPositive_obligation4_trivial: forall (_in : F) (n2b : (list F)) (s : F) (v : F), True -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> True -> ((v = _in) -> True).
+Proof. hammer. Qed.
+
+Lemma IsPositive_obligation5_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x4 => ((x4 = 0%F) \/ (x4 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = 1%F) -> True).
+Proof. hammer. Qed.
+
+Lemma IsPositive_obligation6_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x5 => ((x5 = 0%F) \/ (x5 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> (((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((v = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) /\ (v = s)) -> True).
+Proof. hammer. Qed.
+
+Lemma IsPositive_obligation7_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x6 => ((x6 = 0%F) \/ (x6 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = (1%F - s)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma IsPositive_obligation8_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x7 => ((x7 = 0%F) \/ (x7 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = 1%F) -> True).
+Proof. hammer. Qed.
+
+Lemma IsPositive_obligation9_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x8 => ((x8 = 0%F) \/ (x8 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> (((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (_in = 0%F)) /\ ((v = 0%F) -> ~(_in = 0%F)))) /\ (v = isz)) -> True).
+Proof. hammer. Qed.
+
+Lemma IsPositive_obligation10_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x9 => ((x9 = 0%F) \/ (x9 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = (1%F - isz)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma IsPositive_obligation11: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x10 => ((x10 = 0%F) \/ (x10 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = ((1%F - s)%F * (1%F - isz)%F)%F) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (0%nat < (Signed.to_Z _in))) /\ ((v = 0%F) -> ~(0%nat < (Signed.to_Z _in)))))).
+Proof.
+  unwrap_C; intuit; subst;
+    try lia; try fqsatz;
+    try (left; fqsatz);
+    try (right; fqsatz).
+  - admit.
+  - admit.
+Admitted.
 
 (** ** ReLU *)
-
-(* print_endline (generate_lemmas relu (typecheck_circuit (add_to_delta d_empty is_positive) relu));; *)
 
 Lemma ReLU_obligation0_trivial: forall (_in : F) (v : F), True -> True -> ((v = _in) -> True).
 Proof. hammer. Qed.
@@ -69,8 +135,6 @@ Proof.
 Qed.
 
 (** ** Poly *)
-
-(* print_endline (generate_lemmas poly (typecheck_circuit d_empty poly));; *)
 
 Lemma Poly_obligation0_trivial: forall (n : F) (_in : F) (v : F), True -> True -> True -> ((v = _in) -> True).
 Proof. hammer. Qed.

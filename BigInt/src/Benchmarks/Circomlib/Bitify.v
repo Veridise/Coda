@@ -67,7 +67,7 @@ Proof. hammer. Qed.
 Lemma Num2Bits_obligation2_trivial: forall (n : nat) (_in : F) (v : Z), True -> True -> (((0%nat <= v) /\ (v < n)) -> True).
 Proof. hammer. Qed.
 
-Lemma Num2Bits_obligation3: forall (n : nat) (_in : F) (i : nat) (v : (list F)), True -> (i < n) -> Forall (fun x0 => True) v -> True -> (((length v) = i) -> ((length v) = i)).
+Lemma Num2Bits_obligation3_trivial: forall (n : nat) (_in : F) (i : nat) (v : (list F)), True -> (i < n) -> Forall (fun x0 => True) v -> True -> (((length v) = i) -> ((length v) = i)).
 Proof. hammer. Qed.
 
 Lemma Num2Bits_obligation4_trivial: forall (n : nat) (_in : F) (i : nat) (x : (list F)) (star : F) (v : F), True -> (i < n) -> Forall (fun x1 => True) x -> ((length x) = i) -> True -> True -> ((v = star) -> True).

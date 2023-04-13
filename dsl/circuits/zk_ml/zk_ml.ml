@@ -2,6 +2,8 @@ open Ast
 open Dsl
 open Notation
 
+let z254 = zn 254
+
 let i = v "i"
 
 let n = v "n"
@@ -14,24 +16,18 @@ let vin = v "in"
 
 let out = v "out"
 
-(* FIXME: should be sign(num2bits(vin)) *)
+let n2b = v "n2b"
 
-let sign =
-  Circuit
-    { name= "Sign"
-    ; inputs= [("in", tarr_t_k tf_binary (zc (Z.of_int 254)))]
-    ; outputs= [("out", tfq (ind_dec nu (toSZ vin <. z0)))]
-    ; dep= None
-    ; body= unit_val }
-
+(* is_negative (in : F) : { F | binary nu /\ nu = 1 -> (toSZ in < 0) /\ nu = 0 -> ~(toSZ in < 0) } *)
 let is_negative =
   Circuit
     { name= "IsNegative"
     ; inputs= [("in", tf)]
     ; outputs= [("out", tfq (ind_dec nu (toSZ vin <. z0)))]
     ; dep= None
-    ; body= call1 "Sign" vin }
+    ; body= elet "n2b" (call2 "Num2Bits" z254 vin) (call1 "Sign" n2b) }
 
+(* is_positive (in : F) : { F | binary nu /\ nu = 1 -> (0 < toSZ in) /\ nu = 0 -> ~(0 < toSZ in) } *)
 let is_positive =
   Circuit
     { name= "IsPositive"
@@ -39,10 +35,13 @@ let is_positive =
     ; outputs= [("out", tfq (ind_dec nu (z0 <. toSZ vin)))]
     ; dep= None
     ; body=
-        elets
-          [("s", call1 "Sign" vin); ("isz", call1 "IsZero" vin)]
-          ((f1 -% v "s") *% (f1 -% v "isz")) }
+        elet "n2b"
+          (call2 "Num2Bits" z254 vin)
+          (elets
+             [("s", call1 "Sign" n2b); ("isz", call1 "IsZero" vin)]
+             ((f1 -% v "s") *% (f1 -% v "isz")) ) }
 
+(* relu (in : F) : { F | toSZ nu = max 0 (toSZ in) } *)
 let relu =
   Circuit
     { name= "ReLU"
@@ -51,6 +50,7 @@ let relu =
     ; dep= None
     ; body= elet "isp" (call1 "IsPositive" vin) (vin *% v "isp") }
 
+(* poly (n : F) (in : F) : { F | nu = in * (in + n) } *)
 let poly =
   Circuit
     { name= "Poly"

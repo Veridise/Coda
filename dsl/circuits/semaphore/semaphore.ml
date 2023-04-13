@@ -13,6 +13,8 @@ let c = v "c"
 
 let i = v "i"
 
+let _i = v "_i"
+
 let j = v "j"
 
 let m = v "m"
@@ -99,29 +101,37 @@ let calc_null_hash =
 
 (* MerkleTreeInclusionProof *)
 
+let u_hasher z init = unint "MrklTreeInclPfHash" [z; init]
+
+let u_zip xs ys = unint "zip" [xs; ys]
+
+let z_i_0 z = tget (get z _i) 0
+
+let z_i_1 z = tget (get z _i) 1
+
 let lam_mtip z =
-  lama "i" tint
+  lama "_i" tint
     (lama "x" tf
-       (elet "j"
-          (tget (get z i) 0)
-          (elet "s"
-             (tget (get z i) 1)
-             (elet "u0"
-                (* pathIndices[i] binary *)
-                (assert_eq (fmul j (fsub f1 j)) f0)
-                (elet "c"
-                   (const_array (tarr_tf z2)
-                      [const_array tf [x; s]; const_array tf [s; x]] )
-                   (elet "m"
-                      (call "MultiMux1" [z2; c; j])
-                      (call "Poseidon" [z2; m]) ) ) ) ) ) )
+       (elet "u0"
+          (* pathIndices[i] binary *)
+          (assert_eq (fmul (z_i_0 z) (fsub f1 (z_i_0 z))) f0)
+          (elet "c"
+             (const_array (tarr_tf z2)
+                [const_array tf [x; z_i_1 z]; const_array tf [z_i_1 z; x]] )
+             (elet "m"
+                (call "MultiMux1" [z2; c; z_i_0 z])
+                (call "Poseidon" [z2; m]) ) ) ) )
 
-let rec hasher z init =
-  iter z0 (len z) (lam_mtip z) ~init ~inv:(fun i ->
-      tfq (qeq nu (hasher (take z i) init)) )
+let hasher z len init =
+  iter z0 len (lam_mtip z) ~init ~inv:(fun i ->
+      tfq (qeq nu (u_hasher (u_take i z) init)) )
 
-let t_r = tfq (qeq nu (hasher (zip pathIndices siblings) leaf))
+(* {F | nu = #MrklTreeInclPfHash (zip pathIndices siblings) leaf } *)
+let t_r = tfq (qeq nu (u_hasher (u_zip pathIndices siblings) leaf))
 
+(* mrkl_tree_incl_pf (nLevels : {Z | 0 <= nu }) (leaf : F)
+   (pathIndices : { Array<F> | length nu = nLevels })
+   (siblings : { Array<F> | length nu = nLevels }) : t_r *)
 let mrkl_tree_incl_pf =
   Circuit
     { name= "MerkleTreeInclusionProof"
@@ -132,26 +142,37 @@ let mrkl_tree_incl_pf =
         ; ("siblings", tarr_tf nLevels) ]
     ; outputs= [("root", t_r)]
     ; dep= None
-    ; body= elet "z" (zip pathIndices siblings) (assert_eq root (hasher z leaf))
-    }
+    ; body= elet "z" (zip pathIndices siblings) (hasher z nLevels leaf) }
 
 (* Semaphore *)
 
+let u_calc_id_commit x = unint "CalculateIdentityCommitment" [x]
+
+let u_calc_secret x y = unint "CalculateSecret" [x; y]
+
+let u_calc_null_hash x y = unint "CalculateNullifierHash" [x; y]
+
+let u_mrkl_tree_incl_pf xs i s = unint "MerkleTreeInclusionProof" [xs; i; s]
+
+(* { F | nu = #MerkleTreeInclusionProof
+         (#CalculateIdentityCommitment (#CalculateSecret identityNullifier identityTrapdoor))
+         treePathIndices treeSiblings } *)
 let t_semaphore_root =
   tfq
     (qeq nu
-       (call "MerkleTreeInclusionProof"
-          [ nLevels
-          ; call "CalculateIdentityCommitment"
-              [call "CalculateSecret" [identityNullifier; identityTrapdoor]]
-          ; treePathIndices
-          ; treeSiblings ] ) )
+       (u_mrkl_tree_incl_pf
+          (u_calc_id_commit (u_calc_secret identityNullifier identityTrapdoor))
+          treePathIndices treeSiblings ) )
 
+(* { F | nu =  #CalculateNullifierHash externalNullifier identityNullifier } *)
 let t_semaphore_null_hash =
-  tfq
-    (qeq nu
-       (call "CalculateNullifierHash" [externalNullifier; identityNullifier]) )
+  tfq (qeq nu (u_calc_null_hash externalNullifier identityNullifier))
 
+(* semaphore
+     (nLevels : { Z | 0 <= nu }) (identityNullifier : F) (identityTrapdoor : F)
+     (treePathIndices : { Array<F> | length nu = nLevels })
+     (treeSiblings : { Array<F> | length nu = nLevels })
+     (signalHash : F) (externalNullifer : F) : tpair t_semaphore_root t_semaphore_null_hash *)
 let semaphore =
   Circuit
     { name= "Semaphore"

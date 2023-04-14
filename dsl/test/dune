@@ -52,6 +52,16 @@
  (modules test_liblam))
 
 (executable
+ (name test_circomlib)
+ (libraries zarith lib coqgen test_utils circomlib)
+ (modules test_circomlib))
+
+(executable
+ (name test_bigint)
+ (libraries zarith lib coqgen circomlib test_utils bigint)
+ (modules test_bigint))
+
+(executable
  (name test_zk_ml)
  (libraries zarith lib coqgen circomlib test_utils zk_ml)
  (modules test_zk_ml))

@@ -39,7 +39,7 @@ let show_func = function
   | ToBigSZ ->
       "toBigSZ"
   | NatToF ->
-    "F.of_nat q"
+      "F.of_nat q"
 
 let show_aop = function
   | Length ->

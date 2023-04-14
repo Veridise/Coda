@@ -47,7 +47,8 @@ let split_three =
         ; ("k", attach (lift (nu <. CPLen)) tnat)
         ; ("in", tf) ]
     ; outputs= [("small", tf_2n n); ("medium", tf_2n m); ("big", tf_2n k)]
-    ; dep= Some (vin ==. small +% (med *% (f2 ^% n)) +% (big *% (f2 ^% (n +. m))))
+    ; dep=
+        Some (vin ==. small +% (med *% (f2 ^% n)) +% (big *% (f2 ^% (n +. m))))
     ; body=
         elets
           [ ("small", star)

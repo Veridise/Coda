@@ -28,8 +28,8 @@ let g =
     ; less_than
     ; num2bits
     ; bits2num
-    ; c_big_is_zero
-    ; c_big_is_equal
+    ; big_is_zero
+    ; big_is_equal
     ; big_lt
     ; cand
     ; split
@@ -144,12 +144,12 @@ let _ = test_circuit [("w", 252)] escalar_product
 let _ = path := "./test/codegen_results/bigint/"
 
 (* non-linear constraints + linear constraints *)
-let _ = test_circuit [("k", 6)] c_big_is_equal
+let _ = test_circuit [("k", 6)] big_is_equal
 (* 14 + 7 = 21*)
 (* 15 *)
 (* 14 + 0 = 14 *)
 
-let _ = test_circuit [("k", 6)] c_big_is_zero
+let _ = test_circuit [("k", 6)] big_is_zero
 (* 14 + 1 = 15*)
 (* 15 *)
 (* 14 + 0 = 14 *)

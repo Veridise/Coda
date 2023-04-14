@@ -70,7 +70,8 @@ let t_sz =
         (ands
            [ lift (z252 <=. zsub1 CPLen)
            ; lift (z0 <. nu)
-           ; lift (nu <. zpow z2 z252) ] ) )
+           ; lift (nu <. zpow z2 z252)
+           ; lift (nu <. CPLen) ] ) )
 
 (* exists i, 0 <= i < valueArraySize -> value[i] = in *)
 let q_IN = qexists_e "i" z0 valueArraySize (get value i =. vin)
@@ -81,9 +82,7 @@ let t_IN = tfq (q_ind_dec' nu q_IN)
 let lam_IN =
   lama "i" tint
     (lama "x" tf
-       (match_with' ["ise"; "u"]
-          (make [call "IsEqual" [vin; get value i]; f1])
-          (fadd x (v "ise")) ) )
+       (elet "ise" (call "IsEqual" [vin; get value i]) (fadd x (v "ise"))) )
 
 (*  *)
 let u_inv_IN i xs x = unint "sum_occur" [i; xs; x]
@@ -183,7 +182,7 @@ let t_get_val_by_idx = tfq (qeq nu (get claim (zmod (toUZ index) z8)))
 let get_val_by_idx =
   Circuit
     { name= "getValueByIndex"
-    ; inputs= [("claim", tarr_tf z8); ("index", tf)]
+    ; inputs= [("claim", tarr_t_q_k tf (qlt z3 CPLen) z8); ("index", tf)]
     ; outputs= [("value", t_get_val_by_idx)]
     ; dep= None
     ; body=

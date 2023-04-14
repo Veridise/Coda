@@ -39,6 +39,25 @@ Definition to_le_f (n : nat) (f : F) : list F := nil.
 
 Theorem to_le_f_as_le_f: forall l, l = to_le_f (length l) (as_le_f l). Admitted.
 
+Theorem as_le_f_mod: 
+forall (l1 l2: list F) (lth: length l1 < k),
+Forall binary (l1++l2)->
+(^ as_le_f l1) =
+(^ as_le_f (l1 ++ l2) mod (2^(length l1)))%Z.
+Proof.
+  unwrap_C.
+  intros.
+  unfold as_le_f.
+  erewrite Repr.as_le_app.
+  assert (1 mod q = 1) by (apply Z.mod_small; lia).
+  simpl.
+  rewrite H0.
+  assert ((1 + 1) mod q = 2)%Z by (apply Z.mod_small; lia).
+  rewrite H1. rewrite <- PullPush.Z.add_mod_r. 
+  rewrite ModularArithmeticPre.powmod_Zpow_mod. 
+  admit.
+Admitted.
+
 Definition f_and (x: F) (y: F) := x = 1%F /\ y = 1%F.
 Definition f_or (x: F) (y: F) := x = 1%F \/ y = 1%F.
 Definition f_not (x: F) := x = 0%F.
@@ -279,6 +298,61 @@ Qed.
 Lemma ub_as_le: forall xs n (k:nat),
   [| xs |n] <= 2^(n*k)-1 ->
   (forall (i: nat), i >= k -> xs!i = 0%F).
+Admitted.
+
+Definition sum_occur i (value : list F) (v : F) : F :=
+  fold_left (fun acc (x:F) => if (dec (x = v))%F then (1 + acc)%F else acc) (firstn i value) 0%F.
+
+Lemma fold_left_equal_init:
+  forall (l:list F) (a b v: F),
+  fold_left (fun acc (x:F) => if (dec (x = v))%F then (1 + acc)%F else acc) l a = b ->
+  fold_left (fun acc (x:F) => if (dec (x = v))%F then (1 + acc)%F else acc) l (1+a)%F = (1+b)%F.
+Proof.
+unwrap_C.
+  induction l;try easy;intros;simpl in *;try lia;try fqsatz.
+  destruct (dec (a = v))%F;subst;try easy.
+  - erewrite IHl;eauto.
+  - erewrite IHl;eauto.
+Qed.
+
+Lemma fold_left_nonneg: 
+  forall l v,
+  ^(fold_left
+    (fun acc x : F =>
+     if dec (x = v) then (1 + acc)%F else acc)
+    l 0%F) >= 0.
+  Admitted.
+
+Lemma sum_occur_max: forall (value : list F) (v : F) 
+(lth:length value < k),
+  (sum_occur (length value) value v <=z length value).
+Proof.
+  unwrap_C. unfold sum_occur. induction value;simpl;intros;try easy.
+  destruct (dec (a = v))%F; subst.
+  - erewrite fold_left_equal_init;eauto. 
+    pose proof (IHvalue v). Signed.solve_to_Z. 
+    pose proof (fold_left_nonneg (value [:length value]) v). 
+    rewrite <- q_lb. 
+    assert (2 ^ (Pos.of_succ_nat (length value)) < 2 ^k).
+    { apply Z.pow_lt_mono_r;try lia. }
+    rewrite <- H1. 
+    assert (2 ^ (length value) <2 ^ Pos.of_succ_nat (length value)). 
+    { apply Z.pow_lt_mono_r;try lia. }
+    split;try lia. admit.
+  - pose proof (IHvalue v). Signed.solve_to_Z.
+Admitted.
+
+Lemma sum_occur_nonneg: forall (value : list F) (v : F),
+  (exists i : nat,
+        0 <= i < length value /\ value ! i = v) <->
+  (0 < ^ sum_occur (length value) value v).
+Proof.
+  induction value; simpl; split;intros;try easy.
+  - destruct H. destruct H. 
+    inversion H;lia.
+  - destruct H. destruct H. unfold sum_occur.
+    admit.
+  - admit.
 Admitted.
 
 Ltac hammer := solve [trivial | (intuit; subst; auto)].

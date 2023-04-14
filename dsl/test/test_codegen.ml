@@ -176,7 +176,7 @@ let _ = test_circuit [("n", 43); ("m", 43)] split
 
 let _ = test_circuit [("n", 43); ("m", 43); ("k", 43)] split_three
 (* 129 + 4 = 133 *)
-(* 134 *)
+(* 133 *)
 (* 129 + 0 = 129 *)
 
 let _ = test_circuit [("n", 43); ("k", 6)] big_add

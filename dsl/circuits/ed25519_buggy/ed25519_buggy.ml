@@ -47,22 +47,17 @@ let t_carry_out_fa = tfq (toUZ nu ==. zdiv (toUZ (bit1 +% bit2 +% carry)) z2)
 let fulladder =
   Circuit
     { name= "fulladder"
-    ; inputs= [("bit1", tf_binary); ("bit2", tf_binary); ("carry", tf_binary)]
+    ; inputs= [("bit1", tf); ("bit2", tf); ("carry", tf)]
     ; outputs= [("val", t_val_fa); ("carry_out", t_carry_out_fa)]
     ; dep= Some ((f2 *% carry_out) +% vval ==. bit1 +% bit2 +% carry)
     ; body=
         elet "val" star
           (elet "u0"
              (assert_eq (vval *% (vval -% f1)) f0)
-             (elet "u1"
-                (assert_eq (toUZ vval) (zmod (toUZ (bit1 +% bit2 +% carry)) z2))
-                (elet "carry_out" star
-                   (elet "u2"
-                      (assert_eq (carry_out *% (carry_out -% f1)) f0)
-                      (elet "u3"
-                         (assert_eq (toUZ carry_out)
-                            (zdiv (toUZ (bit1 +% bit2 +% carry)) z2) )
-                         (pair vval carry_out) ) ) ) ) ) }
+             (elet "carry_out" star
+                (elet "u2"
+                   (assert_eq (carry_out *% (carry_out -% f1)) f0)
+                   (pair vval carry_out) ) ) ) }
 
 (* onlycarry *)
 
@@ -73,22 +68,17 @@ let t_carry_out_oc = tfq (toUZ nu ==. zdiv (toUZ (bit +% carry)) z2)
 let onlycarry =
   Circuit
     { name= "onlycarry"
-    ; inputs= [("bit", tf_binary); ("carry", tf_binary)]
+    ; inputs= [("bit", tf); ("carry", tf)]
     ; outputs= [("val", t_val_oc); ("carry_out", t_carry_out_oc)]
     ; dep= Some ((f2 *% carry_out) +% vval ==. bit +% carry)
     ; body=
         elet "val" star
           (elet "u0"
              (assert_eq (vval *% (vval -% f1)) f0)
-             (elet "u1"
-                (assert_eq (toUZ vval) (zmod (toUZ (bit +% carry)) z2))
-                (elet "carry_out" star
-                   (elet "u2"
-                      (assert_eq (carry_out *% (carry_out -% f1)) f0)
-                      (elet "u3"
-                         (assert_eq (toUZ carry_out)
-                            (zdiv (toUZ (bit +% carry)) z2) )
-                         (pair vval carry_out) ) ) ) ) ) }
+             (elet "carry_out" star
+                (elet "u2"
+                   (assert_eq (carry_out *% (carry_out -% f1)) f0)
+                   (pair vval carry_out) ) ) ) }
 
 (* BinAdd *)
 
@@ -131,26 +121,16 @@ let bin_add =
 
 (* LessThanPower *)
 
-let t_base_ltp =
-  TRef
-    ( tint
-    , qand
-        (lift (leq z252 (zsub1 CPLen)))
-        (qand
-           (lift (leq z0 nu))
-           (lift (leq (toUZ (fpow f2 base)) (zsub1 (zpow z2 z252)))) ) )
-
-let t_in_ltp = tfq (lift (leq (toUZ nu) (zsub1 (zpow z2 z252))))
-
 let t_ltp = tfq (ind_dec nu (lt (toUZ vin) (zpow z2 base)))
 
 let less_than_power =
   Circuit
     { name= "LessThanPower"
-    ; inputs= [("base", t_base_ltp); ("in", t_in_ltp)]
+    ; inputs= [("base", tnat); ("in", tf)]
     ; outputs= [("out", t_ltp)]
     ; dep= None
-    ; body= call "LessThan" [z252; vin; fpow f2 base] }
+    ; body= elet "out" star (elet "u" (assert_eq (out *% (out -% f1)) f0) out)
+    }
 
 (* LessThanBounded *)
 
@@ -159,7 +139,7 @@ let t_ltb = tfq (ind_dec nu (lt (toUZ in0) (toUZ in1)))
 let less_than_bounded =
   Circuit
     { name= "LessThanBounded"
-    ; inputs= [("base", t_base_ltp); ("in0", t_in_ltp); ("in1", t_in_ltp)]
+    ; inputs= [("base", tnat); ("in0", tf); ("in1", tf)]
     ; outputs= [("out", t_ltb)]
     ; dep= None
     ; body=
@@ -167,4 +147,5 @@ let less_than_bounded =
           (call "LessThanPower" [base; in0])
           (elet "_y"
              (call "LessThanPower" [base; in1])
-             (call "LessThan" [z252; in0; in1]) ) }
+             (elet "out" star
+                (elet "u" (assert_eq (out *% (out -% f1)) f0) out) ) ) }

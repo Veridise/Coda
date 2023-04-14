@@ -37,6 +37,7 @@ Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
 (* TODO *)
 Definition to_le_f (n : nat) (f : F) : list F := nil.
 
+Theorem to_le_f_as_le_f: forall l, l = to_le_f (length l) (as_le_f l). Admitted.
 
 Definition f_and (x: F) (y: F) := x = 1%F /\ y = 1%F.
 Definition f_or (x: F) (y: F) := x = 1%F \/ y = 1%F.
@@ -219,6 +220,31 @@ Ltac lift' H := apply f_equal with (f:=F.to_Z) in H; Signed.solve_to_Z' H.
 Lemma list_eq: forall {A: Type} {H: Default A} (l1 l2: list A),
   length l1 = length l2 ->
   (forall (i: nat), 0 <= i < length l1 -> l1!i = l2!i) -> l1 = l2.
+Admitted.
+
+Lemma q_3: 
+2 <= k ->
+2 ^ k < q ->
+1 + 1 + 1 < q.
+Proof.
+unwrap_C. intros. Admitted.
+
+Lemma q_4:
+2 <= k ->
+2 ^ k < q ->
+1 + 1 + 1 + 1 < q.
+Proof.
+unwrap_C. intros. Admitted.
+
+Lemma q_5:
+252%nat <= k - 1%nat ->
+2 ^ k < q ->
+1 + 1 + 1 + 1 + 1 < q.
+Proof.
+Admitted.
+
+Lemma leq_minus:
+  forall n, 1%nat <= ^ (1 - n) -> n = 0%F.
 Admitted.
 
 Lemma Zmod_once: forall a b c,

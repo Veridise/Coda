@@ -64,23 +64,31 @@ let rootsTreeRoot = v "rootsTreeRoot"
 (* { Z | 2 < C.q /\ 252 <= C.k - 1 /\ 0 < nu } *)
 let t_sz =
   TRef
-    ( tint
+    ( tnat
     , qand
         (lift (z2 <. CPrime))
-        (qand (lift (z252 <=. zsub1 CPLen)) (lift (z0 <. nu))) )
+        (ands
+           [ lift (z252 <=. zsub1 CPLen)
+           ; lift (z0 <. nu)
+           ; lift (nu <. zpow z2 z252) ] ) )
 
 (* exists i, 0 <= i < valueArraySize -> value[i] = in *)
 let q_IN = qexists_e "i" z0 valueArraySize (get value i =. vin)
 
 (* { F | binary nu /\ (nu = 1 -> q_IN) /\ (nu = 0 -> ~q_IN) } *)
-let t_IN = tfq (q_ind_dec nu q_IN)
+let t_IN = tfq (q_ind_dec' nu q_IN)
 
 let lam_IN =
   lama "i" tint
     (lama "x" tf
-       (elet "ise" (call "IsEqual" [vin; get value i]) (fadd x (v "ise"))) )
+       (match_with' ["ise"; "u"]
+          (make [call "IsEqual" [vin; get value i]; f1])
+          (fadd x (v "ise")) ) )
 
-let inv_IN i = tfq (q_ind_dec nu (qexists_e "j" z0 i (get value j =. vin)))
+(*  *)
+let u_inv_IN i xs x = unint "sum_occur" [i; xs; x]
+
+let inv_IN i = tfq (qeq nu (u_inv_IN i value vin))
 
 (* c_in (valueArraySize : t_sz) (in : F)
    (value : { Array<F> | length u = valueArraySize }) : t_IN *)
@@ -110,10 +118,13 @@ let mux_query e l g i = const_array tf [f1; e; l; g; i; f1 -% i; f0; f0]
 (* { Z | 2 < C.q /\ 252 <= C.k - 1 /\ 0 < nu } *)
 let t_vas =
   TRef
-    ( tint
+    ( tnat
     , qand
         (lift (z2 <. CPrime))
-        (qand (lift (z252 <=. zsub1 CPLen)) (lift (z0 <. nu))) )
+        (ands
+           [ lift (z252 <=. zsub1 CPLen)
+           ; lift (z0 <. nu)
+           ; lift (nu <. zpow z2 z252) ] ) )
 
 (* op = 0 -> nu = 1 /\ op <> 0 ->
      (op = 1 -> nu = (in =? v0) /\ op <> 1 ->
@@ -121,7 +132,7 @@ let t_vas =
          (op = 3 -> nu = (in >? vo) /\ op <> 3 ->
            (op = 4 -> nu = (exists j, 0 <= j < valueArraySize -> value[j] = in)? /\ op <> 4 ->
              (op = 5 -> nu = (~(exists j, 0 <= j < valueArraySize -> value[j] = in))? /\ op <> 5 ->
-               False))))) *)
+               True))))) *)
 let t_query =
   tfq
     (ites_expr
@@ -130,12 +141,12 @@ let t_query =
        ; (op =. fn 2, ind_dec nu (vin <.. v0))
        ; (op =. fn 3, ind_dec nu (vin >.. v0))
        ; ( op =. fn 4
-         , q_ind_dec nu (qexists_e "j" z0 valueArraySize (get value j =. vin))
+         , q_ind_dec' nu (qexists_e "j" z0 valueArraySize (get value j =. vin))
          )
        ; ( op =. fn 5
-         , q_ind_dec nu
+         , q_ind_dec' nu
              (qnot (qexists_e "j" z0 valueArraySize (get value j =. vin))) ) ]
-       qfalse )
+       qtrue )
 
 (* query : (valueArraySize : t_vas) (in : F)
      (value : { Array<F> | length nu = valueArraySize}) (operator : F) : t_query *)
@@ -144,8 +155,11 @@ let query =
     { name= "Query"
     ; inputs=
         [ ("valueArraySize", t_vas)
-        ; ("in", tf)
-        ; ("value", tarr_tf valueArraySize)
+        ; ("in", TRef (tf, lift (toUZ nu <. zpow z2 z252)))
+        ; ( "value"
+          , tarr_t_q_k tf
+              (lift (toUZ (get nu z0) <. zpow z2 z252))
+              valueArraySize )
         ; ("operator", tf) ]
     ; outputs= [("out", t_query)]
     ; dep= None

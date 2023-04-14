@@ -22,9 +22,12 @@ let tf_2n n = tfe (leq (toUZ nu) (zsub (zpow z2 n) z1))
 let split =
   Circuit
     { name= "Split"
-    ; inputs= [("n", (attach (lift (nu <. CPLen)) tnat)); ("m", (attach (lift (nu <. CPLen)) tnat)); ("in", tf)]
+    ; inputs=
+        [ ("n", attach (lift (nu <. CPLen)) tnat)
+        ; ("m", attach (lift (nu <. CPLen)) tnat)
+        ; ("in", tf) ]
     ; outputs= [("small", tf_2n n); ("big", tf_2n m)]
-    ; dep= Some (vin ==. small +% (big *% (f2 ^%n)))
+    ; dep= Some (vin ==. small +% (big *% (f2 ^% n)))
     ; body=
         elets
           [ ("small", star)
@@ -38,17 +41,23 @@ let split =
 let split_three =
   Circuit
     { name= "SplitThree"
-    ; inputs= [("n", (attach (lift (nu <. CPLen)) tnat)); ("m", (attach (lift (nu <. CPLen)) tnat)); ("k", (attach (lift (nu <. CPLen)) tnat)); ("in", tf)]
+    ; inputs=
+        [ ("n", attach (lift (nu <. CPLen)) tnat)
+        ; ("m", attach (lift (nu <. CPLen)) tnat)
+        ; ("k", attach (lift (nu <. CPLen)) tnat)
+        ; ("in", tf) ]
     ; outputs= [("small", tf_2n n); ("medium", tf_2n m); ("big", tf_2n k)]
     ; dep= Some (vin ==. small +% (med *% (f2 ^% n)) +% (big *% (f2 ^% (n +. m))))
     ; body=
-    elets
-    [ ("small", star)
-    ; ("medium", star)
-    ; ("big", star)
-    ; ("bs", call "Num2Bits" [n; small])
-    ; ("bm", call "Num2Bits" [m; med])
-    ; ("bb", call "Num2Bits" [k; big])
-     (* in === small + medium * 2 ^ n + big * 2 ^ (n + m) *)
-    ; ("u0", vin === small +% (med *% (f2 ^% n)) +% (big *% (f2 ^% (n +. m)))) ]
-    (make [small; med; big]) }
+        elets
+          [ ("small", star)
+          ; ("medium", star)
+          ; ("big", star)
+          ; ("bs", call "Num2Bits" [n; small])
+          ; ("bm", call "Num2Bits" [m; med])
+          ; ("bb", call "Num2Bits" [k; big])
+            (* in === small + medium * 2 ^ n + big * 2 ^ (n + m) *)
+          ; ( "u0"
+            , vin === small +% (med *% (f2 ^% n)) +% (big *% (f2 ^% (n +. m)))
+            ) ]
+          (make [small; med; big]) }

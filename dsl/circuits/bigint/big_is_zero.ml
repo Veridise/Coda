@@ -1,13 +1,14 @@
 open Ast
 open Dsl
+open Notation
 
 let vin = v "in"
 
 let vout = v "out"
 
-let x = v "x"
+let xs = v "xs"
 
-let y = v "y"
+let x = v "x"
 
 let z = v "z"
 
@@ -17,34 +18,30 @@ let k = v "k"
 
 let i = v "i"
 
-let a = v "a"
-
-let b = v "b"
-
-let ab = v "ab"
 
 let total = v "total"
 
-let t_k = f_range z1 CPLen
 
-(* BigIsZero *)
-let q_biz j = qforall "i" z0 j (qeq (get vin i) f0)
+(* BigIsEqual *)
+let bie_forall i = let j = "bie_j" in qforall j z0 i (get xs (v j) ==. f0)
+let bie_exists i = let j = "bie_j" in qexists j z0 i (qnot (get xs (v j) ==. f0))
 
-let t_biz = tfq (q_ind_dec nu (q_biz (toUZ k)))
+let t_bie i = tfq (qand (lift (toUZ nu <=. i)) (ite (toUZ nu ==. i) (bie_forall i) (bie_exists i)))
 
-let inv_biz i = tfq (q_ind_dec (eq nu i) (q_biz i))
-
-let lam_biz = lama "i" tint (lama "x" tf (fadd x (call "IsZero" [get vin i])))
-
-let c_big_is_zero =
+let big_is_zero =
   Circuit
     { name= "BigIsZero"
-    ; inputs= [("k", t_k); ("in", tarr_tf (toUZ k))]
-    ; outputs= [("out", t_biz)]
+    ; inputs= [
+      ("k", attaches [lift (k <=. CPLen)] tnat);
+      ("xs", tarr_tf k)]
+    ; outputs= [("out", attach ((ite (nu ==. f1) (bie_forall k) (bie_exists k))) tf_binary)]
     ; dep= None
     ; body=
-        (* total = (iter 0 k (\i x => x + #IsZero in[i]) 0) *)
-        elet "total"
-          (iter z0 (toUZ k) lam_biz ~init:f0 ~inv:inv_biz)
-          (* out === #IsZero (k - total) *)
-          (call "IsZero" [fsub k total]) }
+      (elet
+      "total"
+      (iter z0 k ~init:f0 ~inv:t_bie
+        (lama "i" tint
+          (lama "x" tf
+            (elet "ise" (call "IsZero" [get xs i])
+            (x +% v "ise")))))
+        (call "IsEqual" [nat2f k; v "total"]))}

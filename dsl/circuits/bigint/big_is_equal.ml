@@ -22,34 +22,30 @@ let a = v "a"
 
 let b = v "b"
 
-let ab = v "ab"
-
 let total = v "total"
 
-let t_k = f_range z1 CPLen
 
 (* BigIsEqual *)
-let q_bie j = qforall "i" z0 j (qeq (get a i) (get b i))
+let bie_forall i = let j = "bie_j" in qforall j z0 i (get a (v j) ==. get b (v j))
+let bie_exists i = let j = "bie_j" in qexists j z0 i (qnot (get a (v j) ==. get b (v j)))
 
-let t_bie = tfq (q_ind_dec nu (q_bie (toUZ k)))
+let t_bie i = tfq (qand (lift (toUZ nu <=. i)) (ite (toUZ nu ==. i) (bie_forall i) (bie_exists i)))
 
-let inv_bie i = tfq (q_ind_dec (eq nu i) (q_bie i))
-
-let lam_bie =
-  lama "i" tint
-    (lama "x" tf (x +% call "IsEqual" [tget (get ab i) 0; tget (get ab i) 1]))
-
-let c_big_is_equal =
+let big_is_equal =
   Circuit
     { name= "BigIsEqual"
-    ; inputs= [("k", t_k); ("a", tarr_tf (toUZ k)); ("b", tarr_tf (toUZ k))]
-    ; outputs= [("out", t_bie)]
+    ; inputs= [
+      ("k", attaches [lift (k <=. CPLen)] tnat);
+      ("a", tarr_tf k);
+      ("b", tarr_tf k)]
+    ; outputs= [("out", attach ((ite (nu ==. f1) (bie_forall k) (bie_exists k))) tf_binary)]
     ; dep= None
     ; body=
-        (* ab = zip a b *)
-        elet "ab" (zip a b)
-          (* total = (iter 0 k (\i x => x + #IsEqual ab[i].0 ab[i].1) 0) *)
-          (elet "total"
-             (iter z0 (toUZ k) lam_bie ~init:f0 ~inv:inv_bie)
-             (* out === #IsZero (k - total) *)
-             (call "IsZero" [fsub k total]) ) }
+      (elet
+      "total"
+      (iter z0 k ~init:f0 ~inv:t_bie
+        (lama "i" tint
+          (lama "x" tf
+            (elet "ise" (call "IsEqual" [get a i; get b i])
+            (x +% v "ise")))))
+        (call "IsEqual" [nat2f k; v "total"]))}

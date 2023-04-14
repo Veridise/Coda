@@ -1,5 +1,6 @@
 open Ast
 open Dsl
+open Notation
 
 let n = v "n"
 
@@ -44,22 +45,21 @@ let axb_pts = v "axb_pts"
 let out_pts = v "out_pts"
 
 (* { Z | 0 <= v /\ 2 * v <= C.k } *)
-let t_n = TRef (tint, qand (QExpr (leq z0 nu)) (QExpr (leq (zmul z2 nu) CPLen)))
+let t_n = attach (lift ((z2 *! nu) <. CPLen)) tnat
 
 let mod_prod =
   Circuit
     { name= "ModProd"
     ; inputs= [("n", t_n); ("a", tf); ("b", tf)]
-    ; outputs= [("prod", tf); ("carry", tf)]
+    ; outputs= [("prod", attach (lift (toUZ nu <=. (z2 ^! n) -! z1)) tf); ("carry", tf)]
     ; (* carry * 2 ^ n + prod = a * b *)
-      dep= Some (qeq (fadd (fmul carry (fpow f2 n)) prod) (fmul a b))
+      dep= Some ( ( ( carry *% ( f2 ^% n)) +% prod) ==. (a *% b))
     ; body=
         (* n2b = #Num2Bits (2 * n) (a * b) *)
-        elet "n2b"
-          (call "Num2Bits" [zmul z2 n; fmul a b])
           (* prod === #Bits2Num n (take n2b n) *)
           (elets
-             [ ("prod", call "Bits2Num" [n; take n2b n])
+             [ ("n2b", call "Num2Bits" [z2 *. n; a *% b]);
+              ("prod", call "Bits2Num" [n; take n2b n])
              ; (* carry === #Bits2Num n (drop n n2b) *)
                ("carry", call "Bits2Num" [n; drop n2b n]) ]
              (pair prod carry) ) }

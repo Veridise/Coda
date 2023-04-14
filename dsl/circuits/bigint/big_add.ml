@@ -24,6 +24,8 @@ let c = v "c"
 
 let c' = v "c'"
 
+let d = v "d"
+
 let i = v "i"
 
 let s = v "s"
@@ -50,9 +52,11 @@ let out = v "out"
 
 (* { F | ^v <= C.k - 1 } *)
 let t_n = attaches [lift (nu <=. CPLen -! z1); lift (z1 <=. nu)] tnat
+let t_n' = attaches [lift (nu <=. CPLen -! z2); lift (z1 <=. nu)] tnat
 
 (* { F | ^v <= 2^n - 1 } *)
 let tf_n_bit = tfe (toUZ nu <=. (z2 ^! n) -! z1)
+let tf_x_bit x = tfe (toUZ nu <=. (z2 ^! x) -! z1)
 
 let mod_sum_three =
   Circuit
@@ -61,9 +65,6 @@ let mod_sum_three =
     ; outputs= [("sum", tf_n_bit); ("carry", tf_binary)]
     ; dep= Some (sum +% ((f2 ^% n) *% carry) ==. a +% b +% c)
     ; body=
-        (* n2b = #Num2Bits (n + 1) (a + b + c) *)
-        elet "n2b"
-          (call2 "Num2Bits" (n +. z1) (a +% b +% c))
           (elets
              [ (* carry = N2B.out[n] *)
                ("carry", get n2b n)
@@ -71,6 +72,22 @@ let mod_sum_three =
                ("sum", a +% b +% c -% (carry *% (f2 ^% n))) ]
              (pair sum carry) ) }
 
+let mod_sum_four =
+  Circuit
+    { name= "ModSumFour"
+    ; inputs= [("n", t_n'); ("a", tf_n_bit); ("b", tf_n_bit); ("c", tf_binary); ("d", tf_binary)]
+    ; outputs= [("sum", tf); ("carry", tf_x_bit z2)]
+    ; dep= Some (sum +% ((f2 ^% n) *% carry) ==. a +% b +% c +% d)
+    ; body=
+          (elets
+              [ 
+                ("n2b", (call2 "Num2Bits" (n +. z2) (a +% b +% c +% d)));
+                ("carry", get n2b n +% (f2 *% get n2b (n +. z1)))
+              ; (* sum === a + b + c - carry * 2^n *)
+                ("sum", (a +% b +% c +% d) -% (carry *% (f2 ^% n))) ]
+                (pair sum carry) ) }
+
+                
 (* Proper big Ints of length k *)
 let t_big_int k = tarr_t_k tf_n_bit k
 
@@ -121,7 +138,7 @@ let t_big_int_add_mod_p k =
     (as_le n nu ==. zmod (as_le n a +! as_le n b) (as_le n p))
     k
 
-let t_n' = attaches [lift (nu <=. CPLen -! z2); lift (z1 <=. nu)] tnat
+
 
 let big_add_mod_p =
   Circuit

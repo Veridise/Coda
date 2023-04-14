@@ -33,29 +33,30 @@ Local Notation "[| xs | n ]" := (RZ.as_le n xs).
 Local Notation "[| xs |]" := (Repr.as_le 1%nat xs).
 
 
-#[global]Hint Extern 10 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
-#[global]Hint Extern 10  => match goal with
+#[local]Hint Extern 1 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
+#[local]Hint Extern 1  => match goal with
    | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
-   #[global]Hint Extern 10  => match goal with
+   #[local]Hint Extern 1  => match goal with
    | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
-#[global]Hint Extern 10 => match goal with 
+#[local]Hint Extern 1 => match goal with
   [ |- context[length _] ] => rewrite_length end: core.
-#[global]Hint Extern 10 (Forall _ (skipn _ _)) => apply Forall_skipn: core.
+#[local]Hint Extern 1 (Forall _ (skipn _ _)) => apply Forall_skipn: core.
 
-#[global]Hint Extern 10 (Forall _ (_ :: _)) => constructor: core.
-#[global]Hint Extern 10 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: core.
-#[global]Hint Extern 10  => repeat match goal with
+#[local]Hint Extern 1 (Forall _ (_ :: _)) => constructor: core.
+#[local]Hint Extern 1 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: core.
+#[local]Hint Extern 1  => repeat match goal with
   [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end: core.
 
-#[global]Hint Extern 10 (_ < _) => lia: core.
-#[global]Hint Extern 10 (_ < _)%nat => lia: core.
-#[global]Hint Extern 10 (_ <= _) => lia: core.
-#[global]Hint Extern 10 (_ <= _)%nat => lia: core.
-#[global]Hint Extern 10 (_ > _) => lia: core.
-#[global]Hint Extern 10 (_ > _)%nat => lia: core.
-#[global]Hint Extern 10 (_ >= _) => lia: core. 
-#[global]Hint Extern 10 (_ >= _)%nat => lia: core. 
-#[global]Hint Extern 10 (S _ = S _) => f_equal: core. 
+#[local]Hint Extern 1 (_ < _) => lia: core.
+#[local]Hint Extern 1 (_ < _)%nat => lia: core.
+#[local]Hint Extern 1 (_ <= _) => lia: core.
+#[local]Hint Extern 1 (_ <= _)%nat => lia: core.
+#[local]Hint Extern 1 (_ > _) => lia: core.
+#[local]Hint Extern 1 (_ > _)%nat => lia: core.
+#[local]Hint Extern 1 (_ >= _) => lia: core.
+#[local]Hint Extern 1 (_ >= _)%nat => lia: core.
+#[local]Hint Extern 1 (S _ = S _) => f_equal: core.
+#[local]Hint Extern 1 (@eq (F.F q) _ _) => fqsatz: core. 
 
 
 Ltac lift := apply f_equal with (f:=F.to_Z); Signed.solve_to_Z.
@@ -145,7 +146,7 @@ Lemma ModSumThree_obligation17_trivial: forall (n : nat) (a : F) (b : F) (c : F)
 Proof. hammer. Qed.
 
 Lemma ModSumThree_obligation18: forall (n : nat) (a : F) (b : F) (c : F) (n2b : (list F)) (carry : F) (sum : F) (v : F * F), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%nat - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%nat - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x10 => ((x10 = 0%F) \/ (x10 = 1%F))) n2b -> (((as_le_f n2b) = ((a + b)%F + c)%F) /\ ((length n2b) = (n + 1%nat)%nat)) -> (carry = (n2b!n)) -> (sum = (((a + b)%F + c)%F - (carry * (2%F ^ n)%F)%F)%F) -> match v with (x11,x12) => ((x11 = (((a + b)%F + c)%F - (carry * (2%F ^ n)%F)%F)%F) /\ (x11 = sum)) end -> match v with (x11,x12) => ((x12 = (n2b!n)) /\ (x12 = carry)) end -> match v with (x11,x12) => True end -> (True -> ((fst (v) + ((2%F ^ n)%F * snd (v))%F)%F = ((a + b)%F + c)%F)).
-Proof. unwrap_C. intros. destruct v. intuit; subst; simpl. fqsatz. fqsatz. Qed.
+Proof. unwrap_C. intros. destruct v. intuit; subst; simpl; auto. Qed.
 
 Lemma ModSumThree_obligation19: forall (n : nat) (a : F) (b : F) (c : F) (n2b : (list F)) (carry : F) (sum : F) (v : F), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x13 => ((x13 = 0%F) \/ (x13 = 1%F))) n2b -> (((as_le_f n2b) = ((a + b)%F + c)%F) /\ ((length n2b) = (n + 1%nat)%nat)) -> (carry = (n2b!n)) -> (sum = (((a + b)%F + c)%F - (carry * (2%F ^ n)%F)%F)%F) -> True -> (((v = (((a + b)%F + c)%F - (carry * (2%F ^ n)%F)%F)%F) /\ (v = sum)) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
 Proof. 
@@ -190,7 +191,7 @@ Qed.
 
 
 Lemma ModSumThree_obligation20: forall (n : nat) (a : F) (b : F) (c : F) (n2b : (list F)) (carry : F) (sum : F) (v : F), (n <= (C.k - 1)%Z) -> ((^ a) <= ((2%nat ^ n)%nat - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%nat - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> Forall (fun x14 => ((x14 = 0%F) \/ (x14 = 1%F))) n2b -> (((as_le_f n2b) = ((a + b)%F + c)%F) /\ ((length n2b) = (n + 1%nat)%nat)) -> (carry = (n2b!n)) -> (sum = (((a + b)%F + c)%F - (carry * (2%F ^ n)%F)%F)%F) -> True -> (((v = (n2b!n)) /\ (v = carry)) -> ((v = 0%F) \/ (v = 1%F))).
-Proof. intros. intuit; subst; unfold_default; apply Forall_nth; auto; try lia. Qed.
+Proof. hammer. Qed.
 
 
 
@@ -222,14 +223,10 @@ Lemma BigAdd_obligation7: forall (n : nat) (k : nat) (a : (list F)) (b : (list F
 Proof. hammer. Qed.
 
 Lemma BigAdd_obligation8: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (ss_cc : (list F) * F) (c' : F) (s' : (list F)) (_u0 : (list F) * F) (ai : F) (bi : F) (v : F), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x30 => ((^ x30) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x31 => ((^ x31) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match ss_cc with (x33,x34) => Forall (fun x32 => ((^ x32) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x33 end -> match ss_cc with (x33,x34) => ((length x33) = i) end -> match ss_cc with (x33,x34) => ((x34 = 0%F) \/ (x34 = 1%F)) end -> match ss_cc with (x33,x34) => ((as_le n (x33 ++ (x34 :: (nil: list F)))) = ((as_le n (a[:i])) + (as_le n (b[:i])))%Z) end -> (c' = snd (ss_cc)) -> Forall (fun x35 => True) s' -> (s' = fst (ss_cc)) -> match _u0 with (x37,x38) => Forall (fun x36 => True) x37 end -> match _u0 with (x37,x38) => True end -> match _u0 with (x37,x38) => True end -> match _u0 with (x37,x38) => (ss_cc = ss_cc) end -> (ai = (a!i)) -> (bi = (b!i)) -> True -> ((v = ai) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
-Proof.
-  hammer.
-Qed.
+Proof. hammer. Qed.
 
 Lemma BigAdd_obligation9: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (ss_cc : (list F) * F) (c' : F) (s' : (list F)) (_u0 : (list F) * F) (ai : F) (bi : F) (v : F), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x39 => ((^ x39) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x40 => ((^ x40) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match ss_cc with (x42,x43) => Forall (fun x41 => ((^ x41) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x42 end -> match ss_cc with (x42,x43) => ((length x42) = i) end -> match ss_cc with (x42,x43) => ((x43 = 0%F) \/ (x43 = 1%F)) end -> match ss_cc with (x42,x43) => ((as_le n (x42 ++ (x43 :: (nil: list F)))) = ((as_le n (a[:i])) + (as_le n (b[:i])))%Z) end -> (c' = snd (ss_cc)) -> Forall (fun x44 => True) s' -> (s' = fst (ss_cc)) -> match _u0 with (x46,x47) => Forall (fun x45 => True) x46 end -> match _u0 with (x46,x47) => True end -> match _u0 with (x46,x47) => True end -> match _u0 with (x46,x47) => (ss_cc = ss_cc) end -> (ai = (a!i)) -> (bi = (b!i)) -> True -> ((v = bi) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
-Proof. 
-  hammer.
-Qed.
+Proof. hammer. Qed.
 
 
 Lemma BigAdd_obligation10: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (ss_cc : (list F) * F) (c' : F) (s' : (list F)) (_u0 : (list F) * F) (ai : F) (bi : F) (v : F), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x48 => ((^ x48) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x49 => ((^ x49) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match ss_cc with (x51,x52) => Forall (fun x50 => ((^ x50) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x51 end -> match ss_cc with (x51,x52) => ((length x51) = i) end -> match ss_cc with (x51,x52) => ((x52 = 0%F) \/ (x52 = 1%F)) end -> match ss_cc with (x51,x52) => ((as_le n (x51 ++ (x52 :: (nil: list F)))) = ((as_le n (a[:i])) + (as_le n (b[:i])))%Z) end -> (c' = snd (ss_cc)) -> Forall (fun x53 => True) s' -> (s' = fst (ss_cc)) -> match _u0 with (x55,x56) => Forall (fun x54 => True) x55 end -> match _u0 with (x55,x56) => True end -> match _u0 with (x55,x56) => True end -> match _u0 with (x55,x56) => (ss_cc = ss_cc) end -> (ai = (a!i)) -> (bi = (b!i)) -> True -> ((v = c') -> ((v = 0%F) \/ (v = 1%F))).
@@ -254,22 +251,16 @@ Proof. hammer. Qed.
 
 Lemma BigAdd_obligation14: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (i : nat) (ss_cc : (list F) * F) (c' : F) (s' : (list F)) (_u0 : (list F) * F) (ai : F) (bi : F) (mst : F * F) (carry : F) (sum : F) (_u1 : F * F), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x97 => ((^ x97) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x98 => ((^ x98) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> (i < k) -> match ss_cc with (x100,x101) => Forall (fun x99 => ((^ x99) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x100 end -> match ss_cc with (x100,x101) => ((length x100) = i) end -> match ss_cc with (x100,x101) => ((x101 = 0%F) \/ (x101 = 1%F)) end -> match ss_cc with (x100,x101) => ((as_le n (x100 ++ (x101 :: (nil: list F)))) = ((as_le n (a[:i])) + (as_le n (b[:i])))%Z) end -> (c' = snd (ss_cc)) -> Forall (fun x102 => True) s' -> (s' = fst (ss_cc)) -> match _u0 with (x104,x105) => Forall (fun x103 => True) x104 end -> match _u0 with (x104,x105) => True end -> match _u0 with (x104,x105) => True end -> match _u0 with (x104,x105) => (ss_cc = ss_cc) end -> (ai = (a!i)) -> (bi = (b!i)) -> match mst with (x106,x107) => ((^ x106) <= ((2%nat ^ n)%Z - 1%nat)%Z) end -> match mst with (x106,x107) => ((x107 = 0%F) \/ (x107 = 1%F)) end -> match mst with (x106,x107) => ((x106 + ((2%F ^ n)%F * x107)%F)%F = ((ai + bi)%F + c')%F) end -> (carry = snd (mst)) -> (sum = fst (mst)) -> match _u1 with (x108,x109) => True end -> match _u1 with (x108,x109) => True end -> match _u1 with (x108,x109) => (mst = mst) end -> (True -> ((as_le n ((s' ++ (sum :: (nil: list F))) ++ (carry :: (nil: list F)))) = ((as_le n (a[:(i + 1%nat)%nat])) + (as_le n (b[:(i + 1%nat)%nat])))%Z)).
 Proof. 
-  unwrap_C.
-  unfold as_le.
-  intros. destruct ss_cc as [ss cc]. destruct mst  as [s c]. simpl in *. apply Repr.in_range_binary in H8, H20.
+  unwrap_C. unfold as_le. intros. destruct ss_cc as [ss cc]. destruct mst  as [s c]. simpl in *. 
+  apply Repr.in_range_binary in H8, H20.
   intuit. subst.
   rewrite RZ.as_le_app.
   repeat rewrite firstn_plus1 by lia.
   repeat rewrite RZ.as_le_app.
-
   simpl. rewrite app_length. simpl. simplify.
   repeat rewrite firstn_length_le by lia.
-  
   rewrite RZ.as_le_app in H9. simpl in H9. simplify' H9.
-  replace 
-     (Z.mul (Z.of_nat n)
-        (Z.add (Z.of_nat (@length (F.F q) ss))
-           (Z.of_nat (S O)))) with (n*length ss + n)%Z by lia.
+  replace (Z.mul (Z.of_nat n) (Z.add (Z.of_nat (@length (F.F q) ss)) (Z.of_nat (S O)))) with (n*length ss + n)%Z by lia.
   rewrite Zpower_exp by lia.
   apply f_equal with (f:=F.to_Z) in H21.
   assert (H_pow_nk: (2 * 2^n <= 2^k)%Z). {
@@ -286,7 +277,7 @@ Proof.
 Qed.
 
 Lemma BigAdd_obligation15: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (v : (list F)), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x110 => ((^ x110) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x111 => ((^ x111) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> Forall (fun x112 => True) v -> True -> ((v = (nil: list F)) -> (((length v) = 0%nat) /\ (forall (i0:nat), 0%nat <= i0 < (length v) -> ((^ (v!i0)) <= ((2%nat ^ n)%Z - 1%nat)%Z)))).
-Proof.  hammer. Qed.
+Proof. hammer. Qed.
 
 Lemma BigAdd_obligation16_trivial: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (v : F), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x113 => ((^ x113) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x114 => ((^ x114) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> True -> (True -> True).
 Proof. hammer. Qed.
@@ -300,13 +291,11 @@ Lemma BigAdd_obligation18: forall (n : nat) (k : nat) (a : (list F)) (b : (list 
 Forall (fun x117 => ((^ x117) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> 
 Forall (fun x118 => ((^ x118) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> 
 (True -> ((as_le n ((nil: list F) ++ (0%F :: ((nil: list F))))) = ((as_le n (a[:0%nat])) + (as_le n (b[:0%nat])))%Z)).
-Proof. unwrap_C. intuit; simpl. simplify. Qed.
+Proof. unwrap_C. intuit; simpl; simplify. Qed.
 
 Lemma BigAdd_obligation19: forall (n : nat) (k : nat) (a : (list F)) (b : (list F)) (sum_carry : ((list F) * F)) (carry : F) (sum : (list F)) (_u2 : ((list F) * F)) (v : (list F)), ((n <= (C.k - 1%nat)%Z) /\ ((1%nat <= n) /\ True)) -> (1%nat <= k) -> Forall (fun x119 => ((^ x119) <= ((2%nat ^ n)%Z - 1%nat)%Z)) a -> ((length a) = k) -> Forall (fun x120 => ((^ x120) <= ((2%nat ^ n)%Z - 1%nat)%Z)) b -> ((length b) = k) -> match sum_carry with (x122,x123) => Forall (fun x121 => ((^ x121) <= ((2%nat ^ n)%Z - 1%nat)%Z)) x122 end -> match sum_carry with (x122,x123) => ((length x122) = k) end -> match sum_carry with (x122,x123) => ((x123 = 0%F) \/ (x123 = 1%F)) end -> match sum_carry with (x122,x123) => ((as_le n (x122 ++ (x123 :: (nil: list F)))) = ((as_le n (a[:k])) + (as_le n (b[:k])))%Z) end -> (carry = (snd sum_carry)) -> Forall (fun x124 => True) sum -> (sum = (fst sum_carry)) -> match _u2 with (x126,x127) => Forall (fun x125 => True) x126 end -> match _u2 with (x126,x127) => True end -> match _u2 with (x126,x127) => True end -> match _u2 with (x126,x127) => ((sum_carry = sum_carry) /\ True) end -> Forall (fun x128 => True) v -> True -> (((v = (sum ++ (carry :: (nil: list F)))) /\ ((length v) = ((length sum) + (length (carry :: (nil: list F))))%nat)) -> ((((length v) = (k + 1%nat)%nat) /\ ((as_le n v) = ((as_le n a) + (as_le n b))%Z)) /\ (forall (i0:nat), 0%nat <= i0 < (length v) -> ((^ (v!i0)) <= ((2%nat ^ n)%Z - 1%nat)%Z)))).
 Proof.
-  unwrap_C.
-  intros.
-  destruct (sum_carry) as [_sum _carry]. destruct _u2. simpl in *. subst _sum _carry.
+  unwrap_C. intros. destruct (sum_carry) as [_sum _carry]. destruct _u2. simpl in *. subst _sum _carry.
   do 2 rewrite firstn_all2 in H8 by lia. apply Repr.in_range_binary in H7.
   intuit; subst v;
   rewrite app_length in *; simpl in *; try lia.
@@ -505,3 +494,101 @@ Proof.
     replace (1-1)%F with (0%F: F) by fqsatz. rewrite scale_0. rewrite as_le_0. auto.
   - subst v. unfold_default. rewrite firstn_nth by lia. auto.
 Qed.
+
+
+Lemma ModSumFour_obligation0_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (v : Z), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> True -> ((((0%nat <= v) /\ ((v <= (C.k - 2%nat)%Z) /\ ((1%nat <= v) /\ True))) /\ (v = n)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation1_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (v : Z), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> True -> ((v = 2%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation2: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (v : Z), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> True -> ((v = (n + 2%nat)%nat) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation3_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> True -> ((((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) /\ (v = a)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation4_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> True -> ((((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) /\ (v = b)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation5_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> True -> ((v = (a + b)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation6_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (v = c)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation7_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> True -> ((v = ((a + b)%F + c)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation8_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (v = d)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation9_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> True -> ((v = (((a + b)%F + c)%F + d)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation10_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> True -> ((v = (n2b!n)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation11_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> True -> ((v = 2%F) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation12_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x2 => ((x2 = 0%F) \/ (x2 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> True -> ((v = (n2b!(n + 1%nat)%nat)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation13_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> True -> ((v = (2%F * (n2b!(n + 1%nat)%nat))%F) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation14_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x4 => ((x4 = 0%F) \/ (x4 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> ((((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) /\ (v = a)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation15_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x5 => ((x5 = 0%F) \/ (x5 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> ((((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) /\ (v = b)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation16_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x6 => ((x6 = 0%F) \/ (x6 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> ((v = (a + b)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation17_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x7 => ((x7 = 0%F) \/ (x7 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (v = c)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation18_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x8 => ((x8 = 0%F) \/ (x8 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> ((v = ((a + b)%F + c)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation19_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x9 => ((x9 = 0%F) \/ (x9 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (v = d)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation20_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x10 => ((x10 = 0%F) \/ (x10 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> ((v = (((a + b)%F + c)%F + d)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation21_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x11 => ((x11 = 0%F) \/ (x11 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> (((v = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) /\ (v = carry)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation22_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x12 => ((x12 = 0%F) \/ (x12 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> ((v = 2%F) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation23: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : Z), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x13 => ((x13 = 0%F) \/ (x13 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> ((((0%nat <= v) /\ ((v <= (C.k - 2%nat)%Z) /\ ((1%nat <= v) /\ True))) /\ (v = n)) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation24_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x14 => ((x14 = 0%F) \/ (x14 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> ((v = (2%F ^ n)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation25_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x15 => ((x15 = 0%F) \/ (x15 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> True -> ((v = (carry * (2%F ^ n)%F)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation26_trivial: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (sum : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x16 => ((x16 = 0%F) \/ (x16 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> (sum = ((((a + b)%F + c)%F + d)%F - (carry * (2%F ^ n)%F)%F)%F) -> True -> (((v = ((((a + b)%F + c)%F + d)%F - (carry * (2%F ^ n)%F)%F)%F) /\ (v = sum)) -> True).
+Proof. hammer. Qed.
+
+Lemma ModSumFour_obligation27: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (sum : F) (v : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x17 => ((x17 = 0%F) \/ (x17 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> (sum = ((((a + b)%F + c)%F + d)%F - (carry * (2%F ^ n)%F)%F)%F) -> True -> (((v = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) /\ (v = carry)) -> ((^ v) <= ((2%nat ^ 2%nat)%Z - 1%nat)%Z)).
+Proof. 
+  unfold as_le_f. unwrap_C. intros. 
+  assert (H_pow_nk: (2^n * 2^2 <= 2^k)%Z) by (apply Signed.le_sub_r_pow; lia).
+  assert (^carry <= 2^2-1). {
+    assert (Hn: binary (n2b ! n )) by auto. apply Repr.in_range_binary in Hn.
+    assert (Hn1: binary (n2b ! (n+1 ))) by auto. apply Repr.in_range_binary in Hn1.
+    rewrite H6.
+    repeat (autorewrite with F_to_Z; try (pose_nonneg; lia)).
+  }
+  hammer.
+Qed.
+
+Lemma ModSumFour_obligation28: forall (n : nat) (a : F) (b : F) (c : F) (d : F) (n2b : (list F)) (carry : F) (sum : F), ((n <= (C.k - 2%nat)%Z) /\ ((1%nat <= n) /\ True)) -> ((^ a) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((^ b) <= ((2%nat ^ n)%Z - 1%nat)%Z) -> ((c = 0%F) \/ (c = 1%F)) -> ((d = 0%F) \/ (d = 1%F)) -> Forall (fun x18 => ((x18 = 0%F) \/ (x18 = 1%F))) n2b -> (((as_le_f n2b) = (((a + b)%F + c)%F + d)%F) /\ ((length n2b) = (n + 2%nat)%nat)) -> (carry = ((n2b!n) + (2%F * (n2b!(n + 1%nat)%nat))%F)%F) -> (sum = ((((a + b)%F + c)%F + d)%F - (carry * (2%F ^ n)%F)%F)%F) -> (True -> ((sum + ((2%F ^ n)%F * carry)%F)%F = (((a + b)%F + c)%F + d)%F)).
+Proof. unwrap_C. hammer. Qed.

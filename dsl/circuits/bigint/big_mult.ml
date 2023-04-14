@@ -135,12 +135,11 @@ let t_big_int k = tarr_t_k tf_n_bit k
 let big_mult =
   Circuit
     { name= "BigMult"
-    ; inputs=
-        [ ("n", tnat)
-        ; ("k", tpos)
-        ; ("a", t_big_int k)
-        ; ("b", t_big_int k) ]
-    ; outputs= [("out", tarr_t_q_k tf_n_bit (as_le n nu ==. as_le n a *. as_le n b) (zmul z2 k))]
+    ; inputs= [("n", tnat); ("k", tpos); ("a", t_big_int k); ("b", t_big_int k)]
+    ; outputs=
+        [ ( "out"
+          , tarr_t_q_k tf_n_bit
+              (as_le n nu ==. as_le n a *. as_le n b)
+              (zmul z2 k) ) ]
     ; dep= None
-    ; body = consts_n (zmul z2 k) f0
-    }
+    ; body= consts_n (zmul z2 k) f0 }

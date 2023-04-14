@@ -3,6 +3,7 @@ open Circomlib.Gates
 open Circomlib.Comparators
 open Circomlib.Bitify
 open Circomlib.Multiplexer
+open Circomlib.Switcher
 open Trivial
 open Bigint.Big_is_zero
 open Bigint.Big_is_equal
@@ -54,7 +55,8 @@ let g =
     ; Zk_sql.calc_total
     ; Zk_ml.is_positive
     ; fulladder
-    ; less_than_power ]
+    ; less_than_power
+    ; switcher ]
 
 let path = ref "./test/codegen_results/"
 
@@ -75,6 +77,9 @@ let test_circuit config c =
 (* circomlib *)
 
 let _ = path := "./test/codegen_results/circomlib/"
+
+let _ = test_circuit [] switcher
+(* 2 3 1 *)
 
 let _ = test_circuit [] cnot
 (* 0 + 1 = 1 *)
@@ -284,6 +289,9 @@ let _ = test_circuit [] Zk_ml.is_negative
 let _ = test_circuit [] Zk_ml.is_positive
 
 let _ = test_circuit [] Zk_ml.relu
+
+let _ = test_circuit [("n", 10)] Zk_ml.cmax
+(* coda : 121 o1: 170 o2:119 *)
 
 let _ = test_circuit [("n", 1000000)] Zk_ml.poly
 (* 1 + 0 = 1 *)

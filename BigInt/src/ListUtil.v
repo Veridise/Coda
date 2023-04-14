@@ -374,3 +374,16 @@ Proof.
   rewrite H0.
   apply fold_left_app.
 Qed.
+
+Lemma fold_left_firstn_S':
+  forall (l: list (Circom.F))(i: nat)(b: Circom.F)f,
+  i < length l ->
+  fold_left f  (l [:S i]) b = 
+  f (fold_left f (l [:i]) b) (l ! i).
+Proof.
+  intros. 
+  assert(l [:S i] = l [:i] ++ ((l ! i)::nil)).
+  { erewrite firstn_S;try lia. unfold_default. auto. }
+  rewrite H0.
+  apply fold_left_app.
+Qed.

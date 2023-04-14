@@ -264,3 +264,23 @@ Proof. Admitted.
 
 Lemma BinAdd_obligation19_trivial: forall (nBits : nat) (in0 : (list F)) (in1 : (list F)) (sum_carry : ((list F) * F)) (carry : F) (sum : (list F)) (_u2 : ((list F) * F)) (v : F), Forall (fun x120 => ((x120 = 0%F) \/ (x120 = 1%F))) in0 -> ((length in0) = nBits) -> Forall (fun x121 => ((x121 = 0%F) \/ (x121 = 1%F))) in1 -> ((length in1) = nBits) -> match sum_carry with (x123,x124) => Forall (fun x122 => ((x122 = 0%F) \/ (x122 = 1%F))) x123 end -> match sum_carry with (x123,x124) => ((length x123) = nBits) end -> match sum_carry with (x123,x124) => ((x124 = 0%F) \/ (x124 = 1%F)) end -> match sum_carry with (x123,x124) => ((as_le_f (x123 ++ (x124 :: nil))) = ((as_le_f (in0[:nBits])) + (as_le_f (in1[:nBits])))%F) end -> (((carry = 0%F) \/ (carry = 1%F)) /\ (carry = (snd sum_carry))) -> Forall (fun x125 => ((x125 = 0%F) \/ (x125 = 1%F))) sum -> (((length sum) = nBits) /\ (sum = (fst sum_carry))) -> match _u2 with (x127,x128) => Forall (fun x126 => True) x127 end -> match _u2 with (x127,x128) => True end -> match _u2 with (x127,x128) => True end -> match _u2 with (x127,x128) => (((as_le_f (sum ++ (carry :: nil))) = ((as_le_f (in0[:nBits])) + (as_le_f (in1[:nBits])))%F) /\ (sum_carry = sum_carry)) end -> True -> (((v = 0%F) \/ (v = 1%F)) -> True).
 Proof. hammer. Qed.
+
+(** ** LessThanPower *)
+
+Lemma LessThanPower_obligation0: forall (base : Z) (_in : F) (v : Z), ((252%nat <= (C.k - 1%nat)%Z) /\ ((0%nat <= base) /\ ((^ (2%F ^ Z.to_N base)%F) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z))) -> ((^ _in) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z) -> True -> ((v = 252%nat) -> ((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z))).
+Proof. hammer. Qed.
+
+Lemma LessThanPower_obligation1: forall (base : Z) (_in : F) (v : F), ((252%nat <= (C.k - 1%nat)%Z) /\ ((0%nat <= base) /\ ((^ (2%F ^ Z.to_N base)%F) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z))) -> ((^ _in) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z) -> True -> ((((^ v) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z) /\ (v = _in)) -> ((^ v) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z)).
+Proof. hammer. Qed.
+
+Lemma LessThanPower_obligation2_trivial: forall (base : Z) (_in : F) (v : F), ((252%nat <= (C.k - 1%nat)%Z) /\ ((0%nat <= base) /\ ((^ (2%F ^ Z.to_N base)%F) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z))) -> ((^ _in) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z) -> True -> ((v = 2%F) -> True).
+Proof. hammer. Qed.
+
+Lemma LessThanPower_obligation3: forall (base : Z) (_in : F) (v : Z), ((252%nat <= (C.k - 1%nat)%Z) /\ ((0%nat <= base) /\ ((^ (2%F ^ Z.to_N base)%F) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z))) -> ((^ _in) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z) -> True -> ((((252%nat <= (C.k - 1%nat)%Z) /\ ((0%nat <= v) /\ ((^ (2%F ^ Z.to_N base)%F) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z))) /\ (v = base)) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma LessThanPower_obligation4: forall (base : Z) (_in : F) (v : F), ((252%nat <= (C.k - 1%nat)%Z) /\ ((0%nat <= base) /\ ((^ (2%F ^ Z.to_N base)%F) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z))) -> ((^ _in) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z) -> True -> ((v = (2%F ^ Z.to_N base)%F) -> ((^ v) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z)).
+Proof. hammer. Qed.
+
+Lemma LessThanPower_obligation5: forall (base : Z) (_in : F) (v : F), ((252%nat <= (C.k - 1%nat)%Z) /\ ((0%nat <= base) /\ ((^ (2%F ^ Z.to_N base)%F) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z))) -> ((^ _in) <= ((2%nat ^ 252%nat)%Z - 1%nat)%Z) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ _in) < (^ (2%F ^ Z.to_N base)%F))) /\ ((v = 0%F) -> ~((^ _in) < (^ (2%F ^ Z.to_N base)%F))))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ _in) < (2%nat ^ Z.to_N base)%Z)) /\ ((v = 0%F) -> ~((^ _in) < (2%nat ^ Z.to_N base)%Z))))).
+Proof. Admitted.

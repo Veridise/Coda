@@ -9,3 +9,6 @@ let _ = U.test fulladder []
 let _ = U.test onlycarry []
 
 let _ = U.test bin_add [fulladder]
+
+let _ =
+  U.test less_than_power Circomlib.(Bitify.[num2bits] @ Comparators.[less_than])

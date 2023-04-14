@@ -12,6 +12,10 @@ let i = v "i"
 
 let s = v "s"
 
+let vin = v "in"
+
+let base = v "base"
+
 let nBits = v "nBits"
 
 let in0 = v "in0"
@@ -124,3 +128,26 @@ let bin_add =
                             (push (concat s (const_array tf [vval])))
                             carry_out ) ) ) ) ) )
           (push (concat sum (consts [carry]))) }
+
+(* LessThanPower *)
+
+let t_base_ltp =
+  TRef
+    ( tint
+    , qand
+        (lift (leq z252 (zsub1 CPLen)))
+        (qand
+           (lift (leq z0 nu))
+           (lift (leq (toUZ (fpow f2 base)) (zsub1 (zpow z2 z252)))) ) )
+
+let t_in_ltp = tfq (lift (leq (toUZ nu) (zsub1 (zpow z2 z252))))
+
+let t_ltp = tfq (ind_dec nu (lt (toUZ vin) (zpow z2 base)))
+
+let less_than_power =
+  Circuit
+    { name= "LessThanPower"
+    ; inputs= [("base", t_base_ltp); ("in", t_in_ltp)]
+    ; outputs= [("out", t_ltp)]
+    ; dep= None
+    ; body= call "LessThan" [z252; vin; fpow f2 base] }

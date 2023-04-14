@@ -131,3 +131,74 @@ Proof. hammer. Qed.
 
 Lemma fulladder_obligation26: forall (bit1 : F) (bit2 : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (u2 : unit) (u3 : unit), ((bit1 = 0%F) \/ (bit1 = 1%F)) -> ((bit2 = 0%F) \/ (bit2 = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ ((bit1 + bit2)%F + carry)%F) mod 2%nat)%Z) -> True -> ((carry_out * (carry_out - 1%F)%F)%F = 0%F) -> ((^ carry_out) = ((^ ((bit1 + bit2)%F + carry)%F) / 2%nat)%Z) -> (True -> (((2%F * carry_out)%F + val)%F = ((bit1 + bit2)%F + carry)%F)).
 Proof. Admitted.
+
+(** ** onlycarry *)
+
+Lemma onlycarry_obligation0_trivial: forall (bit : F) (carry : F) (val : F) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> True -> ((v = val) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation1_trivial: forall (bit : F) (carry : F) (val : F) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> True -> ((v = val) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation2_trivial: forall (bit : F) (carry : F) (val : F) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> True -> ((v = 1%F) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation3_trivial: forall (bit : F) (carry : F) (val : F) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> True -> ((v = (val - 1%F)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation4_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> True -> ((v = val) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation5_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (v = bit)) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation6_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (v = carry)) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation7_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> True -> ((v = (bit + carry)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation8_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (v : Z), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> True -> ((v = (^ (bit + carry)%F)) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation9_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (v : Z), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> True -> ((v = 2%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation10_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> True -> ((v = carry_out) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation11_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> True -> ((v = carry_out) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation12_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> True -> ((v = 1%F) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation13_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> True -> ((v = (carry_out - 1%F)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation14_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (u2 : unit) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> ((carry_out * (carry_out - 1%F)%F)%F = 0%F) -> True -> ((v = carry_out) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation15_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (u2 : unit) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> ((carry_out * (carry_out - 1%F)%F)%F = 0%F) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (v = bit)) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation16_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (u2 : unit) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> ((carry_out * (carry_out - 1%F)%F)%F = 0%F) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (v = carry)) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation17_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (u2 : unit) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> ((carry_out * (carry_out - 1%F)%F)%F = 0%F) -> True -> ((v = (bit + carry)%F) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation18_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (u2 : unit) (v : Z), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> ((carry_out * (carry_out - 1%F)%F)%F = 0%F) -> True -> ((v = (^ (bit + carry)%F)) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation19_trivial: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (u2 : unit) (v : Z), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> ((carry_out * (carry_out - 1%F)%F)%F = 0%F) -> True -> ((v = 2%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation20: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (u2 : unit) (u3 : unit) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> ((carry_out * (carry_out - 1%F)%F)%F = 0%F) -> ((^ carry_out) = ((^ (bit + carry)%F) / 2%nat)%Z) -> True -> ((v = val) -> ((^ v) = ((^ (bit + carry)%F) mod 2%nat)%Z)).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation21: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (u2 : unit) (u3 : unit) (v : F), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> ((carry_out * (carry_out - 1%F)%F)%F = 0%F) -> ((^ carry_out) = ((^ (bit + carry)%F) / 2%nat)%Z) -> True -> ((v = carry_out) -> ((^ v) = ((^ (bit + carry)%F) / 2%nat)%Z)).
+Proof. hammer. Qed.
+
+Lemma onlycarry_obligation22: forall (bit : F) (carry : F) (val : F) (u0 : unit) (u1 : unit) (carry_out : F) (u2 : unit) (u3 : unit), ((bit = 0%F) \/ (bit = 1%F)) -> ((carry = 0%F) \/ (carry = 1%F)) -> True -> ((val * (val - 1%F)%F)%F = 0%F) -> ((^ val) = ((^ (bit + carry)%F) mod 2%nat)%Z) -> True -> ((carry_out * (carry_out - 1%F)%F)%F = 0%F) -> ((^ carry_out) = ((^ (bit + carry)%F) / 2%nat)%Z) -> (True -> (((2%F * carry_out)%F + val)%F = (bit + carry)%F)).
+Proof. Admitted.

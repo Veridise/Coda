@@ -40,7 +40,7 @@ let split_three =
     { name= "SplitThree"
     ; inputs= [("n", (attach (lift (nu <. CPLen)) tnat)); ("m", (attach (lift (nu <. CPLen)) tnat)); ("k", (attach (lift (nu <. CPLen)) tnat)); ("in", tf)]
     ; outputs= [("small", tf_2n n); ("medium", tf_2n m); ("big", tf_2n k)]
-    ; dep= None
+    ; dep= Some (vin ==. small +% (med *% (f2 ^% n)) +% (big *% (f2 ^% (n +. m))))
     ; body=
     elets
     [ ("small", star)

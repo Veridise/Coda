@@ -1,6 +1,4 @@
 open Core
-open Typecheck
-open Coqgen
 open Zk_ml
 module U = Test_utils.Utils
 
@@ -13,3 +11,5 @@ let _ =
 let _ = U.test relu [is_positive]
 
 let _ = U.test poly []
+
+let _ = U.test cmax Circomlib.([Comparators.greater_than; Switcher.switcher])

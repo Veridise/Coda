@@ -58,3 +58,18 @@ let poly =
     ; outputs= [("out", tfe (nu =. vin *% (vin +% n)))]
     ; dep= None
     ; body= (vin *% vin) +% (n *% vin) }
+
+let vmax = v "max"
+let gt = v "gt"
+let cmax = Circuit
+  { name = "Max"
+  ; inputs = [("n", attaches [lift (z1 <=. nu); lift (nu <=. CPLen -! z1)] tnat); ("in", tarr_t_k (attach (lift (toUZ nu <=. ((z2 ^! n) -! z1))) tf) n)]
+  ; outputs = [("out", tfq (nu ==. unint "fmax" [vin]))]
+  ; dep=None
+  ; body = iter z1 n ~init:(get vin z0) ~inv:(fun i -> attaches [nu ==. unint "fmax" [take vin (i)]; lift (toUZ nu <=.((z2 ^! n) -! z1) )] tf)
+    (lama "i" tnat
+    (lama "max" tf
+    (elet
+      "gt" (call3 "GreaterThan" n (get vin i) vmax)
+      (tfst (call3 "Switcher" gt vmax (get vin i))))))
+  }

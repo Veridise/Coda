@@ -151,3 +151,20 @@ let less_than_power =
     ; outputs= [("out", t_ltp)]
     ; dep= None
     ; body= call "LessThan" [z252; vin; fpow f2 base] }
+
+(* LessThanBounded *)
+
+let t_ltb = tfq (ind_dec nu (lt (toUZ in0) (toUZ in1)))
+
+let less_than_bounded =
+  Circuit
+    { name= "LessThanBounded"
+    ; inputs= [("base", t_base_ltp); ("in0", t_in_ltp); ("in1", t_in_ltp)]
+    ; outputs= [("out", t_ltb)]
+    ; dep= None
+    ; body=
+        elet "_x"
+          (call "LessThanPower" [base; in0])
+          (elet "_y"
+             (call "LessThanPower" [base; in1])
+             (call "LessThan" [z252; in0; in1]) ) }

@@ -40,15 +40,11 @@ let carry_out = v "carry_out"
 
 (* fulladder *)
 
-let t_val_fa = tfq (toUZ nu ==. zmod (toUZ (bit1 +% bit2 +% carry)) z2)
-
-let t_carry_out_fa = tfq (toUZ nu ==. zdiv (toUZ (bit1 +% bit2 +% carry)) z2)
-
 let fulladder =
   Circuit
     { name= "fulladder"
     ; inputs= [("bit1", tf_binary); ("bit2", tf_binary); ("carry", tf_binary)]
-    ; outputs= [("val", t_val_fa); ("carry_out", t_carry_out_fa)]
+    ; outputs= [("val", tf_binary); ("carry_out", tf_binary)]
     ; dep= Some ((f2 *% carry_out) +% vval ==. bit1 +% bit2 +% carry)
     ; body=
         elet "val" star

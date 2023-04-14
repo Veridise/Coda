@@ -43,6 +43,7 @@
   big_add
   big_sub
   split
-  big_mult)
+  big_mult
+  big_mod)
  ; (modules)
  )

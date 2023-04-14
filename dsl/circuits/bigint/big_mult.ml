@@ -121,3 +121,26 @@ let big_mult_short_long =
                                   ab_pts )
                                (* out_pts === axb_pts *)
                                (assert_eq out_pts axb_pts) ) ) ) ) ) ) ) }
+
+(* { F | ^v <= 2^n - 1 } *)
+
+let tf_n_bit = tfe (toUZ nu <=. (z2 ^! n) -! z1)
+
+(* { F | ^v <= C.k - 1 } *)
+let t_n = attaches [lift (nu <=. CPLen -! z1); lift (z1 <=. nu)] tnat
+
+(* Proper big Ints of length k *)
+let t_big_int k = tarr_t_k tf_n_bit k
+
+let big_mult =
+  Circuit
+    { name= "BigMult"
+    ; inputs=
+        [ ("n", tnat)
+        ; ("k", tpos)
+        ; ("a", t_big_int k)
+        ; ("b", t_big_int k) ]
+    ; outputs= [("out", tarr_t_q_k tf_n_bit (as_le n nu ==. as_le n a *. as_le n b) (zmul z2 k))]
+    ; dep= None
+    ; body = consts_n (zmul z2 k) f0
+    }

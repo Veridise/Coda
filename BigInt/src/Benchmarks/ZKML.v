@@ -75,42 +75,57 @@ Proof. hammer. Qed.
 Lemma IsPositive_obligation1_trivial: forall (_in : F) (v : F), True -> True -> ((v = _in) -> True).
 Proof. hammer. Qed.
 
-Lemma IsPositive_obligation2: forall (_in : F) (n2b : (list F)) (v : (list F)), True -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) v -> True -> (((((as_le_f v) = _in) /\ ((length v) = 254%nat)) /\ (v = n2b)) -> ((length v) = 254%nat)).
+Lemma IsPositive_obligation2: forall (_in : F) (n2b : (list F)) (v : (list F)), True -> Forall (fun x4 => ((x4 = 0%F) \/ (x4 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> Forall (fun x5 => ((x5 = 0%F) \/ (x5 = 1%F))) v -> True -> (((((as_le_f v) = _in) /\ ((length v) = 254%nat)) /\ (v = n2b)) -> ((length v) = 254%nat)).
 Proof. hammer. Qed.
 
-Lemma IsPositive_obligation3: forall (_in : F) (n2b : (list F)) (v : F), True -> Forall (fun x2 => ((x2 = 0%F) \/ (x2 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> True -> (((v = 0%F) \/ (v = 1%F)) -> ((v = 0%F) \/ (v = 1%F))).
+Lemma IsPositive_obligation3: forall (_in : F) (n2b : (list F)) (v : F), True -> Forall (fun x6 => ((x6 = 0%F) \/ (x6 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> True -> (((v = 0%F) \/ (v = 1%F)) -> ((v = 0%F) \/ (v = 1%F))).
 Proof. hammer. Qed.
 
-Lemma IsPositive_obligation4_trivial: forall (_in : F) (n2b : (list F)) (s : F) (v : F), True -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> True -> ((v = _in) -> True).
+Lemma IsPositive_obligation4_trivial: forall (_in : F) (n2b : (list F)) (s : F) (v : F), True -> Forall (fun x7 => ((x7 = 0%F) \/ (x7 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> True -> ((v = _in) -> True).
 Proof. hammer. Qed.
 
-Lemma IsPositive_obligation5_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x4 => ((x4 = 0%F) \/ (x4 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = 1%F) -> True).
+Lemma IsPositive_obligation5_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x8 => ((x8 = 0%F) \/ (x8 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = 1%F) -> True).
 Proof. hammer. Qed.
 
-Lemma IsPositive_obligation6_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x5 => ((x5 = 0%F) \/ (x5 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> (((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((v = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) /\ (v = s)) -> True).
+Lemma IsPositive_obligation6_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x9 => ((x9 = 0%F) \/ (x9 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> (((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((v = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) /\ (v = s)) -> True).
 Proof. hammer. Qed.
 
-Lemma IsPositive_obligation7_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x6 => ((x6 = 0%F) \/ (x6 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = (1%F - s)%F) -> True).
+Lemma IsPositive_obligation7_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x10 => ((x10 = 0%F) \/ (x10 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = (1%F - s)%F) -> True).
 Proof. hammer. Qed.
 
-Lemma IsPositive_obligation8_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x7 => ((x7 = 0%F) \/ (x7 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = 1%F) -> True).
+Lemma IsPositive_obligation8_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x11 => ((x11 = 0%F) \/ (x11 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = 1%F) -> True).
 Proof. hammer. Qed.
 
-Lemma IsPositive_obligation9_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x8 => ((x8 = 0%F) \/ (x8 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> (((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (_in = 0%F)) /\ ((v = 0%F) -> ~(_in = 0%F)))) /\ (v = isz)) -> True).
+Lemma IsPositive_obligation9_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x12 => ((x12 = 0%F) \/ (x12 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> (((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (_in = 0%F)) /\ ((v = 0%F) -> ~(_in = 0%F)))) /\ (v = isz)) -> True).
 Proof. hammer. Qed.
 
-Lemma IsPositive_obligation10_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x9 => ((x9 = 0%F) \/ (x9 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = (1%F - isz)%F) -> True).
+Lemma IsPositive_obligation10_trivial: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x13 => ((x13 = 0%F) \/ (x13 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = (1%F - isz)%F) -> True).
 Proof. hammer. Qed.
 
-Lemma IsPositive_obligation11: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x10 => ((x10 = 0%F) \/ (x10 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = ((1%F - s)%F * (1%F - isz)%F)%F) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (0%nat < (Signed.to_Z _in))) /\ ((v = 0%F) -> ~(0%nat < (Signed.to_Z _in)))))).
+Lemma IsPositive_obligation11: forall (_in : F) (n2b : (list F)) (s : F) (isz : F) (v : F), True -> Forall (fun x14 => ((x14 = 0%F) \/ (x14 = 1%F))) n2b -> (((as_le_f n2b) = _in) /\ ((length n2b) = 254%nat)) -> (((s = 0%F) \/ (s = 1%F)) /\ (((s = 1%F) -> ((Signed.to_Z (as_le_f n2b)) < 0%nat)) /\ ((s = 0%F) -> ~((Signed.to_Z (as_le_f n2b)) < 0%nat)))) -> (((isz = 0%F) \/ (isz = 1%F)) /\ (((isz = 1%F) -> (_in = 0%F)) /\ ((isz = 0%F) -> ~(_in = 0%F)))) -> True -> ((v = ((1%F - s)%F * (1%F - isz)%F)%F) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (0%nat < (Signed.to_Z _in))) /\ ((v = 0%F) -> ~(0%nat < (Signed.to_Z _in)))))).
 Proof.
   unwrap_C; intuit; subst;
     try lia; try fqsatz;
     try (left; fqsatz);
     try (right; fqsatz).
-  - admit.
-  - admit.
-Admitted.
+  - destruct (dec (as_le_f n2b = 0)%F);subst;try easy.
+    unfold Signed.to_Z. destruct dec.
+    + simpl in *. pose proof (F_to_Z_nonneg (as_le_f n2b)).
+      assert(^ as_le_f n2b <> 0).
+      { apply F.to_Z_nonzero;auto. }
+      lia.
+    + simpl in *. 
+      unfold Signed.to_Z in H2. destruct dec;try easy.
+      assert(q <= ^ as_le_f n2b).
+      { lia. } 
+      destruct (dec (Zpos q = ^ as_le_f n2b)%Z);try lia.
+      pose proof (F.to_Z_range (as_le_f n2b)). lia.
+  - rewrite H10 in H12.
+    unfold Signed.to_Z in H12.
+    destruct dec;simpl in H12;try fqsatz.
+    rewrite Z.mod_small in H12;try lia.
+    apply n. simpl. lia.
+Qed.
 
 (** ** ReLU *)
 

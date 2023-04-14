@@ -472,6 +472,11 @@ let rec synthesize (e : expr) : typ S.t =
             print_endline (spf "[synthesize] ToUZ:  %s" (show_expr e')) ;
             let%bind () = check e' tf in
             return (refine_expr tint (nu =. e))
+        | Fn (NatToF, [e']) ->
+          (print_endline (spf "[synthesize] NatToF:  %s" (show_expr e')) ;
+          let%bind () = check e' tnat in
+          return (refine_expr tf (nu =. e)))
+
         | _ ->
             failwith
               (spf "Synthesis unavailable for expression %s" (show_expr e))

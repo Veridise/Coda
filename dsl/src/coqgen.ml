@@ -152,6 +152,8 @@ and expr_to_coq (e : expr) : string =
       spf "(^ %s)" (expr_to_coq e)
   | Fn (ToSZ, [e]) ->
       spf "(Signed.to_Z %s)" (expr_to_coq e)
+  | Fn (NatToF, [e']) ->
+    spf "(F.of_nat q %s)" (expr_to_coq e')
   | ArrayOp (aop, [e1; e2]) -> (
     match aop with
     | Take ->
@@ -194,9 +196,12 @@ and qual_to_coq (q : qual) : string =
       spf "(%s /\\ %s)" (qual_to_coq q1) (qual_to_coq q2)
   | QImply (q1, q2) ->
       spf "(%s -> %s)" (qual_to_coq q1) (qual_to_coq q2)
-  | QQuant (quant, (x, s, e), q) ->
-      spf "(%s (%s:%s), %s <= %s < %s -> %s)" (quant_to_coq quant) x "nat"
+  | QQuant (Forall, (x, s, e), q) ->
+      spf "(%s (%s:%s), %s <= %s < %s -> %s)" (quant_to_coq Forall) x "nat"
         (expr_to_coq s) x (expr_to_coq e) (qual_to_coq q)
+    | QQuant (Exists, (x, s, e), q) ->
+        spf "(%s (%s:%s), %s <= %s < %s /\\ %s)" (quant_to_coq Exists) x "nat"
+            (expr_to_coq s) x (expr_to_coq e) (qual_to_coq q)
   | _ ->
       todos "qual_to_coq"
 

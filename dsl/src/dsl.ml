@@ -446,6 +446,8 @@ let toSZ e = Fn (ToSZ, [e])
 
 let toUZ e = Fn (ToUZ, [e])
 
+let nat2f e = Fn (NatToF, [e])
+
 let q_ind' e q1 q2 = qand (qimply (qleq z1 (toUZ e)) q1) (qimply (qeq e f0) q2)
 
 let q_ind_dec' e q = q_ind' e q (qnot q)

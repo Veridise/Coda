@@ -33,7 +33,8 @@
   darkforest
   zk_sbt
   zk_sql
-  zk_ml)
+  zk_ml
+  ed25519)
  (modules test_codegen))
 
 (executable

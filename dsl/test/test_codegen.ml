@@ -20,6 +20,7 @@ open Circomlib.Mux3
 open Circomlib.Sign
 open Zk_sql
 open Zk_ml
+open Ed25519
 
 let g =
   add_to_deltas []
@@ -51,7 +52,9 @@ let g =
     ; leq
     ; geq
     ; Zk_sql.calc_total
-    ; Zk_ml.is_positive ]
+    ; Zk_ml.is_positive
+    ; fulladder
+    ; less_than_power ]
 
 let path = ref "./test/codegen_results/"
 
@@ -250,6 +253,8 @@ let _ = test_circuit [("n", 40)] Darkforest.calc_total
 (* 0 + 39 = 39 *)
 (* 1 *)
 
+let _ = test_circuit [("bits", 20)] Darkforest.range_proof
+
 (* zk-sql *)
 
 let _ = path := "./test/codegen_results/zk_sql/"
@@ -283,3 +288,17 @@ let _ = test_circuit [] Zk_ml.relu
 let _ = test_circuit [("n", 1000000)] Zk_ml.poly
 (* 1 + 0 = 1 *)
 (* 1 *)
+
+(* ed25519-circom *)
+
+let _ = path := "./test/codegen_results/ed25519_circom/"
+
+let _ = test_circuit [("base", 64)] less_than_power
+
+let _ = test_circuit [("base", 64)] less_than_bounded
+
+let _ = test_circuit [] onlycarry
+
+let _ = test_circuit [] fulladder
+
+let _ = test_circuit [("nBits", 20)] bin_add

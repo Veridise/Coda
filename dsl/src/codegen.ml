@@ -112,6 +112,8 @@ let rec denote_expr (e : expr) : rexpr option =
       None
   | Fn (ToUZ, [e]) ->
       denote_expr e
+  | Fn (NatToF, [e]) ->
+      denote_expr e
   | Var x ->
       Some (RVar x)
   | Binop (_, op, e1, e2) -> (
@@ -607,7 +609,9 @@ let rec reify_expr (prefix : string) (g : gamma) (b : beta) (d : delta)
       done ;
       (!g''', !b''', !a''', !temp)
   | Fn (ToUZ, [e]) ->
-      (g, b, a, Const (CInt (eval_int e config)))
+      reify_expr prefix g b d a config e
+  | Fn (NatToF, [e]) ->
+      reify_expr prefix g b d a config e
   | _ ->
       failwith
         (Format.sprintf "Codegen unavailable for expression %s" (show_expr e))
@@ -643,6 +647,8 @@ and eval_int (e : expr) (config : configuration) : big_int =
       | Pow ->
           power_big_int_positive_int i1 (int_of_big_int i2) )
   | Fn (ToUZ, [e]) ->
+      eval_int e config
+  | Fn (NatToF, [e]) ->
       eval_int e config
   | _ ->
       failwith ("Not a constant integer as loop bound: " ^ show_expr e)

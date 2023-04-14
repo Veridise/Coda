@@ -40,3 +40,5 @@ let _ = U.test Bitify.bits2num []
 let _ = U.test Mux1.multi_mux_1 []
 
 (* let _ = U.test Multiplexer.escalar_product [] *)
+
+let _ = U.test Switcher.switcher []

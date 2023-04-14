@@ -30,6 +30,8 @@
   poseidon
   sign
   mux1
-  mux3)
+  mux3
+  switcher)
+
  ; (modules)
  )

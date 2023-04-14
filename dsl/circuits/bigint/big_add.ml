@@ -66,7 +66,8 @@ let mod_sum_three =
     ; dep= Some (sum +% ((f2 ^% n) *% carry) ==. a +% b +% c)
     ; body=
           (elets
-             [ (* carry = N2B.out[n] *)
+             [("n2b", (call2 "Num2Bits" (n +. z1) (a +% b +% c))); 
+              (* carry = N2B.out[n] *)
                ("carry", get n2b n)
              ; (* sum === a + b + c - carry * 2^n *)
                ("sum", a +% b +% c -% (carry *% (f2 ^% n))) ]

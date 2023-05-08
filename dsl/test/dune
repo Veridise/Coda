@@ -101,3 +101,8 @@
  (name test_ed25519_buggy)
  (libraries zarith lib coqgen circomlib test_utils ed25519_buggy)
  (modules test_ed25519_buggy))
+
+(executable
+ (name test_unirep)
+ (libraries zarith lib coqgen circomlib test_utils unirep)
+ (modules test_unirep))

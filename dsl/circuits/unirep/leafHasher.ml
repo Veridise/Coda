@@ -213,7 +213,7 @@ let epoch_key_lite =
     { name= "EpochKeyLite"
     ; inputs=
         [ ("FIELD_COUNT", tnat)
-        ; ("EPOCH_KEY_NONCE_PER_EPOCH", tnat)
+        ; ("EPOCH_KEY_NONCE_PER_EPOCH", tnat_e (leq nu (zsub (zpow (zn 2) (zn 8)) (z1))))
         ; ("identity_secret", tf)
         ; ("reveal_nonce", tf)
         ; ("attester_id", tf)
@@ -235,7 +235,7 @@ let epoch_key_lite =
                    (call "Num2Bits" [zn 8; v "nonce"])
                    (elet "nonce_lt"
                       (call "LessThan"
-                         [zn 8; v "nonce"; v "EPOCH_KEY_NONCE_PER_EPOCH"] )
+                         [zn 8; v "nonce"; nat2f  (v "EPOCH_KEY_NONCE_PER_EPOCH")] )
                       (elet "u0"
                          (assert_eq (v "nonce_lt") f1)
                          (elet "ctrl"

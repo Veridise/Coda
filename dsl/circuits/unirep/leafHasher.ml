@@ -343,67 +343,6 @@ let repl_field_equal =
                             (call "IsEqual" [v "repl_bits_0"; v "repl_bits_1"])
                             (v "eq") ) ) ) ) ) ) }
 
-(* template EpochKey(STATE_TREE_DEPTH, EPOCH_KEY_NONCE_PER_EPOCH, FIELD_COUNT) {
-       // Global state tree
-       signal input state_tree_indexes[STATE_TREE_DEPTH];
-       signal input state_tree_elements[STATE_TREE_DEPTH];
-       // Global state tree leaf: Identity & user state root
-       signal input identity_secret;
-
-       signal output epoch_key;
-       signal output state_tree_root;
-
-       signal input reveal_nonce;
-       signal input attester_id;
-       signal input epoch;
-       signal input nonce;
-
-       signal input data[FIELD_COUNT];
-
-       // Some arbitrary data to endorse
-       signal input sig_data;
-
-       /**
-        * Optionally reveal nonce, epoch, attester_id
-        **/
-       signal output control;
-
-       /* 1. Check if user exists in the Global State Tree */
-
-       // Compute user state tree root
-       component leaf_hasher = StateTreeLeaf(FIELD_COUNT);
-       leaf_hasher.identity_secret <== identity_secret;
-       leaf_hasher.attester_id <== attester_id;
-       leaf_hasher.epoch <== epoch;
-       for (var x = 0; x < FIELD_COUNT; x++) {
-         leaf_hasher.data[x] <== data[x];
-       }
-
-       component merkletree = MerkleTreeInclusionProof(STATE_TREE_DEPTH);
-       merkletree.leaf <== leaf_hasher.out;
-       for (var i = 0; i < STATE_TREE_DEPTH; i++) {
-           merkletree.path_index[i] <== state_tree_indexes[i];
-           merkletree.path_elements[i] <== state_tree_elements[i];
-       }
-       state_tree_root <== merkletree.root;
-
-       /* End of check 1 */
-
-       /* 2. Check epoch key validity */
-
-       component epoch_key_lite = EpochKeyLite(EPOCH_KEY_NONCE_PER_EPOCH);
-       epoch_key_lite.identity_secret <== identity_secret;
-       epoch_key_lite.reveal_nonce <== reveal_nonce;
-       epoch_key_lite.attester_id <== attester_id;
-       epoch_key_lite.epoch <== epoch;
-       epoch_key_lite.nonce <== nonce;
-       epoch_key_lite.sig_data <== sig_data;
-       control <== epoch_key_lite.control;
-       epoch_key <== epoch_key_lite.epoch_key;
-       /* End of check 2*/
-   }
-*)
-
 let u_hasher z init = unint "MrklTreeInclPfHash" [z; init]
 
 let u_zip xs ys = unint "zip" [xs; ys]
@@ -467,3 +406,149 @@ let epoch_key =
                    ; v "epoch"
                    ; v "nonce" ] )
                 (make [v "epoch_key"; v "merkletree"; v "control"]) ) ) }
+
+(* template PreventDoubleAction(STATE_TREE_DEPTH, EPOCH_KEY_NONCE_PER_EPOCH, FIELD_COUNT) {
+
+       // Global state tree
+       signal input state_tree_indexes[STATE_TREE_DEPTH];
+       signal input state_tree_elements[STATE_TREE_DEPTH];
+
+       // Global state tree leaf: Identity & user state root
+       signal input reveal_nonce;
+       signal input attester_id;
+       signal input epoch;
+       signal input nonce;
+       signal output epoch_key;
+       signal output state_tree_root;
+
+       // Some arbitrary data to endorse
+       signal input sig_data; // public input
+
+       // Optionally reveal nonce, epoch, attester_id
+       signal output control;
+
+       signal input identity_nullifier;
+       signal input external_nullifier;
+       signal output nullifier;
+
+       signal input identity_trapdoor;
+       signal output identity_commitment;
+
+       signal input data[FIELD_COUNT];
+
+       /* 1. Compute nullifier */
+       component poseidon = Poseidon(2);
+       poseidon.inputs[0] <== identity_nullifier;
+       poseidon.inputs[1] <== external_nullifier;
+       nullifier <== poseidon.out;
+
+        /* 2. Compute identity commitment */
+       component commitment = IdentityCommitment();
+       commitment.nullifier <== identity_nullifier;
+       commitment.trapdoor <== identity_trapdoor;
+       identity_commitment <== commitment.out;
+
+       /* 3. Check if user exists in the Global State Tree*/
+       // Compute user state tree root
+       component leaf_hasher = StateTreeLeaf(FIELD_COUNT);
+       leaf_hasher.identity_secret <== commitment.secret;
+       leaf_hasher.attester_id <== attester_id;
+       leaf_hasher.epoch <== epoch;
+       for (var x = 0; x < FIELD_COUNT; x++) {
+         leaf_hasher.data[x] <== data[x];
+       }
+
+       component merkletree = MerkleTreeInclusionProof(STATE_TREE_DEPTH);
+       merkletree.leaf <== leaf_hasher.out;
+       for (var i = 0; i < STATE_TREE_DEPTH; i++) {
+           merkletree.path_index[i] <== state_tree_indexes[i];
+           merkletree.path_elements[i] <== state_tree_elements[i];
+       }
+       state_tree_root <== merkletree.root;
+
+       /* 4. Check epoch key is valid */
+       component epoch_key_lite = EpochKeyLite(EPOCH_KEY_NONCE_PER_EPOCH);
+       epoch_key_lite.identity_secret <== commitment.secret;
+       epoch_key_lite.reveal_nonce <== reveal_nonce;
+       epoch_key_lite.attester_id <== attester_id;
+       epoch_key_lite.epoch <== epoch;
+       epoch_key_lite.nonce <== nonce;
+       epoch_key_lite.sig_data <== sig_data;
+       control <== epoch_key_lite.control;
+       epoch_key <== epoch_key_lite.epoch_key;
+   } *)
+
+let prevent_double_action =
+  Circuit
+    { name= "PreventDoubleAction"
+    ; inputs=
+        [ ("STATE_TREE_DEPTH", t_n)
+        ; ("EPOCH_KEY_NONCE_PER_EPOCH", t_n)
+        ; ("FIELD_COUNT", t_n)
+        ; ("state_tree_indexes", tarr_t_k tf (v "STATE_TREE_DEPTH"))
+        ; ("state_tree_elements", tarr_t_k tf (v "STATE_TREE_DEPTH"))
+        ; ("reveal_nonce", tf)
+        ; ("attester_id", tf)
+        ; ("epoch", tf)
+        ; ("nonce", tf)
+        ; ("sig_data", tf)
+        ; ("identity_nullifier", tf)
+        ; ("external_nullifier", tf)
+        ; ("identity_trapdoor", tf)
+        ; ("data", tarr_t_k tf (v "FIELD_COUNT")) ]
+    ; outputs=
+        [ ( "epoch_key"
+          , t_epoch_key_hasher_out identity_secret attester_id epoch nonce )
+        ; ( "state_tree_root"
+          , t_r (v "state_tree_indexes") (v "state_tree_elements")
+              identity_secret attester_id epoch (v "data") )
+        ; ( "nullifier"
+          , tfq
+              (qeq nu
+                 (u_poseidon z2
+                    (const_array tf
+                       [v "identity_nullifier"; v "external_nullifier"] ) ) ) )
+        ; ( "identity_commitment"
+          , t_identity_commitment_out (v "identity_nullifier")
+              (v "identity_trapdoor") )
+        ; ( "control"
+          , t_control (v "reveal_nonce") (v "attester_id") (v "epoch")
+              (v "nonce") ) ]
+    ; dep= None
+    ; body=
+        elet "nullifier"
+          (call "Poseidon"
+             [ zn 2
+             ; const_array tf [v "identity_nullifier"; v "external_nullifier"]
+             ] )
+          (match_with' ["identity_secret"; "out"]
+             (call "IdentityCommitment"
+                [v "identity_nullifier"; v "identity_trapdoor"] )
+             (elet "leaf_hasher"
+                (call "StateTreeLeaf"
+                   [ v "FIELD_COUNT"
+                   ; v "data"
+                   ; v "identity_secret"
+                   ; v "attester_id"
+                   ; v "epoch" ] )
+                (elet "merkletree"
+                   (call "MerkleTreeInclusionProof"
+                      [ v "STATE_TREE_DEPTH"
+                      ; v "leaf_hasher"
+                      ; v "state_tree_indexes"
+                      ; v "state_tree_elements" ] )
+                   (match_with' ["control"; "epoch_key"]
+                      (call "EpochKeyLite"
+                         [ v "FIELD_COUNT"
+                         ; v "EPOCH_KEY_NONCE_PER_EPOCH"
+                         ; v "identity_secret"
+                         ; v "reveal_nonce"
+                         ; v "attester_id"
+                         ; v "epoch"
+                         ; v "nonce" ] )
+                      (make
+                         [ v "epoch_key"
+                         ; v "merkletree"
+                         ; v "nullifier"
+                         ; v "out"
+                         ; v "control" ] ) ) ) ) ) }

@@ -26,10 +26,23 @@ let _ =
    @ Circomlib.Comparators.[less_than] @ Unirep.LeafHasher.[epoch_key_hasher]) *)
 
 (* let _ =
-  U.test epoch_key
+   U.test epoch_key
+     ( Circomlib.Poseidon.[poseidon]
+     @ Unirep.LeafHasher.
+         [identity_secret1; identity_commitment; state_tree_leaf; epoch_key_lite; epoch_key_hasher]
+     @ Circomlib.Bitify.[num2bits]
+     @ Circomlib.Comparators.[less_than]
+     @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] ) *)
+
+(* let _ =
+  U.test prevent_double_action
     ( Circomlib.Poseidon.[poseidon]
     @ Unirep.LeafHasher.
-        [identity_secret1; identity_commitment; state_tree_leaf; epoch_key_lite; epoch_key_hasher]
+        [ identity_secret1
+        ; identity_commitment
+        ; state_tree_leaf
+        ; epoch_key_lite
+        ; epoch_key_hasher ]
     @ Circomlib.Bitify.[num2bits]
     @ Circomlib.Comparators.[less_than]
     @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] ) *)

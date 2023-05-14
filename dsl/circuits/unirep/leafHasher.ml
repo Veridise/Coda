@@ -213,7 +213,8 @@ let epoch_key_lite =
     { name= "EpochKeyLite"
     ; inputs=
         [ ("FIELD_COUNT", tnat)
-        ; ("EPOCH_KEY_NONCE_PER_EPOCH", tnat_e (leq nu (zsub (zpow (zn 2) (zn 8)) (z1))))
+        ; ( "EPOCH_KEY_NONCE_PER_EPOCH"
+          , tnat_e (leq nu (zsub (zpow (zn 2) (zn 8)) z1)) )
         ; ("identity_secret", tf)
         ; ("reveal_nonce", tf)
         ; ("attester_id", tf)
@@ -235,7 +236,7 @@ let epoch_key_lite =
                    (call "Num2Bits" [zn 8; v "nonce"])
                    (elet "nonce_lt"
                       (call "LessThan"
-                         [zn 8; v "nonce"; nat2f  (v "EPOCH_KEY_NONCE_PER_EPOCH")] )
+                         [zn 8; v "nonce"; nat2f (v "EPOCH_KEY_NONCE_PER_EPOCH")] )
                       (elet "u0"
                          (assert_eq (v "nonce_lt") f1)
                          (elet "ctrl"
@@ -341,3 +342,128 @@ let repl_field_equal =
                          (elet "eq"
                             (call "IsEqual" [v "repl_bits_0"; v "repl_bits_1"])
                             (v "eq") ) ) ) ) ) ) }
+
+(* template EpochKey(STATE_TREE_DEPTH, EPOCH_KEY_NONCE_PER_EPOCH, FIELD_COUNT) {
+       // Global state tree
+       signal input state_tree_indexes[STATE_TREE_DEPTH];
+       signal input state_tree_elements[STATE_TREE_DEPTH];
+       // Global state tree leaf: Identity & user state root
+       signal input identity_secret;
+
+       signal output epoch_key;
+       signal output state_tree_root;
+
+       signal input reveal_nonce;
+       signal input attester_id;
+       signal input epoch;
+       signal input nonce;
+
+       signal input data[FIELD_COUNT];
+
+       // Some arbitrary data to endorse
+       signal input sig_data;
+
+       /**
+        * Optionally reveal nonce, epoch, attester_id
+        **/
+       signal output control;
+
+       /* 1. Check if user exists in the Global State Tree */
+
+       // Compute user state tree root
+       component leaf_hasher = StateTreeLeaf(FIELD_COUNT);
+       leaf_hasher.identity_secret <== identity_secret;
+       leaf_hasher.attester_id <== attester_id;
+       leaf_hasher.epoch <== epoch;
+       for (var x = 0; x < FIELD_COUNT; x++) {
+         leaf_hasher.data[x] <== data[x];
+       }
+
+       component merkletree = MerkleTreeInclusionProof(STATE_TREE_DEPTH);
+       merkletree.leaf <== leaf_hasher.out;
+       for (var i = 0; i < STATE_TREE_DEPTH; i++) {
+           merkletree.path_index[i] <== state_tree_indexes[i];
+           merkletree.path_elements[i] <== state_tree_elements[i];
+       }
+       state_tree_root <== merkletree.root;
+
+       /* End of check 1 */
+
+       /* 2. Check epoch key validity */
+
+       component epoch_key_lite = EpochKeyLite(EPOCH_KEY_NONCE_PER_EPOCH);
+       epoch_key_lite.identity_secret <== identity_secret;
+       epoch_key_lite.reveal_nonce <== reveal_nonce;
+       epoch_key_lite.attester_id <== attester_id;
+       epoch_key_lite.epoch <== epoch;
+       epoch_key_lite.nonce <== nonce;
+       epoch_key_lite.sig_data <== sig_data;
+       control <== epoch_key_lite.control;
+       epoch_key <== epoch_key_lite.epoch_key;
+       /* End of check 2*/
+   }
+*)
+
+let u_hasher z init = unint "MrklTreeInclPfHash" [z; init]
+
+let u_zip xs ys = unint "zip" [xs; ys]
+
+let t_r path_index path_elements identity_secret attester_id epoch data =
+  tfq
+    (qeq nu
+       (u_hasher
+          (u_zip path_index path_elements)
+          (u_poseidon z3
+             (const_array tf
+                [ identity_secret
+                ; fadd attester_id (fmul (fpow f2 (zn 160)) epoch)
+                ; u_state_tree_leaf (data_drop_1 data) (get data z0) ] ) ) ) )
+
+let epoch_key =
+  Circuit
+    { name= "EpochKey"
+    ; inputs=
+        [ ("STATE_TREE_DEPTH", t_n)
+        ; ("EPOCH_KEY_NONCE_PER_EPOCH", t_n)
+        ; ("FIELD_COUNT", t_n)
+        ; ("state_tree_indexes", tarr_t_k tf (v "STATE_TREE_DEPTH"))
+        ; ("state_tree_elements", tarr_t_k tf (v "STATE_TREE_DEPTH"))
+        ; ("identity_secret", tf)
+        ; ("reveal_nonce", tf)
+        ; ("attester_id", tf)
+        ; ("epoch", tf)
+        ; ("nonce", tf)
+        ; ("data", tarr_t_k tf (v "FIELD_COUNT"))
+        ; ("sig_data", tf) ]
+    ; outputs=
+        [ ( "epoch_key"
+          , t_epoch_key_hasher_out identity_secret attester_id epoch nonce )
+        ; ( "state_tree_root"
+          , t_r (v "state_tree_indexes") (v "state_tree_elements")
+              identity_secret attester_id epoch (v "data") )
+        ; ("control", t_control reveal_nonce attester_id epoch nonce) ]
+    ; dep= None
+    ; body=
+        elet "leaf_hasher"
+          (call "StateTreeLeaf"
+             [ v "FIELD_COUNT"
+             ; v "data"
+             ; v "identity_secret"
+             ; v "attester_id"
+             ; v "epoch" ] )
+          (elet "merkletree"
+             (call "MerkleTreeInclusionProof"
+                [ v "STATE_TREE_DEPTH"
+                ; v "leaf_hasher"
+                ; v "state_tree_indexes"
+                ; v "state_tree_elements" ] )
+             (match_with' ["control"; "epoch_key"]
+                (call "EpochKeyLite"
+                   [ v "FIELD_COUNT"
+                   ; v "EPOCH_KEY_NONCE_PER_EPOCH"
+                   ; v "identity_secret"
+                   ; v "reveal_nonce"
+                   ; v "attester_id"
+                   ; v "epoch"
+                   ; v "nonce" ] )
+                (make [v "epoch_key"; v "merkletree"; v "control"]) ) ) }

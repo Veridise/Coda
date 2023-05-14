@@ -39,6 +39,20 @@ Definition to_le_f (n : nat) (f : F) : list F := nil.
 
 Theorem to_le_f_as_le_f: forall l, l = to_le_f (length l) (as_le_f l). Admitted.
 
+Theorem as_le_f_lt: forall l, as_le_f l <=z (2%nat^(length l) -1%nat). Admitted.
+
+Lemma as_le_f_to_le_f_skipn:
+forall l a n,
+as_le_f l = a ->
+^ as_le_f (l [n:]) = ^ a / 2%nat ^ n.
+Admitted.
+
+Lemma as_le_f_to_le_f_taken:
+forall l a n,
+as_le_f l = a ->
+^ as_le_f (l [:n]) = ^ a mod 2%nat ^ n.
+Admitted.
+
 Theorem as_le_f_mod: 
 forall (l1 l2: list F) (lth: length l1 < k),
 Forall binary (l1++l2)->

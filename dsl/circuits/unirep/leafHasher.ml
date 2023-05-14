@@ -1,10 +1,13 @@
 open Ast
 open Dsl
 open Circomlib__Poseidon
+open Notation
 (* open Typecheck *)
 
 let identity_secret = v "identity_secret"
+
 let reveal_nonce = v "reveal_nonce"
+
 let attester_id = v "attester_id"
 
 let epoch = v "epoch"
@@ -181,17 +184,17 @@ let signup =
               attester_id epoch (v "all_0") ) ]
     ; dep= None
     ; body=
-      elet "all_0" (consts_n field_count f0)
-        (match_with' ["ic_secret"; "ic_out"]
-          (call "IdentityCommitment" [identity_nullifier; identity_trapdoor])
-          (make
-             [ v "ic_out"
-             ; call "StateTreeLeaf"
-                 [ v "FIELD_COUNT"
-                 ; v "all_0"
-                 ; v "ic_secret"
-                 ; v "attester_id"
-                 ; v "epoch" ] ] )) }
+        elet "all_0" (consts_n field_count f0)
+          (match_with' ["ic_secret"; "ic_out"]
+             (call "IdentityCommitment" [identity_nullifier; identity_trapdoor])
+             (make
+                [ v "ic_out"
+                ; call "StateTreeLeaf"
+                    [ v "FIELD_COUNT"
+                    ; v "all_0"
+                    ; v "ic_secret"
+                    ; v "attester_id"
+                    ; v "epoch" ] ] ) ) }
 
 let t_epoch_key_hasher_out identity_secret attester_id epoch nonce =
   t_epoch_key_hasher identity_secret attester_id epoch nonce
@@ -222,10 +225,119 @@ let epoch_key_lite =
           , t_epoch_key_hasher_out identity_secret attester_id epoch nonce ) ]
     ; dep= None
     ; body=
-        make
-          [ call "Num2Bits" [zn 160; v "attester_id"]
-          ; call "Num2Bits" [zn 48; v "epoch"]
-          ; call "Num2Bits" [zn 8; v "nonce"]
-          ; call "LessThan" [zn 8; v "nonce"; v "EPOCH_KEY_NONCE_PER_EPOCH"]
-          ; call "EpochKeyHasher"
-              [v "identity_secret"; v "attester_id"; v "epoch"; v "nonce"] ] }
+        elet "reveal_nonce_check"
+          (assert_eq (fmul reveal_nonce (fsub reveal_nonce f1)) f0)
+          (elet "attester_id_check"
+             (call "Num2Bits" [zn 160; v "attester_id"])
+             (elet "epoch_bits"
+                (call "Num2Bits" [zn 48; v "epoch"])
+                (elet "nonce_range_check"
+                   (call "Num2Bits" [zn 8; v "nonce"])
+                   (elet "nonce_lt"
+                      (call "LessThan"
+                         [zn 8; v "nonce"; v "EPOCH_KEY_NONCE_PER_EPOCH"] )
+                      (elet "u0"
+                         (assert_eq (v "nonce_lt") f1)
+                         (elet "ctrl"
+                            (fadds
+                               [ fmul reveal_nonce (fpow f2 (zn 232))
+                               ; fmul attester_id (fpow f2 (zn 72))
+                               ; fmul epoch (fpow f2 (zn 8))
+                               ; fmul reveal_nonce nonce ] )
+                            (make
+                               [ v "ctrl"
+                               ; call "EpochKeyHasher"
+                                   [ v "identity_secret"
+                                   ; v "attester_id"
+                                   ; v "epoch"
+                                   ; v "nonce" ] ] ) ) ) ) ) ) ) }
+
+let t_alias_check = lift (lt (toUZ (as_le_f (v "in"))) CPrime)
+
+let alias_check =
+  Circuit
+    { name= "AliasCheck"
+    ; inputs= [("in", tarr_t_k tf (zn 254))]
+    ; outputs= []
+    ; dep= Some t_alias_check
+    ; body= unit_val }
+
+let t_n =
+  TRef
+    ( tint
+    , QAnd
+        ( lift (leq z0 nu)
+        , qand (lift (nu <=. zn 254)) (lift (zn 254 <=. zsub1 CPLen)) ) )
+
+let t_upper_less_than_out =
+  tfq
+    (ind_dec nu
+       (lt
+          (zdiv (toUZ (get (v "in_") (zn 0))) (zpow z2 (nsub (zn 254) (v "n"))))
+          (zdiv (toUZ (get (v "in_") (zn 1))) (zpow z2 (nsub (zn 254) (v "n")))) ) )
+
+let upper_less_than =
+  Circuit
+    { name= "UpperLessThan"
+    ; inputs= [("n", t_n); ("in_", tarr_t_k tf z2)]
+    ; outputs= [("out", t_upper_less_than_out)]
+    ; dep= None
+    ; body=
+        elet "bits_0"
+          (call "Num2Bits" [zn 254; get (v "in_") (zn 0)])
+          (elet "bits_1"
+             (call "Num2Bits" [zn 254; get (v "in_") (zn 1)])
+             (elet "alias0"
+                (call "AliasCheck" [v "bits_0"])
+                (elet "alias1"
+                   (call "AliasCheck" [v "bits_1"])
+                   (elet "upper_bits_0"
+                      (call "Bits2Num"
+                         [v "n"; drop (v "bits_0") (nsub (zn 254) (v "n"))] )
+                      (elet "upper_bits_1"
+                         (call "Bits2Num"
+                            [v "n"; drop (v "bits_1") (nsub (zn 254) (v "n"))] )
+                         (elet "lt"
+                            (call "LessThan"
+                               [v "n"; v "upper_bits_0"; v "upper_bits_1"] )
+                            (v "lt") ) ) ) ) ) ) }
+
+let t_repl_field_equal_out =
+  tfq
+    (ind_dec nu
+       (eq
+          (zmod
+             (toUZ (get (v "in_") (zn 0)))
+             (zpow z2 (nsub (zn 254) (v "REPL_NONCE_BITS"))) )
+          (zmod
+             (toUZ (get (v "in_") (zn 1)))
+             (zpow z2 (nsub (zn 254) (v "REPL_NONCE_BITS"))) ) ) )
+
+let repl_field_equal =
+  Circuit
+    { name= "ReplFieldEqual"
+    ; inputs= [("REPL_NONCE_BITS", t_n); ("in_", tarr_t_k tf z2)]
+    ; outputs= [("out", t_repl_field_equal_out)]
+    ; dep= None
+    ; body=
+        elet "bits_0"
+          (call "Num2Bits" [zn 254; get (v "in_") (zn 0)])
+          (elet "bits_1"
+             (call "Num2Bits" [zn 254; get (v "in_") (zn 1)])
+             (elet "alias0"
+                (call "AliasCheck" [v "bits_0"])
+                (elet "alias1"
+                   (call "AliasCheck" [v "bits_1"])
+                   (elet "repl_bits_0"
+                      (call "Bits2Num"
+                         [ nsub (zn 254) (v "REPL_NONCE_BITS")
+                         ; take (v "bits_0")
+                             (nsub (zn 254) (v "REPL_NONCE_BITS")) ] )
+                      (elet "repl_bits_1"
+                         (call "Bits2Num"
+                            [ nsub (zn 254) (v "REPL_NONCE_BITS")
+                            ; take (v "bits_1")
+                                (nsub (zn 254) (v "REPL_NONCE_BITS")) ] )
+                         (elet "eq"
+                            (call "IsEqual" [v "repl_bits_0"; v "repl_bits_1"])
+                            (v "eq") ) ) ) ) ) ) }

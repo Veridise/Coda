@@ -19,4 +19,16 @@ module U = Test_utils.Utils
 let _ = U.test signup (Circomlib.Poseidon.[poseidon] @ Unirep.LeafHasher.[identity_secret1; identity_commitment; state_tree_leaf])
 
 (* let _ =
+   U.test upper_less_than
+     ( Circomlib.Bitify.[bits2num; num2bits]
+     @ Circomlib.Comparators.[less_than]
+     @ Unirep.LeafHasher.[alias_check] ) *)
+
+(* let _ =
+  U.test repl_field_equal
+    ( Circomlib.Bitify.[bits2num; num2bits]
+    @ Circomlib.Comparators.[is_equal]
+    @ Unirep.LeafHasher.[alias_check] ) *)
+
+(* let _ =
    U.test mrkl_tree_incl_pf Circomlib.(Poseidon.[poseidon] @ Mux1.[multi_mux_1] @ Comparators.[is_zero]) *)

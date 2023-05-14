@@ -273,3 +273,183 @@ Proof. hammer. Qed.
 
 Lemma IdentityCommitment_obligation6_trivial: forall (nullifier : F) (trapdoor : F), True -> True -> (True -> True).
 Proof. hammer. Qed.
+
+(* UpperLessThan *)
+Lemma UpperLessThan_obligation0: forall (n : nat) (in_ : (list F)) (v : Z), (n <= 254%nat) -> Forall (fun x0 => True) in_ -> ((length in_) = 2%nat) -> True -> ((v = 254%nat) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation1_trivial: forall (n : nat) (in_ : (list F)) (v : F), (n <= 254%nat) -> Forall (fun x1 => True) in_ -> ((length in_) = 2%nat) -> True -> ((v = (in_!0%nat)) -> True).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation2: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (v : Z), (n <= 254%nat) -> Forall (fun x2 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> True -> ((v = 254%nat) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation3_trivial: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (v : F), (n <= 254%nat) -> Forall (fun x4 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x5 => ((x5 = 0%F) \/ (x5 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> True -> ((v = (in_!1%nat)) -> True).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation4: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (v : (list F)), (n <= 254%nat) -> Forall (fun x6 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x7 => ((x7 = 0%F) \/ (x7 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x8 => ((x8 = 0%F) \/ (x8 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> Forall (fun x9 => ((x9 = 0%F) \/ (x9 = 1%F))) v -> True -> (((((as_le_f v) = (in_!0%nat)) /\ ((length v) = 254%nat)) /\ (v = bits_0)) -> ((length v) = 254%nat)).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation5_trivial: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (v : F), (n <= 254%nat) -> Forall (fun x10 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x11 => ((x11 = 0%F) \/ (x11 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x12 => ((x12 = 0%F) \/ (x12 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> True -> (((v = 0%F) \/ (v = 1%F)) -> True).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation6: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (v : (list F)), (n <= 254%nat) -> Forall (fun x13 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x14 => ((x14 = 0%F) \/ (x14 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x15 => ((x15 = 0%F) \/ (x15 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> Forall (fun x16 => ((x16 = 0%F) \/ (x16 = 1%F))) v -> True -> (((((as_le_f v) = (in_!1%nat)) /\ ((length v) = 254%nat)) /\ (v = bits_1)) -> ((length v) = 254%nat)).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation7_trivial: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (v : F), (n <= 254%nat) -> Forall (fun x17 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x18 => ((x18 = 0%F) \/ (x18 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x19 => ((x19 = 0%F) \/ (x19 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> True -> (((v = 0%F) \/ (v = 1%F)) -> True).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation8: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : Z), (n <= 254%nat) -> Forall (fun x20 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x21 => ((x21 = 0%F) \/ (x21 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x22 => ((x22 = 0%F) \/ (x22 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> ((((0%nat <= v) /\ (v <= 254%nat)) /\ (v = n)) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation9_trivial: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : Z), (n <= 254%nat) -> Forall (fun x23 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x24 => ((x24 = 0%F) \/ (x24 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x25 => ((x25 = 0%F) \/ (x25 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> ((v = 254%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation10_trivial: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : Z), (n <= 254%nat) -> Forall (fun x26 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x27 => ((x27 = 0%F) \/ (x27 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x28 => ((x28 = 0%F) \/ (x28 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> ((((0%nat <= v) /\ (v <= 254%nat)) /\ (v = n)) -> True).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation11_trivial: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : Z), (n <= 254%nat) -> Forall (fun x29 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x30 => ((x30 = 0%F) \/ (x30 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x31 => ((x31 = 0%F) \/ (x31 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> ((v = (254%nat - n)%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation12: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : (list F)), (n <= 254%nat) -> Forall (fun x32 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x33 => ((x33 = 0%F) \/ (x33 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x34 => ((x34 = 0%F) \/ (x34 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> Forall (fun x35 => ((x35 = 0%F) \/ (x35 = 1%F))) v -> True -> (((v = (skipn (254%nat - n)%nat bits_0)) /\ ((length v) = ((length bits_0) - (254%nat - n)%nat)%nat)) -> ((length v) = n)).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation13: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : F), (n <= 254%nat) -> Forall (fun x36 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x37 => ((x37 = 0%F) \/ (x37 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x38 => ((x38 = 0%F) \/ (x38 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> (((v = 0%F) \/ (v = 1%F)) -> ((v = 0%F) \/ (v = 1%F))).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation14: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (upper_bits_0 : F) (v : Z), (n <= 254%nat) -> Forall (fun x39 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x40 => ((x40 = 0%F) \/ (x40 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x41 => ((x41 = 0%F) \/ (x41 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (upper_bits_0 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> True -> ((((0%nat <= v) /\ (v <= 254%nat)) /\ (v = n)) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation15_trivial: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (upper_bits_0 : F) (v : Z), (n <= 254%nat) -> Forall (fun x42 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x43 => ((x43 = 0%F) \/ (x43 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x44 => ((x44 = 0%F) \/ (x44 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (upper_bits_0 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> True -> ((v = 254%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation16_trivial: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (upper_bits_0 : F) (v : Z), (n <= 254%nat) -> Forall (fun x45 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x46 => ((x46 = 0%F) \/ (x46 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x47 => ((x47 = 0%F) \/ (x47 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (upper_bits_0 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> True -> ((((0%nat <= v) /\ (v <= 254%nat)) /\ (v = n)) -> True).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation17_trivial: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (upper_bits_0 : F) (v : Z), (n <= 254%nat) -> Forall (fun x48 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x49 => ((x49 = 0%F) \/ (x49 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x50 => ((x50 = 0%F) \/ (x50 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (upper_bits_0 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> True -> ((v = (254%nat - n)%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation18: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (upper_bits_0 : F) (v : (list F)), (n <= 254%nat) -> Forall (fun x51 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x52 => ((x52 = 0%F) \/ (x52 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x53 => ((x53 = 0%F) \/ (x53 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (upper_bits_0 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> Forall (fun x54 => ((x54 = 0%F) \/ (x54 = 1%F))) v -> True -> (((v = (skipn (254%nat - n)%nat bits_0)) /\ ((length v) = ((length bits_0) - (254%nat - n)%nat)%nat)) -> ((length v) = n)).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation19: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (upper_bits_0 : F) (v : F), ((n <= 254%nat) /\ (252%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x55 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x56 => ((x56 = 0%F) \/ (x56 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x57 => ((x57 = 0%F) \/ (x57 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (upper_bits_0 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> True -> (((v = 0%F) \/ (v = 1%F)) -> ((v = 0%F) \/ (v = 1%F))).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation20: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (upper_bits_0 : F) (upper_bits_1 : F) (v : Z), ((n <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x58 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x59 => ((x59 = 0%F) \/ (x59 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x60 => ((x60 = 0%F) \/ (x60 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (upper_bits_0 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> (upper_bits_1 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> True -> ((((0%nat <= v) /\ ((v <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z))) /\ (v = n)) -> ((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z))).
+Proof. hammer. Qed.
+
+Lemma UpperLessThan_obligation21: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (upper_bits_0 : F) (upper_bits_1 : F) (v : F), ((n <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x61 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x62 => ((x62 = 0%F) \/ (x62 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x63 => ((x63 = 0%F) \/ (x63 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (upper_bits_0 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> (upper_bits_1 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> True -> (((v = (as_le_f (skipn (254%nat - n)%nat bits_0))) /\ (v = upper_bits_0)) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
+Proof.
+intros. intuition. subst. rewrite as_le_f_lt.
+assert(length (bits_0 [254 - n:]) = n).
+{ rewrite ListUtil.skipn_length;auto. }
+rewrite H5. auto.
+Qed.
+
+Lemma UpperLessThan_obligation22: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (upper_bits_0 : F) (upper_bits_1 : F) (v : F), ((n <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x64 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x65 => ((x65 = 0%F) \/ (x65 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x66 => ((x66 = 0%F) \/ (x66 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (upper_bits_0 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> (upper_bits_1 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> True -> (((v = (as_le_f (skipn (254%nat - n)%nat bits_0))) /\ (v = upper_bits_1)) -> ((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z)).
+Proof.
+intros. intuition. subst. rewrite as_le_f_lt.
+assert(length (bits_0 [254 - n:]) = n).
+{ rewrite ListUtil.skipn_length;auto. }
+rewrite H5. auto.
+Qed.
+
+Lemma UpperLessThan_obligation23: forall (n : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (upper_bits_0 : F) (upper_bits_1 : F) (lt : F) (v : F), ((n <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x67 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x68 => ((x68 = 0%F) \/ (x68 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x69 => ((x69 = 0%F) \/ (x69 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (upper_bits_0 = (as_le_f (skipn (254%nat - n)%nat bits_0))) -> (upper_bits_1 = (as_le_f (skipn (254%nat - n)%nat bits_1))) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ upper_bits_0) < (^ upper_bits_1))) /\ ((lt = 0%F) -> ~((^ upper_bits_0) < (^ upper_bits_1))))) -> True -> (((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((^ upper_bits_0) < (^ upper_bits_1))) /\ ((v = 0%F) -> ~((^ upper_bits_0) < (^ upper_bits_1))))) /\ (v = lt)) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (((^ (in_!0%nat)) / (2%nat ^ (254%nat - n)%nat)%Z)%Z < ((^ (in_!1%nat)) / (2%nat ^ (254%nat - n)%nat)%Z)%Z)) /\ ((v = 0%F) -> ~(((^ (in_!0%nat)) / (2%nat ^ (254%nat - n)%nat)%Z)%Z < ((^ (in_!1%nat)) / (2%nat ^ (254%nat - n)%nat)%Z)%Z))))).
+Proof.
+intros. intuition; subst.
+- apply H19. erewrite as_le_f_to_le_f_skipn;eauto. 
+  erewrite as_le_f_to_le_f_skipn;eauto. 
+- erewrite <- as_le_f_to_le_f_skipn;eauto. 
+  erewrite <- as_le_f_to_le_f_skipn;eauto.
+Qed. 
+
+(* ReplFieldEqual *)
+
+Lemma ReplFieldEqual_obligation0: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x0 => True) in_ -> ((length in_) = 2%nat) -> True -> ((v = 254%nat) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation1_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (v : F), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x1 => True) in_ -> ((length in_) = 2%nat) -> True -> ((v = (in_!0%nat)) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation2: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x2 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> True -> ((v = 254%nat) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation3_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (v : F), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x4 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x5 => ((x5 = 0%F) \/ (x5 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> True -> ((v = (in_!1%nat)) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation4: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (v : (list F)), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x6 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x7 => ((x7 = 0%F) \/ (x7 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x8 => ((x8 = 0%F) \/ (x8 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> Forall (fun x9 => ((x9 = 0%F) \/ (x9 = 1%F))) v -> True -> (((((as_le_f v) = (in_!0%nat)) /\ ((length v) = 254%nat)) /\ (v = bits_0)) -> ((length v) = 254%nat)).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation5_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (v : F), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x10 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x11 => ((x11 = 0%F) \/ (x11 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x12 => ((x12 = 0%F) \/ (x12 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> True -> (((v = 0%F) \/ (v = 1%F)) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation6: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (v : (list F)), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x13 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x14 => ((x14 = 0%F) \/ (x14 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x15 => ((x15 = 0%F) \/ (x15 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> Forall (fun x16 => ((x16 = 0%F) \/ (x16 = 1%F))) v -> True -> (((((as_le_f v) = (in_!1%nat)) /\ ((length v) = 254%nat)) /\ (v = bits_1)) -> ((length v) = 254%nat)).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation7_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (v : F), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x17 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x18 => ((x18 = 0%F) \/ (x18 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x19 => ((x19 = 0%F) \/ (x19 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> True -> (((v = 0%F) \/ (v = 1%F)) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation8_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x20 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x21 => ((x21 = 0%F) \/ (x21 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x22 => ((x22 = 0%F) \/ (x22 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> ((v = 254%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation9_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x23 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x24 => ((x24 = 0%F) \/ (x24 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x25 => ((x25 = 0%F) \/ (x25 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> ((((0%nat <= v) /\ ((v <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z))) /\ (v = REPL_NONCE_BITS)) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation10: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x26 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x27 => ((x27 = 0%F) \/ (x27 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x28 => ((x28 = 0%F) \/ (x28 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> ((v = (254%nat - REPL_NONCE_BITS)%nat) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation11_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x29 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x30 => ((x30 = 0%F) \/ (x30 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x31 => ((x31 = 0%F) \/ (x31 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> ((v = 254%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation12_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x32 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x33 => ((x33 = 0%F) \/ (x33 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x34 => ((x34 = 0%F) \/ (x34 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> ((((0%nat <= v) /\ ((v <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z))) /\ (v = REPL_NONCE_BITS)) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation13_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x35 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x36 => ((x36 = 0%F) \/ (x36 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x37 => ((x37 = 0%F) \/ (x37 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> ((v = (254%nat - REPL_NONCE_BITS)%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation14: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : (list F)), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x38 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x39 => ((x39 = 0%F) \/ (x39 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x40 => ((x40 = 0%F) \/ (x40 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> Forall (fun x41 => ((x41 = 0%F) \/ (x41 = 1%F))) v -> True -> (((v = (bits_0[:(254%nat - REPL_NONCE_BITS)%nat])) /\ ((length v) = (254%nat - REPL_NONCE_BITS)%nat)) -> ((length v) = (254%nat - REPL_NONCE_BITS)%nat)).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation15: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (v : F), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x42 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x43 => ((x43 = 0%F) \/ (x43 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x44 => ((x44 = 0%F) \/ (x44 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> True -> (((v = 0%F) \/ (v = 1%F)) -> ((v = 0%F) \/ (v = 1%F))).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation16_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (repl_bits_0 : F) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x45 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x46 => ((x46 = 0%F) \/ (x46 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x47 => ((x47 = 0%F) \/ (x47 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (repl_bits_0 = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) -> True -> ((v = 254%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation17_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (repl_bits_0 : F) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x48 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x49 => ((x49 = 0%F) \/ (x49 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x50 => ((x50 = 0%F) \/ (x50 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (repl_bits_0 = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) -> True -> ((((0%nat <= v) /\ ((v <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z))) /\ (v = REPL_NONCE_BITS)) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation18: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (repl_bits_0 : F) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x51 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x52 => ((x52 = 0%F) \/ (x52 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x53 => ((x53 = 0%F) \/ (x53 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (repl_bits_0 = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) -> True -> ((v = (254%nat - REPL_NONCE_BITS)%nat) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation19_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (repl_bits_0 : F) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x54 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x55 => ((x55 = 0%F) \/ (x55 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x56 => ((x56 = 0%F) \/ (x56 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (repl_bits_0 = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) -> True -> ((v = 254%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation20_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (repl_bits_0 : F) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x57 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x58 => ((x58 = 0%F) \/ (x58 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x59 => ((x59 = 0%F) \/ (x59 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (repl_bits_0 = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) -> True -> ((((0%nat <= v) /\ ((v <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z))) /\ (v = REPL_NONCE_BITS)) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation21_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (repl_bits_0 : F) (v : Z), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x60 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x61 => ((x61 = 0%F) \/ (x61 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x62 => ((x62 = 0%F) \/ (x62 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (repl_bits_0 = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) -> True -> ((v = (254%nat - REPL_NONCE_BITS)%nat) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation22: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (repl_bits_0 : F) (v : (list F)), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x63 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x64 => ((x64 = 0%F) \/ (x64 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x65 => ((x65 = 0%F) \/ (x65 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (repl_bits_0 = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) -> Forall (fun x66 => ((x66 = 0%F) \/ (x66 = 1%F))) v -> True -> (((v = (bits_1[:(254%nat - REPL_NONCE_BITS)%nat])) /\ ((length v) = (254%nat - REPL_NONCE_BITS)%nat)) -> ((length v) = (254%nat - REPL_NONCE_BITS)%nat)).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation23: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (repl_bits_0 : F) (v : F), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x67 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x68 => ((x68 = 0%F) \/ (x68 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x69 => ((x69 = 0%F) \/ (x69 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (repl_bits_0 = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) -> True -> (((v = 0%F) \/ (v = 1%F)) -> ((v = 0%F) \/ (v = 1%F))).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation24_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (repl_bits_0 : F) (repl_bits_1 : F) (v : F), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x70 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x71 => ((x71 = 0%F) \/ (x71 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x72 => ((x72 = 0%F) \/ (x72 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (repl_bits_0 = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) -> (repl_bits_1 = (as_le_f (bits_1[:(254%nat - REPL_NONCE_BITS)%nat]))) -> True -> (((v = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) /\ (v = repl_bits_0)) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation25_trivial: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (repl_bits_0 : F) (repl_bits_1 : F) (v : F), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x73 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x74 => ((x74 = 0%F) \/ (x74 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x75 => ((x75 = 0%F) \/ (x75 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (repl_bits_0 = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) -> (repl_bits_1 = (as_le_f (bits_1[:(254%nat - REPL_NONCE_BITS)%nat]))) -> True -> (((v = (as_le_f (bits_1[:(254%nat - REPL_NONCE_BITS)%nat]))) /\ (v = repl_bits_1)) -> True).
+Proof. hammer. Qed.
+
+Lemma ReplFieldEqual_obligation26: forall (REPL_NONCE_BITS : nat) (in_ : (list F)) (bits_0 : (list F)) (bits_1 : (list F)) (alias0 : unit) (alias1 : unit) (repl_bits_0 : F) (repl_bits_1 : F) (eq : F) (v : F), ((REPL_NONCE_BITS <= 254%nat) /\ (254%nat <= (C.k - 1%nat)%Z)) -> Forall (fun x76 => True) in_ -> ((length in_) = 2%nat) -> Forall (fun x77 => ((x77 = 0%F) \/ (x77 = 1%F))) bits_0 -> (((as_le_f bits_0) = (in_!0%nat)) /\ ((length bits_0) = 254%nat)) -> Forall (fun x78 => ((x78 = 0%F) \/ (x78 = 1%F))) bits_1 -> (((as_le_f bits_1) = (in_!1%nat)) /\ ((length bits_1) = 254%nat)) -> ((^ (as_le_f bits_0)) < C.q) -> ((^ (as_le_f bits_1)) < C.q) -> (repl_bits_0 = (as_le_f (bits_0[:(254%nat - REPL_NONCE_BITS)%nat]))) -> (repl_bits_1 = (as_le_f (bits_1[:(254%nat - REPL_NONCE_BITS)%nat]))) -> (((eq = 0%F) \/ (eq = 1%F)) /\ (((eq = 1%F) -> (repl_bits_0 = repl_bits_1)) /\ ((eq = 0%F) -> ~(repl_bits_0 = repl_bits_1)))) -> True -> (((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (repl_bits_0 = repl_bits_1)) /\ ((v = 0%F) -> ~(repl_bits_0 = repl_bits_1)))) /\ (v = eq)) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (((^ (in_!0%nat)) mod (2%nat ^ (254%nat - REPL_NONCE_BITS)%nat)%Z)%Z = ((^ (in_!1%nat)) mod (2%nat ^ (254%nat - REPL_NONCE_BITS)%nat)%Z)%Z)) /\ ((v = 0%F) -> ~(((^ (in_!0%nat)) mod (2%nat ^ (254%nat - REPL_NONCE_BITS)%nat)%Z)%Z = ((^ (in_!1%nat)) mod (2%nat ^ (254%nat - REPL_NONCE_BITS)%nat)%Z)%Z))))).
+Proof.
+intros. intuition; subst.
+- apply H19. apply F.eq_to_Z_iff. 
+  erewrite as_le_f_to_le_f_taken;eauto. 
+  erewrite as_le_f_to_le_f_taken;eauto. 
+- erewrite <- as_le_f_to_le_f_taken. 2: apply H. 
+  erewrite <- as_le_f_to_le_f_taken. 2: apply H3.
+  apply F.eq_to_Z_iff;auto.
+Qed.

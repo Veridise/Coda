@@ -474,7 +474,7 @@ let consts es = List.fold_right es ~f:cons ~init:cnil
 
 let consts_n n e =
   iter z0 n
-    (lama "i" tint (lama "__x" tf (cons e (v "__x"))))
+    (lama "i" tint (lama "__x" (tarr tf) (cons e (v "__x"))))
     ~init:cnil
     ~inv:(fun i -> tarr_t_k tf i)
 

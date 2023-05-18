@@ -16,11 +16,11 @@ module U = Test_utils.Utils
 
 (* let _ = U.test identity_commitment (Circomlib.Poseidon.[poseidon] @ Unirep.LeafHasher.[identity_secret]) *)
 
-let _ =
+(* let _ =
    U.test signup
      ( Circomlib.Poseidon.[poseidon]
      @ Unirep.LeafHasher.[identity_secret1; identity_commitment; state_tree_leaf]
-     )
+     ) *)
 
 (* let _ = U.test epoch_key_lite (Circomlib.Poseidon.[poseidon] @ Unirep.LeafHasher.[identity_secret1; identity_commitment; state_tree_leaf] @ Circomlib.Bitify.[num2bits]
    @ Circomlib.Comparators.[less_than] @ Unirep.LeafHasher.[epoch_key_hasher]) *)

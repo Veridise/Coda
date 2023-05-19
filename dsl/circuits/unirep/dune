@@ -1,4 +1,4 @@
 (library
  (name unirep)
  (libraries lib typecheck circomlib)
- (modules incrementalMerkleTree leafHasher))
+ (modules incrementalMerkleTree coreCircuits))

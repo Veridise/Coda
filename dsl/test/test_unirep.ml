@@ -35,17 +35,33 @@ module U = Test_utils.Utils
      @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] ) *)
 
 (* let _ =
-  U.test prevent_double_action
+   U.test prevent_double_action
+     ( Circomlib.Poseidon.[poseidon]
+     @ Unirep.LeafHasher.
+         [ identity_secret1
+         ; identity_commitment
+         ; state_tree_leaf
+         ; epoch_key_lite
+         ; epoch_key_hasher ]
+     @ Circomlib.Bitify.[num2bits]
+     @ Circomlib.Comparators.[less_than]
+     @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] ) *)
+
+let _ =
+  U.test prove_reputation
     ( Circomlib.Poseidon.[poseidon]
     @ Unirep.LeafHasher.
         [ identity_secret1
         ; identity_commitment
         ; state_tree_leaf
         ; epoch_key_lite
-        ; epoch_key_hasher ]
+        ; epoch_key_hasher
+        ; epoch_key
+        ; repl_field_equal ]
     @ Circomlib.Bitify.[num2bits]
-    @ Circomlib.Comparators.[less_than]
-    @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] ) *)
+    @ Circomlib.Comparators.[less_than; geq; is_zero; is_equal]
+    @ Circomlib.Gates.[cor]
+    @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] )
 
 (* let _ =
    U.test upper_less_than

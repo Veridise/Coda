@@ -369,4 +369,10 @@ Proof.
   - admit.
 Admitted.
 
+Lemma binary_proof: forall a:F, (a * (a - 1) = 0)%F -> binary a.
+Proof.
+  unwrap_C. intros. unfold binary.
+  destruct (dec (a = 0)%F);auto.
+Admitted.
+
 Ltac hammer := solve [trivial | (intuit; subst; auto)].

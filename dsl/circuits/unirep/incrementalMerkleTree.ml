@@ -47,7 +47,11 @@ let hasher z len init =
       tfq (qeq nu (u_hasher (u_take i z) init)) )
 
 (* {F | nu = #MrklTreeInclPfHash (zip pathIndices siblings) leaf } *)
-let t_r = tfq (qeq nu (u_hasher (u_zip path_index path_elements) leaf))
+let t_r =
+  tfq
+    (qand
+       (qeq nu (u_hasher (u_zip path_index path_elements) leaf))
+       (qnot (qeq (v "leaf") f0)) )
 
 (* mrkl_tree_incl_pf (nLevels : {Z | 0 <= nu }) (leaf : F)
    (pathIndices : { Array<F> | length nu = nLevels })
@@ -62,4 +66,9 @@ let mrkl_tree_incl_pf =
         ; ("path_elements", tarr_tf n_levels) ]
     ; outputs= [("root", t_r)]
     ; dep= None
-    ; body= elet "z" (zip path_index path_elements) (hasher z n_levels leaf) }
+    ; body=
+        elet "leaf_zero" (call "IsZero" [leaf])
+          (elet "u0"
+             (assert_eq (v "leaf_zero") f0)
+             (elet "z" (zip path_index path_elements) (hasher z n_levels leaf)) )
+    }

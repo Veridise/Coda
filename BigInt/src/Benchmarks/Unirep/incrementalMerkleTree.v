@@ -1,4 +1,4 @@
-(** * DSL benchmark: Semaphore *)
+(** * DSL benchmark: Unirep *)
 
 Require Import Coq.Lists.List.
 Require Import Coq.micromega.Lia.

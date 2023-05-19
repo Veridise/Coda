@@ -47,8 +47,24 @@ module U = Test_utils.Utils
      @ Circomlib.Comparators.[less_than]
      @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] ) *)
 
+(* let _ =
+   U.test prove_reputation
+     ( Circomlib.Poseidon.[poseidon]
+     @ Unirep.LeafHasher.
+         [ identity_secret1
+         ; identity_commitment
+         ; state_tree_leaf
+         ; epoch_key_lite
+         ; epoch_key_hasher
+         ; epoch_key
+         ; repl_field_equal ]
+     @ Circomlib.Bitify.[num2bits]
+     @ Circomlib.Comparators.[less_than; geq; is_zero; is_equal]
+     @ Circomlib.Gates.[cor]
+     @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] ) *)
+
 let _ =
-  U.test prove_reputation
+  U.test user_state_transition
     ( Circomlib.Poseidon.[poseidon]
     @ Unirep.LeafHasher.
         [ identity_secret1
@@ -59,7 +75,7 @@ let _ =
         ; epoch_key
         ; repl_field_equal ]
     @ Circomlib.Bitify.[num2bits]
-    @ Circomlib.Comparators.[less_than; geq; is_zero; is_equal]
+    @ Circomlib.Comparators.[less_than; geq; greater_than; is_zero; is_equal]
     @ Circomlib.Gates.[cor]
     @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] )
 

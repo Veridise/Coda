@@ -1,4 +1,13 @@
 (library
  (name unirep)
  (libraries lib typecheck circomlib)
- (modules incrementalMerkleTree coreCircuits))
+ (modules
+  incrementalMerkleTree
+  bigComparators
+  epochKey
+  epochKeyLite
+  signUp
+  preventDoubleAction
+  proveReputation
+  userStateTransition
+  leafHasher))

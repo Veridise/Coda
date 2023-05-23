@@ -2,11 +2,11 @@ open Core
 open Typecheck
 open Coqgen
 open Circomlib
-open Unirep.CoreCircuits
+open Unirep.LeafHasher
 open Unirep.IncrementalMerkleTree
 module U = Test_utils.Utils
 
-(* let _ = U.test epoch_key_hasher Circomlib.Poseidon.[poseidon] *)
+let _ = U.test epoch_key_hasher Circomlib.Poseidon.[poseidon]
 
 (* let _ = U.test epoch_tree_leaf Circomlib.Poseidon.[poseidon] *)
 
@@ -64,20 +64,20 @@ module U = Test_utils.Utils
      @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] ) *)
 
 (* let _ =
-  U.test user_state_transition
-    ( Circomlib.Poseidon.[poseidon]
-    @ Unirep.CoreCircuits.
-        [ identity_secret1
-        ; identity_commitment
-        ; state_tree_leaf
-        ; epoch_key_lite
-        ; epoch_key_hasher
-        ; epoch_key
-        ; repl_field_equal ]
-    @ Circomlib.Bitify.[num2bits]
-    @ Circomlib.Comparators.[less_than; geq; greater_than; is_zero; is_equal]
-    @ Circomlib.Gates.[cor]
-    @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] ) *)
+   U.test user_state_transition
+     ( Circomlib.Poseidon.[poseidon]
+     @ Unirep.CoreCircuits.
+         [ identity_secret1
+         ; identity_commitment
+         ; state_tree_leaf
+         ; epoch_key_lite
+         ; epoch_key_hasher
+         ; epoch_key
+         ; repl_field_equal ]
+     @ Circomlib.Bitify.[num2bits]
+     @ Circomlib.Comparators.[less_than; geq; greater_than; is_zero; is_equal]
+     @ Circomlib.Gates.[cor]
+     @ Unirep.IncrementalMerkleTree.[mrkl_tree_incl_pf] ) *)
 
 (* let _ =
    U.test upper_less_than

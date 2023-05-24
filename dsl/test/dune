@@ -106,3 +106,8 @@
  (name test_unirep)
  (libraries zarith lib coqgen circomlib test_utils unirep)
  (modules test_unirep))
+
+(executable
+ (name test_circom_rln)
+ (libraries zarith lib coqgen circomlib test_utils circom_rln)
+ (modules test_circom_rln))

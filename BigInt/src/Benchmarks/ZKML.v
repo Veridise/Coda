@@ -282,5 +282,5 @@ Qed.
 
 Lemma Max_obligation12: forall (n : nat) (_in : (list F)) (v : F), ((1%nat <= n) /\ ((n <= (C.k - 1%nat)%Z) /\ True)) -> Forall (fun x27 => ((^ x27) <= ((2%nat ^ n)%Z - 1%nat)%Z)) _in -> ((length _in) = n) -> True -> (((v = (fmax (_in[:n]))) /\ (((^ v) <= ((2%nat ^ n)%Z - 1%nat)%Z) /\ True)) -> (v = (fmax _in))).
 Proof. 
-  intros. rewrite firstn_all2 in H3 by lia. auto.
+  intros. rewrite firstn_all2 in H3 by lia. intuition.
 Qed.

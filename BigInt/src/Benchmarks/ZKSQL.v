@@ -49,6 +49,35 @@ Local Open Scope tuple_scope.
 #[global]Hint Extern 10 (_ >= _)%nat => lia: core.
 #[global]Hint Extern 10 (S _ = S _) => f_equal: core.
 
+(** Lists of binary field elements *)
+
+Definition binary_F_list (l : list F) :=
+  forall i,
+    Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length l)) ->
+    l ! i = 0%F \/ l ! i = 1%F.
+
+(** A [binary_F_list] whose sum equals its length is all 1s *)
+
+Lemma binary_sum_equals_length :
+  forall l,
+    binary_F_list l ->
+    F.of_nat q (length l) = sum l ->
+    forall i,
+      Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length l)) ->
+      l ! i = 1%F.
+Proof. Admitted.
+
+(** A [binary_F_list] whose sum does not equal its length contains a 0 *)
+
+Lemma binary_sum_neq_length :
+  forall l,
+    binary_F_list l ->
+    F.of_nat q (length l) <> sum l ->
+    exists i,
+      Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length l))
+      /\ l ! i = 0%F.
+Proof. Admitted.
+
 (** ** CalculateTotal *)
 
 Lemma CalculateTotal_obligation0_trivial: forall (n : nat) (_in : (list F)) (v : Z), Forall (fun x0 => True) _in -> ((length _in) = n) -> True -> ((v = 0%nat) -> True).
@@ -157,20 +186,36 @@ Proof. hammer. Qed.
 
 Lemma IsEqualWord_obligation6: forall (n : nat) (word : (list F)) (test : (list F)) (z : (list (F * F))) (eqs : (list F)) (total : F) (v : F), Forall (fun x37 => True) word -> ((length word) = n) -> Forall (fun x38 => True) test -> ((length test) = n) -> Forall (fun x41 => match x41 with (x39,x40) => True end) z -> Forall (fun x41 => match x41 with (x39,x40) => True end) z -> Forall (fun x41 => match x41 with (x39,x40) => True end) z -> ((forall (iz:nat), 0%nat <= iz < (length word) -> (((fst (z!iz)) = (word!iz)) /\ ((snd (z!iz)) = (test!iz)))) /\ ((length z) = (length word))) -> Forall (fun x42 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length z) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((fst (z!im)) = (snd (z!im)))) /\ (((eqs!im) = 0%F) -> ~((fst (z!im)) = (snd (z!im))))))) /\ ((length eqs) = (length z))) -> (total = (sum eqs)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((F.of_nat q n) = total)) /\ ((v = 0%F) -> ~((F.of_nat q n) = total)))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (word = test)) /\ ((v = 0%F) -> ~((word = test)))))).
 Proof.
-  intros. intuit; subst.
-  - admit.
+  intros. subst. destruct H6, H8.
+  assert (binary_F_list eqs). {
+    unfold binary_F_list; intros.
+    rewrite H9 in H12.
+    apply H8 in H12 as [H12 _].
+    assumption.
+  }
+  intuit; subst.
+  - assert (
+        exists i,
+          Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length z))
+          /\ eqs ! i = 0%F
+      ). { rewrite <- H9; apply binary_sum_neq_length; auto. }
+    destruct H14 as [i [H14 H14']].
+    rewrite H6 in H14.
+    apply H0 in H14 as H14''; destruct H14''.
+    rewrite <- H17 in H16; clear H17.
+    rewrite <- H6 in H14.
+    apply H8 in H14 as [_ [_ H14]]. auto.
   - symmetry in H2.
-    apply list_eq; try assumption.
-    intros.
-    apply H12 in H0 as H0'.
-    destruct H0'.
-    rewrite <- H9, <- H15.
+    apply list_eq; try assumption; intros.
+    apply H0 in H14 as H14'; destruct H14'.
+    rewrite <- H16, <- H17.
     assert (
         forall i,
           Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length z)) ->
           eqs ! i = 1%F
-      ). { admit. }
-    rewrite <- H13 in H0.
-    apply H6 in H0 as H0'.
-    destruct H0' as [H0' [H0'' H0''']]. intuition.
-Admitted.
+      ). { rewrite <- H9; apply binary_sum_equals_length; auto. }
+    rewrite <- H6 in H14.
+    apply H8 in H14 as H14'.
+    destruct H14' as [H' [H'' H''']].
+    intuition.
+Qed.

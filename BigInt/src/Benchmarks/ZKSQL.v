@@ -134,3 +134,43 @@ Proof. hammer. Qed.
 
 Lemma IsFiltered_obligation6_trivial: forall (x : F) (y : F) (op : F) (a : F) (b : F) (v : F), True -> True -> True -> (((a = 0%F) \/ (a = 1%F)) /\ (((a = 1%F) -> (op = 0%F)) /\ ((a = 0%F) -> ~(op = 0%F)))) -> (((b = 0%F) \/ (b = 1%F)) /\ (((b = 1%F) -> (op = 1%F)) /\ ((b = 0%F) -> ~(op = 1%F)))) -> True -> ((v = (sum ((x * a)%F :: ((y * b)%F :: nil)))) -> True).
 Proof. hammer. Qed.
+
+(** ** IsEqualWord *)
+
+Lemma IsEqualWord_obligation0: forall (n : nat) (word : (list F)) (test : (list F)) (z : (list (F * F))) (eqs : (list F)) (v : Z), Forall (fun x0 => True) word -> ((length word) = n) -> Forall (fun x1 => True) test -> ((length test) = n) -> Forall (fun x4 => match x4 with (x2,x3) => True end) z -> Forall (fun x4 => match x4 with (x2,x3) => True end) z -> Forall (fun x4 => match x4 with (x2,x3) => True end) z -> ((forall (iz:nat), 0%nat <= iz < (length word) -> (((fst (z!iz)) = (word!iz)) /\ ((snd (z!iz)) = (test!iz)))) /\ ((length z) = (length word))) -> Forall (fun x5 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length z) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((fst (z!im)) = (snd (z!im)))) /\ (((eqs!im) = 0%F) -> ~((fst (z!im)) = (snd (z!im))))))) /\ ((length eqs) = (length z))) -> True -> ((v = 32%nat) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma IsEqualWord_obligation1: forall (n : nat) (word : (list F)) (test : (list F)) (z : (list (F * F))) (eqs : (list F)) (v : Z), Forall (fun x6 => True) word -> ((length word) = n) -> Forall (fun x7 => True) test -> ((length test) = n) -> Forall (fun x10 => match x10 with (x8,x9) => True end) z -> Forall (fun x10 => match x10 with (x8,x9) => True end) z -> Forall (fun x10 => match x10 with (x8,x9) => True end) z -> ((forall (iz:nat), 0%nat <= iz < (length word) -> (((fst (z!iz)) = (word!iz)) /\ ((snd (z!iz)) = (test!iz)))) /\ ((length z) = (length word))) -> Forall (fun x11 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length z) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((fst (z!im)) = (snd (z!im)))) /\ (((eqs!im) = 0%F) -> ~((fst (z!im)) = (snd (z!im))))))) /\ ((length eqs) = (length z))) -> True -> (((0%nat <= v) /\ (v = n)) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma IsEqualWord_obligation2: forall (n : nat) (word : (list F)) (test : (list F)) (z : (list (F * F))) (eqs : (list F)) (v : (list F)), Forall (fun x12 => True) word -> ((length word) = n) -> Forall (fun x13 => True) test -> ((length test) = n) -> Forall (fun x16 => match x16 with (x14,x15) => True end) z -> Forall (fun x16 => match x16 with (x14,x15) => True end) z -> Forall (fun x16 => match x16 with (x14,x15) => True end) z -> ((forall (iz:nat), 0%nat <= iz < (length word) -> (((fst (z!iz)) = (word!iz)) /\ ((snd (z!iz)) = (test!iz)))) /\ ((length z) = (length word))) -> Forall (fun x17 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length z) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((fst (z!im)) = (snd (z!im)))) /\ (((eqs!im) = 0%F) -> ~((fst (z!im)) = (snd (z!im))))))) /\ ((length eqs) = (length z))) -> Forall (fun x18 => True) v -> True -> ((((forall (im:nat), 0%nat <= im < (length z) -> ((((v!im) = 0%F) \/ ((v!im) = 1%F)) /\ ((((v!im) = 1%F) -> ((fst (z!im)) = (snd (z!im)))) /\ (((v!im) = 0%F) -> ~((fst (z!im)) = (snd (z!im))))))) /\ ((length v) = (length z))) /\ (v = eqs)) -> ((length v) = n)).
+Proof. hammer. Qed.
+
+Lemma IsEqualWord_obligation3: forall (n : nat) (word : (list F)) (test : (list F)) (z : (list (F * F))) (eqs : (list F)) (total : F) (v : Z), Forall (fun x19 => True) word -> ((length word) = n) -> Forall (fun x20 => True) test -> ((length test) = n) -> Forall (fun x23 => match x23 with (x21,x22) => True end) z -> Forall (fun x23 => match x23 with (x21,x22) => True end) z -> Forall (fun x23 => match x23 with (x21,x22) => True end) z -> ((forall (iz:nat), 0%nat <= iz < (length word) -> (((fst (z!iz)) = (word!iz)) /\ ((snd (z!iz)) = (test!iz)))) /\ ((length z) = (length word))) -> Forall (fun x24 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length z) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((fst (z!im)) = (snd (z!im)))) /\ (((eqs!im) = 0%F) -> ~((fst (z!im)) = (snd (z!im))))))) /\ ((length eqs) = (length z))) -> (total = (sum eqs)) -> True -> (((0%nat <= v) /\ (v = n)) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma IsEqualWord_obligation4_trivial: forall (n : nat) (word : (list F)) (test : (list F)) (z : (list (F * F))) (eqs : (list F)) (total : F) (v : F), Forall (fun x25 => True) word -> ((length word) = n) -> Forall (fun x26 => True) test -> ((length test) = n) -> Forall (fun x29 => match x29 with (x27,x28) => True end) z -> Forall (fun x29 => match x29 with (x27,x28) => True end) z -> Forall (fun x29 => match x29 with (x27,x28) => True end) z -> ((forall (iz:nat), 0%nat <= iz < (length word) -> (((fst (z!iz)) = (word!iz)) /\ ((snd (z!iz)) = (test!iz)))) /\ ((length z) = (length word))) -> Forall (fun x30 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length z) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((fst (z!im)) = (snd (z!im)))) /\ (((eqs!im) = 0%F) -> ~((fst (z!im)) = (snd (z!im))))))) /\ ((length eqs) = (length z))) -> (total = (sum eqs)) -> True -> ((v = (F.of_nat q n)) -> True).
+Proof. hammer. Qed.
+
+Lemma IsEqualWord_obligation5_trivial: forall (n : nat) (word : (list F)) (test : (list F)) (z : (list (F * F))) (eqs : (list F)) (total : F) (v : F), Forall (fun x31 => True) word -> ((length word) = n) -> Forall (fun x32 => True) test -> ((length test) = n) -> Forall (fun x35 => match x35 with (x33,x34) => True end) z -> Forall (fun x35 => match x35 with (x33,x34) => True end) z -> Forall (fun x35 => match x35 with (x33,x34) => True end) z -> ((forall (iz:nat), 0%nat <= iz < (length word) -> (((fst (z!iz)) = (word!iz)) /\ ((snd (z!iz)) = (test!iz)))) /\ ((length z) = (length word))) -> Forall (fun x36 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length z) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((fst (z!im)) = (snd (z!im)))) /\ (((eqs!im) = 0%F) -> ~((fst (z!im)) = (snd (z!im))))))) /\ ((length eqs) = (length z))) -> (total = (sum eqs)) -> True -> (((v = (sum eqs)) /\ (v = total)) -> True).
+Proof. hammer. Qed.
+
+Lemma IsEqualWord_obligation6: forall (n : nat) (word : (list F)) (test : (list F)) (z : (list (F * F))) (eqs : (list F)) (total : F) (v : F), Forall (fun x37 => True) word -> ((length word) = n) -> Forall (fun x38 => True) test -> ((length test) = n) -> Forall (fun x41 => match x41 with (x39,x40) => True end) z -> Forall (fun x41 => match x41 with (x39,x40) => True end) z -> Forall (fun x41 => match x41 with (x39,x40) => True end) z -> ((forall (iz:nat), 0%nat <= iz < (length word) -> (((fst (z!iz)) = (word!iz)) /\ ((snd (z!iz)) = (test!iz)))) /\ ((length z) = (length word))) -> Forall (fun x42 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length z) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((fst (z!im)) = (snd (z!im)))) /\ (((eqs!im) = 0%F) -> ~((fst (z!im)) = (snd (z!im))))))) /\ ((length eqs) = (length z))) -> (total = (sum eqs)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ((F.of_nat q n) = total)) /\ ((v = 0%F) -> ~((F.of_nat q n) = total)))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (word = test)) /\ ((v = 0%F) -> ~((word = test)))))).
+Proof.
+  intros. intuit; subst.
+  - admit.
+  - symmetry in H2.
+    apply list_eq; try assumption.
+    intros.
+    apply H12 in H0 as H0'.
+    destruct H0'.
+    rewrite <- H9, <- H15.
+    assert (
+        forall i,
+          Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length z)) ->
+          eqs ! i = 1%F
+      ). { admit. }
+    rewrite <- H13 in H0.
+    apply H6 in H0 as H0'.
+    destruct H0' as [H0' [H0'' H0''']]. intuition.
+Admitted.

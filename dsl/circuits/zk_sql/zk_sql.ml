@@ -34,6 +34,12 @@ let choices = v "choices"
 
 let index = v "index"
 
+let nops = v "nops"
+
+let word = v "word"
+
+let test = v "test"
+
 (* CalculateTotal *)
 
 let calc_total =
@@ -74,3 +80,30 @@ let is_filtered =
           (elet "b"
              (call "IsEqual" [v "op"; f1])
              (call "CalculateTotal" [z2; const_array tf [x *% a; y *% b]]) ) }
+
+let t_multisum = tfq (qeq nu (u_sum vin))
+
+let multisum =
+  Circuit
+    { name= "MultiSum"
+    ; inputs= [("n", tnat); ("nops", tnat); ("in", tarr_tf nops)]
+    ; outputs= [("out", t_multisum)]
+    ; dep= None
+    ; body= star }
+
+let t_is_equal_word = tfq (q_ind_dec nu (qeq word test))
+
+let lam_iew = lama "x" (tpair tf tf) (call "IsEqual" [tget x 0; tget x 1])
+
+let is_equal_word =
+  Circuit
+    { name= "IsEqualWord"
+    ; inputs= [("n", tnat); ("word", tarr_tf n); ("test", tarr_tf n)]
+    ; outputs= [("out", t_is_equal_word)]
+    ; dep= None
+    ; body=
+        elet "z" (zip word test)
+          (elet "eqs" (map lam_iew z)
+             (elet "total"
+                (call "MultiSum" [zn 32; n; v "eqs"])
+                (call "IsEqual" [nat2f n; v "total"]) ) ) }

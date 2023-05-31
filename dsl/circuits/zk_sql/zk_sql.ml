@@ -40,6 +40,8 @@ let word = v "word"
 
 let test = v "test"
 
+let total = v "total"
+
 (* CalculateTotal *)
 
 let calc_total =
@@ -83,6 +85,8 @@ let is_filtered =
 
 let t_multisum = tfq (qeq nu (u_sum vin))
 
+(* TODO: See if we can implement this *)
+
 let multisum =
   Circuit
     { name= "MultiSum"
@@ -107,3 +111,17 @@ let is_equal_word =
              (elet "total"
                 (call "MultiSum" [zn 32; n; v "eqs"])
                 (call "IsEqual" [nat2f n; v "total"]) ) ) }
+
+let t_n = TRef (tint, qand (lift (lt z0 nu)) (lift (lt nu CPrime)))
+
+let t_multi_or = tfq (q_ind_dec nu (qexists_e "i" z0 n (eq (get vin i) f1)))
+
+let multi_or =
+  Circuit
+    { name= "MultiOR"
+    ; inputs= [("n", t_n); ("in", tarr_t_k tf_binary n)]
+    ; outputs= [("out", t_multi_or)]
+    ; dep= None
+    ; body=
+        elet "total" (call "CalculateTotal" [n; vin]) (call1 "IsNotZero" total)
+    }

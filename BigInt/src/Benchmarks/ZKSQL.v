@@ -78,6 +78,28 @@ Lemma binary_sum_neq_length :
       /\ l ! i = 0%F.
 Proof. Admitted.
 
+(** A [binary_F_list] whose sum is nonzero contains a 1 *)
+
+Lemma binary_sum_neq_0 :
+  forall l,
+    binary_F_list l ->
+    sum l <> 0%F ->
+    exists i,
+       Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length l))
+       /\ l ! i = 1%F.
+Proof. Admitted.
+
+(** A [binary_F_list] whose length is positive and less than the prime
+that contains a 1 has a nonzero sum *)
+
+Lemma binary_sum_nonzero :
+  forall l i,
+    binary_F_list l ->
+    Z.of_N (N.of_nat 0) < Z.of_N (N.of_nat (length l)) < Z.pos q ->
+    l ! i = 1%F ->
+    sum l <> 0%F.
+Proof. Admitted.
+
 (** ** CalculateTotal *)
 
 Lemma CalculateTotal_obligation0_trivial: forall (n : nat) (_in : (list F)) (v : Z), Forall (fun x0 => True) _in -> ((length _in) = n) -> True -> ((v = 0%nat) -> True).
@@ -218,4 +240,32 @@ Proof.
     apply H8 in H14 as H14'.
     destruct H14' as [H' [H'' H''']].
     intuition.
+Qed.
+
+(** ** MultiOR *)
+
+Lemma MultiOR_obligation0: forall (n : Z) (_in : (list F)) (v : Z), ((0%nat < n) /\ (n < C.q)) -> Forall (fun x0 => ((x0 = 0%F) \/ (x0 = 1%F))) _in -> (Z.of_nat (length _in) = n) -> True -> ((((0%nat < v) /\ (v < C.q)) /\ (v = n)) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma MultiOR_obligation1: forall (n : Z) (_in : (list F)) (v : (list F)), ((0%nat < n) /\ (n < C.q)) -> Forall (fun x1 => ((x1 = 0%F) \/ (x1 = 1%F))) _in -> (Z.of_nat (length _in) = n) -> Forall (fun x2 => ((x2 = 0%F) \/ (x2 = 1%F))) v -> True -> (((Z.of_nat (length v) = n) /\ (v = _in)) -> (Z.of_nat (length v) = n)).
+Proof. hammer. Qed.
+
+Lemma MultiOR_obligation2_trivial: forall (n : Z) (_in : (list F)) (v : F), ((0%nat < n) /\ (n < C.q)) -> Forall (fun x3 => ((x3 = 0%F) \/ (x3 = 1%F))) _in -> (Z.of_nat (length _in) = n) -> True -> (((v = 0%F) \/ (v = 1%F)) -> True).
+Proof. hammer. Qed.
+
+Lemma MultiOR_obligation3_trivial: forall (n : Z) (_in : (list F)) (total : F) (v : F), ((0%nat < n) /\ (n < C.q)) -> Forall (fun x4 => ((x4 = 0%F) \/ (x4 = 1%F))) _in -> (Z.of_nat (length _in) = n) -> (total = (sum _in)) -> True -> (((v = (sum _in)) /\ (v = total)) -> True).
+Proof. hammer. Qed.
+
+Lemma MultiOR_obligation4: forall (n : Z) (_in : (list F)) (total : F) (v : F), ((0%nat < n) /\ (n < C.q)) -> Forall (fun x5 => ((x5 = 0%F) \/ (x5 = 1%F))) _in -> (Z.of_N (N.of_nat (length _in)) = n) -> (total = (sum _in)) -> True -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> ~(total = 0%F)) /\ ((v = 0%F) -> ~~(total = 0%F)))) -> (((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (exists (i:nat), 0%nat <= i < n /\ ((_in!i) = 1%F))) /\ ((v = 0%F) -> ~((exists (i:nat), 0%nat <= i < n /\ ((_in!i) = 1%F))))))).
+Proof.
+  intros. intuit; subst.
+  - apply H; intro.
+    destruct H9 as [i [H9 H10]].
+    assert (sum _in <> 0%F). {
+      apply binary_sum_nonzero with i; auto.
+      unfold binary_F_list; auto.
+    }
+    contradiction.
+  - apply binary_sum_neq_0; auto.
+    unfold binary_F_list; auto.
 Qed.

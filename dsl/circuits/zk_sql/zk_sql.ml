@@ -85,8 +85,6 @@ let is_filtered =
 
 let t_multisum = tfq (qeq nu (u_sum vin))
 
-(* TODO: See if we can implement this *)
-
 let multisum =
   Circuit
     { name= "MultiSum"

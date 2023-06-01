@@ -1,0 +1,4 @@
+(library
+ (name zk_sbt)
+ (libraries lib typecheck circomlib)
+ (modules zk_sbt))

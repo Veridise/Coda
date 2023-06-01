@@ -1,0 +1,19 @@
+(executable
+ (name test_gates)
+ (libraries zarith lib coqgen circomlib test_utils)
+ (modules test_gates))
+
+(executable
+ (name test_comparators)
+ (libraries lib typecheck coqgen circomlib test_utils)
+ (modules test_comparators))
+
+(executable
+ (name test_bitify)
+ (libraries lib typecheck coqgen circomlib test_utils)
+ (modules test_bitify))
+
+(executable
+ (name test_mux1)
+ (libraries lib typecheck coqgen circomlib test_utils)
+ (modules test_mux1))

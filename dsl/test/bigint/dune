@@ -1,0 +1,34 @@
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))
+
+(executable
+ (name test_big_less_than)
+ (libraries zarith lib coqgen circomlib test_utils bigint)
+ (modules test_big_less_than))
+
+(executable
+ (name test_big_add)
+ (libraries zarith lib coqgen circomlib test_utils bigint)
+ (modules test_big_add))
+
+(executable
+ (name test_big_sub)
+ (libraries zarith lib coqgen circomlib test_utils bigint)
+ (modules test_big_sub))
+
+(executable
+ (name test_split)
+ (libraries zarith lib coqgen circomlib test_utils bigint)
+ (modules test_split))
+
+; (executable
+;  (name test_big_is_equal)
+;  (libraries zarith lib coqgen circomlib test_utils bigint)
+;  (modules test_big_is_equal))
+
+(executable
+ (name test_big_mult)
+ (libraries zarith lib coqgen circomlib test_utils bigint)
+ (modules test_big_mult))

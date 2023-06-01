@@ -1,0 +1,40 @@
+(env
+ (dev
+  (flags
+   (:standard -warn-error -A))))
+
+(library
+ (name lib)
+ (wrapped false)
+ (libraries core fmt zarith)
+ (modules ast ast_utils dsl notation utils monads)
+ (preprocess
+  (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))
+
+(library
+ (name typecheck)
+ (libraries core lib)
+ (modules typecheck)
+ (preprocess
+  (pps ppx_jane ppx_let ppx_deriving.show ppx_deriving.eq)))
+
+(library
+ (name liblam)
+ (libraries core lib typecheck)
+ (modules liblam)
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.eq)))
+
+(library
+ (name coqgen)
+ (libraries core lib typecheck liblam)
+ (modules coqgen)
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.eq)))
+
+(library
+ (name codegen)
+ (libraries core lib fmt zarith liblam)
+ (modules r1cs_utils codegen)
+ (preprocess
+  (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))

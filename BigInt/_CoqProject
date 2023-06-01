@@ -1,0 +1,70 @@
+-R src Circom
+src/Config.v
+src/BabyJubjub.v
+src/Circom.v
+src/Repr.v
+src/ReprZ.v
+src/Util.v
+src/Default.v
+src/DSL.v
+src/CTuple.v
+src/Tuple.v
+src/ListUtil.v
+src/LibTactics.v
+src/LibOverflow.v
+src/PigeonHole.v
+src/Simplify.v
+src/Signed.v
+src/CircomLib/Comparators.v
+src/CircomLib/Bitify.v
+src/CircomLib/Gates.v
+src/CircomLib/Multiplexer.v
+src/Benchmarks/Liblam.v
+src/Benchmarks/Coda.v
+# src/Benchmarks/Circomlib/Bitify.v
+# src/Benchmarks/Circomlib/Comparators.v
+# src/Benchmarks/Circomlib/Gates.v
+# src/Benchmarks/Circomlib/Multiplexer.v
+# src/Benchmarks/Circomlib/Mux1.v
+src/Benchmarks/BigInt/BigAdd.v
+src/Benchmarks/BigInt/BigIsEqual.v
+src/Benchmarks/BigInt/BigIsZero.v
+src/Benchmarks/BigInt/BigLessThan.v
+src/Benchmarks/DarkForest.v
+src/Benchmarks/Ed25519.v
+src/Benchmarks/Ed25519Buggy.v
+src/Benchmarks/Hydra.v
+src/Benchmarks/Semaphore.v
+src/Benchmarks/ZKML.v
+src/Benchmarks/ZKSBT.v
+src/Benchmarks/ZKSQL.v
+src/BigInt/Definition/BigIsZero.v
+src/BigInt/Definition/BigIsEqual.v
+src/BigInt/Definition/ModProd.v
+src/BigInt/Definition/BigAdd.v
+src/BigInt/Definition/BigSub.v
+src/BigInt/Definition/BigLessThan.v
+src/BigInt/Definition/BigAddModP.v
+src/BigInt/Definition/BigSubModP.v
+src/BigInt/Definition/CheckCarryToZero.v
+src/BigInt/Definition/Split.v
+src/BigInt/Definition/BigMult.v
+src/BigInt/Definition/BigMod.v
+src/BigInt/Proof/BigIsZero.v
+src/BigInt/Proof/BigIsEqual.v
+src/BigInt/Proof/ModProd.v
+src/BigInt/Proof/BigAdd.v
+src/BigInt/Proof/BigSub.v
+src/BigInt/Proof/BigLessThan.v
+src/BigInt/Proof/BigAddModP.v
+src/BigInt/Proof/BigSubModP.v
+src/BigInt/Proof/CheckCarryToZero.v
+src/BigInt/Proof/Split.v
+src/BigInt/Theory/Polynom.v
+src/BigInt/Theory/Polynom_test.v
+src/BigInt/Proof/BigMult.v
+src/BigInt/Proof/BigMod.v
+src/BigInt/Specification.v
+src/CircomLib/EdDSA.v
+src/Sismo/hydra.v
+# src/BigInt/Proof/PrimeReduce.v

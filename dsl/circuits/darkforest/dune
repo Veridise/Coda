@@ -1,0 +1,4 @@
+(library
+ (name darkforest)
+ (libraries lib liblam)
+ (modules darkforest))

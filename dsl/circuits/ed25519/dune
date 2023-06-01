@@ -1,0 +1,4 @@
+(library
+ (name ed25519)
+ (libraries circomlib lib typecheck)
+ (modules ed25519))

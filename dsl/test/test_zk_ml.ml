@@ -13,3 +13,5 @@ let _ = U.test relu [is_positive]
 let _ = U.test poly []
 
 let _ = U.test cmax Circomlib.[Comparators.greater_than; Switcher.switcher]
+
+let _ = U.test flatten_2d []

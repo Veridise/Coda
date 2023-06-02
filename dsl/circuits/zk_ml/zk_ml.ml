@@ -6,17 +6,33 @@ let z254 = zn 254
 
 let i = v "i"
 
+let j = v "j"
+
 let n = v "n"
 
 let x = v "x"
 
+let y = v "y"
+
 let z = v "z"
+
+let r = v "r"
+
+let c = v "c"
+
+let h = v "h"
 
 let vin = v "in"
 
 let out = v "out"
 
 let n2b = v "n2b"
+
+let nRows = v "nRows"
+
+let nCols = v "nCols"
+
+let nChannels = v "nChannels"
 
 (* is_negative (in : F) : { F | binary nu /\ nu = 1 -> (toSZ in < 0) /\ nu = 0 -> ~(toSZ in < 0) } *)
 let is_negative =
@@ -83,3 +99,39 @@ let cmax =
                 (elet "gt"
                    (call3 "GreaterThan" n (get vin i) vmax)
                    (tfst (call3 "Switcher" gt vmax (get vin i))) ) ) ) }
+
+let q_flatten_2d =
+  qforall "r" z0 nRows
+    (qforall "c" z0 nCols
+       (qforall_e "h" z0 nChannels
+          ( get out ((r *! (nCols *! nChannels)) +! (c *! nChannels) +! h)
+          =. get (get (get vin r) c) h ) ) )
+
+let inv_col j = tarr_tf (j *! nChannels)
+
+let inv_row i = tarr_tf (i *! nCols *! nChannels)
+
+let iter_row r =
+  iter z0 nCols
+    (lama "j" tint
+       (lama "y" (tarr_tf (j *! nChannels)) (push (concat y (get r j)))) )
+    ~init:cnil ~inv:inv_col
+
+let flatten_2d =
+  Circuit
+    { name= "Flatten2D"
+    ; inputs=
+        [ ("nRows", tnat)
+        ; ("nCols", tnat)
+        ; ("nChannels", tnat)
+        ; ("in", tarr_t_k (tarr_t_k (tarr_tf nChannels) nCols) nRows) ]
+    ; outputs=
+        [("out", tarr_t_q_k tf q_flatten_2d (nRows *! nCols *! nChannels))]
+    ; dep= None
+    ; body=
+        iter z0 nRows
+          (lama "i" tint
+             (lama "x"
+                (tarr_tf (i *! nCols *! nChannels))
+                (push (concat x (iter_row (get vin i)))) ) )
+          ~init:cnil ~inv:inv_row }

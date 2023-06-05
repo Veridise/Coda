@@ -92,7 +92,73 @@ Qed.
 
 (** ** QuinSelector *)
 
-(* TODO *)
+Lemma QuinSelector_obligation0: forall (choices : F) (_in : (list F)) (index : F) (v : Z), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x0 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> True -> ((v = 4%nat) -> ((0%nat <= v) /\ (v <= (C.k - 1%nat)%Z))).
+Proof. hammer. Qed.
+
+Lemma QuinSelector_obligation1: forall (choices : F) (_in : (list F)) (index : F) (v : F), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x1 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> True -> ((((^ v) < (^ choices)) /\ (v = index)) -> ((^ v) <= ((2%nat ^ 4%nat)%Z - 1%nat)%Z)).
+Proof. hammer. Qed.
+
+Lemma QuinSelector_obligation2: forall (choices : F) (_in : (list F)) (index : F) (v : F), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x2 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> True -> ((((4%nat < (C.k - 1%nat)%Z) /\ ((^ v) < (2%nat ^ 4%nat)%Z)) /\ (v = choices)) -> ((^ v) <= ((2%nat ^ 4%nat)%Z - 1%nat)%Z)).
+Proof. hammer. Qed.
+
+Lemma QuinSelector_obligation3_trivial: forall (choices : F) (_in : (list F)) (index : F) (lt : F) (u0 : unit) (v : F), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x3 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ index) < (^ choices))) /\ ((lt = 0%F) -> ~((^ index) < (^ choices))))) -> (lt = 1%F) -> True -> ((((4%nat < (C.k - 1%nat)%Z) /\ ((^ v) < (2%nat ^ 4%nat)%Z)) /\ (v = choices)) -> True).
+Proof. hammer. Qed.
+
+Lemma QuinSelector_obligation4: forall (choices : F) (_in : (list F)) (index : F) (lt : F) (u0 : unit) (v : Z), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x4 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ index) < (^ choices))) /\ ((lt = 0%F) -> ~((^ index) < (^ choices))))) -> (lt = 1%F) -> True -> ((v = (^ choices)) -> ((0%nat <= v) /\ (v < C.q))).
+Proof.
+  unwrap_C; intuit; subst; try lia.
+  assert (
+      Z.of_N (N.of_nat 2) ^ Z.of_N (N.of_nat 4)
+      < Z.of_N (N.of_nat 2) ^ (k - Z.of_N (N.of_nat 1))
+    ) by (apply Z.pow_lt_mono_r; auto).
+  assert (
+      2 ^ (k - Z.of_N (N.of_nat 1)) < 2 ^ k
+    ) by (apply Z.pow_lt_mono_r; auto).
+  lia.
+Qed.
+
+Lemma QuinSelector_obligation5_trivial: forall (choices : F) (_in : (list F)) (index : F) (lt : F) (u0 : unit) (rng : (list F)) (x : F) (v : F), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x5 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ index) < (^ choices))) /\ ((lt = 0%F) -> ~((^ index) < (^ choices))))) -> (lt = 1%F) -> Forall (fun x6 => True) rng -> ((forall (rng_j:nat), 0%nat <= rng_j < (^ choices) -> ((^ (rng!rng_j)) = rng_j)) /\ (Z.of_nat (length rng) = (^ choices))) -> True -> True -> ((v = x) -> True).
+Proof. hammer. Qed.
+
+Lemma QuinSelector_obligation6_trivial: forall (choices : F) (_in : (list F)) (index : F) (lt : F) (u0 : unit) (rng : (list F)) (x : F) (v : F), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x7 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ index) < (^ choices))) /\ ((lt = 0%F) -> ~((^ index) < (^ choices))))) -> (lt = 1%F) -> Forall (fun x8 => True) rng -> ((forall (rng_j:nat), 0%nat <= rng_j < (^ choices) -> ((^ (rng!rng_j)) = rng_j)) /\ (Z.of_nat (length rng) = (^ choices))) -> True -> True -> ((((^ v) < (^ choices)) /\ (v = index)) -> True).
+Proof. hammer. Qed.
+
+Lemma QuinSelector_obligation7_trivial: forall (choices : F) (_in : (list F)) (index : F) (lt : F) (u0 : unit) (rng : (list F)) (eqs : (list F)) (xy_s : (list (F * F))) (xmy_s : (list F)) (v : F), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x9 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ index) < (^ choices))) /\ ((lt = 0%F) -> ~((^ index) < (^ choices))))) -> (lt = 1%F) -> Forall (fun x10 => True) rng -> ((forall (rng_j:nat), 0%nat <= rng_j < (^ choices) -> ((^ (rng!rng_j)) = rng_j)) /\ (Z.of_nat (length rng) = (^ choices))) -> Forall (fun x11 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length rng) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((rng!im) = index)) /\ (((eqs!im) = 0%F) -> ~((rng!im) = index))))) /\ ((length eqs) = (length rng))) -> Forall (fun x14 => match x14 with (x12,x13) => True end) xy_s -> Forall (fun x14 => match x14 with (x12,x13) => True end) xy_s -> Forall (fun x14 => match x14 with (x12,x13) => True end) xy_s -> ((forall (iz:nat), 0%nat <= iz < (length _in) -> (((fst (xy_s!iz)) = (_in!iz)) /\ ((snd (xy_s!iz)) = (eqs!iz)))) /\ ((length xy_s) = (length _in))) -> Forall (fun x15 => True) xmy_s -> ((forall (im:nat), 0%nat <= im < (length xy_s) -> ((xmy_s!im) = ((fst (xy_s!im)) * (snd (xy_s!im)))%F)) /\ ((length xmy_s) = (length xy_s))) -> True -> ((((4%nat < (C.k - 1%nat)%Z) /\ ((^ v) < (2%nat ^ 4%nat)%Z)) /\ (v = choices)) -> True).
+Proof. hammer. Qed.
+
+Lemma QuinSelector_obligation8: forall (choices : F) (_in : (list F)) (index : F) (lt : F) (u0 : unit) (rng : (list F)) (eqs : (list F)) (xy_s : (list (F * F))) (xmy_s : (list F)) (v : Z), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x16 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ index) < (^ choices))) /\ ((lt = 0%F) -> ~((^ index) < (^ choices))))) -> (lt = 1%F) -> Forall (fun x17 => True) rng -> ((forall (rng_j:nat), 0%nat <= rng_j < (^ choices) -> ((^ (rng!rng_j)) = rng_j)) /\ (Z.of_nat (length rng) = (^ choices))) -> Forall (fun x18 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length rng) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((rng!im) = index)) /\ (((eqs!im) = 0%F) -> ~((rng!im) = index))))) /\ ((length eqs) = (length rng))) -> Forall (fun x21 => match x21 with (x19,x20) => True end) xy_s -> Forall (fun x21 => match x21 with (x19,x20) => True end) xy_s -> Forall (fun x21 => match x21 with (x19,x20) => True end) xy_s -> ((forall (iz:nat), 0%nat <= iz < (length _in) -> (((fst (xy_s!iz)) = (_in!iz)) /\ ((snd (xy_s!iz)) = (eqs!iz)))) /\ ((length xy_s) = (length _in))) -> Forall (fun x22 => True) xmy_s -> ((forall (im:nat), 0%nat <= im < (length xy_s) -> ((xmy_s!im) = ((fst (xy_s!im)) * (snd (xy_s!im)))%F)) /\ ((length xmy_s) = (length xy_s))) -> True -> ((v = (^ choices)) -> (0%nat <= v)).
+Proof. hammer. Qed.
+
+Lemma QuinSelector_obligation9: forall (choices : F) (_in : (list F)) (index : F) (lt : F) (u0 : unit) (rng : (list F)) (eqs : (list F)) (xy_s : (list (F * F))) (xmy_s : (list F)) (v : (list F)), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x23 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ index) < (^ choices))) /\ ((lt = 0%F) -> ~((^ index) < (^ choices))))) -> (lt = 1%F) -> Forall (fun x24 => True) rng -> ((forall (rng_j:nat), 0%nat <= rng_j < (^ choices) -> ((^ (rng!rng_j)) = rng_j)) /\ (Z.of_nat (length rng) = (^ choices))) -> Forall (fun x25 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length rng) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((rng!im) = index)) /\ (((eqs!im) = 0%F) -> ~((rng!im) = index))))) /\ ((length eqs) = (length rng))) -> Forall (fun x28 => match x28 with (x26,x27) => True end) xy_s -> Forall (fun x28 => match x28 with (x26,x27) => True end) xy_s -> Forall (fun x28 => match x28 with (x26,x27) => True end) xy_s -> ((forall (iz:nat), 0%nat <= iz < (length _in) -> (((fst (xy_s!iz)) = (_in!iz)) /\ ((snd (xy_s!iz)) = (eqs!iz)))) /\ ((length xy_s) = (length _in))) -> Forall (fun x29 => True) xmy_s -> ((forall (im:nat), 0%nat <= im < (length xy_s) -> ((xmy_s!im) = ((fst (xy_s!im)) * (snd (xy_s!im)))%F)) /\ ((length xmy_s) = (length xy_s))) -> Forall (fun x30 => True) v -> True -> ((((forall (im:nat), 0%nat <= im < (length xy_s) -> ((v!im) = ((fst (xy_s!im)) * (snd (xy_s!im)))%F)) /\ ((length v) = (length xy_s))) /\ (v = xmy_s)) -> (Z.of_nat (length v) = (^ choices))).
+Proof. hammer. Qed.
+
+Lemma QuinSelector_obligation10: forall (choices : F) (_in : (list F)) (index : F) (lt : F) (u0 : unit) (rng : (list F)) (eqs : (list F)) (xy_s : (list (F * F))) (xmy_s : (list F)) (v : F), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x31 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ index) < (^ choices))) /\ ((lt = 0%F) -> ~((^ index) < (^ choices))))) -> (lt = 1%F) -> Forall (fun x32 => True) rng -> ((forall (rng_j:nat), 0%nat <= rng_j < (^ choices) -> ((^ (rng!rng_j)) = rng_j)) /\ (Z.of_nat (length rng) = (^ choices))) -> Forall (fun x33 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length rng) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((rng!im) = index)) /\ (((eqs!im) = 0%F) -> ~((rng!im) = index))))) /\ ((length eqs) = (length rng))) -> Forall (fun x36 => match x36 with (x34,x35) => True end) xy_s -> Forall (fun x36 => match x36 with (x34,x35) => True end) xy_s -> Forall (fun x36 => match x36 with (x34,x35) => True end) xy_s -> ((forall (iz:nat), 0%nat <= iz < (length _in) -> (((fst (xy_s!iz)) = (_in!iz)) /\ ((snd (xy_s!iz)) = (eqs!iz)))) /\ ((length xy_s) = (length _in))) -> Forall (fun x37 => True) xmy_s -> ((forall (im:nat), 0%nat <= im < (length xy_s) -> ((xmy_s!im) = ((fst (xy_s!im)) * (snd (xy_s!im)))%F)) /\ ((length xmy_s) = (length xy_s))) -> True -> ((v = (sum xmy_s)) -> (((^ index) < (^ choices)) -> (v = (_in!(F.to_nat index))))).
+Proof.
+  intuit; subst.
+  clear H0 H2 H5 H7 H9 H10 H11 H13 H15 H17 H20 H25.
+  assert (
+      forall i,
+        Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length xy_s)) ->
+        eqs ! i = 1%F ->
+        xmy_s ! i = _in ! i
+    ). {
+    intros; rewrite H12; try assumption.
+    rewrite H23 in H0.
+    apply H8 in H0 as [H0 H0'].
+    rewrite H0, H0', H2. apply Fmul_1_r.
+  }
+  assert (
+      forall i,
+        Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length xy_s)) ->
+        eqs ! i = 0%F ->
+        xmy_s ! i = 0%F
+    ). {
+    intros; rewrite H12; try assumption.
+    rewrite H23 in H2.
+    apply H8 in H2 as [H2 H2'].
+    rewrite H2, H2', H4. apply Fmul_0_r.
+  }
+Admitted.
 
 (** IsNegative *)
 

@@ -53,7 +53,7 @@ let gen_rng =
                     (* forall z0 <= j < i, v[j] = ^j *)
                     (t_ks i) ) )
              (v "ks") )
-    ; typ= Some (tfun "k" tf (t_ks k)) }
+    ; typ= Some (tfun "k" t_k (t_ks k)) }
 
 let pairwise_add =
   let k = v "k" in

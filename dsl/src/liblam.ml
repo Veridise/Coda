@@ -90,12 +90,12 @@ let pairwise_mul =
   let j = "mul_j" in
   let t_zs i =
     tarr_t_q_k tf
-      (qforall j z0 i (get nu (v j) ==. get xs (v j) +% get ys (v j)))
+      (qforall j z0 i (get nu (v j) ==. get xs (v j) *% get ys (v j)))
       i
   in
   Lib
     { name= "pairwise_mul"
-    ; typ= Some (tfun "k" tnat (tfun "x" t_xs (tfun "ys" t_xs (t_zs k))))
+    ; typ= Some (tfun "k" tnat (tfun "xs" t_xs (tfun "ys" t_xs (t_zs k))))
     ; def=
         lamas
           [("k", tnat); ("xs", t_xs); ("ys", t_xs)]
@@ -103,7 +103,7 @@ let pairwise_mul =
              ~inv:(fun i -> t_zs i)
              (lama "i" tnat
                 (lama "zs" (t_zs i)
-                   (concat zs (consts [get xs i +% get ys i])) ) ) ) }
+                   (concat zs (consts [get xs i *% get ys i])) ) ) ) }
 
 let scale =
   let k = v "k" in

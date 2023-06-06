@@ -98,8 +98,9 @@ let quin_selector =
           (elets
              [ ("rng", app (v "gen_rng") (toUZ choices))
              ; ("eqs", map (lama "x" tf (call "IsEqual" [x; index])) rng) ]
-             (pairwise_mul vin eqs (fun p ->
-                  call "CalculateTotal" [toUZ choices; v p] ) ) ) }
+             (elet "muls"
+                (apps (v "pairwise_mul") [toUZ choices; vin; eqs])
+                (call "CalculateTotal" [toUZ choices; v "muls"]) ) ) }
 
 (* IsNegative *)
 

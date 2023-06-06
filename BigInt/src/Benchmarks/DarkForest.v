@@ -55,6 +55,19 @@ Local Notation "8" := (1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)%F.
 #[global]Hint Extern 10 (_ >= _)%nat => lia: core.
 #[global]Hint Extern 10 (S _ = S _) => f_equal: core.
 
+(** The sum of a [list F] with at most one nonzero element is just
+that element *)
+
+Lemma sum_one_hot :
+  forall (xs : list F) (i : nat),
+    Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length xs)) ->
+    (forall (j : nat),
+        Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat j) < Z.of_N (N.of_nat (length xs))
+        /\ j <> i -> xs ! j = 0%F) ->
+    sum xs = xs ! i.
+Proof.
+Admitted.
+
 (** ** CalculateTotal *)
 
 Lemma CalculateTotal_obligation0_trivial: forall (n : nat) (_in : (list F)) (v : Z), Forall (fun x0 => True) _in -> ((length _in) = n) -> True -> ((v = 0%nat) -> True).
@@ -132,32 +145,28 @@ Proof. hammer. Qed.
 Lemma QuinSelector_obligation9: forall (choices : F) (_in : (list F)) (index : F) (lt : F) (u0 : unit) (rng : (list F)) (eqs : (list F)) (xy_s : (list (F * F))) (xmy_s : (list F)) (v : (list F)), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x23 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ index) < (^ choices))) /\ ((lt = 0%F) -> ~((^ index) < (^ choices))))) -> (lt = 1%F) -> Forall (fun x24 => True) rng -> ((forall (rng_j:nat), 0%nat <= rng_j < (^ choices) -> ((^ (rng!rng_j)) = rng_j)) /\ (Z.of_nat (length rng) = (^ choices))) -> Forall (fun x25 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length rng) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((rng!im) = index)) /\ (((eqs!im) = 0%F) -> ~((rng!im) = index))))) /\ ((length eqs) = (length rng))) -> Forall (fun x28 => match x28 with (x26,x27) => True end) xy_s -> Forall (fun x28 => match x28 with (x26,x27) => True end) xy_s -> Forall (fun x28 => match x28 with (x26,x27) => True end) xy_s -> ((forall (iz:nat), 0%nat <= iz < (length _in) -> (((fst (xy_s!iz)) = (_in!iz)) /\ ((snd (xy_s!iz)) = (eqs!iz)))) /\ ((length xy_s) = (length _in))) -> Forall (fun x29 => True) xmy_s -> ((forall (im:nat), 0%nat <= im < (length xy_s) -> ((xmy_s!im) = ((fst (xy_s!im)) * (snd (xy_s!im)))%F)) /\ ((length xmy_s) = (length xy_s))) -> Forall (fun x30 => True) v -> True -> ((((forall (im:nat), 0%nat <= im < (length xy_s) -> ((v!im) = ((fst (xy_s!im)) * (snd (xy_s!im)))%F)) /\ ((length v) = (length xy_s))) /\ (v = xmy_s)) -> (Z.of_nat (length v) = (^ choices))).
 Proof. hammer. Qed.
 
-Lemma QuinSelector_obligation10: forall (choices : F) (_in : (list F)) (index : F) (lt : F) (u0 : unit) (rng : (list F)) (eqs : (list F)) (xy_s : (list (F * F))) (xmy_s : (list F)) (v : F), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x31 => True) _in -> (Z.of_nat (length _in) = (^ choices)) -> ((^ index) < (^ choices)) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ index) < (^ choices))) /\ ((lt = 0%F) -> ~((^ index) < (^ choices))))) -> (lt = 1%F) -> Forall (fun x32 => True) rng -> ((forall (rng_j:nat), 0%nat <= rng_j < (^ choices) -> ((^ (rng!rng_j)) = rng_j)) /\ (Z.of_nat (length rng) = (^ choices))) -> Forall (fun x33 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length rng) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((rng!im) = index)) /\ (((eqs!im) = 0%F) -> ~((rng!im) = index))))) /\ ((length eqs) = (length rng))) -> Forall (fun x36 => match x36 with (x34,x35) => True end) xy_s -> Forall (fun x36 => match x36 with (x34,x35) => True end) xy_s -> Forall (fun x36 => match x36 with (x34,x35) => True end) xy_s -> ((forall (iz:nat), 0%nat <= iz < (length _in) -> (((fst (xy_s!iz)) = (_in!iz)) /\ ((snd (xy_s!iz)) = (eqs!iz)))) /\ ((length xy_s) = (length _in))) -> Forall (fun x37 => True) xmy_s -> ((forall (im:nat), 0%nat <= im < (length xy_s) -> ((xmy_s!im) = ((fst (xy_s!im)) * (snd (xy_s!im)))%F)) /\ ((length xmy_s) = (length xy_s))) -> True -> ((v = (sum xmy_s)) -> (((^ index) < (^ choices)) -> (v = (_in!(F.to_nat index))))).
+Lemma QuinSelector_obligation10: forall (choices : F) (_in : (list F)) (index : F) (lt : F) (u0 : unit) (rng : (list F)) (eqs : (list F)) (xy_s : (list (F * F))) (xmy_s : (list F)) (v : F), ((4%nat < (C.k - 1%nat)%Z) /\ ((^ choices) < (2%nat ^ 4%nat)%Z)) -> Forall (fun x31 => True) _in -> (Z.of_N (N.of_nat (length _in)) = (^ choices)) -> ((^ index) < (^ choices)) -> (((lt = 0%F) \/ (lt = 1%F)) /\ (((lt = 1%F) -> ((^ index) < (^ choices))) /\ ((lt = 0%F) -> ~((^ index) < (^ choices))))) -> (lt = 1%F) -> Forall (fun x32 => True) rng -> ((forall (rng_j:nat), 0%nat <= rng_j < (^ choices) -> ((^ (rng!rng_j)) = rng_j)) /\ (Z.of_nat (length rng) = (^ choices))) -> Forall (fun x33 => True) eqs -> ((forall (im:nat), 0%nat <= im < (length rng) -> ((((eqs!im) = 0%F) \/ ((eqs!im) = 1%F)) /\ ((((eqs!im) = 1%F) -> ((rng!im) = index)) /\ (((eqs!im) = 0%F) -> ~((rng!im) = index))))) /\ ((length eqs) = (length rng))) -> Forall (fun x36 => match x36 with (x34,x35) => True end) xy_s -> Forall (fun x36 => match x36 with (x34,x35) => True end) xy_s -> Forall (fun x36 => match x36 with (x34,x35) => True end) xy_s -> ((forall (iz:nat), 0%nat <= iz < (length _in) -> (((fst (xy_s!iz)) = (_in!iz)) /\ ((snd (xy_s!iz)) = (eqs!iz)))) /\ ((length xy_s) = (length _in))) -> Forall (fun x37 => True) xmy_s -> ((forall (im:nat), 0%nat <= im < (length xy_s) -> ((xmy_s!im) = ((fst (xy_s!im)) * (snd (xy_s!im)))%F)) /\ ((length xmy_s) = (length xy_s))) -> True -> ((v = (sum xmy_s)) -> (((^ index) < (^ choices)) -> (v = (_in!Z.to_nat (^ index))))).
 Proof.
   intuit; subst.
   clear H0 H2 H5 H7 H9 H10 H11 H13 H15 H17 H20 H25.
   assert (
-      forall i,
-        Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length xy_s)) ->
-        eqs ! i = 1%F ->
-        xmy_s ! i = _in ! i
+      Z.of_N (N.of_nat 0)
+      <= Z.of_N (N.of_nat (Z.to_nat (^index)))
+      < Z.of_N (N.of_nat (length _in))
     ). {
-    intros; rewrite H12; try assumption.
-    rewrite H23 in H0.
-    apply H8 in H0 as [H0 H0'].
-    rewrite H0, H0', H2. apply Fmul_1_r.
+    split; try lia.
+    rewrite H1.
+    rewrite Z_nat_N.
+    rewrite Z2N.id; auto.
+    apply F_to_Z_nonneg.
   }
-  assert (
-      forall i,
-        Z.of_N (N.of_nat 0) <= Z.of_N (N.of_nat i) < Z.of_N (N.of_nat (length xy_s)) ->
-        eqs ! i = 0%F ->
-        xmy_s ! i = 0%F
-    ). {
-    intros; rewrite H12; try assumption.
-    rewrite H23 in H2.
-    apply H8 in H2 as [H2 H2'].
-    rewrite H2, H2', H4. apply Fmul_0_r.
-  }
+  apply H8 in H0 as H0'; destruct H0'.
+  rewrite <- H23 in H0.
+  rewrite (sum_one_hot xmy_s (Z.to_nat (^ index))).
+  - rewrite H12; auto.
+    rewrite H2, H4. admit.
+  - rewrite H24. assumption.
+  - intros j [H' H'']. admit.
 Admitted.
 
 (** IsNegative *)

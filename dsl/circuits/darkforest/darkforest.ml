@@ -149,7 +149,17 @@ let random =
 
 (* RangeProof *)
 
-let t_mav = tfq (lift (z0 <=. toSZ nu))
+let t_bits =
+  TRef (tint, qand (lift (z0 <. nu)) (lift (zadd1 nu <=. CPLen -! z1)))
+
+let t_mav =
+  tfq
+    (qand
+       (lift (z0 <=. toSZ nu))
+       (lift (toUZ (f2 *% nu) <=. (z2 ^! zadd1 bits) -! z1)) )
+
+let t_in_rp =
+  tfq (lift (toUZ (max_abs_value +% nu) <=. (z2 ^! zadd1 bits) -! z1))
 
 (* t_rp = { () | numbits(in, bits + 1) /\ numbits(max_abs_value, bits) /\ |in| <= max_abs_value } *)
 
@@ -157,7 +167,7 @@ let t_mav = tfq (lift (z0 <=. toSZ nu))
 let range_proof =
   Circuit
     { name= "RangeProof"
-    ; inputs= [("bits", tpos); ("in", tf); ("max_abs_value", t_mav)]
+    ; inputs= [("bits", t_bits); ("max_abs_value", t_mav); ("in", t_in_rp)]
     ; outputs= []
     ; dep= None
     ; body=

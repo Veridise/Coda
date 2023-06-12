@@ -2,24 +2,70 @@ open Ast
 open Core
 open Big_int_Z
 
-(* common basic types *)
+(* Convert program expression to qualifier *)
+let lift e = QExpr e
+
+(* =============================================================================
+  Types [typ]
+============================================================================= *)
+
 let base tb = TBase tb
 
 let tf = base TF
 
+(* Construct a refinement type with qualifier *)
 let tfq q = TRef (tf, q)
 
-let lift e = QExpr e
-
-let lower q = EQual q
-
+(* Construct a refinement type that refines a field element with a program expression *)
 let tfe e = TRef (tf, lift e)
 
 let tint = base TInt
 
 let tbool = base TBool
 
+(* Construct a refinement type that refines a boolean with a program expression *)
 let tboole e = TRef (tbool, lift e)
+
+let refine t q = TRef (t, q)
+
+(* Construct refinement type over [t] with trivial refinement [QTrue] *)
+let triv t = refine t QTrue
+
+(* Construct refinement type over over [t] with refinement [e] *)
+let refine_expr t e = TRef (t, lift e)
+
+(* Construct refinement type over [t] with refinement the conjunction of [t]'s refinement (if it has one, otherwise treat it as trivially refined) and [q] *)
+let attach q = function
+  | TRef (t, QTrue) ->
+      TRef (t, q)
+  | TRef (t, q') ->
+      TRef (t, QAnd (q', q))
+  | t ->
+      TRef (t, q)
+
+(* function type *)
+let tfun x t1 t2 = TFun (x, t1, t2)
+
+(* tuple type *)
+let ttuple ts = TTuple ts
+
+let tpair t1 t2 = ttuple [t1; t2]
+(* refinement type with base tb refined by expression e *)
+
+(* Destruct a [t] into its base type and its refining qualifier (if it has one, otherwise treat it as trivially refined) *)
+let get_tq t = match t with TRef (t, q) -> (t, q) | _ -> (t, QTrue)
+
+(* Convert any type into the form [TRef _] (even if it is trivially refined) *)
+let as_tref t =
+  let t', q = get_tq t in
+  TRef (t', q)
+
+(* =============================================================================
+  Qualifiers [qual] and Expressions [expr]
+=============================================================================*)
+
+(* Covert qualifier to program expression *)
+let lower q = EQual q
 
 (* lambda *)
 let lam x e = Lam (x, e)
@@ -43,36 +89,6 @@ let rec apps f = function [] -> f | x :: xs -> apps (app f x) xs
 
 (* curried application of a dummy function *)
 let dummy_apps s f es = apps (dummy s f) es
-
-(* function type *)
-let tfun x t1 t2 = TFun (x, t1, t2)
-
-(* tuple type *)
-let ttuple ts = TTuple ts
-
-let tpair t1 t2 = ttuple [t1; t2]
-(* refinement type with base tb refined by expression e *)
-
-(* expressions *)
-let refine t q = TRef (t, q)
-
-let triv t = refine t QTrue
-
-let refine_expr t e = TRef (t, lift e)
-
-let attach q = function
-  | TRef (t, QTrue) ->
-      TRef (t, q)
-  | TRef (t, q') ->
-      TRef (t, QAnd (q', q))
-  | t ->
-      TRef (t, q)
-
-let get_tq t = match t with TRef (t, q) -> (t, q) | _ -> (t, QTrue)
-
-let as_tref t =
-  let t', q = get_tq t in
-  TRef (t', q)
 
 let badd b e1 e2 = Binop (b, Add, e1, e2)
 
@@ -179,10 +195,13 @@ let zmax e1 e2 = unint "Z.max" [e1; e2]
 
 let call f es = Call (f, es)
 
+(* Call a function on 1 argument *)
 let call1 f e = call f [e]
 
+(* Call a function on 2 arguments *)
 let call2 f e1 e2 = call f [e1; e2]
 
+(* Call a function on 3 arguments *)
 let call3 f e1 e2 e3 = call f [e1; e2; e3]
 
 let star = NonDet
@@ -215,9 +234,13 @@ let tunit = ttuple []
 
 let tunit_dep q = refine tunit q
 
+(* Variable with name [x] *)
 let v x = Var x
 
-let nu = Var "ν"
+(* Variable bound by refinement type *)
+let nu = v "ν"
+
+(* Constant field elements *)
 
 let fc n = Const (CF n)
 
@@ -271,49 +294,70 @@ let qtrue = QTrue
 
 let qfalse = lift bfalse
 
+(* [e = 0 \/ e = 1] *)
 let is_binary e = bor (eq e f0) (eq e f1)
 
 let tf_binary = tfe (is_binary nu)
 
 let binary_eq e = eq (fmul e (zsub1 e)) f0
 
+(* Construct qualifier: if [q1] then [q2] else [q3] *)
 let ite q1 q2 q3 = qand (qimply q1 q2) (qimply (qnot q1) q3)
 
+(* Construct qualifier if-then-else using expression arguments *)
 let ite_expr e1 e2 e3 = ite (lift e1) (lift e2) (lift e3)
 
+(* Construct qualifier if-then-elses over list of pairs of conditions and bodies  *)
 let ites qqs q =
   List.fold_right qqs ~f:(fun (qif, qthen) q -> ite qif qthen q) ~init:q
 
+(* Construct qualifier if-then-elses over list of pairs of condition expressions and bodies  *)
 let ites_expr eqs q = ites (List.map eqs ~f:(fun (e, q) -> (lift e, q))) q
 
+(* Construct qualifier which asserts that [e] is in [es], encoded as assertion the disjunction of asserting equality between [e] and each element of [es] *)
 let contained_in e es = ors @@ List.map es ~f:(fun e' -> qeq e e')
 
 let ind e1 e2 e3 =
   band (is_binary e1) (band (imply (eq e1 f1) e2) (imply (eq e1 f0) e3))
 
+(* If [e = 1] then [q1] else [q2] *)
+(* [(e = 0 \/ e = 1) /\ (e = 1 ==> q1) /\ (e = 0 ==> q2)] *)
 let q_ind e q1 q2 =
   qand (lift (is_binary e)) (qand (qimply (qeq e f1) q1) (qimply (qeq e f0) q2))
 
+(* If [e1 = 1] then [e2] else [not e2] *)
+(* [(e1 = 0 \/ e1 = 1) /\ (e1 = 1 ==> e2) /\ (e1 = 0 ==> not e2)] *)
 let ind_dec_expr e1 e2 = ind e1 e2 (bnot e2)
 
+(* See [ind_dec_expr] *)
 let ind_dec e1 e2 = lift (ind e1 e2 (bnot e2))
 
+(* See [ind_dec_expr] *)
 let q_ind_dec e q = q_ind e q (qnot q)
 
+(* Type of natural numbers as refinement of integers *)
+(* [tnat = {x: int | 0 <= x}] *)
 let tnat = TRef (tint, lift (leq z0 nu))
 
+(* Construct refinement of [tnat] by [e] *)
 let tnat_e e = TRef (tint, QAnd (lift (leq z0 nu), lift e))
 
+(* Type of positive numers as refinement of integers *)
+(* [tpos = {x: int | 0 < x}] *)
 let tpos = TRef (tint, lift (lt z0 nu))
 
+(* make a tuple *)
 let make es = TMake es
 
 let unit_val = make []
 
+(* get the [n]th component of a tuple *)
 let tget e n = TGet (e, n)
 
+(* get the 1st component of a tuple *)
 let tfst e = tget e 0
 
+(* get the 2nd component of a tuple *)
 let tsnd e = tget e 1
 
 let pair e1 e2 = make [e1; e2]
@@ -332,6 +376,7 @@ let assert_eq e1 e2 = Assert (e1, e2)
 
 let elet x e1 e2 = LetIn (x, e1, e2)
 
+(* introduce multiple local bindings *)
 let elets x_r e = List.fold_right x_r ~f:(Utils.uncurry elet) ~init:e
 
 let elet_p xs e1 e2 =
@@ -377,6 +422,7 @@ let iter s e body ~init ~inv = Iter {s; e; body; init; inv}
 
 let map e1 e2 = Map (e1, e2)
 
+(* Match on a dependent product *)
 let match_with e1 xs e2 = DMatch (e1, xs, e2)
 
 let lama_match x_t e =
@@ -384,6 +430,7 @@ let lama_match x_t e =
   let jumble = String.concat ~sep:"_" xs in
   lama jumble (ttuple ts) (match_with (v jumble) xs e)
 
+(* Match on dependent product, but first also introduce a local definition to original expression *)
 let match_with' xs e1 e2 =
   let x = String.concat ~sep:"_" xs in
   elet x e1 (match_with (v x) xs e2)
@@ -412,6 +459,7 @@ let tarr_t_k t k = refine_expr (tarr t) (eq (len nu) k)
 (* { Array<t> | length v = k /\ q } *)
 let tarr_t_q_k t q k = TRef (tarr t, qand q (qeq (len nu) k))
 
+(* { Array<Field> | length v = k } *)
 let tarr_tf = tarr_t_k tf
 
 let as_le (base : expr) (xs : expr) : expr = unint "as_le" [base; xs]
@@ -446,10 +494,13 @@ let toSZ e = Fn (ToSZ, [e])
 
 let toUZ e = Fn (ToUZ, [e])
 
+(* Convert a natural number to a field element *)
 let nat2f e = Fn (NatToF, [e])
 
+(* See [ind] *)
 let q_ind' e q1 q2 = qand (qimply (qleq z1 (toUZ e)) q1) (qimply (qeq e f0) q2)
 
+(* See [ind_dec] *)
 let q_ind_dec' e q = q_ind' e q (qnot q)
 
 let f_range l r =

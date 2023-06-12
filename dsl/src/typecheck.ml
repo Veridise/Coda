@@ -34,6 +34,7 @@ let add_to_delta (d : delta) (c : circuit) : delta =
 let add_to_deltas (d : delta) (c : circuit list) =
   List.fold_left ~f:add_to_delta ~init:d c
 
+(* Constraint *)
 type cons =
   | CheckCons of gamma * alpha * qual
       [@printer
@@ -70,6 +71,7 @@ let pc (cs : cons list) ?(filter = false) : unit =
 let substs_qual (q : qual) (xe : (string * expr) list) : qual =
   List.fold_left ~f:(fun q (x, e) -> subst_qual x e q) ~init:q xe
 
+(* Convert the output of a circuite to a refinement type *)
 let functionalize_circ_output (Circuit {outputs; dep; _}) : typ =
   if List.length outputs = 1 then (
     assert (Option.is_none dep) ;
@@ -90,6 +92,7 @@ let functionalize_circ_output (Circuit {outputs; dep; _}) : typ =
     in
     out_typ
 
+(* Convert a circuit to a refinement type *)
 let functionalize_circ (Circuit {inputs; _} as c) : typ =
   List.fold_right ~f:(uncurry tfun) inputs ~init:(functionalize_circ_output c)
 
@@ -133,12 +136,14 @@ let add_cons cons =
 
 let add_assertion q = S.(modify (fun st -> {st with alpha= st.alpha @ q}))
 
+(* Check a constraint over the current [alpha], by adding it via [add_cons] with the local context  *)
 let check_cons q : unit S.t =
   S.(
     get_gamma
     >>= fun gamma ->
     get_alpha >>= fun alpha -> add_cons (CheckCons (gamma, alpha, q)) )
 
+(* Check that [t1] is a subtype of [t2]. This can fail or add constraints *)
 let rec subtype (t1 : typ) (t2 : typ) : unit S.t =
   print_endline (spf "[subtype] Checking %s <: %s" (show_typ t1) (show_typ t2)) ;
   let incomp =
@@ -178,6 +183,7 @@ let rec subtype (t1 : typ) (t2 : typ) : unit S.t =
       | _, _ ->
           failwith incomp ) )
 
+(* Synthesize the most general type of [e] *)
 let rec synthesize (e : expr) : typ S.t =
   S.(
     Let_syntax.(
@@ -498,6 +504,7 @@ and synthesize_app (t : typ) (es : expr list) : typ S.t =
       | _ ->
           failwith "Not a function" ) )
 
+(* Check that [e]'s type is a subtype of [t] *)
 and check (e : expr) (t : typ) : unit S.t =
   S.(
     Let_syntax.(
@@ -600,6 +607,7 @@ let init_gamma (c : circuit) : gamma =
   (* let to_base_types = List.map ~f:(fun (x, t) -> (x, skeleton t)) in *)
   match c with Circuit {inputs; _} -> List.rev inputs
 
+(* Check that the type of the body of [c] is a subtype of the refinement type that correspond's to [c]'s specification. *)
 let typecheck_circuit (d : delta) (c : circuit) ?(liblam = []) : cons list =
   match c with
   | Circuit {body; _} ->

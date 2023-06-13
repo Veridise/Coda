@@ -91,7 +91,12 @@ let multisum =
     ; inputs= [("n", tnat); ("nops", tnat); ("in", tarr_tf nops)]
     ; outputs= [("out", t_multisum)]
     ; dep= None
-    ; body= star }
+    ; body=
+        elet "n2bs"
+          (map (lama "x" tf (call "Num2Bits" [n; v "x"])) vin)
+          (elet "bsum"
+             (call "BinSum" [n; nops; v "n2bs"])
+             (call "Bits2Num" [n; v "bsum"]) ) }
 
 let t_is_equal_word = tfq (q_ind_dec nu (qeq word test))
 

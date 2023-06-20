@@ -56,3 +56,6 @@ time-of-build-pretty.log
 
 # config
 Config.v
+BigInt/Makefile.coq
+.gitignore
+.gitignore

@@ -22,6 +22,7 @@
  (name circomlib)
  (libraries lib liblam)
  (modules
+  binsum
   bitify
   comparators
   gates

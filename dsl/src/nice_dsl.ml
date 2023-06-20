@@ -250,9 +250,9 @@ open Typ
 (* ========================================================================== *)
 
 module TypRef = struct
-  let refine t make_q = TRef (t, make_q nu)
+  let such_that t make_q = TRef (t, make_q nu)
 
-  let ( |: ) = refine
+  let ( |: ) = such_that
 
   let as_refined_type = as_tref
 
@@ -261,15 +261,5 @@ end
 
 open TypRef
 
-module Circuit = struct
-  exception WrongNumberOfCircuitInputs of signal list
-
-  let make name inputs outputs make_body =
-    circuit ~name ~dep:None ~inputs ~outputs
-      ~body:
-        ( match make_body (List.map (fun (name, _typ) -> var name) inputs) with
-        | Some body ->
-            body
-        | None ->
-            raise (WrongNumberOfCircuitInputs inputs) )
-end
+let circuit name inputs outputs body =
+  circuit ~name ~dep:None ~inputs ~outputs ~body

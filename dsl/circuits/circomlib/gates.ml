@@ -1,76 +1,95 @@
-open Ast
+(* open Ast *)
 open Dsl
+open Nice_dsl
+open Expr
+open Qual
+open Typ
+open TypRef
 
-let a = v "a"
+let a = var "a"
 
-let b = v "b"
+let b = var "b"
 
-let vin = v "in"
+let in_ = var "in"
 
 let out = v "out"
 
 (* NOT *)
-let tnot = tfq (ind_dec nu (unint "not" [v "in"]))
 
-let cnot =
-  Circuit
-    { name= "Not"
-    ; inputs= [("in", tf_binary)]
-    ; outputs= [("out", tnot)]
-    ; dep= None
-    ; body= fsub (fadd1 vin) (fmul f2 vin) }
+let not_sig = field |: fun x -> iff_binary_field x (qual_of_expr (not_int in_))
+
+let not_imp =
+  circuit ~name:"Not" ~dep:None
+    ~inputs:[("in", binary_field)]
+    ~outputs:[("out", not_sig)]
+    ~body:F.(Z.(in_ + z1) - F.(f2 * in_))
+
+let cnot = not_imp
 
 (* XOR *)
-let txor = tfq (ind_dec nu (unint "xor" [v "a"; v "b"]))
 
-let cxor =
-  Circuit
-    { name= "Xor"
-    ; inputs= [("a", tf_binary); ("b", tf_binary)]
-    ; outputs= [("out", txor)]
-    ; dep= None
-    ; body= fsub (fadd a b) (fmuls [f2; a; b]) }
+let xor_sig =
+  field |: fun x -> iff_binary_field x (qual_of_expr Z.Unint.(a ^ b))
+
+let xor_imp =
+  Circuit.make "Xor"
+    [("a", binary_field); ("b", binary_field)]
+    [("out", xor_sig)]
+    (function [a; b] -> Some F.(Z.(a + b) - F.product [f2; a; b]) | _ -> None)
+
+(* let cxor = xor_imp *)
+let cxor = xor_imp
 
 (* AND *)
-let tand = tfq (ind_dec nu (unint "and" [v "a"; v "b"]))
 
-let cand =
-  Circuit
-    { name= "And"
-    ; inputs= [("a", tf_binary); ("b", tf_binary)]
-    ; outputs= [("out", tand)]
-    ; dep= None
-    ; body= fmul a b }
+let and_sig =
+  (* field |: fun x -> iff_binary_field x (qual_of_expr (unint "and" [a; b])) *)
+  field |: fun x -> iff_binary_field x (qual_of_expr Z.Unint.(a && b))
+
+let and_imp =
+  Circuit.make "And"
+    [("a", binary_field); ("b", binary_field)]
+    [("out", and_sig)]
+    (function [a; b] -> Some F.(a * b) | _ -> None)
+
+let cand = and_imp
 
 (* NAND *)
-let tnand = tfq (ind_dec nu (unint "nand" [v "a"; v "b"]))
 
-let cnand =
-  Circuit
-    { name= "Nand"
-    ; inputs= [("a", tf_binary); ("b", tf_binary)]
-    ; outputs= [("out", tnand)]
-    ; dep= None
-    ; body= fsub f1 (fmul a b) }
+let nand_sig =
+  (* field |: fun x -> iff_binary_field x (qual_of_expr (unint "nand" [a; b])) *)
+  field |: fun x -> iff_binary_field x (qual_of_expr Z.Unint.(a &&! b))
+
+let nand_imp =
+  Circuit.make "Nand"
+    [("a", binary_field); ("b", binary_field)]
+    [("out", nand_sig)]
+    (function [a; b] -> Some F.(f1 - F.(a * b)) | _ -> None)
+
+let cnand = nand_imp
 
 (* OR *)
-let tor = tfq (ind_dec nu (unint "or" [v "a"; v "b"]))
 
-let cor =
-  Circuit
-    { name= "Or"
-    ; inputs= [("a", tf_binary); ("b", tf_binary)]
-    ; outputs= [("out", tor)]
-    ; dep= None
-    ; body= fsub (fadd a b) (fmul a b) }
+let or_sig =
+  field |: fun x -> iff_binary_field x (qual_of_expr Z.Unint.(a || b))
+
+let or_imp =
+  Circuit.make "Or"
+    [("a", binary_field); ("b", binary_field)]
+    [("out", or_sig)]
+    (function [a; b] -> Some F.(F.(a + b) - F.(a * b)) | _ -> None)
+
+let cor = or_imp
 
 (* NOR *)
-let tnor = tfq (ind_dec nu (unint "nor" [v "a"; v "b"]))
 
-let cnor =
-  Circuit
-    { name= "Nor"
-    ; inputs= [("a", tf_binary); ("b", tf_binary)]
-    ; outputs= [("out", tnor)]
-    ; dep= None
-    ; body= fsub (fsub (fadd1 (fmul a b)) a) b }
+let nor_sig =
+  field |: fun x -> iff_binary_field x (qual_of_expr Z.Unint.(a ||! b))
+
+let nor_imp =
+  Circuit.make "Nor"
+    [("a", binary_field); ("b", binary_field)]
+    [("out", or_sig)]
+    (function [a; b] -> Some F.(F.(F.add1 F.(a * b) - a) - b) | _ -> None)
+
+let cnor = nor_imp

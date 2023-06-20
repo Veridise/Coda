@@ -6,8 +6,8 @@ open Big_int_Z
 let lift e = QExpr e
 
 (* =============================================================================
-  Types [typ]
-============================================================================= *)
+     Types [typ]
+   ============================================================================= *)
 
 let base tb = TBase tb
 
@@ -61,8 +61,8 @@ let as_tref t =
   TRef (t', q)
 
 (* =============================================================================
-  Qualifiers [qual] and Expressions [expr]
-=============================================================================*)
+     Qualifiers [qual] and Expressions [expr]
+   =============================================================================*)
 
 (* Covert qualifier to program expression *)
 let lower q = EQual q
@@ -192,6 +192,9 @@ let qlt e1 e2 = lift (lt e1 e2)
 let unint s es = Fn (Unint s, es)
 
 let zmax e1 e2 = unint "Z.max" [e1; e2]
+
+(* TODO: is this right? or should have a different name *)
+let znot e = unint "not" [e]
 
 let call f es = Call (f, es)
 

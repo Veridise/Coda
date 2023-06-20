@@ -16,7 +16,7 @@ let out = v "out"
 
 (* NOT *)
 
-let not_sig = field |: fun x -> iff_binary_field x (qual_of_expr (not_int in_))
+let not_sig = field |: fun x -> iff_binary_field x (Qual.to_expr (not_int in_))
 
 let not_imp =
   circuit "Not"
@@ -29,7 +29,7 @@ let cnot = not_imp
 (* XOR *)
 
 let xor_sig =
-  field |: fun x -> iff_binary_field x (qual_of_expr Z.Unint.(a ^ b))
+  field |: fun x -> iff_binary_field x (Qual.to_expr Z.Unint.(a ^ b))
 
 let xor_imp =
   circuit "Xor"
@@ -43,7 +43,7 @@ let cxor = xor_imp
 (* AND *)
 
 let and_sig =
-  field |: fun x -> iff_binary_field x (qual_of_expr Z.Unint.(a && b))
+  field |: fun x -> iff_binary_field x (Qual.to_expr Z.Unint.(a && b))
 
 let and_imp =
   circuit "And"
@@ -56,7 +56,7 @@ let cand = and_imp
 (* NAND *)
 
 let nand_sig =
-  field |: fun x -> iff_binary_field x (qual_of_expr Z.Unint.(a &&! b))
+  field |: fun x -> iff_binary_field x (Qual.to_expr Z.Unint.(a &&! b))
 
 let nand_imp =
   circuit "Nand"
@@ -69,7 +69,7 @@ let cnand = nand_imp
 (* OR *)
 
 let or_sig =
-  field |: fun x -> iff_binary_field x (qual_of_expr Z.Unint.(a || b))
+  field |: fun x -> iff_binary_field x (Qual.to_expr Z.Unint.(a || b))
 
 let or_imp =
   circuit "Or"
@@ -82,7 +82,7 @@ let cor = or_imp
 (* NOR *)
 
 let nor_sig =
-  field |: fun x -> iff_binary_field x (qual_of_expr Z.Unint.(a ||! b))
+  field |: fun x -> iff_binary_field x (Qual.to_expr Z.Unint.(a ||! b))
 
 let nor_imp =
   circuit "Nor"

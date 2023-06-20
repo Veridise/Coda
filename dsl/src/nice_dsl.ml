@@ -5,7 +5,7 @@ open Dsl
 (* ========================================================================== *)
 
 module Qual = struct
-  let qual_of_expr = lift
+  let to_expr = lift
 
   let ( #! ) = qnot
 
@@ -256,7 +256,7 @@ module TypRef = struct
 
   let as_refined_type = as_tref
 
-  let nat = int |: fun x -> qual_of_expr (z0 <=. x)
+  let nat = int |: fun x -> to_expr (z0 <=. x)
 end
 
 open TypRef

@@ -71,10 +71,6 @@ module Expr = struct
   (* ========================================================================== *)
   (* built-in function [Fn] *)
 
-  let max_int = zmax
-
-  let not_int = znot
-
   let toSZ e = Fn (ToSZ, [e])
 
   let toUZ e = Fn (ToUZ, [e])
@@ -110,6 +106,10 @@ module Expr = struct
   (* [int] operation *)
 
   module Z = struct
+    let max = zmax
+
+    let not = znot
+
     let sum = badds BZ
 
     let product = zmuls

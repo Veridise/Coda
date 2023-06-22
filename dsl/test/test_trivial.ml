@@ -15,9 +15,9 @@ open Trivial
 let check_stars = Typecheck.typecheck_circuit [] stars
 (* |> Typecheck.filter_nontrivial *)
 
-let _ =
-  print_endline
-    (Format.sprintf "Number of constraints: %d\n" (List.length check_stars))
+(* let _ =
+   print_endline
+     (Format.sprintf "Number of constraints: %d\n" (List.length check_stars)) *)
 
-let _ =
-  List.iter check_stars ~f:(fun c -> print_endline @@ Typecheck.show_cons @@ c)
+(* let _ =
+   List.iter check_stars ~f:(fun c -> print_endline @@ Typecheck.show_cons @@ c) *)

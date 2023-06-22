@@ -548,3 +548,20 @@ let rec normalize (t : typ) =
         TRef (t, QAnd (q', q))
     | t' ->
         TRef (t', q) )
+
+let ppf_signal : signal Fmt.t =
+ fun ppf (name, typ) -> Fmt.(pf ppf "%s: %a" name ppf_typ typ)
+
+(* let ppf_signals : signal list Fmt.t = Fmt.(list ?sep:(any ", ") ppf_signal _) *)
+let ppf_signals : signal list Fmt.t =
+ fun ppf signals ->
+  Fmt.(pf ppf "%a" (list ~sep:(any "\n    ") ppf_signal) signals)
+
+let ppf_circuit : circuit Fmt.t =
+ fun ppf (Circuit {name; inputs; outputs; body; _}) ->
+  Fmt.(
+    pf ppf
+      "circuit %s {\n  inputs:\n    %a\n  outputs:\n    %a\n  body:\n    %a\n}"
+      name ppf_signals inputs ppf_signals outputs ppf_expr body )
+
+let show_circuit = Fmt.str "%a" ppf_circuit

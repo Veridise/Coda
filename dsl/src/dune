@@ -7,7 +7,7 @@
  (name lib)
  (wrapped false)
  (libraries core fmt zarith)
- (modules ast ast_utils dsl nice_dsl notation utils monads)
+ (modules ast ast_utils dsl nice_dsl hoare_circuit notation utils monads)
  (preprocess
   (pps ppx_jane ppx_deriving.show ppx_deriving.eq)))
 

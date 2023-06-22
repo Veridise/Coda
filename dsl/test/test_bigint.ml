@@ -5,10 +5,10 @@ open Circomlib
 open Bigint
 module U = Test_utils.Utils
 
-let _ = U.test Big_is_zero.c_big_is_zero Circomlib.Comparators.[is_zero]
+let _ = U.test Big_is_zero.big_is_zero Circomlib.Comparators.[is_zero]
 
 let _ =
-  U.test Big_is_equal.c_big_is_equal Circomlib.(Comparators.[is_zero; is_equal])
+  U.test Big_is_equal.big_is_equal Circomlib.(Comparators.[is_zero; is_equal])
 
 let _ = U.test Big_add.mod_sum_three Circomlib.Bitify.[num2bits]
 

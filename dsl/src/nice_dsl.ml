@@ -225,6 +225,23 @@ open Expr
 
 (* ========================================================================== *)
 
+module BaseTyp = struct
+  let field = TF
+
+  let int = TInt
+
+  let bool = TBool
+
+  let to_typ t = TBase t
+
+  let from_typ typ =
+    match typ with
+    | TBase t ->
+        t
+    | _ ->
+        failwith @@ "Expected " ^ Ast_utils.show_typ typ ^ " to be a base type"
+end
+
 module Typ = struct
   let field = tf
 

@@ -20,6 +20,18 @@ let out = v "out"
 
 (* NOT *)
 
+let not_circuit =
+  let open Hoare_circuit in
+  to_circuit
+  @@ Hoare_circuit
+       { name= "Not"
+       ; inputs= BaseTyp.[("in", field)]
+       ; outputs= BaseTyp.[("out", field)]
+       ; preconditions= []
+       ; postconditions=
+           [iff_binary_field (var "out") (Qual.to_expr (Z.not in_))]
+       ; body= F.(Z.(in_ + z1) - F.(f2 * in_)) }
+
 let not_sig = field |: fun x -> iff_binary_field x (Qual.to_expr (Z.not in_))
 
 let not_imp =

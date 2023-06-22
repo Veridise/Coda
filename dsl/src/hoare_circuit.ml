@@ -36,45 +36,76 @@ let extract_signals ?(prev_presignals' = []) (presignals : presignal list)
   if List.is_empty quals then signals
   else failwith (err_msg ^ List.to_string quals ~f:Ast_utils.show_qual)
 
+type hoare_circuit =
+  | Hoare_circuit of
+      { name: string
+      ; inputs: presignal list
+      ; outputs: presignal list
+      ; preconditions: qual list
+      ; postconditions: qual list
+      ; body: expr }
+
 (* Preconditions can only refer to inputs. *)
 (* Postconditions can refer to inputs or outputs *)
-let circuit name (preinputs : presignal list) (preoutputs : presignal list)
-    ?(preconditions : qual list = []) ?(postconditions : qual list = [])
-    (body : expr) : circuit =
-  let inputs =
-    extract_signals preinputs preconditions
+(* let circuit name ~(inputs : presignal list) ~(outputs : presignal list)
+     ~(preconditions : qual list) ~(postconditions : qual list) (body : expr) :
+     circuit =
+   let inputs' =
+     extract_signals inputs preconditions
+       "In circuit specification, some preconditions used no inputs: "
+   in
+   let outputs' =
+     extract_signals ?prev_presignals':(Some inputs) outputs postconditions
+       "In circuit specification, some postconditions used no outputs: "
+   in
+   circuit name inputs' outputs' body *)
+
+let to_circuit
+    (Hoare_circuit {name; inputs; outputs; preconditions; postconditions; body} :
+      hoare_circuit ) : circuit =
+  let inputs' =
+    extract_signals inputs preconditions
       "In circuit specification, some preconditions used no inputs: "
   in
-  let outputs =
-    extract_signals ?prev_presignals':(Some preinputs) preoutputs postconditions
+  let outputs' =
+    extract_signals ?prev_presignals':(Some inputs) outputs postconditions
       "In circuit specification, some postconditions used no outputs: "
   in
-  circuit name inputs outputs body
+  circuit name inputs' outputs' body
 
 let test () =
   let open Expr in
   let open BaseTyp in
   let _ =
-    print_endline @@ Ast_utils.show_circuit
-    @@ circuit "C1" [("in1", field)] [("out1", field)] btrue
+    print_endline @@ Ast_utils.show_circuit @@ to_circuit
+    @@ Hoare_circuit
+         { name= "C1"
+         ; inputs= [("in1", field)]
+         ; outputs= [("out1", field)]
+         ; preconditions= []
+         ; postconditions= []
+         ; body= btrue }
   in
   let _ =
-    print_endline @@ Ast_utils.show_circuit
-    @@ circuit "C2"
-         [("in1", field); ("in2", field)]
-         [("out1", field)]
-         ?preconditions:(Some [qeq (var "in1") (var "in2")])
-         ?postconditions:(Some []) btrue
+    print_endline @@ Ast_utils.show_circuit @@ to_circuit
+    @@ Hoare_circuit
+         { name= "C2"
+         ; inputs= [("in1", field); ("in2", field)]
+         ; outputs= [("out1", field)]
+         ; preconditions= [qeq (var "in1") (var "in2")]
+         ; postconditions= []
+         ; body= btrue }
   in
   let _ =
-    print_endline @@ Ast_utils.show_circuit
-    @@ circuit "C2"
-         [("in1", field); ("in2", field)]
-         [("out1", field); ("out2", field)]
-         ?preconditions:
-           (Some [qeq (var "in1") (var "in2"); qeq (var "in1") (var "in1")])
-         ?postconditions:
-           (Some [qeq (var "in1") (var "out1"); qeq (var "in2") (var "out2")])
-         btrue
+    print_endline @@ Ast_utils.show_circuit @@ to_circuit
+    @@ Hoare_circuit
+         { name= "C2"
+         ; inputs= [("in1", field); ("in2", field)]
+         ; outputs= [("out1", field)]
+         ; preconditions=
+             [qeq (var "in1") (var "in2"); qeq (var "in1") (var "in1")]
+         ; postconditions=
+             [qeq (var "in1") (var "out1"); qeq (var "in2") (var "out2")]
+         ; body= btrue }
   in
   ()

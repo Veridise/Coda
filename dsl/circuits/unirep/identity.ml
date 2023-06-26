@@ -1,7 +1,6 @@
 open Ast
 open Dsl
 open Circomlib__Poseidon
-open Notation
 
 let nullifier = v "nullifier"
 

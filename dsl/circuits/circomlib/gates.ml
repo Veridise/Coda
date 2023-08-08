@@ -1,4 +1,4 @@
-(* open Ast *)
+open Ast
 open Dsl
 open Nice_dsl
 open Expr
@@ -18,29 +18,46 @@ let in_ = var "in"
 
 let out = v "out"
 
+(*
+
+   (* NOT *)
+
+   let not_circuit =
+     let open Hoare_circuit in
+     to_circuit
+     @@ Hoare_circuit
+          { name= "Not"
+          ; inputs= BaseTyp.[("in", field)]
+          ; outputs= BaseTyp.[("out", field)]
+          ; preconditions= []
+          ; postconditions=
+              [iff_binary_field (var "out") (Qual.to_expr (Z.not in_))]
+          ; body= F.(F.(in_ + z1) - F.(f2 * in_)) }
+
+   let not_sig = field |: fun x -> iff_binary_field x (Qual.to_expr (Z.not in_))
+
+   let not_imp =
+     circuit "Not"
+       [("in", binary_field)]
+       [("out", not_sig)]
+       F.(Z.(in_ + z1) - F.(f2 * in_))
+
+   let cnot = not_imp
+*)
+
 (* NOT *)
 
-let not_circuit =
-  let open Hoare_circuit in
-  to_circuit
-  @@ Hoare_circuit
-       { name= "Not"
-       ; inputs= BaseTyp.[("in", field)]
-       ; outputs= BaseTyp.[("out", field)]
-       ; preconditions= []
-       ; postconditions=
-           [iff_binary_field (var "out") (Qual.to_expr (Z.not in_))]
-       ; body= F.(Z.(in_ + z1) - F.(f2 * in_)) }
+let vin = v "in"
 
-let not_sig = field |: fun x -> iff_binary_field x (Qual.to_expr (Z.not in_))
+let tnot = tfq (ind_dec nu (unint "not" [v "in"]))
 
-let not_imp =
-  circuit "Not"
-    [("in", binary_field)]
-    [("out", not_sig)]
-    F.(Z.(in_ + z1) - F.(f2 * in_))
-
-let cnot = not_imp
+let cnot =
+  Circuit
+    { name= "Not"
+    ; inputs= [("in", tf_binary)]
+    ; outputs= [("out", tnot)]
+    ; dep= None
+    ; body= fsub (fadd1 vin) (fmul f2 vin) }
 
 (* XOR *)
 
@@ -50,7 +67,7 @@ let xor_sig =
 let xor_imp =
   circuit "Xor" [a_sig; b_sig]
     [("out", xor_sig)]
-    F.(Z.(a + b) - F.product [f2; a; b])
+    F.(F.(a + b) - F.product [f2; a; b])
 
 (* let cxor = xor_imp *)
 let cxor = xor_imp

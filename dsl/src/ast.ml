@@ -64,6 +64,7 @@ and expr =
   (* array ops *)
   | ArrayOp of (aop * expr list)
   (* indexed sum: var, start, end, body *)
+  (* DEPRECATED: expanded into iter *)
   | Sum of {s: expr; e: expr; body: expr}
   (* this should belong to refinement terms *)
   | RSum of expr * expr * typ
@@ -90,7 +91,16 @@ and boolop = And | Or | Imply
 
 and aop = Length | Cons | Get | Concat | Scale | Take | Drop | Zip | Rev
 
-and func = Id | Unint of string | ToUZ | ToSZ | ToBigUZ | ToBigSZ | NatToF
+and func =
+  | Id
+  | (* uninterpreted function with an implementation provided in Coq *)
+    Unint of
+      string
+  | ToUZ
+  | ToSZ
+  | ToBigUZ
+  | ToBigSZ
+  | NatToF
 
 and comp = Eq | Leq | Lt
 

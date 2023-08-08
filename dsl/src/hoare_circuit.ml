@@ -3,23 +3,25 @@ open Ast
 open Dsl
 open Nice_dsl
 
-type presignal = string * base
+(* type presignal = string * base *)
+
+type presignal = Presignal of string
 
 (* If [qual] refers to ONLY vars from [presignals]. *)
 let restricted_domain (presignals : presignal list) (qual : qual) : bool =
-  let presignal_names = List.map presignals ~f:(fun (name, _) -> name) in
+  let presignal_names = List.map presignals ~f:(fun (Presignal name) -> name) in
   let mem_presignals x = List.mem presignal_names x ~equal:String.equal in
   Set.for_all (Ast_utils.vars_qual qual) ~f:mem_presignals
 
 let extract_signal (prev_presignals : presignal list) (presignal : presignal)
     (quals : qual list) : signal * qual list =
-  let name, typ = presignal in
+  let (Presignal name) = presignal in
   let presignals = prev_presignals @ [presignal] in
   let quals', quals'' =
     List.partition_tf quals ~f:(restricted_domain presignals)
   in
   ( ( name
-    , TypRef.such_that (TBase typ) (fun x ->
+    , TypRef.such_that (TBase BaseTyp.field) (fun x ->
           Ast_utils.subst_qual name x (Qual.conjunction quals') ) )
   , quals'' )
 
@@ -45,21 +47,6 @@ type hoare_circuit =
       ; postconditions: qual list
       ; body: expr }
 
-(* Preconditions can only refer to inputs. *)
-(* Postconditions can refer to inputs or outputs *)
-(* let circuit name ~(inputs : presignal list) ~(outputs : presignal list)
-     ~(preconditions : qual list) ~(postconditions : qual list) (body : expr) :
-     circuit =
-   let inputs' =
-     extract_signals inputs preconditions
-       "In circuit specification, some preconditions used no inputs: "
-   in
-   let outputs' =
-     extract_signals ?prev_presignals':(Some inputs) outputs postconditions
-       "In circuit specification, some postconditions used no outputs: "
-   in
-   circuit name inputs' outputs' body *)
-
 let to_circuit
     (Hoare_circuit {name; inputs; outputs; preconditions; postconditions; body} :
       hoare_circuit ) : circuit =
@@ -80,8 +67,8 @@ let test () =
     print_endline @@ Ast_utils.show_circuit @@ to_circuit
     @@ Hoare_circuit
          { name= "C1"
-         ; inputs= [("in1", field)]
-         ; outputs= [("out1", field)]
+         ; inputs= [Presignal "in1"]
+         ; outputs= [Presignal "out1"]
          ; preconditions= []
          ; postconditions= []
          ; body= btrue }
@@ -90,8 +77,8 @@ let test () =
     print_endline @@ Ast_utils.show_circuit @@ to_circuit
     @@ Hoare_circuit
          { name= "C2"
-         ; inputs= [("in1", field); ("in2", field)]
-         ; outputs= [("out1", field)]
+         ; inputs= [Presignal "in1"; Presignal "in2"]
+         ; outputs= [Presignal "out1"]
          ; preconditions= [qeq (var "in1") (var "in2")]
          ; postconditions= []
          ; body= btrue }
@@ -100,8 +87,8 @@ let test () =
     print_endline @@ Ast_utils.show_circuit @@ to_circuit
     @@ Hoare_circuit
          { name= "C2"
-         ; inputs= [("in1", field); ("in2", field)]
-         ; outputs= [("out1", field)]
+         ; inputs= [Presignal "in1"; Presignal "in2"]
+         ; outputs= [Presignal "out1"]
          ; preconditions=
              [qeq (var "in1") (var "in2"); qeq (var "in1") (var "in1")]
          ; postconditions=

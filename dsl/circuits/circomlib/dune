@@ -26,6 +26,7 @@
   bitify
   comparators
   gates
+  multiand
   mimcsponge
   multiplexer
   poseidon

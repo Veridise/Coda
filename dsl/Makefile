@@ -12,3 +12,6 @@ Makefile:
 	dune $@
 
 .PHONY: all force
+
+test_%:
+	dune exec -- "./test/$@.exe"

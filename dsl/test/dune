@@ -58,6 +58,11 @@
  (modules test_circomlib))
 
 (executable
+ (name test_multiand)
+ (libraries zarith lib coqgen test_utils circomlib)
+ (modules test_multiand))
+
+(executable
  (name test_bigint)
  (libraries zarith lib coqgen circomlib test_utils bigint)
  (modules test_bigint))

@@ -61,7 +61,7 @@ module Expr = struct
 
   let const_nil = cnil
 
-  let binary_field = tf_binary
+  let assert_eq_in x e1 e2 e3 = elet x (assert_eq e1 e2) e3
 
   (* ========================================================================== *)
   (* function [call] *)
@@ -106,6 +106,8 @@ module Expr = struct
   (* [int] operation *)
 
   module Z = struct
+    let const = const_int
+
     let max = zmax
 
     let not = znot
@@ -149,6 +151,8 @@ module Expr = struct
   (* [field] operation *)
 
   module F = struct
+    let const = const_field
+
     let product = fmuls
 
     let sum = badds BF
@@ -244,6 +248,8 @@ end
 
 module Typ = struct
   let field = tf
+
+  let binary_field = tf_binary
 
   let int = tint
 

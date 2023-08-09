@@ -15,13 +15,19 @@ src/LibOverflow.v
 src/PigeonHole.v
 src/Simplify.v
 src/Signed.v
-src/CircomLib/Comparators.v
-src/CircomLib/Bitify.v
-src/CircomLib/Gates.v
+
+# CircomLib
+
+# src/CircomLib/Comparators.v
+# src/CircomLib/Bitify.v
+# src/CircomLib/Gates.v
 src/CircomLib/Multiand.v
-src/CircomLib/Multiplexer.v
-src/Benchmarks/Liblam.v
-src/Benchmarks/Coda.v
+# src/CircomLib/Multiplexer.v
+# src/Benchmarks/Liblam.v
+# src/Benchmarks/Coda.v
+
+# # Benchmarks
+# 
 # # src/Benchmarks/Circomlib/Bitify.v
 # # src/Benchmarks/Circomlib/Comparators.v
 # # src/Benchmarks/Circomlib/Gates.v
@@ -39,6 +45,9 @@ src/Benchmarks/Coda.v
 # src/Benchmarks/ZKML.v
 # src/Benchmarks/ZKSBT.v
 # src/Benchmarks/ZKSQL.v
+
+# BigInt
+
 # src/BigInt/Definition/BigIsZero.v
 # src/BigInt/Definition/BigIsEqual.v
 # src/BigInt/Definition/ModProd.v
@@ -66,6 +75,9 @@ src/Benchmarks/Coda.v
 # src/BigInt/Proof/BigMult.v
 # src/BigInt/Proof/BigMod.v
 # src/BigInt/Specification.v
+
+# # Misc
+#
 # src/CircomLib/EdDSA.v
 # src/Sismo/hydra.v
 # # src/BigInt/Proof/PrimeReduce.v

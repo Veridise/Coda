@@ -16,3 +16,4 @@ let _ =
 let _ =
   U.test semaphore
     [calc_secret; calc_id_commit; calc_null_hash; mrkl_tree_incl_pf]
+

@@ -1,4 +1,4 @@
-Require Import Coq.Lists.List.
+(* Require Import Coq.Lists.List.
 Require Import Coq.micromega.Lia.
 Require Import Coq.Arith.PeanoNat.
 Require Import Coq.Arith.Compare_dec.
@@ -24,13 +24,93 @@ Require Import Circom.Circom Circom.Default.
 *)
 
 Local Open Scope list_scope.
+Local Open Scope F_scope. *)
+
+Require Import Coq.Lists.List.
+Require Import Coq.micromega.Lia.
+Require Import Coq.Init.Peano.
+Require Import Coq.Arith.PeanoNat.
+Require Import Coq.Arith.Compare_dec.
+Require Import Coq.PArith.BinPosDef.
+Require Import Coq.ZArith.BinInt Coq.ZArith.ZArith Coq.ZArith.Zdiv Coq.ZArith.Znumtheory Coq.NArith.NArith. (* import Zdiv before Znumtheory *)
+Require Import Coq.NArith.Nnat.
+
+Require Import Crypto.Spec.ModularArithmetic.
+Require Import Crypto.Arithmetic.PrimeFieldTheorems Crypto.Algebra.Field.
+Require Import Crypto.Util.Decidable. (* Crypto.Util.Notations. *)
+Require Import Coq.setoid_ring.Ring_theory Coq.setoid_ring.Field_theory Coq.setoid_ring.Field_tac.
+
+From Circom Require Import Circom Util Default Tuple LibTactics Simplify ListUtil Repr Coda.
+From Circom.CircomLib Require Import Bitify.
+
+Local Coercion N.of_nat : nat >-> N.
+Local Coercion Z.of_nat : nat >-> Z.
+
+Local Open Scope list_scope.
 Local Open Scope F_scope.
+Local Open Scope Z_scope.
+Local Open Scope circom_scope.
+Local Open Scope tuple_scope.
+
+#[local]Hint Extern 1 (Forall _ (firstn _ _)) => apply Forall_firstn: core.
+#[local]Hint Extern 1  => match goal with
+   | [ |- context[List_nth_Default _ _] ] => unfold_default end: core.
+   #[local]Hint Extern 1  => match goal with
+   | [ |- context[List.nth  _ _ _] ] => apply Forall_nth end: core.
+#[local]Hint Extern 1 => match goal with
+  [ |- context[length _] ] => rewrite_length end: core.
+#[local]Hint Extern 1 (Forall _ (skipn _ _)) => apply Forall_skipn: core.
+
+#[local]Hint Extern 1 (Forall _ (_ :: _)) => constructor: core.
+#[local]Hint Extern 1 (Z.of_N (N.of_nat _)) => rewrite nat_N_Z: core.
+#[local]Hint Extern 1  => repeat match goal with
+  [ H: context[Z.of_N (N.of_nat _)] |- _] => rewrite nat_N_Z in H end: core.
+
+#[local]Hint Extern 1 (_ < _) => lia: core.
+#[local]Hint Extern 1 (_ < _)%nat => lia: core.
+#[local]Hint Extern 1 (_ <= _) => lia: core.
+#[local]Hint Extern 1 (_ <= _)%nat => lia: core.
+#[local]Hint Extern 1 (_ > _) => lia: core.
+#[local]Hint Extern 1 (_ > _)%nat => lia: core.
+#[local]Hint Extern 1 (_ >= _) => lia: core.
+#[local]Hint Extern 1 (_ >= _)%nat => lia: core.
+#[local]Hint Extern 1 (S _ = S _) => f_equal: core. 
+#[local]Hint Extern 1 (@eq (F.F q) _ _) => fqsatz: core. 
+#[local]Hint Extern 1 False => fqsatz: core. 
 
 Module Gates.
 
 #[local] Hint Extern 10 (_ = _) => fqsatz : core.
 #[local] Hint Extern 10 (binary _) => (left; fqsatz) || (right; fqsatz): core.
 
+Module XOR_New.
+  Lemma XOR_obligation0_trivial: forall (a : F) (b : F) (v : F), True -> True -> True -> ((v = a) -> True).
+  Proof. hammer. Qed.
+
+  Lemma XOR_obligation1_trivial: forall (a : F) (b : F) (v : F), True -> True -> True -> ((v = b) -> True).
+  Proof. hammer. Qed.
+
+  Lemma XOR_obligation2_trivial: forall (a : F) (b : F) (v : F), True -> True -> True -> ((v = (a + b)%F) -> True).
+  Proof. hammer. Qed.
+
+  Lemma XOR_obligation3_trivial: forall (a : F) (b : F) (v : F), True -> True -> True -> ((v = 2%F) -> True).
+  Proof. hammer. Qed.
+
+  Lemma XOR_obligation4_trivial: forall (a : F) (b : F) (v : F), True -> True -> True -> ((v = a) -> True).
+  Proof. hammer. Qed.
+
+  Lemma XOR_obligation5_trivial: forall (a : F) (b : F) (v : F), True -> True -> True -> ((v = (2%F * a)%F) -> True).
+  Proof. hammer. Qed.
+
+  Lemma XOR_obligation6_trivial: forall (a : F) (b : F) (v : F), True -> True -> True -> ((v = b) -> True).
+  Proof. hammer. Qed.
+
+  Lemma XOR_obligation7_trivial: forall (a : F) (b : F) (v : F), True -> True -> True -> ((v = ((2%F * a)%F * b)%F) -> True).
+  Proof. hammer. Qed.
+
+  Lemma XOR_obligation8: forall (a : F) (b : F) (out : F) (v : F), True -> True -> (out = ((a + b)%F - ((2%F * a)%F * b)%F)%F) -> True -> (((v = ((a + b)%F - ((2%F * a)%F * b)%F)%F) /\ (v = out)) -> ((((v = 0%F) \/ (v = 1%F)) /\ (((v = 1%F) -> (f_xor a b)) /\ ((v = 0%F) -> ~((f_xor a b))))) /\ True)).
+  Proof. Admitted.
+End XOR_New.
 
 Module XOR.
 (* template XOR() {

@@ -7,6 +7,10 @@ open Dsl
 module Qual = struct
   let to_expr = lift
 
+  let from_expr e = QExpr e
+
+  let to_expr q = EQual q
+
   let ( #! ) = qnot
 
   let ( #&& ) = qand
@@ -55,9 +59,13 @@ module Expr = struct
 
   let var = v
 
-  let const_field = fc
+  let from_qual q = EQual q
 
-  let const_int = zc
+  let to_qual e = QExpr e
+
+  let const_field i = fc (Big_int_Z.big_int_of_int i)
+
+  let const_int i = zc (Big_int_Z.big_int_of_int i)
 
   let const_nil = cnil
 
@@ -279,7 +287,7 @@ module TypRef = struct
 
   let as_refined_type = as_tref
 
-  let nat = int |: fun x -> to_expr (z0 <=. x)
+  let nat = int |: fun x -> Qual.from_expr (z0 <=. x)
 end
 
 open TypRef

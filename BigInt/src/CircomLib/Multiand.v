@@ -95,3 +95,5 @@ Proof. hammer. Qed.
 
 Lemma MultiAND_obligation2_trivial: forall (in_0 : F) (in_1 : F) (var_0 : F) (and1_a : F) (and1_b : F) (and1_out : F) (out : F) (v : F), True -> True -> (var_0 = 2%F) -> (and1_a = in_0) -> (and1_b = in_1) -> (and1_out = (and1_a * and1_b)%F) -> ((out = (and1_a * and1_b)%F) /\ (out = and1_out)) -> True -> ((((v = (and1_a * and1_b)%F) /\ (v = and1_out)) /\ (v = out)) -> True).
 Proof. hammer. Qed.
+
+End MultiAND.

@@ -27,6 +27,7 @@
   comparators
   gates
   multiand
+  xor
   mimcsponge
   multiplexer
   poseidon

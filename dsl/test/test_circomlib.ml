@@ -4,7 +4,7 @@ open Coqgen
 open Circomlib
 module U = Test_utils.Utils
 
-let _ = U.test Gates.cnot []
+(* let _ = U.test Gates.cnot []
 
 let _ = U.test Gates.cxor []
 
@@ -41,4 +41,9 @@ let _ = U.test Mux1.multi_mux_1 []
 
 (* let _ = U.test Multiplexer.escalar_product [] *)
 
-let _ = U.test Switcher.switcher []
+let _ = U.test Switcher.switcher [] *)
+
+(* NEW *)
+
+let _ = U.test Circomlib.Xor.circuit_XOR []
+(* let _ = U.test Circomlib.Gates.xor_imp [] *)

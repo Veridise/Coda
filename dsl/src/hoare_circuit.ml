@@ -58,7 +58,9 @@ let to_circuit
     extract_signals ?prev_presignals':(Some inputs) outputs postconditions
       "In circuit specification, some postconditions used no outputs: "
   in
-  circuit name inputs' outputs' body
+  let c = circuit name inputs' outputs' body in
+  print_string ("to_circuit ==> " ^ Ast_utils.show_circuit c) ;
+  c
 
 let test () =
   let open Expr in

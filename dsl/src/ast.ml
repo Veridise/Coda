@@ -117,3 +117,4 @@ type circuit =
       ; outputs: signal list
       ; dep: qual option
       ; body: expr }
+

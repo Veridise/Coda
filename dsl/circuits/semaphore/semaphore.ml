@@ -157,16 +157,19 @@ let u_mrkl_tree_incl_pf xs i s = unint "MerkleTreeInclusionProof" [xs; i; s]
 (* { F | nu = #MerkleTreeInclusionProof
          (#CalculateIdentityCommitment (#CalculateSecret identityNullifier identityTrapdoor))
          treePathIndices treeSiblings } *)
-let t_semaphore_root =
-  tfq
-    (qeq nu
-       (u_mrkl_tree_incl_pf
-          (u_calc_id_commit (u_calc_secret identityNullifier identityTrapdoor))
-          treePathIndices treeSiblings ) )
+let t_semaphore_root_qual =
+  qeq nu
+    (u_mrkl_tree_incl_pf
+       (u_calc_id_commit (u_calc_secret identityNullifier identityTrapdoor))
+       treePathIndices treeSiblings )
+
+let t_semaphore_root = tfq t_semaphore_root_qual
 
 (* { F | nu =  #CalculateNullifierHash externalNullifier identityNullifier } *)
-let t_semaphore_null_hash =
-  tfq (qeq nu (u_calc_null_hash externalNullifier identityNullifier))
+let t_semaphore_null_hash_qual =
+  qeq nu (u_calc_null_hash externalNullifier identityNullifier)
+
+let t_semaphore_null_hash = tfq t_semaphore_null_hash_qual
 
 (* semaphore
      (nLevels : { Z | 0 <= nu }) (identityNullifier : F) (identityTrapdoor : F)

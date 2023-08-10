@@ -5,7 +5,8 @@ open Big_int_Z
 
 let show_base = function TF -> "F" | TInt -> "Z" | TBool -> "Bool"
 
-let show_quant = function Forall -> "∀" | Exists -> "∃"
+(* let show_quant = function Forall -> "∀" | Exists -> "∃" *)
+let show_quant = function Forall -> "forall" | Exists -> "exists"
 
 let show_binop = function
   | Add ->
@@ -91,7 +92,7 @@ let ppf_const ppf =
 
 let rec ppf_typ ppf =
   Fmt.(
-    let times = Fmt.any " × " in
+    (* let times = Fmt.any " × " in *)
     function
     | TBase tb ->
         ppf_base ppf tb (* pf ppf "Base<%a>" ppf_base tb *)
@@ -117,7 +118,8 @@ and ppf_qual ppf =
   Fmt.(
     function
     | QTrue ->
-        pf ppf "⊤"
+        (* pf ppf "⊤" *)
+        pf ppf "TOP"
     | QExpr e ->
         ppf_expr ppf e
     | QNot q ->
@@ -136,7 +138,8 @@ and ppf_expr ppf : expr -> unit =
   Fmt.(
     function
     | NonDet ->
-        string ppf "✧"
+        (* string ppf "✧" *)
+        string ppf "NONDET"
     | Assert (e1, e2) ->
         pf ppf "(assert (%a = %a))" ppf_expr e1 ppf_expr e2
     | Const c ->

@@ -98,6 +98,11 @@
  (modules test_semaphore))
 
 (executable
+ (name test_semaphore_new)
+ (libraries zarith lib coqgen circomlib test_utils semaphore semaphore_new)
+ (modules test_semaphore_new))
+
+(executable
  (name test_ed25519)
  (libraries zarith lib coqgen circomlib test_utils ed25519)
  (modules test_ed25519))

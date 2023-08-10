@@ -25,8 +25,13 @@ let extract_signal (prev_presignals : presignal list) (presignal : presignal)
           Ast_utils.subst_qual name x (Qual.conjunction quals') ) )
   , quals'' )
 
+(* If [qual] refers to ONLY vars from [presignals]. *)
+
 let extract_signals ?(prev_presignals' = []) (presignals : presignal list)
     (quals : qual list) (err_msg : string) =
+  let _ =
+    print_endline ("quals: " ^ List.to_string quals ~f:Ast_utils.show_qual)
+  in
   let _, signals, quals =
     List.fold presignals ~init:([], [], quals)
       ~f:(fun (prev_presignals, signals, quals) presignal ->
@@ -36,7 +41,10 @@ let extract_signals ?(prev_presignals' = []) (presignals : presignal list)
         (prev_presignals @ [presignal], signals @ [signal], quals') )
   in
   if List.is_empty quals then signals
-  else failwith (err_msg ^ List.to_string quals ~f:Ast_utils.show_qual)
+  else (
+    print_endline
+      (err_msg ^ "\nquals: " ^ List.to_string quals ~f:Ast_utils.show_qual) ;
+    failwith "extract_signals" )
 
 type hoare_circuit =
   | Hoare_circuit of
@@ -50,16 +58,23 @@ type hoare_circuit =
 let to_circuit
     (Hoare_circuit {name; inputs; outputs; preconditions; postconditions; body} :
       hoare_circuit ) : circuit =
+  print_endline "BEGIN to_circuit";
+  print_endline @@ "name: " ^ name;
+  print_endline "[extract inputs]";
+  print_endline @@ "inputs:" ^ List.to_string ~f:(fun (Presignal x) -> x) inputs;
   let inputs' =
     extract_signals inputs preconditions
       "In circuit specification, some preconditions used no inputs: "
   in
+  print_endline "[extract outputs]";
+  print_endline @@ "outputs:" ^ List.to_string ~f:(fun (Presignal x) -> x) outputs;
   let outputs' =
     extract_signals ?prev_presignals':(Some inputs) outputs postconditions
       "In circuit specification, some postconditions used no outputs: "
   in
   let c = circuit name inputs' outputs' body in
-  print_string ("to_circuit ==> " ^ Ast_utils.show_circuit c) ;
+  (* print_endline ("to_circuit ==> " ^ Ast_utils.show_circuit c) ; *)
+  print_endline "END to_circuit";
   c
 
 let test () =

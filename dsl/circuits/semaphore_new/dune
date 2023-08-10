@@ -1,0 +1,4 @@
+(library
+ (name semaphore_new)
+ (libraries circomlib lib typecheck)
+ (modules semaphore_new))

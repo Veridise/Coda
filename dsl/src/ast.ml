@@ -2,7 +2,8 @@ open Big_int_Z
 
 (** DSL AST *)
 
-let nu_str = "ν"
+(* let nu_str = "ν" *)
+let nu_str = "NU"
 
 type base =
   | TF
@@ -117,4 +118,3 @@ type circuit =
       ; outputs: signal list
       ; dep: qual option
       ; body: expr }
-

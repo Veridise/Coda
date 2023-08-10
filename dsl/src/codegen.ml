@@ -1081,8 +1081,11 @@ let rec get_length_from_qual (q : qual) config : int option =
       get_length_from_qual q' config
   | QExpr (Comp (Eq, e1, e2)) -> (
     match e1 with
-    | ArrayOp (Length, [Var "ν"]) ->
-        Some (int_of_big_int (eval_int e2 config))
+    (* | ArrayOp (Length, [Var "ν"]) -> *)
+    | ArrayOp (Length, [Var x]) ->
+        if x == nu_str
+        then Some (int_of_big_int (eval_int e2 config))
+        else None
     | _ ->
         None )
   | _ ->

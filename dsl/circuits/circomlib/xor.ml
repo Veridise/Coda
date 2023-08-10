@@ -9,11 +9,7 @@ open Expr
 open Hoare_circuit
 
 let body_XOR (out, a, b) body =
-  elet out
-    F.(
-      F.(var a + var b)
-      - F.(F.(F.const (2) * var a) * var b) )
-  @@ body
+  elet out F.(F.(var a + var b) - F.(F.(F.const 2 * var a) * var b)) @@ body
 
 let circuit_XOR =
   Hoare_circuit.to_circuit

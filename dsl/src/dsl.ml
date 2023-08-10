@@ -241,7 +241,8 @@ let tunit_dep q = refine tunit q
 let v x = Var x
 
 (* Variable bound by refinement type *)
-let nu = v "ν"
+(* let nu = v "ν" *)
+let nu = v nu_str 
 
 (* Constant field elements *)
 

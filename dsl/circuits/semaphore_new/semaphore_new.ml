@@ -2,9 +2,50 @@ open Ast
 open Dsl
 open Nice_dsl
 open Expr
+
 (* open Qual *)
 open Typ
 (* open TypRef *)
+
+(* Included from `semaphore.ml` *)
+
+let identityNullifier = v "identityNullifier"
+
+let externalNullifier = v "externalNullifier"
+
+let u_calc_null_hash x y = unint "CalculateNullifierHash" [x; y]
+
+(* { F | nu =  #CalculateNullifierHash externalNullifier identityNullifier } *)
+let t_semaphore_null_hash_qual =
+  qeq nu (u_calc_null_hash externalNullifier identityNullifier)
+
+let identityNullifier = v "identityNullifier"
+
+let identityTrapdoor = v "identityTrapdoor"
+
+let t_semaphore_null_hash = tfq t_semaphore_null_hash_qual
+
+let u_calc_id_commit x = unint "CalculateIdentityCommitment" [x]
+
+let u_calc_secret x y = unint "CalculateSecret" [x; y]
+
+let u_calc_null_hash x y = unint "CalculateNullifierHash" [x; y]
+
+let u_mrkl_tree_incl_pf xs i s = unint "MerkleTreeInclusionProof" [xs; i; s]
+
+(* { F | nu = #MerkleTreeInclusionProof
+         (#CalculateIdentityCommitment (#CalculateSecret identityNullifier identityTrapdoor))
+         treePathIndices treeSiblings } *)
+let t_semaphore_root_qual treePathIndices treeSiblings =
+  qeq nu
+    (u_mrkl_tree_incl_pf
+       (u_calc_id_commit (u_calc_secret identityNullifier identityTrapdoor))
+       treePathIndices treeSiblings )
+
+let t_semaphore_root treePathIndices treeSiblings =
+  tfq (t_semaphore_root_qual treePathIndices treeSiblings)
+
+(* Circom->Coda *)
 
 let body_Ark (out_0, out_1, out_2, in_0, in_1, in_2) body =
   elet out_0 star @@ elet out_1 star @@ elet out_2 star @@ elet in_0 star
@@ -628,7 +669,55 @@ let circuit_Semaphore =
         ; ("treeSiblings_17", field)
         ; ("treeSiblings_18", field)
         ; ("treeSiblings_19", field) ]
-    ; outputs= [("root", field); ("nullifierHash", field)]
+    ; outputs=
+        (* let t_semaphore_root treePathIndices treeSiblings = *)
+        [ ( "root"
+          , t_semaphore_root
+              ( const_array field
+              @@ List.map var
+                   [ "treePathIndices_0"
+                   ; "treePathIndices_1"
+                   ; "treePathIndices_2"
+                   ; "treePathIndices_3"
+                   ; "treePathIndices_4"
+                   ; "treePathIndices_5"
+                   ; "treePathIndices_6"
+                   ; "treePathIndices_7"
+                   ; "treePathIndices_8"
+                   ; "treePathIndices_9"
+                   ; "treePathIndices_10"
+                   ; "treePathIndices_11"
+                   ; "treePathIndices_12"
+                   ; "treePathIndices_13"
+                   ; "treePathIndices_14"
+                   ; "treePathIndices_15"
+                   ; "treePathIndices_16"
+                   ; "treePathIndices_17"
+                   ; "treePathIndices_18"
+                   ; "treePathIndices_19" ] )
+              ( const_array field
+              @@ List.map var
+                   [ "treeSiblings_0"
+                   ; "treeSiblings_1"
+                   ; "treeSiblings_2"
+                   ; "treeSiblings_3"
+                   ; "treeSiblings_4"
+                   ; "treeSiblings_5"
+                   ; "treeSiblings_6"
+                   ; "treeSiblings_7"
+                   ; "treeSiblings_8"
+                   ; "treeSiblings_9"
+                   ; "treeSiblings_10"
+                   ; "treeSiblings_11"
+                   ; "treeSiblings_12"
+                   ; "treeSiblings_13"
+                   ; "treeSiblings_14"
+                   ; "treeSiblings_15"
+                   ; "treeSiblings_16"
+                   ; "treeSiblings_17"
+                   ; "treeSiblings_18"
+                   ; "treeSiblings_19" ] ) )
+        ; ("nullifierHash", t_semaphore_null_hash) ]
     ; dep= None
     ; body=
         body_Semaphore

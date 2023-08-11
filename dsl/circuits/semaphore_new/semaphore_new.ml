@@ -46,102 +46,30 @@ let t_semaphore_root treePathIndices treeSiblings =
   tfq (t_semaphore_root_qual treePathIndices treeSiblings)
 
 (* Circom->Coda *)
-
 let body_Ark (out_0, out_1, out_2, in_0, in_1, in_2) body =
   elet out_0 star @@ elet out_1 star @@ elet out_2 star @@ elet in_0 star
   @@ elet in_1 star @@ elet in_2 star @@ body
 
-let circuit_Ark =
-  Circuit
-    { name= "Ark"
-    ; inputs= [("in_0", field); ("in_1", field); ("in_2", field)]
-    ; outputs= [("out_0", field); ("out_1", field); ("out_2", field)]
-    ; dep= None
-    ; body=
-        body_Ark
-          ("out_0", "out_1", "out_2", "in_0", "in_1", "in_2")
-          (Expr.tuple [var "out_0"; var "out_1"; var "out_2"]) }
-
 let body_Sigma (out, in_, in2, in4) body =
   elet out star @@ elet in_ star @@ elet in2 star @@ elet in4 star @@ body
-
-let circuit_Sigma =
-  Circuit
-    { name= "Sigma"
-    ; inputs= [("in_", field)]
-    ; outputs= [("out", field)]
-    ; dep= None
-    ; body= body_Sigma ("out", "in_", "in2", "in4") (Expr.tuple [var "out"]) }
 
 let body_Mix (out_0, out_1, out_2, in_0, in_1, in_2) body =
   elet out_0 star @@ elet out_1 star @@ elet out_2 star @@ elet in_0 star
   @@ elet in_1 star @@ elet in_2 star @@ body
 
-let circuit_Mix =
-  Circuit
-    { name= "Mix"
-    ; inputs= [("in_0", field); ("in_1", field); ("in_2", field)]
-    ; outputs= [("out_0", field); ("out_1", field); ("out_2", field)]
-    ; dep= None
-    ; body=
-        body_Mix
-          ("out_0", "out_1", "out_2", "in_0", "in_1", "in_2")
-          (Expr.tuple [var "out_0"; var "out_1"; var "out_2"]) }
-
 let body_MixS (out_0, out_1, out_2, in_0, in_1, in_2) body =
   elet out_0 star @@ elet out_1 star @@ elet out_2 star @@ elet in_0 star
   @@ elet in_1 star @@ elet in_2 star @@ body
 
-let circuit_MixS =
-  Circuit
-    { name= "MixS"
-    ; inputs= [("in_0", field); ("in_1", field); ("in_2", field)]
-    ; outputs= [("out_0", field); ("out_1", field); ("out_2", field)]
-    ; dep= None
-    ; body=
-        body_MixS
-          ("out_0", "out_1", "out_2", "in_0", "in_1", "in_2")
-          (Expr.tuple [var "out_0"; var "out_1"; var "out_2"]) }
-
 let body_MixLast (out, in_0, in_1, in_2) body =
   elet out star @@ elet in_0 star @@ elet in_1 star @@ elet in_2 star @@ body
-
-let circuit_MixLast =
-  Circuit
-    { name= "MixLast"
-    ; inputs= [("in_0", field); ("in_1", field); ("in_2", field)]
-    ; outputs= [("out", field)]
-    ; dep= None
-    ; body=
-        body_MixLast ("out", "in_0", "in_1", "in_2") (Expr.tuple [var "out"]) }
 
 let body_PoseidonEx (out_0, inputs_0, inputs_1, initialState) body =
   elet out_0 star @@ elet inputs_0 star @@ elet inputs_1 star
   @@ elet initialState star @@ body
 
-let circuit_PoseidonEx =
-  Circuit
-    { name= "PoseidonEx"
-    ; inputs= [("inputs_0", field); ("inputs_1", field); ("initialState", field)]
-    ; outputs= [("out_0", field)]
-    ; dep= None
-    ; body=
-        body_PoseidonEx
-          ("out_0", "inputs_0", "inputs_1", "initialState")
-          (Expr.tuple [var "out_0"]) }
-
 let body_Poseidon (out, inputs_0, inputs_1) body =
   elet out star @@ elet inputs_0 star @@ elet inputs_1 star @@ body
-
-let circuit_Poseidon =
-  Circuit
-    { name= "Poseidon"
-    ; inputs= [("inputs_0", field); ("inputs_1", field)]
-    ; outputs= [("out", field)]
-    ; dep= None
-    ; body=
-        body_Poseidon ("out", "inputs_0", "inputs_1") (Expr.tuple [var "out"])
-    }
 
 let body_CalculateSecret (out, identityNullifier, identityTrapdoor) body =
   elet "poseidon_inputs_0" (var identityNullifier)
@@ -197,12 +125,12 @@ let circuit_CalculateNullifierHash =
           (Expr.tuple [var "out"]) }
 
 let body_MultiMux1 (out_0, out_1, c_0_0, c_0_1, c_1_0, c_1_1, s) body =
-  elet "n" (Z.const 2)
-  @@ elet "i" (Z.const 0)
+  elet "var_0_1" (F.const 2)
+  @@ elet "var_1_1" (F.const 0)
   @@ elet out_0 F.(F.(F.(var c_0_1 - var c_0_0) * var s) + var c_0_0)
-  @@ elet "i" (Z.const 1)
+  @@ elet "var_1_2" (F.const 0)
   @@ elet out_1 F.(F.(F.(var c_1_1 - var c_1_0) * var s) + var c_1_0)
-  @@ elet "i" (Z.const 2)
+  @@ elet "var_1_3" (F.const 0)
   @@ body
 
 let circuit_MultiMux1 =
@@ -285,30 +213,431 @@ let body_MerkleTreeInclusionProof
     , hashes_18
     , hashes_19
     , hashes_20 ) body =
-  elet root star @@ elet leaf star @@ elet pathIndices_0 star
-  @@ elet pathIndices_1 star @@ elet pathIndices_2 star
-  @@ elet pathIndices_3 star @@ elet pathIndices_4 star
-  @@ elet pathIndices_5 star @@ elet pathIndices_6 star
-  @@ elet pathIndices_7 star @@ elet pathIndices_8 star
-  @@ elet pathIndices_9 star @@ elet pathIndices_10 star
-  @@ elet pathIndices_11 star @@ elet pathIndices_12 star
-  @@ elet pathIndices_13 star @@ elet pathIndices_14 star
-  @@ elet pathIndices_15 star @@ elet pathIndices_16 star
-  @@ elet pathIndices_17 star @@ elet pathIndices_18 star
-  @@ elet pathIndices_19 star @@ elet siblings_0 star @@ elet siblings_1 star
-  @@ elet siblings_2 star @@ elet siblings_3 star @@ elet siblings_4 star
-  @@ elet siblings_5 star @@ elet siblings_6 star @@ elet siblings_7 star
-  @@ elet siblings_8 star @@ elet siblings_9 star @@ elet siblings_10 star
-  @@ elet siblings_11 star @@ elet siblings_12 star @@ elet siblings_13 star
-  @@ elet siblings_14 star @@ elet siblings_15 star @@ elet siblings_16 star
-  @@ elet siblings_17 star @@ elet siblings_18 star @@ elet siblings_19 star
-  @@ elet hashes_0 star @@ elet hashes_1 star @@ elet hashes_2 star
-  @@ elet hashes_3 star @@ elet hashes_4 star @@ elet hashes_5 star
-  @@ elet hashes_6 star @@ elet hashes_7 star @@ elet hashes_8 star
-  @@ elet hashes_9 star @@ elet hashes_10 star @@ elet hashes_11 star
-  @@ elet hashes_12 star @@ elet hashes_13 star @@ elet hashes_14 star
-  @@ elet hashes_15 star @@ elet hashes_16 star @@ elet hashes_17 star
-  @@ elet hashes_18 star @@ elet hashes_19 star @@ elet hashes_20 star @@ body
+  elet "var_0_1" (F.const 20)
+  @@ elet hashes_0 (var leaf)
+  @@ elet "var_1_1" (F.const 0)
+  @@ assert_eq_in "_assertion_1"
+       F.(var pathIndices_0 * F.(F.const 1 - var pathIndices_0))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_0)
+  @@ elet "mux_c_0_1" (var siblings_0)
+  @@ elet "mux_c_1_0" (var siblings_0)
+  @@ elet "mux_c_1_1" (var hashes_0)
+  @@ elet "mux_s" (var pathIndices_0)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_1 (var "poseidons_out")
+  @@ elet "var_1_2" (F.const 0)
+  @@ assert_eq_in "_assertion_2"
+       F.(var pathIndices_1 * F.(F.const 1 - var pathIndices_1))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_1)
+  @@ elet "mux_c_0_1" (var siblings_1)
+  @@ elet "mux_c_1_0" (var siblings_1)
+  @@ elet "mux_c_1_1" (var hashes_1)
+  @@ elet "mux_s" (var pathIndices_1)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_2 (var "poseidons_out")
+  @@ elet "var_1_3" (F.const 0)
+  @@ assert_eq_in "_assertion_3"
+       F.(var pathIndices_2 * F.(F.const 1 - var pathIndices_2))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_2)
+  @@ elet "mux_c_0_1" (var siblings_2)
+  @@ elet "mux_c_1_0" (var siblings_2)
+  @@ elet "mux_c_1_1" (var hashes_2)
+  @@ elet "mux_s" (var pathIndices_2)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_3 (var "poseidons_out")
+  @@ elet "var_1_4" (F.const 0)
+  @@ assert_eq_in "_assertion_4"
+       F.(var pathIndices_3 * F.(F.const 1 - var pathIndices_3))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_3)
+  @@ elet "mux_c_0_1" (var siblings_3)
+  @@ elet "mux_c_1_0" (var siblings_3)
+  @@ elet "mux_c_1_1" (var hashes_3)
+  @@ elet "mux_s" (var pathIndices_3)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_4 (var "poseidons_out")
+  @@ elet "var_1_5" (F.const 0)
+  @@ assert_eq_in "_assertion_5"
+       F.(var pathIndices_4 * F.(F.const 1 - var pathIndices_4))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_4)
+  @@ elet "mux_c_0_1" (var siblings_4)
+  @@ elet "mux_c_1_0" (var siblings_4)
+  @@ elet "mux_c_1_1" (var hashes_4)
+  @@ elet "mux_s" (var pathIndices_4)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_5 (var "poseidons_out")
+  @@ elet "var_1_6" (F.const 0)
+  @@ assert_eq_in "_assertion_6"
+       F.(var pathIndices_5 * F.(F.const 1 - var pathIndices_5))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_5)
+  @@ elet "mux_c_0_1" (var siblings_5)
+  @@ elet "mux_c_1_0" (var siblings_5)
+  @@ elet "mux_c_1_1" (var hashes_5)
+  @@ elet "mux_s" (var pathIndices_5)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_6 (var "poseidons_out")
+  @@ elet "var_1_7" (F.const 0)
+  @@ assert_eq_in "_assertion_7"
+       F.(var pathIndices_6 * F.(F.const 1 - var pathIndices_6))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_6)
+  @@ elet "mux_c_0_1" (var siblings_6)
+  @@ elet "mux_c_1_0" (var siblings_6)
+  @@ elet "mux_c_1_1" (var hashes_6)
+  @@ elet "mux_s" (var pathIndices_6)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_7 (var "poseidons_out")
+  @@ elet "var_1_8" (F.const 0)
+  @@ assert_eq_in "_assertion_8"
+       F.(var pathIndices_7 * F.(F.const 1 - var pathIndices_7))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_7)
+  @@ elet "mux_c_0_1" (var siblings_7)
+  @@ elet "mux_c_1_0" (var siblings_7)
+  @@ elet "mux_c_1_1" (var hashes_7)
+  @@ elet "mux_s" (var pathIndices_7)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_8 (var "poseidons_out")
+  @@ elet "var_1_9" (F.const 0)
+  @@ assert_eq_in "_assertion_9"
+       F.(var pathIndices_8 * F.(F.const 1 - var pathIndices_8))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_8)
+  @@ elet "mux_c_0_1" (var siblings_8)
+  @@ elet "mux_c_1_0" (var siblings_8)
+  @@ elet "mux_c_1_1" (var hashes_8)
+  @@ elet "mux_s" (var pathIndices_8)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_9 (var "poseidons_out")
+  @@ elet "var_1_10" (F.const 0)
+  @@ assert_eq_in "_assertion_10"
+       F.(var pathIndices_9 * F.(F.const 1 - var pathIndices_9))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_9)
+  @@ elet "mux_c_0_1" (var siblings_9)
+  @@ elet "mux_c_1_0" (var siblings_9)
+  @@ elet "mux_c_1_1" (var hashes_9)
+  @@ elet "mux_s" (var pathIndices_9)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_10 (var "poseidons_out")
+  @@ elet "var_1_11" (F.const 0)
+  @@ assert_eq_in "_assertion_11"
+       F.(var pathIndices_10 * F.(F.const 1 - var pathIndices_10))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_10)
+  @@ elet "mux_c_0_1" (var siblings_10)
+  @@ elet "mux_c_1_0" (var siblings_10)
+  @@ elet "mux_c_1_1" (var hashes_10)
+  @@ elet "mux_s" (var pathIndices_10)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_11 (var "poseidons_out")
+  @@ elet "var_1_12" (F.const 0)
+  @@ assert_eq_in "_assertion_12"
+       F.(var pathIndices_11 * F.(F.const 1 - var pathIndices_11))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_11)
+  @@ elet "mux_c_0_1" (var siblings_11)
+  @@ elet "mux_c_1_0" (var siblings_11)
+  @@ elet "mux_c_1_1" (var hashes_11)
+  @@ elet "mux_s" (var pathIndices_11)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_12 (var "poseidons_out")
+  @@ elet "var_1_13" (F.const 0)
+  @@ assert_eq_in "_assertion_13"
+       F.(var pathIndices_12 * F.(F.const 1 - var pathIndices_12))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_12)
+  @@ elet "mux_c_0_1" (var siblings_12)
+  @@ elet "mux_c_1_0" (var siblings_12)
+  @@ elet "mux_c_1_1" (var hashes_12)
+  @@ elet "mux_s" (var pathIndices_12)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_13 (var "poseidons_out")
+  @@ elet "var_1_14" (F.const 0)
+  @@ assert_eq_in "_assertion_14"
+       F.(var pathIndices_13 * F.(F.const 1 - var pathIndices_13))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_13)
+  @@ elet "mux_c_0_1" (var siblings_13)
+  @@ elet "mux_c_1_0" (var siblings_13)
+  @@ elet "mux_c_1_1" (var hashes_13)
+  @@ elet "mux_s" (var pathIndices_13)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_14 (var "poseidons_out")
+  @@ elet "var_1_15" (F.const 0)
+  @@ assert_eq_in "_assertion_15"
+       F.(var pathIndices_14 * F.(F.const 1 - var pathIndices_14))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_14)
+  @@ elet "mux_c_0_1" (var siblings_14)
+  @@ elet "mux_c_1_0" (var siblings_14)
+  @@ elet "mux_c_1_1" (var hashes_14)
+  @@ elet "mux_s" (var pathIndices_14)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_15 (var "poseidons_out")
+  @@ elet "var_1_16" (F.const 0)
+  @@ assert_eq_in "_assertion_16"
+       F.(var pathIndices_15 * F.(F.const 1 - var pathIndices_15))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_15)
+  @@ elet "mux_c_0_1" (var siblings_15)
+  @@ elet "mux_c_1_0" (var siblings_15)
+  @@ elet "mux_c_1_1" (var hashes_15)
+  @@ elet "mux_s" (var pathIndices_15)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_16 (var "poseidons_out")
+  @@ elet "var_1_17" (F.const 0)
+  @@ assert_eq_in "_assertion_17"
+       F.(var pathIndices_16 * F.(F.const 1 - var pathIndices_16))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_16)
+  @@ elet "mux_c_0_1" (var siblings_16)
+  @@ elet "mux_c_1_0" (var siblings_16)
+  @@ elet "mux_c_1_1" (var hashes_16)
+  @@ elet "mux_s" (var pathIndices_16)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_17 (var "poseidons_out")
+  @@ elet "var_1_18" (F.const 0)
+  @@ assert_eq_in "_assertion_18"
+       F.(var pathIndices_17 * F.(F.const 1 - var pathIndices_17))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_17)
+  @@ elet "mux_c_0_1" (var siblings_17)
+  @@ elet "mux_c_1_0" (var siblings_17)
+  @@ elet "mux_c_1_1" (var hashes_17)
+  @@ elet "mux_s" (var pathIndices_17)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_18 (var "poseidons_out")
+  @@ elet "var_1_19" (F.const 0)
+  @@ assert_eq_in "_assertion_19"
+       F.(var pathIndices_18 * F.(F.const 1 - var pathIndices_18))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_18)
+  @@ elet "mux_c_0_1" (var siblings_18)
+  @@ elet "mux_c_1_0" (var siblings_18)
+  @@ elet "mux_c_1_1" (var hashes_18)
+  @@ elet "mux_s" (var pathIndices_18)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_19 (var "poseidons_out")
+  @@ elet "var_1_20" (F.const 0)
+  @@ assert_eq_in "_assertion_20"
+       F.(var pathIndices_19 * F.(F.const 1 - var pathIndices_19))
+       (F.const 0)
+  @@ elet "mux_c_0_0" (var hashes_19)
+  @@ elet "mux_c_0_1" (var siblings_19)
+  @@ elet "mux_c_1_0" (var siblings_19)
+  @@ elet "mux_c_1_1" (var hashes_19)
+  @@ elet "mux_s" (var pathIndices_19)
+  @@ body_MultiMux1
+       ( "mux_out_0"
+       , "mux_out_1"
+       , "mux_c_0_0"
+       , "mux_c_0_1"
+       , "mux_c_1_0"
+       , "mux_c_1_1"
+       , "mux_s" )
+  @@ elet "poseidons_inputs_0" (var "mux_out_0")
+  @@ elet "poseidons_inputs_1" (var "mux_out_1")
+  @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
+  @@ elet hashes_20 (var "poseidons_out")
+  @@ elet "var_1_21" (F.const 0)
+  @@ elet root (var hashes_20)
+  @@ body
 
 let circuit_MerkleTreeInclusionProof =
   Circuit
@@ -473,7 +802,7 @@ let body_Semaphore
     , treeSiblings_19
     , secret
     , signalHashSquared ) body =
-  elet "nLevels" (Z.const 20)
+  elet "var_0_1" (F.const 20)
   @@ elet "calculateSecret_identityNullifier" (var identityNullifier)
   @@ elet "calculateSecret_identityTrapdoor" (var identityTrapdoor)
   @@ body_CalculateSecret
@@ -491,64 +820,64 @@ let body_Semaphore
        , "calculateNullifierHash_externalNullifier"
        , "calculateNullifierHash_identityNullifier" )
   @@ elet "inclusionProof_leaf" (var "calculateIdentityCommitment_out")
-  @@ elet "i" (Z.const 0)
+  @@ elet "var_1_1" (F.const 0)
   @@ elet "inclusionProof_siblings_0" (var treeSiblings_0)
   @@ elet "inclusionProof_pathIndices_0" (var treePathIndices_0)
-  @@ elet "i" (Z.const 1)
+  @@ elet "var_1_2" (F.const 0)
   @@ elet "inclusionProof_siblings_1" (var treeSiblings_1)
   @@ elet "inclusionProof_pathIndices_1" (var treePathIndices_1)
-  @@ elet "i" (Z.const 2)
+  @@ elet "var_1_3" (F.const 0)
   @@ elet "inclusionProof_siblings_2" (var treeSiblings_2)
   @@ elet "inclusionProof_pathIndices_2" (var treePathIndices_2)
-  @@ elet "i" (Z.const 3)
+  @@ elet "var_1_4" (F.const 0)
   @@ elet "inclusionProof_siblings_3" (var treeSiblings_3)
   @@ elet "inclusionProof_pathIndices_3" (var treePathIndices_3)
-  @@ elet "i" (Z.const 4)
+  @@ elet "var_1_5" (F.const 0)
   @@ elet "inclusionProof_siblings_4" (var treeSiblings_4)
   @@ elet "inclusionProof_pathIndices_4" (var treePathIndices_4)
-  @@ elet "i" (Z.const 5)
+  @@ elet "var_1_6" (F.const 0)
   @@ elet "inclusionProof_siblings_5" (var treeSiblings_5)
   @@ elet "inclusionProof_pathIndices_5" (var treePathIndices_5)
-  @@ elet "i" (Z.const 6)
+  @@ elet "var_1_7" (F.const 0)
   @@ elet "inclusionProof_siblings_6" (var treeSiblings_6)
   @@ elet "inclusionProof_pathIndices_6" (var treePathIndices_6)
-  @@ elet "i" (Z.const 7)
+  @@ elet "var_1_8" (F.const 0)
   @@ elet "inclusionProof_siblings_7" (var treeSiblings_7)
   @@ elet "inclusionProof_pathIndices_7" (var treePathIndices_7)
-  @@ elet "i" (Z.const 8)
+  @@ elet "var_1_9" (F.const 0)
   @@ elet "inclusionProof_siblings_8" (var treeSiblings_8)
   @@ elet "inclusionProof_pathIndices_8" (var treePathIndices_8)
-  @@ elet "i" (Z.const 9)
+  @@ elet "var_1_10" (F.const 0)
   @@ elet "inclusionProof_siblings_9" (var treeSiblings_9)
   @@ elet "inclusionProof_pathIndices_9" (var treePathIndices_9)
-  @@ elet "i" (Z.const 10)
+  @@ elet "var_1_11" (F.const 0)
   @@ elet "inclusionProof_siblings_10" (var treeSiblings_10)
   @@ elet "inclusionProof_pathIndices_10" (var treePathIndices_10)
-  @@ elet "i" (Z.const 11)
+  @@ elet "var_1_12" (F.const 0)
   @@ elet "inclusionProof_siblings_11" (var treeSiblings_11)
   @@ elet "inclusionProof_pathIndices_11" (var treePathIndices_11)
-  @@ elet "i" (Z.const 12)
+  @@ elet "var_1_13" (F.const 0)
   @@ elet "inclusionProof_siblings_12" (var treeSiblings_12)
   @@ elet "inclusionProof_pathIndices_12" (var treePathIndices_12)
-  @@ elet "i" (Z.const 13)
+  @@ elet "var_1_14" (F.const 0)
   @@ elet "inclusionProof_siblings_13" (var treeSiblings_13)
   @@ elet "inclusionProof_pathIndices_13" (var treePathIndices_13)
-  @@ elet "i" (Z.const 14)
+  @@ elet "var_1_15" (F.const 0)
   @@ elet "inclusionProof_siblings_14" (var treeSiblings_14)
   @@ elet "inclusionProof_pathIndices_14" (var treePathIndices_14)
-  @@ elet "i" (Z.const 15)
+  @@ elet "var_1_16" (F.const 0)
   @@ elet "inclusionProof_siblings_15" (var treeSiblings_15)
   @@ elet "inclusionProof_pathIndices_15" (var treePathIndices_15)
-  @@ elet "i" (Z.const 16)
+  @@ elet "var_1_17" (F.const 0)
   @@ elet "inclusionProof_siblings_16" (var treeSiblings_16)
   @@ elet "inclusionProof_pathIndices_16" (var treePathIndices_16)
-  @@ elet "i" (Z.const 17)
+  @@ elet "var_1_18" (F.const 0)
   @@ elet "inclusionProof_siblings_17" (var treeSiblings_17)
   @@ elet "inclusionProof_pathIndices_17" (var treePathIndices_17)
-  @@ elet "i" (Z.const 18)
+  @@ elet "var_1_19" (F.const 0)
   @@ elet "inclusionProof_siblings_18" (var treeSiblings_18)
   @@ elet "inclusionProof_pathIndices_18" (var treePathIndices_18)
-  @@ elet "i" (Z.const 19)
+  @@ elet "var_1_20" (F.const 0)
   @@ elet "inclusionProof_siblings_19" (var treeSiblings_19)
   @@ elet "inclusionProof_pathIndices_19" (var treePathIndices_19)
   @@ body_MerkleTreeInclusionProof
@@ -615,7 +944,7 @@ let body_Semaphore
        , "inclusionProof_hashes_18"
        , "inclusionProof_hashes_19"
        , "inclusionProof_hashes_20" )
-  @@ elet "i" (Z.const 20)
+  @@ elet "var_1_21" (F.const 0)
   @@ elet root (var "inclusionProof_root")
   @@ elet signalHashSquared F.(var signalHash * var signalHash)
   @@ elet nullifierHash (var "calculateNullifierHash_out")
@@ -670,7 +999,6 @@ let circuit_Semaphore =
         ; ("treeSiblings_18", field)
         ; ("treeSiblings_19", field) ]
     ; outputs=
-        (* let t_semaphore_root treePathIndices treeSiblings = *)
         [ ( "root"
           , t_semaphore_root
               ( const_array field

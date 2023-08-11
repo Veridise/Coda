@@ -210,9 +210,9 @@ let body_MerkleTreeInclusionProof
     , hashes_19
     , hashes_20 ) body =
   elet hashes_0 (var leaf)
-  (* @@ assert_eq_in "_assertion_1"
+  @@ assert_eq_in "_assertion_1"
        F.(var pathIndices_0 * F.(F.const 1 - var pathIndices_0))
-       (F.const 0) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_0)
   @@ elet "mux_c_0_1" (var siblings_0)
   @@ elet "mux_c_1_0" (var siblings_0)
@@ -230,9 +230,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_1 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_2"
+  @@ assert_eq_in "_assertion_2"
        F.(var pathIndices_1 * F.(F.const 1 - var pathIndices_1))
-       (F.const 1) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_1)
   @@ elet "mux_c_0_1" (var siblings_1)
   @@ elet "mux_c_1_0" (var siblings_1)
@@ -250,9 +250,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_2 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_3"
+  @@ assert_eq_in "_assertion_3"
        F.(var pathIndices_2 * F.(F.const 1 - var pathIndices_2))
-       (F.const 2) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_2)
   @@ elet "mux_c_0_1" (var siblings_2)
   @@ elet "mux_c_1_0" (var siblings_2)
@@ -270,9 +270,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_3 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_4"
+  @@ assert_eq_in "_assertion_4"
        F.(var pathIndices_3 * F.(F.const 1 - var pathIndices_3))
-       (F.const 3) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_3)
   @@ elet "mux_c_0_1" (var siblings_3)
   @@ elet "mux_c_1_0" (var siblings_3)
@@ -290,9 +290,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_4 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_5"
+  @@ assert_eq_in "_assertion_5"
        F.(var pathIndices_4 * F.(F.const 1 - var pathIndices_4))
-       (F.const 4) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_4)
   @@ elet "mux_c_0_1" (var siblings_4)
   @@ elet "mux_c_1_0" (var siblings_4)
@@ -310,9 +310,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_5 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_6"
+  @@ assert_eq_in "_assertion_6"
        F.(var pathIndices_5 * F.(F.const 1 - var pathIndices_5))
-       (F.const 5) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_5)
   @@ elet "mux_c_0_1" (var siblings_5)
   @@ elet "mux_c_1_0" (var siblings_5)
@@ -330,9 +330,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_6 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_7"
+  @@ assert_eq_in "_assertion_7"
        F.(var pathIndices_6 * F.(F.const 1 - var pathIndices_6))
-       (F.const 6) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_6)
   @@ elet "mux_c_0_1" (var siblings_6)
   @@ elet "mux_c_1_0" (var siblings_6)
@@ -350,9 +350,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_7 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_8"
+  @@ assert_eq_in "_assertion_8"
        F.(var pathIndices_7 * F.(F.const 1 - var pathIndices_7))
-       (F.const 7) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_7)
   @@ elet "mux_c_0_1" (var siblings_7)
   @@ elet "mux_c_1_0" (var siblings_7)
@@ -370,9 +370,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_8 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_9"
+  @@ assert_eq_in "_assertion_9"
        F.(var pathIndices_8 * F.(F.const 1 - var pathIndices_8))
-       (F.const 8) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_8)
   @@ elet "mux_c_0_1" (var siblings_8)
   @@ elet "mux_c_1_0" (var siblings_8)
@@ -390,9 +390,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_9 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_10"
+  @@ assert_eq_in "_assertion_10"
        F.(var pathIndices_9 * F.(F.const 1 - var pathIndices_9))
-       (F.const 9) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_9)
   @@ elet "mux_c_0_1" (var siblings_9)
   @@ elet "mux_c_1_0" (var siblings_9)
@@ -410,9 +410,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_10 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_11"
+  @@ assert_eq_in "_assertion_11"
        F.(var pathIndices_10 * F.(F.const 1 - var pathIndices_10))
-       (F.const 10) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_10)
   @@ elet "mux_c_0_1" (var siblings_10)
   @@ elet "mux_c_1_0" (var siblings_10)
@@ -430,9 +430,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_11 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_12"
+  @@ assert_eq_in "_assertion_12"
        F.(var pathIndices_11 * F.(F.const 1 - var pathIndices_11))
-       (F.const 11) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_11)
   @@ elet "mux_c_0_1" (var siblings_11)
   @@ elet "mux_c_1_0" (var siblings_11)
@@ -450,9 +450,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_12 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_13"
+  @@ assert_eq_in "_assertion_13"
        F.(var pathIndices_12 * F.(F.const 1 - var pathIndices_12))
-       (F.const 12) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_12)
   @@ elet "mux_c_0_1" (var siblings_12)
   @@ elet "mux_c_1_0" (var siblings_12)
@@ -470,9 +470,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_13 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_14"
+  @@ assert_eq_in "_assertion_14"
        F.(var pathIndices_13 * F.(F.const 1 - var pathIndices_13))
-       (F.const 13) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_13)
   @@ elet "mux_c_0_1" (var siblings_13)
   @@ elet "mux_c_1_0" (var siblings_13)
@@ -490,9 +490,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_14 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_15"
+  @@ assert_eq_in "_assertion_15"
        F.(var pathIndices_14 * F.(F.const 1 - var pathIndices_14))
-       (F.const 14) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_14)
   @@ elet "mux_c_0_1" (var siblings_14)
   @@ elet "mux_c_1_0" (var siblings_14)
@@ -510,9 +510,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_15 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_16"
+  @@ assert_eq_in "_assertion_16"
        F.(var pathIndices_15 * F.(F.const 1 - var pathIndices_15))
-       (F.const 15) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_15)
   @@ elet "mux_c_0_1" (var siblings_15)
   @@ elet "mux_c_1_0" (var siblings_15)
@@ -530,9 +530,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_16 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_17"
+  @@ assert_eq_in "_assertion_17"
        F.(var pathIndices_16 * F.(F.const 1 - var pathIndices_16))
-       (F.const 16) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_16)
   @@ elet "mux_c_0_1" (var siblings_16)
   @@ elet "mux_c_1_0" (var siblings_16)
@@ -550,9 +550,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_17 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_18"
+  @@ assert_eq_in "_assertion_18"
        F.(var pathIndices_17 * F.(F.const 1 - var pathIndices_17))
-       (F.const 17) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_17)
   @@ elet "mux_c_0_1" (var siblings_17)
   @@ elet "mux_c_1_0" (var siblings_17)
@@ -570,9 +570,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_18 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_19"
+  @@ assert_eq_in "_assertion_19"
        F.(var pathIndices_18 * F.(F.const 1 - var pathIndices_18))
-       (F.const 18) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_18)
   @@ elet "mux_c_0_1" (var siblings_18)
   @@ elet "mux_c_1_0" (var siblings_18)
@@ -590,9 +590,9 @@ let body_MerkleTreeInclusionProof
   @@ elet "poseidons_inputs_1" (var "mux_out_1")
   @@ body_Poseidon ("poseidons_out", "poseidons_inputs_0", "poseidons_inputs_1")
   @@ elet hashes_19 (var "poseidons_out")
-  (* @@ assert_eq_in "_assertion_20"
+  @@ assert_eq_in "_assertion_20"
        F.(var pathIndices_19 * F.(F.const 1 - var pathIndices_19))
-       (F.const 19) *)
+       (F.const 0)
   @@ elet "mux_c_0_0" (var hashes_19)
   @@ elet "mux_c_0_1" (var siblings_19)
   @@ elet "mux_c_1_0" (var siblings_19)

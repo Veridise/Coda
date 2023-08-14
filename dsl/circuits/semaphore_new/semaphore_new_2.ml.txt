@@ -1,0 +1,626 @@
+open Ast
+open Dsl
+open Nice_dsl
+open Expr
+open Qual
+open Typ
+open TypRef
+open Hoare_circuit
+
+let nu = "don't use this -- refer to specific variables"
+
+let n = v "n"
+
+let a = v "a"
+
+let b = v "b"
+
+let c = v "c"
+
+let i = v "i"
+
+let _i = v "_i"
+
+let j = v "j"
+
+let m = v "m"
+
+let s = v "s"
+
+let x = v "x"
+
+let z = v "z"
+
+let out = v "out"
+
+let nLevels = v "nLevels"
+
+let pathIndices = v "pathIndices"
+
+let siblings = v "siblings"
+
+let root = v "root"
+
+let leaf = v "leaf"
+
+let secret = v "secret"
+
+let identityNullifier = v "identityNullifier"
+
+let identityTrapdoor = v "identityTrapdoor"
+
+let treePathIndices = v "treePathIndices"
+
+let treeSiblings = v "treeSiblings"
+
+let signalHash = v "signalHash"
+
+let externalNullifier = v "externalNullifier"
+
+let nullifierHash = v "nullifierHash"
+
+(* MerkleTreeInclusionProof *)
+
+let u_hasher z init = unint "MrklTreeInclPfHash" [z; init]
+
+let u_zip xs ys = unint "zip" [xs; ys]
+
+let z_i_0 z = tget (get z _i) 0
+
+let z_i_1 z = tget (get z _i) 1
+
+let lam_mtip z =
+  lama "_i" tint
+    (lama "x" tf
+       (elet "u0"
+          (* pathIndices[i] binary *)
+          (assert_eq (fmul (z_i_0 z) (fsub f1 (z_i_0 z))) f0)
+          (elet "c"
+             (const_array (tarr_tf z2)
+                [const_array tf [x; z_i_1 z]; const_array tf [z_i_1 z; x]] )
+             (elet "m"
+                (call "MultiMux1" [z2; c; z_i_0 z])
+                (call "Poseidon" [z2; m]) ) ) ) )
+
+(* let hasher z len init =
+  iter z0 len (lam_mtip z) ~init ~inv:(fun i ->
+      tfq (qeq nu (u_hasher (u_take i z) init)) ) *)
+
+(* {F | nu = #MrklTreeInclPfHash (zip pathIndices siblings) leaf } *)
+(* let t_r = tfq (qeq nu (u_hasher (u_zip pathIndices siblings) leaf)) *)
+
+(* Semaphore *)
+
+let u_calc_id_commit x = unint "CalculateIdentityCommitment" [x]
+
+let u_calc_secret x y = unint "CalculateSecret" [x; y]
+
+let u_calc_null_hash x y = unint "CalculateNullifierHash" [x; y]
+
+let u_mrkl_tree_incl_pf xs i s = unint "MerkleTreeInclusionProof" [xs; i; s]
+
+(* { F | nu = #MerkleTreeInclusionProof
+         (#CalculateIdentityCommitment (#CalculateSecret identityNullifier identityTrapdoor))
+         treePathIndices treeSiblings } *)
+(* let t_semaphore_root_qual =
+  qeq nu
+    (u_mrkl_tree_incl_pf
+       (u_calc_id_commit (u_calc_secret identityNullifier identityTrapdoor))
+       treePathIndices treeSiblings ) *)
+
+(* let t_semaphore_root = tfq t_semaphore_root_qual *)
+
+(* { F | nu =  #CalculateNullifierHash externalNullifier identityNullifier } *)
+(* let t_semaphore_null_hash_qual =
+  qeq nu (u_calc_null_hash externalNullifier identityNullifier) *)
+
+(* let t_semaphore_null_hash = tfq t_semaphore_null_hash_qual *)
+
+(* let t_semaphore_root_qual =
+  qeq nu
+    (u_mrkl_tree_incl_pf
+       (u_calc_id_commit (u_calc_secret identityNullifier identityTrapdoor))
+       treePathIndices treeSiblings ) *)
+
+(* AUTOMATICALLY GENERATED *)
+
+let body_Ark (out_0, out_1, out_2, in_0, in_1, in_2) body =
+  elet out_0 star @@ elet out_1 star @@ elet out_2 star @@ elet in_0 star
+  @@ elet in_1 star @@ elet in_2 star @@ body
+
+let body_Sigma (out, in_, in2, in4) body =
+  elet out star @@ elet in_ star @@ elet in2 star @@ elet in4 star @@ body
+
+let body_Mix (out_0, out_1, out_2, in_0, in_1, in_2) body =
+  elet out_0 star @@ elet out_1 star @@ elet out_2 star @@ elet in_0 star
+  @@ elet in_1 star @@ elet in_2 star @@ body
+
+let body_MixS (out_0, out_1, out_2, in_0, in_1, in_2) body =
+  elet out_0 star @@ elet out_1 star @@ elet out_2 star @@ elet in_0 star
+  @@ elet in_1 star @@ elet in_2 star @@ body
+
+let body_MixLast (out, in_0, in_1, in_2) body =
+  elet out star @@ elet in_0 star @@ elet in_1 star @@ elet in_2 star @@ body
+
+let body_PoseidonEx (out_0, inputs_0, inputs_1, initialState) body =
+  elet out_0 star @@ elet inputs_0 star @@ elet inputs_1 star
+  @@ elet initialState star @@ body
+
+let body_Poseidon (out, inputs_0, inputs_1) body =
+  elet out star @@ elet inputs_0 star @@ elet inputs_1 star @@ body
+
+let body_CalculateSecret (out, identityNullifier, identityTrapdoor) body =
+  elet "poseidon_inputs_0" (var identityNullifier)
+  @@ elet "poseidon_inputs_1" (var identityTrapdoor)
+  @@ body_Poseidon ("poseidon_out", "poseidon_inputs_0", "poseidon_inputs_1")
+  @@ elet out (var "poseidon_out")
+  @@ body
+
+let circuit_CalculateSecret =
+  Hoare_circuit.to_circuit
+  @@ Hoare_circuit
+       { name= "CalculateSecret"
+       ; inputs= [Presignal "identityNullifier"; Presignal "identityTrapdoor"]
+       ; outputs= [Presignal "out"]
+       ; preconditions= []
+       ; postconditions= []
+       ; body=
+           body_CalculateSecret
+             ("out", "identityNullifier", "identityTrapdoor")
+             (Expr.tuple [var "out"]) }
+
+let body_CalculateIdentityCommitment (out, secret) body =
+  elet "poseidon_inputs_0" (var secret)
+  @@ body_Poseidon ("poseidon_out", "poseidon_inputs_1", "poseidon_inputs_0")
+  @@ elet out (var "poseidon_out")
+  @@ body
+
+let circuit_CalculateIdentityCommitment =
+  Hoare_circuit.to_circuit
+  @@ Hoare_circuit
+       { name= "CalculateIdentityCommitment"
+       ; inputs= [Presignal "secret"]
+       ; outputs= [Presignal "out"]
+       ; preconditions= []
+       ; postconditions= []
+       ; body=
+           body_CalculateIdentityCommitment ("out", "secret")
+             (Expr.tuple [var "out"]) }
+
+let body_CalculateNullifierHash (out, externalNullifier, identityNullifier) body
+    =
+  elet "poseidon_inputs_0" (var externalNullifier)
+  @@ elet "poseidon_inputs_1" (var identityNullifier)
+  @@ body_Poseidon ("poseidon_out", "poseidon_inputs_0", "poseidon_inputs_1")
+  @@ elet out (var "poseidon_out")
+  @@ body
+
+let circuit_CalculateNullifierHash =
+  Hoare_circuit.to_circuit
+  @@ Hoare_circuit
+       { name= "CalculateNullifierHash"
+       ; inputs= [Presignal "externalNullifier"; Presignal "identityNullifier"]
+       ; outputs= [Presignal "out"]
+       ; preconditions= []
+       ; postconditions= []
+       ; body=
+           body_CalculateNullifierHash
+             ("out", "externalNullifier", "identityNullifier")
+             (Expr.tuple [var "out"]) }
+
+let body_MultiMux1 (out_0, out_1, c_0_0, c_0_1, c_1_0, c_1_1, s) body =
+  elet "var_0" (F.const 2)
+  @@ elet "var_1" (F.const 0)
+  @@ elet out_0 F.(F.(F.(var c_0_1 - var c_0_0) * var s) + var c_0_0)
+  @@ elet "var_1" (F.const 0)
+  @@ elet out_1 F.(F.(F.(var c_1_1 - var c_1_0) * var s) + var c_1_0)
+  @@ elet "var_1" (F.const 0)
+  @@ body
+
+let circuit_MultiMux1 =
+  Hoare_circuit.to_circuit
+  @@ Hoare_circuit
+       { name= "MultiMux1"
+       ; inputs=
+           [ Presignal "c_0_0"
+           ; Presignal "c_0_1"
+           ; Presignal "c_1_0"
+           ; Presignal "c_1_1"
+           ; Presignal "s" ]
+       ; outputs= [Presignal "out_0"; Presignal "out_1"]
+       ; preconditions= []
+       ; postconditions= []
+       ; body=
+           body_MultiMux1
+             ("out_0", "out_1", "c_0_0", "c_0_1", "c_1_0", "c_1_1", "s")
+             (Expr.tuple [var "out_0"; var "out_1"]) }
+
+let body_MerkleTreeInclusionProof
+    ( root
+    , leaf
+    , pathIndices_0
+    , pathIndices_1
+    , pathIndices_2
+    , pathIndices_3
+    , pathIndices_4
+    , pathIndices_5
+    , pathIndices_6
+    , pathIndices_7
+    , pathIndices_8
+    , pathIndices_9
+    , pathIndices_10
+    , pathIndices_11
+    , pathIndices_12
+    , pathIndices_13
+    , pathIndices_14
+    , pathIndices_15
+    , pathIndices_16
+    , pathIndices_17
+    , pathIndices_18
+    , pathIndices_19
+    , siblings_0
+    , siblings_1
+    , siblings_2
+    , siblings_3
+    , siblings_4
+    , siblings_5
+    , siblings_6
+    , siblings_7
+    , siblings_8
+    , siblings_9
+    , siblings_10
+    , siblings_11
+    , siblings_12
+    , siblings_13
+    , siblings_14
+    , siblings_15
+    , siblings_16
+    , siblings_17
+    , siblings_18
+    , siblings_19
+    , hashes_0
+    , hashes_1
+    , hashes_2
+    , hashes_3
+    , hashes_4
+    , hashes_5
+    , hashes_6
+    , hashes_7
+    , hashes_8
+    , hashes_9
+    , hashes_10
+    , hashes_11
+    , hashes_12
+    , hashes_13
+    , hashes_14
+    , hashes_15
+    , hashes_16
+    , hashes_17
+    , hashes_18
+    , hashes_19
+    , hashes_20 ) body =
+  elet root star @@ elet leaf star @@ elet pathIndices_0 star
+  @@ elet pathIndices_1 star @@ elet pathIndices_2 star
+  @@ elet pathIndices_3 star @@ elet pathIndices_4 star
+  @@ elet pathIndices_5 star @@ elet pathIndices_6 star
+  @@ elet pathIndices_7 star @@ elet pathIndices_8 star
+  @@ elet pathIndices_9 star @@ elet pathIndices_10 star
+  @@ elet pathIndices_11 star @@ elet pathIndices_12 star
+  @@ elet pathIndices_13 star @@ elet pathIndices_14 star
+  @@ elet pathIndices_15 star @@ elet pathIndices_16 star
+  @@ elet pathIndices_17 star @@ elet pathIndices_18 star
+  @@ elet pathIndices_19 star @@ elet siblings_0 star @@ elet siblings_1 star
+  @@ elet siblings_2 star @@ elet siblings_3 star @@ elet siblings_4 star
+  @@ elet siblings_5 star @@ elet siblings_6 star @@ elet siblings_7 star
+  @@ elet siblings_8 star @@ elet siblings_9 star @@ elet siblings_10 star
+  @@ elet siblings_11 star @@ elet siblings_12 star @@ elet siblings_13 star
+  @@ elet siblings_14 star @@ elet siblings_15 star @@ elet siblings_16 star
+  @@ elet siblings_17 star @@ elet siblings_18 star @@ elet siblings_19 star
+  @@ elet hashes_0 star @@ elet hashes_1 star @@ elet hashes_2 star
+  @@ elet hashes_3 star @@ elet hashes_4 star @@ elet hashes_5 star
+  @@ elet hashes_6 star @@ elet hashes_7 star @@ elet hashes_8 star
+  @@ elet hashes_9 star @@ elet hashes_10 star @@ elet hashes_11 star
+  @@ elet hashes_12 star @@ elet hashes_13 star @@ elet hashes_14 star
+  @@ elet hashes_15 star @@ elet hashes_16 star @@ elet hashes_17 star
+  @@ elet hashes_18 star @@ elet hashes_19 star @@ elet hashes_20 star @@ body
+
+let body_Semaphore
+    ( root
+    , nullifierHash
+    , signalHash
+    , externalNullifier
+    , identityNullifier
+    , identityTrapdoor
+    , treePathIndices_0
+    , treePathIndices_1
+    , treePathIndices_2
+    , treePathIndices_3
+    , treePathIndices_4
+    , treePathIndices_5
+    , treePathIndices_6
+    , treePathIndices_7
+    , treePathIndices_8
+    , treePathIndices_9
+    , treePathIndices_10
+    , treePathIndices_11
+    , treePathIndices_12
+    , treePathIndices_13
+    , treePathIndices_14
+    , treePathIndices_15
+    , treePathIndices_16
+    , treePathIndices_17
+    , treePathIndices_18
+    , treePathIndices_19
+    , treeSiblings_0
+    , treeSiblings_1
+    , treeSiblings_2
+    , treeSiblings_3
+    , treeSiblings_4
+    , treeSiblings_5
+    , treeSiblings_6
+    , treeSiblings_7
+    , treeSiblings_8
+    , treeSiblings_9
+    , treeSiblings_10
+    , treeSiblings_11
+    , treeSiblings_12
+    , treeSiblings_13
+    , treeSiblings_14
+    , treeSiblings_15
+    , treeSiblings_16
+    , treeSiblings_17
+    , treeSiblings_18
+    , treeSiblings_19
+    , secret
+    , signalHashSquared ) body =
+  elet "var_0" (F.const 20)
+  @@ elet "calculateSecret_identityNullifier" (var identityNullifier)
+  @@ elet "calculateSecret_identityTrapdoor" (var identityTrapdoor)
+  @@ body_CalculateSecret
+       ( "calculateSecret_out"
+       , "calculateSecret_identityNullifier"
+       , "calculateSecret_identityTrapdoor" )
+  @@ elet secret (var "calculateSecret_out")
+  @@ elet "calculateIdentityCommitment_secret" (var secret)
+  @@ body_CalculateIdentityCommitment
+       ("calculateIdentityCommitment_out", "calculateIdentityCommitment_secret")
+  @@ elet "calculateNullifierHash_externalNullifier" (var externalNullifier)
+  @@ elet "calculateNullifierHash_identityNullifier" (var identityNullifier)
+  @@ body_CalculateNullifierHash
+       ( "calculateNullifierHash_out"
+       , "calculateNullifierHash_externalNullifier"
+       , "calculateNullifierHash_identityNullifier" )
+  @@ elet "inclusionProof_leaf" (var "calculateIdentityCommitment_out")
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_0" (var treeSiblings_0)
+  @@ elet "inclusionProof_pathIndices_0" (var treePathIndices_0)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_1" (var treeSiblings_1)
+  @@ elet "inclusionProof_pathIndices_1" (var treePathIndices_1)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_2" (var treeSiblings_2)
+  @@ elet "inclusionProof_pathIndices_2" (var treePathIndices_2)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_3" (var treeSiblings_3)
+  @@ elet "inclusionProof_pathIndices_3" (var treePathIndices_3)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_4" (var treeSiblings_4)
+  @@ elet "inclusionProof_pathIndices_4" (var treePathIndices_4)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_5" (var treeSiblings_5)
+  @@ elet "inclusionProof_pathIndices_5" (var treePathIndices_5)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_6" (var treeSiblings_6)
+  @@ elet "inclusionProof_pathIndices_6" (var treePathIndices_6)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_7" (var treeSiblings_7)
+  @@ elet "inclusionProof_pathIndices_7" (var treePathIndices_7)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_8" (var treeSiblings_8)
+  @@ elet "inclusionProof_pathIndices_8" (var treePathIndices_8)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_9" (var treeSiblings_9)
+  @@ elet "inclusionProof_pathIndices_9" (var treePathIndices_9)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_10" (var treeSiblings_10)
+  @@ elet "inclusionProof_pathIndices_10" (var treePathIndices_10)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_11" (var treeSiblings_11)
+  @@ elet "inclusionProof_pathIndices_11" (var treePathIndices_11)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_12" (var treeSiblings_12)
+  @@ elet "inclusionProof_pathIndices_12" (var treePathIndices_12)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_13" (var treeSiblings_13)
+  @@ elet "inclusionProof_pathIndices_13" (var treePathIndices_13)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_14" (var treeSiblings_14)
+  @@ elet "inclusionProof_pathIndices_14" (var treePathIndices_14)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_15" (var treeSiblings_15)
+  @@ elet "inclusionProof_pathIndices_15" (var treePathIndices_15)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_16" (var treeSiblings_16)
+  @@ elet "inclusionProof_pathIndices_16" (var treePathIndices_16)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_17" (var treeSiblings_17)
+  @@ elet "inclusionProof_pathIndices_17" (var treePathIndices_17)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_18" (var treeSiblings_18)
+  @@ elet "inclusionProof_pathIndices_18" (var treePathIndices_18)
+  @@ elet "var_1" (F.const 0)
+  @@ elet "inclusionProof_siblings_19" (var treeSiblings_19)
+  @@ elet "inclusionProof_pathIndices_19" (var treePathIndices_19)
+  @@ body_MerkleTreeInclusionProof
+       ( "inclusionProof_root"
+       , "inclusionProof_leaf"
+       , "inclusionProof_pathIndices_0"
+       , "inclusionProof_pathIndices_1"
+       , "inclusionProof_pathIndices_2"
+       , "inclusionProof_pathIndices_3"
+       , "inclusionProof_pathIndices_4"
+       , "inclusionProof_pathIndices_5"
+       , "inclusionProof_pathIndices_6"
+       , "inclusionProof_pathIndices_7"
+       , "inclusionProof_pathIndices_8"
+       , "inclusionProof_pathIndices_9"
+       , "inclusionProof_pathIndices_10"
+       , "inclusionProof_pathIndices_11"
+       , "inclusionProof_pathIndices_12"
+       , "inclusionProof_pathIndices_13"
+       , "inclusionProof_pathIndices_14"
+       , "inclusionProof_pathIndices_15"
+       , "inclusionProof_pathIndices_16"
+       , "inclusionProof_pathIndices_17"
+       , "inclusionProof_pathIndices_18"
+       , "inclusionProof_pathIndices_19"
+       , "inclusionProof_siblings_0"
+       , "inclusionProof_siblings_1"
+       , "inclusionProof_siblings_2"
+       , "inclusionProof_siblings_3"
+       , "inclusionProof_siblings_4"
+       , "inclusionProof_siblings_5"
+       , "inclusionProof_siblings_6"
+       , "inclusionProof_siblings_7"
+       , "inclusionProof_siblings_8"
+       , "inclusionProof_siblings_9"
+       , "inclusionProof_siblings_10"
+       , "inclusionProof_siblings_11"
+       , "inclusionProof_siblings_12"
+       , "inclusionProof_siblings_13"
+       , "inclusionProof_siblings_14"
+       , "inclusionProof_siblings_15"
+       , "inclusionProof_siblings_16"
+       , "inclusionProof_siblings_17"
+       , "inclusionProof_siblings_18"
+       , "inclusionProof_siblings_19"
+       , "inclusionProof_hashes_0"
+       , "inclusionProof_hashes_1"
+       , "inclusionProof_hashes_2"
+       , "inclusionProof_hashes_3"
+       , "inclusionProof_hashes_4"
+       , "inclusionProof_hashes_5"
+       , "inclusionProof_hashes_6"
+       , "inclusionProof_hashes_7"
+       , "inclusionProof_hashes_8"
+       , "inclusionProof_hashes_9"
+       , "inclusionProof_hashes_10"
+       , "inclusionProof_hashes_11"
+       , "inclusionProof_hashes_12"
+       , "inclusionProof_hashes_13"
+       , "inclusionProof_hashes_14"
+       , "inclusionProof_hashes_15"
+       , "inclusionProof_hashes_16"
+       , "inclusionProof_hashes_17"
+       , "inclusionProof_hashes_18"
+       , "inclusionProof_hashes_19"
+       , "inclusionProof_hashes_20" )
+  @@ elet "var_1" (F.const 0)
+  @@ elet root (var "inclusionProof_root")
+  @@ elet signalHashSquared F.(var signalHash * var signalHash)
+  @@ elet nullifierHash (var "calculateNullifierHash_out")
+  @@ body
+
+let circuit_Semaphore =
+  Hoare_circuit.to_circuit
+  @@ Hoare_circuit
+       { name= "Semaphore"
+       ; inputs=
+           [ Presignal "signalHash"
+           ; Presignal "externalNullifier"
+           ; Presignal "identityNullifier"
+           ; Presignal "identityTrapdoor"
+           ; Presignal "treePathIndices_0"
+           ; Presignal "treePathIndices_1"
+           ; Presignal "treePathIndices_2"
+           ; Presignal "treePathIndices_3"
+           ; Presignal "treePathIndices_4"
+           ; Presignal "treePathIndices_5"
+           ; Presignal "treePathIndices_6"
+           ; Presignal "treePathIndices_7"
+           ; Presignal "treePathIndices_8"
+           ; Presignal "treePathIndices_9"
+           ; Presignal "treePathIndices_10"
+           ; Presignal "treePathIndices_11"
+           ; Presignal "treePathIndices_12"
+           ; Presignal "treePathIndices_13"
+           ; Presignal "treePathIndices_14"
+           ; Presignal "treePathIndices_15"
+           ; Presignal "treePathIndices_16"
+           ; Presignal "treePathIndices_17"
+           ; Presignal "treePathIndices_18"
+           ; Presignal "treePathIndices_19"
+           ; Presignal "treeSiblings_0"
+           ; Presignal "treeSiblings_1"
+           ; Presignal "treeSiblings_2"
+           ; Presignal "treeSiblings_3"
+           ; Presignal "treeSiblings_4"
+           ; Presignal "treeSiblings_5"
+           ; Presignal "treeSiblings_6"
+           ; Presignal "treeSiblings_7"
+           ; Presignal "treeSiblings_8"
+           ; Presignal "treeSiblings_9"
+           ; Presignal "treeSiblings_10"
+           ; Presignal "treeSiblings_11"
+           ; Presignal "treeSiblings_12"
+           ; Presignal "treeSiblings_13"
+           ; Presignal "treeSiblings_14"
+           ; Presignal "treeSiblings_15"
+           ; Presignal "treeSiblings_16"
+           ; Presignal "treeSiblings_17"
+           ; Presignal "treeSiblings_18"
+           ; Presignal "treeSiblings_19" ]
+       ; outputs= [Presignal "root"; Presignal "nullifierHash"]
+       ; preconditions= []
+       ; postconditions= []
+       ; body=
+           body_Semaphore
+             ( "root"
+             , "nullifierHash"
+             , "signalHash"
+             , "externalNullifier"
+             , "identityNullifier"
+             , "identityTrapdoor"
+             , "treePathIndices_0"
+             , "treePathIndices_1"
+             , "treePathIndices_2"
+             , "treePathIndices_3"
+             , "treePathIndices_4"
+             , "treePathIndices_5"
+             , "treePathIndices_6"
+             , "treePathIndices_7"
+             , "treePathIndices_8"
+             , "treePathIndices_9"
+             , "treePathIndices_10"
+             , "treePathIndices_11"
+             , "treePathIndices_12"
+             , "treePathIndices_13"
+             , "treePathIndices_14"
+             , "treePathIndices_15"
+             , "treePathIndices_16"
+             , "treePathIndices_17"
+             , "treePathIndices_18"
+             , "treePathIndices_19"
+             , "treeSiblings_0"
+             , "treeSiblings_1"
+             , "treeSiblings_2"
+             , "treeSiblings_3"
+             , "treeSiblings_4"
+             , "treeSiblings_5"
+             , "treeSiblings_6"
+             , "treeSiblings_7"
+             , "treeSiblings_8"
+             , "treeSiblings_9"
+             , "treeSiblings_10"
+             , "treeSiblings_11"
+             , "treeSiblings_12"
+             , "treeSiblings_13"
+             , "treeSiblings_14"
+             , "treeSiblings_15"
+             , "treeSiblings_16"
+             , "treeSiblings_17"
+             , "treeSiblings_18"
+             , "treeSiblings_19"
+             , "secret"
+             , "signalHashSquared" )
+             (Expr.tuple [var "root"; var "nullifierHash"]) }

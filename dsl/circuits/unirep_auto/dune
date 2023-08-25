@@ -1,0 +1,5 @@
+(library
+ (name unirep_auto)
+ (libraries lib typecheck circomlib)
+ (modules
+  userStateTransition_auto))

@@ -2,10 +2,7 @@ open Ast
 open Dsl
 open Nice_dsl
 open Expr
-
-(* open Qual *)
 open Typ
-(* open TypRef *)
 
 let nLevels = 20
 

@@ -65,7 +65,11 @@ module Expr = struct
 
   let const_field i = fc (Big_int_Z.big_int_of_int i)
 
+  let const_field_of_string s = fc (Big_int_Z.big_int_of_string s)
+
   let const_int i = zc (Big_int_Z.big_int_of_int i)
+
+  let const_int_of_string s = zc (Big_int_Z.big_int_of_string s)
 
   let const_nil = cnil
 
@@ -116,6 +120,8 @@ module Expr = struct
   module Z = struct
     let const = const_int
 
+    let const_of_string = const_int_of_string
+
     let max = zmax
 
     let not = znot
@@ -160,6 +166,8 @@ module Expr = struct
 
   module F = struct
     let const = const_field
+
+    let const_of_string = const_field_of_string
 
     let product = fmuls
 

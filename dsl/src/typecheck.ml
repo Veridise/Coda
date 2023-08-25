@@ -366,8 +366,8 @@ let rec synthesize (e : expr) : typ S.t =
                 else failwith "[synthesize] Tuple access out of bounds"
             | t ->
                 failwith
-                  (spf "[synthesize] TGet: expect a tuple, but got: %s"
-                     (show_typ t) ) )
+                  (spf "[synthesize] TGet: expect a tuple, but got: %s\n  - e = %s\n  - n = %s\n"
+                     (show_typ t) (show_expr e) (string_of_int n ) ) )
         | ArrayOp (Get, [e1; e2]) -> (
             let%bind t1 = synthesize e1 in
             match skeleton t1 with

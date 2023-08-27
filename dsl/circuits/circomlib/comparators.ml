@@ -27,6 +27,19 @@ let i = v "i"
 (* IsZero *)
 let t_is_zero = tfq (ind_dec nu (eq vin f0))
 
+(*
+template IsZero() {
+    signal input in;
+    signal output out;
+
+    signal inv;
+
+    inv <-- in!=0 ? 1/in : 0;
+
+    out <== -in*inv +1;
+    in*out === 0;
+}   
+*)
 let is_zero =
   Circuit
     { name= "IsZero"

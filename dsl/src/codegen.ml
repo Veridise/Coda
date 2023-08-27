@@ -645,7 +645,11 @@ and eval_int (e : expr) (config : configuration) : big_int =
       | Mod ->
           mod_big_int i1 i2
       | Pow ->
-          power_big_int_positive_int i1 (int_of_big_int i2) )
+          power_big_int_positive_int i1 (int_of_big_int i2)
+      | Div ->
+          failwith "eval_int (Binop (Div _ _)) _"
+      | ShiftRight ->
+          failwith "eval_int (Binop (ShiftRight _ _)) _" )
   | Fn (ToUZ, [e]) ->
       eval_int e config
   | Fn (NatToF, [e]) ->
@@ -686,7 +690,11 @@ and simplify_expr (e : expr) : expr =
         | Pow ->
             Const (CF (power_big_int_positive_int c1 (int_of_big_int c2)))
         | Mod ->
-            Const (CF (mod_big_int c1 c2)) )
+            Const (CF (mod_big_int c1 c2))
+        | Div -> 
+            failwith "simplify_expr: Binop (Div, _, _, _)"
+        | ShiftRight ->
+            Binop (ty, op, Const (CF c1), Const (CF c2)) )
     | Const (CF c), e2' ->
         if eq_big_int c zero_big_int then
           match op with

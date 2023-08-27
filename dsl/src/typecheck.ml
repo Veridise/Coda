@@ -185,6 +185,7 @@ let rec subtype (t1 : typ) (t2 : typ) : unit S.t =
 
 (* Synthesize the most general type of [e] *)
 let rec synthesize (e : expr) : typ S.t =
+  let _ = print_endline (spf ("[synthesize] e = %s") (show_expr e)) in
   S.(
     Let_syntax.(
       print_endline (spf "[synthesize] Synthesizing type for %s" (show_expr e)) ;
@@ -506,6 +507,7 @@ and synthesize_app (t : typ) (es : expr list) : typ S.t =
 
 (* Check that [e]'s type is a subtype of [t] *)
 and check (e : expr) (t : typ) : unit S.t =
+  let _ = print_endline (spf ("[check] e = %s; t = %s") (show_expr e) (show_typ t)) in
   S.(
     Let_syntax.(
       print_endline

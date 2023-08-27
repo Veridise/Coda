@@ -21,6 +21,8 @@ let show_binop = function
       "mod"
   | Div ->
       "/"
+  | ShiftRight ->
+      ">>"
 
 let show_boolop = function And -> "/\\" | Or -> "\\/" | Imply -> "->"
 

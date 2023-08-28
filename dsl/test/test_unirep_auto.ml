@@ -9,12 +9,21 @@ let _ =
   U.test circuit_UserStateTransition
     [ circuit_StateTreeLeaf
     ; circuit_EpochKeyHasher
-    ; circuit_Num2Bits
+    ; circuit_Num2Bits_inst0
+    ; circuit_Num2Bits_inst1
+    ; circuit_Num2Bits_inst2
+    ; circuit_Num2Bits_inst3
     ; circuit_MerkleTreeInclusionProof
     ; circuit_GreaterThan
     ; circuit_LessThan
     ; circuit_IsZero
-    ; circuit_IsEqual ]
+    ; circuit_IsEqual
+    ; circuit_Poseidon
+    ; circuit_EpochTreeLeaf
+    ; circuit_ForceEqualIfEnabled
+    ; circuit_LowerGreaterThan
+    ; circuit_LowerLessThan
+    ; circuit_Mux1 ]
 
 (* @ Circomlib.Comparators.[less_than; geq; greater_than; is_zero; is_equal]
    @ Circomlib.Gates.[cor] ) *)

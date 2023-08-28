@@ -364,7 +364,7 @@ let rec synthesize (e : expr) : typ S.t =
             match descale t with
             | TTuple ts ->
                 if 0 <= n && n < List.length ts then return (List.nth_exn ts n)
-                else failwith "[synthesize] Tuple access out of bounds"
+                else failwith (spf "[synthesize] Tuple access out of bounds; List.length ts = %s; n = %s; ts = %s" (string_of_int (List.length ts)) (string_of_int n) (List.to_string ~f:(fun t -> spf "%s;" (show_typ t)) ts))
             | t ->
                 failwith
                   (spf "[synthesize] TGet: expect a tuple, but got: %s\n  - e = %s\n  - n = %s\n"

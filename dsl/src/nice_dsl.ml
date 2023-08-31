@@ -180,6 +180,10 @@ module Expr = struct
     let ( - ) = fsub
 
     let ( ^ ) = fpow
+    
+    let div e1 e2 = Binop (BF, Mul, e1, e2)
+
+    let ( / ) = div
 
     let add1 = fadd1
   end

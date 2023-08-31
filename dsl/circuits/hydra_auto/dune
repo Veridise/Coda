@@ -1,0 +1,4 @@
+(library
+ (name hydra_auto)
+ (libraries circomlib lib typecheck)
+ (modules hydra_auto))

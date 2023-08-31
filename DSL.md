@@ -19,8 +19,8 @@ This will print (in stdout) the Coq lemmas yielded as obligations to show correc
 
 `circuit`:
 - `name`: The name of the circuit, which is how the circuit is referenced by a `Call` expression.
-- `inputs`: The input signals of the circuit, each with an associated refinement type. A call to this circuit as a component incurs obligations to satisfy the refinements of all the inputs.
-- `outputs`: The output signals of the circuit, each with an associated refinement type. A call to this circuit as a component 
+- `inputs`: The input signals of the circuit, each with an associated refinement type. A call to this circuit as a component incurs obligations to satisfy the refinements of all the inputs. The body of the circuit assumes the refinements of these refinements on the inputs.
+- `outputs`: The output signals of the circuit, each with an associated refinement type. A call to this circuit as a component incurs assumptions that the output signal values satisfy these refinements. The body of the circuit is obligated to satisfy these refinements on the outputs.
 - `dep`: Deprecated. Just give it `None` during circuit construction.
 - `body`: The expression that encodes the output signals' values. If there is only one output signal, then this expression should be of type `{ F | phi }` which is a field element refined by `phi`. If there are multiple (`n > 1`) output signals then this expression should be of type `{ F * ... * F | phi }` which is an `n`-tuple of `F` refined by `phi`.
 
@@ -49,6 +49,23 @@ This will print (in stdout) the Coq lemmas yielded as obligations to show correc
 - Used by `dummy`.
 
 ## Development
+
+### To define a circuit
+
+Define a circuit like so:
+```
+let my_circuit = Circuit
+  { name= "MyCircuit";
+    inputs= <list of input signals>;
+    outputs= <list of output signals>;
+    dep= None;
+    body= <output> }
+```
+The list of input signals defines the inputs and their refinements. The list of output signals defines the outputs and their refinements.
+
+When type-checking a circuit, the the inputs parameteres are assumed to have the associated refinements, and the body is asserted to have the associated refinements.
+
+When calling a component of a circuit, the input parameters are asserted to have the associated refinements, and the outputs of the component call are assumed to have the associated refinements.
 
 ### To add a new test suite
 
@@ -94,6 +111,8 @@ If you actually _do_ want to add a new basic constructor to the DSL's AST, then 
 - if you added any new modules to `dsl/src/`, make sure to include them appropriately in `dsl/src/dune`
 
 ## Assumptions
+
+TODO
 
 ## Limitations
 

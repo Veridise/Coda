@@ -110,11 +110,9 @@ If you actually _do_ want to add a new basic constructor to the DSL's AST, then 
 - in `dsl/src/coqgen.ml`: define any new rules for converting the new construct to Coq
 - if you added any new modules to `dsl/src/`, make sure to include them appropriately in `dsl/src/dune`
 
-## Assumptions
-
-TODO
-
 ## Limitations
+
+Since some Circom features are not directly translatable into Coda automatically, some circuits are treated as NonDet for the sake of translation. Their actual behavior can be specified manually in their refinement type signature.
 
 Coda is based on the features available in Circom 2.0.
 
